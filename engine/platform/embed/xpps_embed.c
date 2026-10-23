@@ -21,12 +21,20 @@ static FILE *capture;
 static jmp_buf *guard;
 static int guard_code;
 
+/* In this file stdout and stderr name the engine's view of the streams
+   (see xpps_embed.h); the real ones come from xpps_real_stdout/stderr. */
 FILE *xpps_log_stream(void) {
   if (xpps_embedded) {
     if (!capture) capture = tmpfile();
     if (capture) return capture;
   }
-  return stdout;
+  return xpps_real_stdout();
+}
+
+FILE *xpps_stdout(void) { return xpps_log_stream(); }
+
+FILE *xpps_stderr(void) {
+  return xpps_embedded ? xpps_log_stream() : xpps_real_stderr();
 }
 
 int xpps_printf(const char *fmt, ...) {
@@ -45,7 +53,7 @@ void xpps_exit(int code) {
     guard_code = code;
     longjmp(*g, 1);
   }
-  fflush(stdout);
+  fflush(xpps_real_stdout());
   exit(code);
 }
 
@@ -65,7 +73,7 @@ char *xpps_capture_take(void) {
   FILE *f = xpps_log_stream();
   long n;
   char *text;
-  if (f == stdout) return NULL;
+  if (f == xpps_real_stdout()) return NULL;
   fflush(f);
   n = ftell(f);
   if (n < 0) n = 0;

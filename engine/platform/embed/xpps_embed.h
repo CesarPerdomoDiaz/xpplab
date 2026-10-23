@@ -45,7 +45,20 @@ int xpps_answer_fields(int n, char **names, char *values, int stride);
 }
 #endif
 
+/* The real standard streams, captured before the macros below redefine
+   the names. */
+static inline FILE *xpps_real_stdout(void) { return stdout; }
+static inline FILE *xpps_real_stderr(void) { return stderr; }
+/* stdout and stderr as the engine sees them: the capture stream while
+   embedded, the real streams otherwise. */
+FILE *xpps_stdout(void);
+FILE *xpps_stderr(void);
+
 #define printf xpps_printf
 #define exit xpps_exit
+#undef stdout
+#define stdout (xpps_stdout())
+#undef stderr
+#define stderr (xpps_stderr())
 
 #endif

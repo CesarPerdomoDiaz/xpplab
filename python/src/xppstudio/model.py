@@ -87,10 +87,12 @@ class _NamedValues(MutableMapping):
 class Model:
     """An XPPAUT model loaded from an .ode file.
 
-    >>> m = Model("lecar.ode")
-    >>> m.parameters["iapp"] = 0.1
-    >>> sol = m.run(total=200)
-    >>> sol["V"]          # NumPy array
+    ```python
+    m = Model("lecar.ode")
+    m.parameters["iapp"] = 0.1
+    sol = m.run(total=200)
+    sol["V"]          # NumPy array
+    ```
     """
 
     def __init__(self, path: str | os.PathLike, *, options: list[str] = (),
@@ -201,6 +203,9 @@ class Model:
         rows = self._engine.call("xppe_rows", check=False)
         data = {}
         buf = (ctypes.c_double * max(rows, 1))()
+        if "T" not in self.columns:  # an "only" statement dropped time
+            n = self._engine.call("xppe_column", -1, buf, rows)
+            data["T"] = np.frombuffer(buf, dtype=float, count=n).copy()
         for j, name in enumerate(self.columns):
             n = self._engine.call("xppe_column", j, buf, rows)
             data[name] = np.frombuffer(buf, dtype=float, count=n).copy()

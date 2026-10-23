@@ -1,0 +1,75 @@
+site_name: XPP Studio
+site_description: XPPAUT's engine with a modern interface and a Python package
+repo_url: https://github.com/xppstudio/xppstudio
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: build/site
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+
+hooks:
+  - tools/mkdocs_hooks.py
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [python/src]
+          options:
+            show_source: false
+            docstring_style: google
+            members_order: source
+            show_root_heading: true
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Desktop app:
+      - Getting started: manual/welcome.md
+      - "Tutorial: your first model": manual/tutorial.md
+      - Bifurcation analysis with AUTO: manual/auto.md
+      - Commands and shortcuts: manual/commands.md
+      - Coming from XPPAUT: manual/xppaut.md
+  - Python:
+      - Quick start: python/quickstart.md
+      - Simulation: python/simulation.md
+      - Phase plane: python/phase-plane.md
+      - Bifurcations with AUTO: python/auto.md
+      - API reference: python/reference.md
+  - Reference:
+      - The .ode file format: manual/odefile.md
+      - Numerical methods: manual/numerics.md
+  - Examples gallery: gallery/index.md
+  - Development:
+      - Architecture: development/architecture.md
+      - Upstream issues: upstream-issues.md
+      - About and credits: manual/about.md

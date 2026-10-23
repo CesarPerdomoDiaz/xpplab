@@ -63,3 +63,30 @@ def test_phase_plane_plot(fhn):
     mpl.use("Agg")
     ax = fhn.phase_plane("v", "w", xlim=(-2.5, 2.5), ylim=(-1, 2.5))
     assert ax.get_xlabel() == "v"
+
+
+DUFFING = """
+x' = y
+y' = x - x^3 - d*y
+par d=0.25
+init x=0.05, y=0
+@ total=30, dt=0.01
+done
+"""
+
+
+def test_saddle_manifolds_separate_the_wells():
+    with xs.Model.from_text(DUFFING, "duffing.ode") as m:
+        eq, branches = m.manifolds({"x": 0, "y": 0})
+        assert eq.kind == "saddle"
+        kinds = sorted(k for k, _ in branches)
+        assert kinds == ["stable", "stable", "unstable", "unstable"]
+        ends = sorted(round(float(s["X"][-1])) for k, s in branches if k == "unstable")
+        assert ends == [-1, 1]  # each unstable branch falls into one well
+        assert all(s.t[-1] < 0 for k, s in branches if k == "stable")  # backward
+
+
+def test_no_manifolds_for_a_node():
+    with xs.Model.from_text(DUFFING, "duffing.ode") as m:
+        eq, branches = m.manifolds({"x": 1, "y": 0})
+        assert eq.stable and branches == []

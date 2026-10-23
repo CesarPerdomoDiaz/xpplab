@@ -144,6 +144,8 @@ _SIGNATURES = {
     "xppe_equilibrium": ([ctypes.POINTER(ctypes.c_double)] * 3, ctypes.c_int),
     "xppe_rhs": ([ctypes.c_double, ctypes.POINTER(ctypes.c_double),
                   ctypes.POINTER(ctypes.c_double)], ctypes.c_int),
+    "xppe_manifold_count": ([], ctypes.c_int),
+    "xppe_manifold": ([ctypes.c_int, ctypes.POINTER(ctypes.c_int)], ctypes.c_int),
     "xppe_nullcline": ([ctypes.c_int, ctypes.c_int, ctypes.c_int,
                         ctypes.c_double, ctypes.c_double, ctypes.c_double,
                         ctypes.c_double, ctypes.c_int,

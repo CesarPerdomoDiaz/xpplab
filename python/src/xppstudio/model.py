@@ -200,6 +200,10 @@ class Model:
         if values:
             self.set(**values)
         self._engine.call("xppe_run")
+        return self._collect()
+
+    def _collect(self) -> "Trajectory":
+        """The engine's current run as a Trajectory."""
         rows = self._engine.call("xppe_rows", check=False)
         data = {}
         buf = (ctypes.c_double * max(rows, 1))()
@@ -237,6 +241,26 @@ class Model:
         eig = np.array(re[:]) + 1j * np.array(im[:])
         discrete = self.get("METH") == "discrete"
         return Equilibrium(values, eig, discrete)
+
+    def manifolds(self, guess: dict | None = None):
+        """Stable and unstable manifolds of a saddle, as XPPAUT draws them.
+
+        Finds the equilibrium near ``guess`` (or the initial values). If it
+        is a saddle with a one-dimensional stable or unstable direction,
+        each branch is integrated from just off the equilibrium along its
+        eigenvector: forward in time for unstable branches, backward for
+        stable ones. Returns ``(equilibrium, [(kind, Trajectory), ...])``
+        with kind "stable" or "unstable"; the list is empty for non-saddles.
+        """
+        eq = self.equilibrium(guess)
+        n = self._engine.call("xppe_manifold_count", check=False)
+        branches = []
+        kind = ctypes.c_int()
+        for k in range(n):
+            self._engine.call("xppe_manifold", k, ctypes.byref(kind))
+            branches.append(("unstable" if kind.value > 0 else "stable",
+                             self._collect()))
+        return eq, branches
 
     # -- phase plane --------------------------------------------------------
 

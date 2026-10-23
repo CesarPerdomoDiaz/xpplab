@@ -44,6 +44,8 @@ extern "C" {
   X(int, xppe_rhs, (double, const double *, double *))                        \
   X(int, xppe_nullcline,                                                      \
     (int, int, int, double, double, double, double, int, float *, int))       \
+  X(int, xppe_manifold_count, (void))                                         \
+  X(int, xppe_manifold, (int, int *))                                         \
   X(int, xppe_auto_get, (const char *, double *))                             \
   X(int, xppe_auto_set, (const char *, double))                               \
   X(int, xppe_auto_parameters, (const char *, const char *))                  \

@@ -71,7 +71,13 @@ def plot_phase_plane(model, x, y, xlim=None, ylim=None, trajectory=True,
         ax.plot(sol[x][:1], sol[y][:1], "s", color="#1f77b4", ms=4)
     if equilibrium:
         try:
-            eq = model.equilibrium()
+            eq, branches = model.manifolds()
+            labelled = set()
+            for kind, s in branches:
+                ax.plot(s[x], s[y], lw=1.4,
+                        color="#ff7f0e" if kind == "unstable" else "#9467bd",
+                        label=None if kind in labelled else f"{kind} manifold")
+                labelled.add(kind)
             ax.plot(eq[x], eq[y], "o", ms=7,
                     mfc="k" if eq.stable else "w", mec="k", zorder=5,
                     label=f"equilibrium ({eq.kind})")

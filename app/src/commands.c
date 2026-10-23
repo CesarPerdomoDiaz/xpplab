@@ -241,7 +241,7 @@ void app_command(App *a, const char *line_in) {
     a->show_phase = true;
   } else if (!strcmp(cmd, "erase") || !strcmp(cmd, "e")) {
     app_clear_curves(a);
-    a->neq = 0;
+    app_clear_equilibria(a);
     app_status(a, "Erased kept curves and equilibria.");
   } else if (!strcmp(cmd, "freeze")) {
     app_freeze(a);

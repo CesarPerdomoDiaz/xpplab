@@ -3,6 +3,7 @@
  * XPPAUT's own nullcline algorithm, with the plot window passed in instead
  * of read from XPPAUT's graphics state.
  */
+#include <math.h>
 #include <setjmp.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +33,52 @@ int xppe_rhs(double t, const double *x, double *dxdt) {
   XPPE_GUARD_BEGIN((void)0);
   rhs(t, y, dxdt, NODE);
   XPPE_GUARD_END;
+  return XPPE_OK;
+}
+
+/* ---- Invariant manifolds of saddles ------------------------------------- */
+
+/* After xppe_equilibrium() finds a saddle with a one-dimensional stable or
+   unstable direction, do_sing_info() (gear.c) leaves starting points just
+   off the equilibrium along each eigenvector in ShootIC, with ShootType +1
+   (unstable) or -1 (stable). */
+extern double ShootIC[8][MAXODE];
+extern int ShootIndex, ShootType[8];
+extern int STORFLAG, MyStart, storind, RANGE_FLAG, DelayErr, POIEXT;
+extern double DELTA_T, T0, MyTime;
+void usual_integrate_stuff(double *x);
+void reset_browser(void);
+
+int xppe_manifold_count(void) { return xppe_loaded() ? ShootIndex : 0; }
+
+/* Integrate manifold branch k (forward in time for an unstable branch,
+   backward for a stable one), as save_batch_shoot() in gear.c does. The
+   result replaces the current run: read it with xppe_rows/xppe_column. */
+int xppe_manifold(int k, int *type) {
+  double x[MAXODE], olddt = DELTA_T;
+  int rc;
+  if ((rc = xppe_require_model()) != XPPE_OK) return rc;
+  if (k < 0 || k >= ShootIndex) {
+    xppe_set_error("no such manifold branch; find a saddle first", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  memcpy(x, ShootIC[k], sizeof(double) * (size_t)NODE);
+  if (type) *type = ShootType[k];
+  xppe_begin_call();
+  XPPE_GUARD_BEGIN((DELTA_T = olddt));
+  MyStart = 1;
+  RANGE_FLAG = 0;
+  DelayErr = 0;
+  MyTime = T0;
+  STORFLAG = 1;
+  POIEXT = 0;
+  storind = 0;
+  reset_browser();
+  DELTA_T = ShootType[k] > 0 ? fabs(DELTA_T) : -fabs(DELTA_T);
+  usual_integrate_stuff(x);
+  XPPE_GUARD_END;
+  DELTA_T = olddt;
+  xppe_end_call();
   return XPPE_OK;
 }
 

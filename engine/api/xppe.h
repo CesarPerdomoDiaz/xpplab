@@ -102,6 +102,14 @@ XPPE_API int xppe_nullcline(int which, int ix, int iy, double xlo, double xhi,
                             double ylo, double yhi, int grid, float *segments,
                             int max_segments);
 
+/* Stable and unstable manifolds of a saddle. After xppe_equilibrium() finds
+   a saddle with a one-dimensional stable or unstable direction, there are
+   xppe_manifold_count() branches (two per direction). xppe_manifold(k)
+   integrates branch k (backward in time for stable branches) and leaves it
+   as the current run; *type is +1 for unstable, -1 for stable. */
+XPPE_API int xppe_manifold_count(void);
+XPPE_API int xppe_manifold(int k, int *type);
+
 /* ---- AUTO continuation ----------------------------------------------------
  *
  * The same continuation XPPAUT runs from its AUTO window, driven by calls:

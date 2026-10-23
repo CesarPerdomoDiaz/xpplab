@@ -1,0 +1,23 @@
+name: Model does not work
+description: An .ode file that works in XPPAUT fails or behaves differently here.
+labels: [compatibility]
+body:
+  - type: textarea
+    id: model
+    attributes:
+      label: The model
+      description: Attach the .ode file (and any tables or .set files it needs).
+    validations:
+      required: true
+  - type: textarea
+    id: difference
+    attributes:
+      label: What is different from XPPAUT?
+      description: An error message, different numbers, a missing feature...
+    validations:
+      required: true
+  - type: input
+    id: xppaut
+    attributes:
+      label: XPPAUT version you compared with
+      placeholder: e.g. 8.0

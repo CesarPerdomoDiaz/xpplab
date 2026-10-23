@@ -34,8 +34,8 @@ all = ["matplotlib>=3.5", "pandas>=1.3"]
 test = ["pytest>=7", "matplotlib>=3.5", "pandas>=1.3"]
 
 [project.urls]
-Documentation = "https://github.com/xppstudio/xppstudio"
-Source = "https://github.com/xppstudio/xppstudio"
+Documentation = "https://github.com/CesarPerdomoDiaz/xppstudio"
+Source = "https://github.com/CesarPerdomoDiaz/xppstudio"
 
 [tool.scikit-build]
 minimum-version = "build-system.requires"

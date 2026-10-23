@@ -3,6 +3,7 @@ name: Documentation
 on:
   push:
     branches: [main]
+    paths: ["docs/**", "python/**", "mkdocs.yml", "tools/**", "README.md"]
   workflow_dispatch:
 
 permissions:
@@ -33,6 +34,9 @@ jobs:
 
   deploy:
     needs: build
+    # GitHub Pages for private repositories needs a paid plan: until the
+    # repository is public the site is only built (and kept as an artifact).
+    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages

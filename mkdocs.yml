@@ -1,6 +1,6 @@
 site_name: XPP Studio
 site_description: XPPAUT's engine with a modern interface and a Python package
-repo_url: https://github.com/xppstudio/xppstudio
+repo_url: https://github.com/CesarPerdomoDiaz/xppstudio
 edit_uri: edit/main/docs/
 docs_dir: docs
 site_dir: build/site
@@ -71,5 +71,6 @@ nav:
   - Examples gallery: gallery/index.md
   - Development:
       - Architecture: development/architecture.md
+      - macOS plan: development/macos.md
       - Upstream issues: upstream-issues.md
       - About and credits: manual/about.md

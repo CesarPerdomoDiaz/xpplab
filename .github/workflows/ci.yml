@@ -2,8 +2,14 @@ name: CI
 
 on:
   push:
+    paths-ignore: ["docs/**", "**.md"]
   pull_request:
   workflow_dispatch:
+
+# A newer push cancels the run still going for the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   windows:
@@ -81,6 +87,25 @@ jobs:
           --reference build-reference/xppaut-reference
       - name: Python tests
         run: PYTHONPATH=python/src python -m pytest -q python/tests
+      - name: Desktop app starts and renders (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          app=build/app/xppstudio.app/Contents/MacOS/xppstudio
+          test -x "$app"
+          "$app" "$PWD/engine/xppaut/ode/lecar.ode" --cmd "nullclines" \
+            --cmd "show phase" --screenshot "$PWD/macos-app.bmp" --frames 12
+          test -s macos-app.bmp
+      - name: Package the macOS app
+        if: runner.os == 'macOS'
+        run: cd build && cpack
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'macOS' && always()
+        with:
+          name: macos-preview
+          path: |
+            macos-app.bmp
+            build/XPPStudio-*.dmg
+          if-no-files-found: ignore
 
   linux-app:
     name: Linux desktop app (SDL3 from source)
@@ -101,6 +126,9 @@ jobs:
 
   wheels:
     name: Wheel (${{ matrix.os }})
+    # Wheels take long (macOS minutes count tenfold on private repositories):
+    # build them on request and for releases only.
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

@@ -64,6 +64,18 @@ typedef struct {
   int nmax, npr, ntst;
 } AutoUI;
 
+typedef struct {
+  int par;             /* parameter swept */
+  double from, to;
+  int steps;
+  int var;             /* variable measured (max/min mode) */
+  double transient;    /* fraction of each run ignored before measuring */
+  bool overlay;        /* keep each run's trajectory instead of measuring */
+  int n;               /* results of the last max/min sweep */
+  double *x, *ymax, *ymin;
+  bool reveal;         /* bring the Sweep tab forward next frame */
+} SweepUI;
+
 typedef struct App {
   /* engine */
   char engine_path[1024];
@@ -110,6 +122,7 @@ typedef struct App {
 
   PhasePlane pp;
   AutoUI au;
+  SweepUI sw;
 
   /* console */
   char *log;
@@ -171,6 +184,9 @@ void app_clear_curves(App *a);
 bool app_equilibrium(App *a, const double *guess);
 void app_clear_equilibria(App *a);
 bool app_nullclines(App *a, double xlo, double xhi, double ylo, double yhi);
+/* XPPAUT's Initial conds > Range: run once per value of a parameter, and
+   either keep each trajectory or record the max and min of a variable. */
+bool app_sweep(App *a);
 
 /* AUTO */
 bool app_auto_equilibria(App *a);

@@ -394,6 +394,17 @@ static bool load_engine(App *a) {
   }
   a->au.yvar = 0;
   read_auto_settings(a);
+  /* Sweep defaults: the first parameter over its slider range. */
+  free(a->sw.x);
+  free(a->sw.ymax);
+  free(a->sw.ymin);
+  memset(&a->sw, 0, sizeof a->sw);
+  if (a->npars > 0) {
+    a->sw.from = a->par[0].lo;
+    a->sw.to = a->par[0].hi;
+  }
+  a->sw.steps = 40;
+  a->sw.transient = 0.5;
   return true;
 }
 
@@ -683,6 +694,70 @@ bool app_continue(App *a, double more) {
   for (i = 0; i < a->nvars; i++) a->eng->api.xppe_set_number(a->vars[i], ic_saved[i]);
   free(ic_saved);
   app_refresh_values(a);
+  return true;
+}
+
+/* ---- Parameter sweeps ------------------------------------------------------ */
+
+bool app_sweep(App *a) {
+  SweepUI *s = &a->sw;
+  double old;
+  bool live = a->live, keep = a->keep_curves;
+  int k, n, col = -1, j;
+  if (!a->model_ok || s->par < 0 || s->par >= a->npars) return false;
+  n = s->steps < 2 ? 2 : s->steps;
+  if (s->overlay && n > APP_MAX_FROZEN) n = APP_MAX_FROZEN;
+  old = a->par[s->par].value;
+  a->live = false;
+  if (s->overlay) {
+    app_clear_curves(a);
+    free_traj(&a->traj);
+    a->have_traj = false;
+    a->keep_curves = true;
+  } else {
+    free(s->x);
+    free(s->ymax);
+    free(s->ymin);
+    s->x = malloc(sizeof(double) * (size_t)n);
+    s->ymax = malloc(sizeof(double) * (size_t)n);
+    s->ymin = malloc(sizeof(double) * (size_t)n);
+    s->n = 0;
+  }
+  for (k = 0; k < n; k++) {
+    double v = s->from + (s->to - s->from) * k / (n - 1);
+    app_set_param(a, s->par, v);
+    if (!app_run(a)) break;
+    if (!s->overlay) {
+      const Trajectory *t = &a->traj;
+      int start = (int)(t->nrows * s->transient);
+      double hi = -1e300, lo = 1e300;
+      if (col < 0)
+        for (j = 1; j < t->ncols; j++)
+          if (SDL_strcasecmp(t->names[j], a->vars[s->var]) == 0) col = j;
+      if (col < 0) break;
+      for (j = start; j < t->nrows; j++) {
+        double y = t->cols[col][j];
+        if (y > hi) hi = y;
+        if (y < lo) lo = y;
+      }
+      s->x[s->n] = v;
+      s->ymax[s->n] = hi;
+      s->ymin[s->n] = lo;
+      s->n++;
+    }
+  }
+  app_set_param(a, s->par, old);
+  a->live = live;
+  a->keep_curves = keep;
+  if (!s->overlay) {
+    app_run(a);
+    s->reveal = true;
+    a->show_workspace = true;
+    snprintf(a->focus, sizeof a->focus, "workspace");
+  }
+  app_log(a, "Swept %s from %g to %g in %d steps%s.", a->pars[s->par], s->from,
+          s->to, n, s->overlay ? " (trajectories kept on the plots)" : "");
+  app_status(a, "Sweep of %s done", a->pars[s->par]);
   return true;
 }
 

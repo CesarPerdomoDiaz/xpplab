@@ -1,7 +1,11 @@
 /* The .ode file editor. */
+#include <ctype.h>
+#include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <SDL3/SDL.h>
 
 #include "ui.h"
 
@@ -10,6 +14,159 @@ static int count_lines(const char *s) {
   for (; *s; s++)
     if (*s == '\n') n++;
   return n;
+}
+
+static int longest_line(const char *s) {
+  int best = 0, cur = 0;
+  for (; *s; s++) {
+    if (*s == '\n') {
+      if (cur > best) best = cur;
+      cur = 0;
+    } else {
+      cur += *s == '\t' ? 4 : 1;
+    }
+  }
+  return cur > best ? cur : best;
+}
+
+/* ---- Syntax highlighting ----------------------------------------------------
+ *
+ * The text box draws its text transparent; the coloured text is painted
+ * underneath at the same glyph positions (the editor font is monospaced and
+ * the box never scrolls by itself, so positions are exact). */
+
+typedef struct {
+  ImU32 text, comment, tutorial, keyword, number, function, param, var, option;
+} Palette;
+
+static Palette palette_for(App *a) {
+  Palette p;
+  if (a->dark) {
+    p.text = igColorConvertFloat4ToU32(HEX(0xd4d4d4));
+    p.comment = igColorConvertFloat4ToU32(HEX(0x6a9955));
+    p.tutorial = igColorConvertFloat4ToU32(HEX(0xce9178));
+    p.keyword = igColorConvertFloat4ToU32(HEX(0xc586c0));
+    p.number = igColorConvertFloat4ToU32(HEX(0xb5cea8));
+    p.function = igColorConvertFloat4ToU32(HEX(0xdcdcaa));
+    p.param = igColorConvertFloat4ToU32(HEX(0x4fc1ff));
+    p.var = igColorConvertFloat4ToU32(HEX(0xf28b82));
+    p.option = igColorConvertFloat4ToU32(HEX(0x9cdcfe));
+  } else {
+    p.text = igColorConvertFloat4ToU32(HEX(0x1f1f1f));
+    p.comment = igColorConvertFloat4ToU32(HEX(0x2e7d32));
+    p.tutorial = igColorConvertFloat4ToU32(HEX(0xa31515));
+    p.keyword = igColorConvertFloat4ToU32(HEX(0x7b1fa2));
+    p.number = igColorConvertFloat4ToU32(HEX(0x098658));
+    p.function = igColorConvertFloat4ToU32(HEX(0x795e26));
+    p.param = igColorConvertFloat4ToU32(HEX(0x0451a5));
+    p.var = igColorConvertFloat4ToU32(HEX(0xb71c1c));
+    p.option = igColorConvertFloat4ToU32(HEX(0x001080));
+  }
+  return p;
+}
+
+static bool word_in(const char *w, int n, const char *const *list) {
+  for (; *list; list++)
+    if ((int)strlen(*list) == n && SDL_strncasecmp(w, *list, (size_t)n) == 0)
+      return true;
+  return false;
+}
+
+static bool name_in(const char *w, int n, char (*names)[APP_NAME_LEN], int count) {
+  int i;
+  for (i = 0; i < count; i++)
+    if ((int)strlen(names[i]) == n && SDL_strncasecmp(w, names[i], (size_t)n) == 0)
+      return true;
+  return false;
+}
+
+static const char *const keywords[] = {
+    "par", "param", "params", "p", "init", "i", "aux", "a", "number", "n",
+    "table", "t", "wiener", "w", "markov", "m", "global", "g", "bdry", "b",
+    "set", "done", "d", "volt", "v", "solv", "special", "export", "only",
+    "options", "o", "include", "pi", NULL};
+static const char *const functions[] = {
+    "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "sinh", "cosh",
+    "tanh", "exp", "ln", "log", "log10", "sqrt", "abs", "heav", "sign", "mod",
+    "max", "min", "flr", "ran", "normal", "besselj", "bessely", "besseli",
+    "erf", "erfc", "if", "then", "else", "delay", "int", "sum", "of",
+    "hom_bcs", "shift", "del_shft", "lgamma", NULL};
+
+static void draw_highlighted(App *a, ImDrawList *dl, ImVec2_c origin, float adv,
+                             float lh, const char *text) {
+  Palette c = palette_for(a);
+  const char *p = text;
+  int row = 0;
+  while (1) {
+    const char *e = strchr(p, '\n');
+    const char *q;
+    float x = origin.x, y = origin.y + row * lh;
+    bool first_word = true;
+    if (!e) e = p + strlen(p);
+    /* Skip leading blanks to find what kind of line this is. */
+    q = p;
+    while (q < e && (*q == ' ' || *q == '\t')) q++;
+    if (row + 1 == a->error_line) {
+      ImU32 bg = igColorConvertFloat4ToU32(a->dark ? V4(0.6f, 0.1f, 0.1f, 0.35f)
+                                                   : V4(1.0f, 0.3f, 0.3f, 0.18f));
+      ImDrawList_AddRectFilled(dl, V2(origin.x - 4, y), V2(origin.x + 4000, y + lh),
+                               bg, 0, 0);
+    }
+    if (q < e && (*q == '#' || *q == '"')) {
+      ImU32 col = *q == '#' ? c.comment : c.tutorial;
+      if (strncmp(q, "#include", 8) == 0) col = c.keyword;
+      ImDrawList_AddText_Vec2(dl, V2(x + (float)(q - p) * adv, y), col, q, e);
+    } else {
+      bool option_line = q < e && *q == '@';
+      const char *s = p;
+      while (s < e) {
+        ImU32 col = c.text;
+        const char *t = s;
+        if (*s == '\t') {
+          x += 4 * adv;
+          s++;
+          continue;
+        }
+        if (isalpha((unsigned char)*s) || *s == '_') {
+          int n;
+          while (t < e && (isalnum((unsigned char)*t) || *t == '_')) t++;
+          n = (int)(t - s);
+          if (option_line)
+            col = c.option;
+          else if (first_word && t < e && *t == ' ' && word_in(s, n, keywords))
+            col = c.keyword; /* "par a=1", but not the equation "a' = ..." */
+          else if (t < e && *t == '(' && word_in(s, n, functions))
+            col = c.function;
+          else if (a->model_ok && name_in(s, n, a->pars, a->npars))
+            col = c.param;
+          else if (a->model_ok && name_in(s, n, a->vars, a->nvars))
+            col = c.var;
+          else if (word_in(s, n, functions))
+            col = c.function;
+          first_word = false;
+        } else if (isdigit((unsigned char)*s) ||
+                   (*s == '.' && s + 1 < e && isdigit((unsigned char)s[1]))) {
+          while (t < e && (isalnum((unsigned char)*t) || *t == '.' ||
+                           ((*t == '-' || *t == '+') && (t[-1] == 'e' || t[-1] == 'E'))))
+            t++;
+          col = option_line ? c.option : c.number;
+        } else if (*s == '@' || *s == '!') {
+          t = s + 1;
+          col = c.keyword;
+          first_word = *s == '@';
+        } else {
+          t = s + 1;
+          if (*s != ' ') first_word = false;
+        }
+        ImDrawList_AddText_Vec2(dl, V2(x, y), col, s, t);
+        x += (float)(t - s) * adv;
+        s = t;
+      }
+    }
+    if (!*e) break;
+    p = e + 1;
+    row++;
+  }
 }
 
 static int resize_callback(ImGuiInputTextCallbackData *d) {
@@ -127,12 +284,17 @@ void ui_editor(App *a) {
 
   /* Line numbers and text scroll together inside one child window. */
   lines = count_lines(a->editor);
-  lh = igGetTextLineHeight();
   igPushFont(g_fonts.mono, 0.0f);
+  lh = igGetTextLineHeight();
   gutter = igCalcTextSize("00000", NULL, false, -1).x;
   if (igBeginChild_Str("code", V2(0, 0), ImGuiChildFlags_Borders,
                        ImGuiWindowFlags_HorizontalScrollbar)) {
-    float y0 = igGetCursorPosY() + igGetStyle()->FramePadding.y;
+    const ImGuiStyle *st = igGetStyle();
+    float y0 = igGetCursorPosY() + st->FramePadding.y;
+    float adv = ImFont_CalcTextSizeA(igGetFont(), igGetFontSize(), FLT_MAX, 0, "M",
+                                     NULL, NULL).x;
+    float width = (float)longest_line(a->editor) * adv + 2 * st->FramePadding.x + 40;
+    ImVec2_c origin;
     igBeginGroup();
     for (i = 1; i <= lines + 1; i++) {
       igSetCursorPosY(y0 + (i - 1) * lh);
@@ -143,13 +305,24 @@ void ui_editor(App *a) {
     }
     igEndGroup();
     igSameLine(gutter + 10, 0);
-    igSetCursorPosY(y0 - igGetStyle()->FramePadding.y);
+    igSetCursorPosY(y0 - st->FramePadding.y);
+    origin = igGetCursorScreenPos();
+    origin.x += st->FramePadding.x;
+    origin.y += st->FramePadding.y;
+    draw_highlighted(a, igGetWindowDrawList(), origin, adv, lh, a->editor);
+    /* The text box keeps its cursor and selection; its own text and
+       background are invisible so the colours above show through. */
+    igPushStyleColor_Vec4(ImGuiCol_Text, V4(0, 0, 0, 0));
+    igPushStyleColor_Vec4(ImGuiCol_FrameBg, V4(0, 0, 0, 0));
+    igPushStyleColor_Vec4(ImGuiCol_InputTextCursor, a->dark ? HEX(0xffffff) : HEX(0x000000));
+    if (width < igGetContentRegionAvail().x) width = -1;
     if (igInputTextMultiline("##text", a->editor, a->editor_cap,
-                             V2(-1, (lines + 2) * lh + 8),
+                             V2(width, (lines + 2) * lh + 8),
                              ImGuiInputTextFlags_AllowTabInput |
                                  ImGuiInputTextFlags_CallbackResize,
                              resize_callback, a))
       a->editor_dirty = true;
+    igPopStyleColor(3);
   }
   igEndChild();
   igPopFont();

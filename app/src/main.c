@@ -46,6 +46,24 @@ static void apply_scale(App *a, float dpi) {
   s->FontScaleDpi = dpi * a->ui_scale;
 }
 
+/* Report a start-up failure. A Windows GUI program has no console, so in
+   scripted runs (--screenshot) the message also goes to <screenshot>.err. */
+static const char *err_file;
+
+static void fail(const char *what) {
+  fprintf(stderr, "%s: %s\n", what, SDL_GetError());
+  if (err_file) {
+    char path[1100];
+    FILE *f;
+    snprintf(path, sizeof path, "%s.err", err_file);
+    f = fopen(path, "w");
+    if (f) {
+      fprintf(f, "%s: %s\n", what, SDL_GetError());
+      fclose(f);
+    }
+  }
+}
+
 static int file_exists(const char *path) {
   FILE *f = fopen(path, "rb");
   if (f) fclose(f);
@@ -82,15 +100,16 @@ int main(int argc, char **argv) {
       model = argv[i];
   }
 
+  err_file = shot;
   if (!SDL_Init(SDL_INIT_VIDEO)) {
-    fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());
+    fail("SDL_Init");
     return 1;
   }
   window = SDL_CreateWindow("XPP Studio", width, height,
                             SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY |
                                 (shot ? 0 : SDL_WINDOW_MAXIMIZED));
   if (!window) {
-    fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError());
+    fail("SDL_CreateWindow");
     return 1;
   }
   {
@@ -104,8 +123,10 @@ int main(int argc, char **argv) {
     }
   }
   renderer = SDL_CreateRenderer(window, NULL);
+  if (!renderer) /* no usable GPU: virtual machines, remote desktops */
+    renderer = SDL_CreateRenderer(window, "software");
   if (!renderer) {
-    fprintf(stderr, "SDL_CreateRenderer: %s\n", SDL_GetError());
+    fail("SDL_CreateRenderer");
     return 1;
   }
   SDL_SetRenderVSync(renderer, 1);
@@ -196,7 +217,7 @@ int main(int argc, char **argv) {
     if (shot && ++frame >= frames) {
       SDL_Surface *s = SDL_RenderReadPixels(renderer, NULL);
       if (!s || !SDL_SaveBMP(s, shot))
-        fprintf(stderr, "screenshot failed: %s\n", SDL_GetError());
+        fail("screenshot");
       SDL_DestroySurface(s);
       app.quit = true;
     }

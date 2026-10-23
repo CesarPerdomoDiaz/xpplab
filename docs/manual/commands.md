@@ -50,5 +50,7 @@ commands. `help` lists them all.
 | `auto reset` | Clear the diagram. |
 | `open file.ode`, `new`, `save` | Model files. |
 | `export run.csv` | Save the last run as CSV. |
+| `export fig.svg phase` | Save a figure (`time`, `phase`, `auto`, `auto2`) as SVG; `.png` saves it as shown. |
+| `continue 50` | Integrate 50 more time units from the end of the last run (C C). |
 | `clc` | Clear the command window. |
 | `help auto` | Open a manual page. |

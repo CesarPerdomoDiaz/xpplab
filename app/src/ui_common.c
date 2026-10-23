@@ -4,6 +4,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "export.h"
 #include "ui.h"
 
 UiFonts g_fonts;
@@ -132,11 +133,12 @@ void ui_apply_theme(App *a) {
 
 /* ---- File dialogs ------------------------------------------------------------- */
 
-enum { DLG_NONE, DLG_OPEN, DLG_SAVE_AS, DLG_EXPORT };
+enum { DLG_NONE, DLG_OPEN, DLG_SAVE_AS, DLG_EXPORT, DLG_PNG, DLG_SVG };
 static SDL_Mutex *dlg_lock;
 static int dlg_kind;
 static char dlg_result[1024];
 static bool dlg_ready;
+static int dlg_figure; /* the figure a PNG/SVG export is for */
 
 static void SDLCALL dialog_done(void *userdata, const char *const *files,
                                 int filter) {
@@ -193,6 +195,56 @@ void ui_dialog_poll(App *a) {
     if (app_save_editor(a, p)) app_apply_editor(a);
   }
   if (kind == DLG_EXPORT) app_export_csv(a, path);
+  if (kind == DLG_PNG || kind == DLG_SVG) {
+    const char *ext = kind == DLG_PNG ? ".png" : ".svg";
+    char p[1100];
+    size_t n = strlen(path);
+    snprintf(p, sizeof p, "%s%s", path,
+             (n < 4 || SDL_strcasecmp(path + n - 4, ext) != 0) ? ext : "");
+    if (kind == DLG_PNG)
+      export_png((FigureKind)dlg_figure, p);
+    else
+      export_svg(a, (FigureKind)dlg_figure, p);
+  }
+}
+
+static const SDL_DialogFileFilter png_filters[] = {{"PNG images (*.png)", "png"}};
+static const SDL_DialogFileFilter svg_filters[] = {{"SVG vector figures (*.svg)", "svg"}};
+
+void ui_export_button(App *a, int figure) {
+  if (Button("Export...")) igOpenPopup_Str("export", 0);
+  Tooltip("Save this figure: a PNG image exactly as shown, or an SVG vector "
+          "figure for papers and posters.");
+  if (igBeginPopup("export", 0)) {
+    int kind = DLG_NONE;
+    if (igMenuItem_Bool("PNG image (as shown)...", NULL, false, true)) kind = DLG_PNG;
+    if (igMenuItem_Bool("SVG vector figure...", NULL, false, true)) kind = DLG_SVG;
+    if (kind != DLG_NONE) {
+      if (!dlg_lock) dlg_lock = SDL_CreateMutex();
+      dlg_figure = figure;
+      SDL_ShowSaveFileDialog(dialog_done, (void *)(intptr_t)kind,
+                             (SDL_Window *)a->window,
+                             kind == DLG_PNG ? png_filters : svg_filters, 1, NULL);
+    }
+    igEndPopup();
+  }
+}
+
+void ui_figure_limits(int figure) {
+  ImPlotRect_c lim = ImPlot_GetPlotLimits(ImAxis_X1, ImAxis_Y1);
+  g_figures[figure].xmin = lim.X.Min;
+  g_figures[figure].xmax = lim.X.Max;
+  g_figures[figure].ymin = lim.Y.Min;
+  g_figures[figure].ymax = lim.Y.Max;
+}
+
+void ui_figure_rect(int figure) {
+  ImVec2_c lo = igGetItemRectMin(), hi = igGetItemRectMax();
+  g_figures[figure].x0 = lo.x;
+  g_figures[figure].y0 = lo.y;
+  g_figures[figure].x1 = hi.x;
+  g_figures[figure].y1 = hi.y;
+  g_figures[figure].valid = true;
 }
 
 /* ---- Keyboard ------------------------------------------------------------------- */

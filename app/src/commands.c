@@ -8,6 +8,7 @@
 #include <SDL3/SDL.h>
 
 #include "app.h"
+#include "export.h"
 
 void ui_show_help(App *a, const char *page);
 
@@ -34,6 +35,8 @@ static const char *usage =
     "  auto reset               clear the bifurcation diagram\n"
     "  open FILE | new | save   models\n"
     "  export FILE.csv          save the last run as CSV\n"
+    "  export FILE.svg [WHICH]  save a figure (time, phase, auto, auto2);\n"
+    "                           .png saves it as it looks on screen\n"
     "  show WINDOW              bring a window forward: time, phase, auto,\n"
     "                           editor, data, help, console, workspace\n"
     "  help [TOPIC]             open the manual (topics: tutorial, auto,\n"
@@ -269,8 +272,24 @@ void app_command(App *a, const char *line_in) {
     else
       app_apply_editor(a);
   } else if (!strcmp(cmd, "export")) {
-    char *p = skip_space(rest);
-    if (*p) app_export_csv(a, p);
+    /* export FILE.csv | export FILE.svg|FILE.png [time|phase|auto|auto2] */
+    char *file = next_word(&rest), *which = next_word(&rest);
+    size_t n = file ? strlen(file) : 0;
+    if (!file) {
+      app_log(a, "Write export FILE.csv, or export FILE.svg phase.");
+    } else if (n > 4 && (!SDL_strcasecmp(file + n - 4, ".svg") ||
+                         !SDL_strcasecmp(file + n - 4, ".png"))) {
+      FigureKind k = FIG_PHASE;
+      if (which && !strcmp(which, "time")) k = FIG_TIME;
+      if (which && !strcmp(which, "auto")) k = FIG_AUTO;
+      if (which && !strcmp(which, "auto2")) k = FIG_AUTO2;
+      if (!SDL_strcasecmp(file + n - 4, ".svg"))
+        export_svg(a, k, file);
+      else
+        export_png(k, file);
+    } else {
+      app_export_csv(a, file);
+    }
   } else if (!strcmp(cmd, "show")) {
     char *w = next_word(&rest);
     if (w) snprintf(a->focus, sizeof a->focus, "%s", w);

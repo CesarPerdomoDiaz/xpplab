@@ -34,6 +34,17 @@ numerical code unchanged. Any XPPAUT `.ode` file works here as it is.
 Every window can be dragged, docked, stacked in tabs or closed. To get the
 original arrangement back, use **View > Reset window layout**.
 
+## Saving your work
+
+- **Figures**: every plot has an **Export...** button. Choose *PNG* for an
+  image exactly as shown, or *SVG* for a vector figure that stays sharp at
+  any size, for papers and posters.
+- **Data**: **File > Export data as CSV** saves the last run for
+  spreadsheets, MATLAB or Python.
+- **Models**: **File > Save** (Ctrl+S) writes the `.ode` file. Parameters
+  you changed in the Workspace are not written into the file; put values you
+  want to keep in the file, or in a named `set`.
+
 ## Where to go next
 
 - [Tutorial: your first model](tutorial.md), from writing the equations to a

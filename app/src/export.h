@@ -1,0 +1,31 @@
+/* Figure export: PNG (exactly what is on screen) and SVG (a vector figure
+   drawn from the data, for papers). */
+#ifndef XPPS_EXPORT_H
+#define XPPS_EXPORT_H
+
+#include <stdbool.h>
+
+#include "app.h"
+
+typedef enum { FIG_TIME, FIG_PHASE, FIG_AUTO, FIG_AUTO2, FIG_COUNT } FigureKind;
+
+/* The screen rectangle and axis limits of each figure, updated as the
+   plots are drawn. */
+typedef struct {
+  float x0, y0, x1, y1;      /* in ImGui (window) coordinates */
+  double xmin, xmax, ymin, ymax;
+  bool valid;
+} FigureState;
+
+extern FigureState g_figures[FIG_COUNT];
+
+const char *figure_name(FigureKind kind);
+
+/* Write a PNG of the figure at the end of the current frame. */
+void export_png(FigureKind kind, const char *path);
+/* Called by the main loop after rendering, before presenting. */
+void export_process_pending(App *a, void *sdl_renderer, float fb_scale);
+
+bool export_svg(App *a, FigureKind kind, const char *path);
+
+#endif

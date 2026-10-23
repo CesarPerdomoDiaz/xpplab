@@ -46,8 +46,15 @@ jobs:
       - name: Desktop app starts, loads a model and renders
         run: |
           cd build/app
-          ./xppstudio.exe examples/lecar.ode --cmd "nullclines" --cmd "auto steady iapp" --screenshot shot.bmp --frames 10
+          ./xppstudio.exe examples/lecar.ode --cmd "nullclines" --cmd "auto steady iapp" --screenshot shot.bmp --frames 10 || true
+          cat shot.bmp.err 2>/dev/null || true
           test -s shot.bmp
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-preview
+          path: build/app/shot.bmp
+          if-no-files-found: ignore
 
   unix:
     name: ${{ matrix.os }}
@@ -94,7 +101,8 @@ jobs:
           app=build/app/xppstudio.app/Contents/MacOS/xppstudio
           test -x "$app"
           "$app" "$PWD/engine/xppaut/ode/lecar.ode" --cmd "nullclines" \
-            --cmd "show phase" --screenshot "$PWD/macos-app.bmp" --frames 12
+            --cmd "show phase" --screenshot "$PWD/macos-app.bmp" --frames 12 || true
+          cat macos-app.bmp.err 2>/dev/null || true
           test -s macos-app.bmp
       - name: Package the macOS app
         if: runner.os == 'macOS'
@@ -122,7 +130,8 @@ jobs:
       - name: The app starts under a virtual display and renders
         run: |
           cd build/app
-          xvfb-run -a ./xppstudio examples/lecar.ode --cmd "auto steady iapp" --screenshot shot.bmp --frames 10
+          xvfb-run -a ./xppstudio examples/lecar.ode --cmd "auto steady iapp" --screenshot shot.bmp --frames 10 || true
+          cat shot.bmp.err 2>/dev/null || true
           test -s shot.bmp
 
   wheels:

@@ -249,7 +249,7 @@ void ui_editor(App *a) {
     return;
   }
   if (igBeginMenuBar()) {
-    if (igMenuItem_Bool("Apply", "Ctrl+Enter", false, a->editor[0] != 0))
+    if (igMenuItem_Bool("Apply", MOD "Enter", false, a->editor[0] != 0))
       app_apply_editor(a);
     Tooltip("Save the file and reload the model with your changes.");
     if (igMenuItem_Bool("Revert", NULL, false,

@@ -8,8 +8,8 @@
 
 static void menu_file(App *a) {
   int i;
-  if (igMenuItem_Bool("New model", "Ctrl+N", false, true)) app_new_model(a);
-  if (igMenuItem_Bool("Open...", "Ctrl+O", false, true)) ui_dialog_open(a);
+  if (igMenuItem_Bool("New model", MOD "N", false, true)) app_new_model(a);
+  if (igMenuItem_Bool("Open...", MOD "O", false, true)) ui_dialog_open(a);
   if (igBeginMenu("Open recent", a->nrecent > 0)) {
     for (i = 0; i < a->nrecent; i++)
       if (igMenuItem_Bool(a->recent[i], NULL, false, true)) {
@@ -21,7 +21,7 @@ static void menu_file(App *a) {
     igEndMenu();
   }
   igSeparator();
-  if (igMenuItem_Bool("Save", "Ctrl+S", false, a->model_ok || a->editor[0]))
+  if (igMenuItem_Bool("Save", MOD "S", false, a->model_ok || a->editor[0]))
     app_apply_editor(a);
   if (igMenuItem_Bool("Save as...", NULL, false, a->editor[0] != 0))
     ui_dialog_save_as(a);
@@ -145,10 +145,10 @@ static bool tool(const char *label, const char *tip, bool enabled) {
 void ui_toolbar(App *a, float height) {
   bool ok = a->model_ok;
   (void)height;
-  if (tool("New", "Start a new model from a template (Ctrl+N).", true))
+  if (tool("New", "Start a new model from a template (" MOD "N).", true))
     app_new_model(a);
-  if (tool("Open", "Open an XPPAUT .ode file (Ctrl+O).", true)) ui_dialog_open(a);
-  if (tool("Save", "Save the model and reload it (Ctrl+S).", a->editor[0] != 0))
+  if (tool("Open", "Open an XPPAUT .ode file (" MOD "O).", true)) ui_dialog_open(a);
+  if (tool("Save", "Save the model and reload it (" MOD "S).", a->editor[0] != 0))
     app_apply_editor(a);
   igTextDisabled("|");
   igSameLine(0, 6);

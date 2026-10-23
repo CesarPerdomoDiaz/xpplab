@@ -175,6 +175,8 @@ void app_init(App *a, const char *base_dir, bool ephemeral) {
   snprintf(a->help_page, sizeof a->help_page, "welcome");
   set_editor_text(a, "");
   a->ephemeral = ephemeral;
+  /* Until the user picks a theme, follow the system's light or dark mode. */
+  if (!ephemeral) a->dark = SDL_GetSystemTheme() == SDL_SYSTEM_THEME_DARK;
   if (!ephemeral) app_load_settings(a);
   app_log(a, "XPP Studio %s - XPPAUT 8.0 engine. Type 'help' for commands.",
           XPPS_VERSION);

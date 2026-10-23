@@ -28,7 +28,7 @@ except ImportError:
 
 ODE = ROOT / "engine" / "xppaut" / "ode"
 OUT = ROOT / "docs" / "gallery"
-REPO = "https://github.com/xppstudio/xppstudio/blob/main/engine/xppaut/ode/"
+REPO = "https://github.com/CesarPerdomoDiaz/xppstudio/blob/main/engine/xppaut/ode/"
 
 
 def describe(path: Path) -> str:

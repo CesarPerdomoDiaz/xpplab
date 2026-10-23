@@ -134,12 +134,14 @@ typedef struct App {
   char recent[APP_MAX_RECENT][1024];
   int nrecent;
   bool quit;
+  bool ephemeral; /* do not touch saved settings */
   void *window; /* SDL_Window */
 } App;
 
 extern App *g_app;
 
-void app_init(App *a, const char *base_dir);
+/* ephemeral: neither read nor write the saved settings (scripted runs). */
+void app_init(App *a, const char *base_dir, bool ephemeral);
 void app_shutdown(App *a);
 
 void app_log(App *a, const char *fmt, ...);

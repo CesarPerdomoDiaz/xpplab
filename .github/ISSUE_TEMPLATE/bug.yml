@@ -1,0 +1,29 @@
+name: Bug report
+description: Something crashed, froze or gave a wrong result.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: model
+    attributes:
+      label: Model
+      description: Attach or paste the .ode file if one was involved.
+  - type: textarea
+    id: log
+    attributes:
+      label: Command Window output
+      description: The last lines of the Command Window, if any.
+      render: text
+  - type: input
+    id: system
+    attributes:
+      label: System
+      placeholder: e.g. Windows 11, XPP Studio 0.1.0 preview
+    validations:
+      required: true

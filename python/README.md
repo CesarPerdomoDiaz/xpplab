@@ -29,5 +29,5 @@ m.auto.diagram.plot("V")             # matplotlib, XPPAUT's colours
 - **Fidelity**: the numerics are XPPAUT 8.0's own C code. The test suite
   checks the output against unmodified XPPAUT bit for bit.
 
-Part of [XPP Studio](https://github.com/xppstudio/xppstudio). GPL-2.0-or-later,
+Part of [XPP Studio](https://github.com/CesarPerdomoDiaz/xppstudio). GPL-2.0-or-later,
 like XPPAUT.

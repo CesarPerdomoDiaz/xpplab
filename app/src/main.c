@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
   gui_backend_init(window, renderer);
 
   base = SDL_GetBasePath();
-  app_init(&app, base ? base : "./");
+  app_init(&app, base ? base : "./", shot != NULL);
   app.window = window;
   app.reset_layout = reset_layout;
   dpi = SDL_GetWindowDisplayScale(window);

@@ -1,0 +1,11 @@
+name: Feedback or idea
+description: Something confusing, missing, or a feature you would like.
+labels: [feedback]
+body:
+  - type: textarea
+    id: feedback
+    attributes:
+      label: Your feedback
+      description: Anything goes. If you teach with XPPAUT, tell us about your course.
+    validations:
+      required: true

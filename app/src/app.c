@@ -151,7 +151,7 @@ static void free_model_cache(App *a) {
 
 /* ---- Lifecycle ---------------------------------------------------------- */
 
-void app_init(App *a, const char *base_dir) {
+void app_init(App *a, const char *base_dir, bool ephemeral) {
   memset(a, 0, sizeof *a);
   g_app = a;
   snprintf(a->base_dir, sizeof a->base_dir, "%s", base_dir);
@@ -174,14 +174,15 @@ void app_init(App *a, const char *base_dir) {
   a->au.yvar = 0;
   snprintf(a->help_page, sizeof a->help_page, "welcome");
   set_editor_text(a, "");
-  app_load_settings(a);
+  a->ephemeral = ephemeral;
+  if (!ephemeral) app_load_settings(a);
   app_log(a, "XPP Studio %s - XPPAUT 8.0 engine. Type 'help' for commands.",
           XPPS_VERSION);
   app_status(a, "Open a model (File > Open) or pick an example on the left.");
 }
 
 void app_shutdown(App *a) {
-  app_save_settings(a);
+  if (!a->ephemeral) app_save_settings(a);
   free_model_cache(a);
   if (a->eng) xpp_instance_close(a->eng);
   a->eng = NULL;
@@ -402,11 +403,20 @@ bool app_open(App *a, const char *path) {
     app_status(a, "Cannot read %s", path);
     return false;
   }
-  snprintf(a->model_path, sizeof a->model_path, "%s", path);
+  /* Keep the absolute path: the working directory follows the model. */
+  {
+#ifdef _WIN32
+    char *full = _fullpath(NULL, path, 0);
+#else
+    char *full = realpath(path, NULL);
+#endif
+    snprintf(a->model_path, sizeof a->model_path, "%s", full ? full : path);
+    free(full);
+  }
   snprintf(a->model_name, sizeof a->model_name, "%s", base_of(path));
   set_editor_text(a, text);
   free(text);
-  app_add_recent(a, path);
+  app_add_recent(a, a->model_path);
   if (!load_engine(a)) {
     app_status(a, "%s has errors - see the editor", a->model_name);
     a->show_editor = true;

@@ -20,3 +20,16 @@ if(Python3_FOUND)
               ${PROJECT_SOURCE_DIR}/engine/xppaut/${model}.ode)
   endforeach()
 endif()
+
+add_executable(auto_smoke auto_smoke.c)
+target_link_libraries(auto_smoke PRIVATE xppengine)
+
+if(Python3_FOUND)
+  # Headless AUTO: steady states of Morris-Lecar in iapp, then periodic
+  # orbits from the first Hopf point.
+  add_test(NAME auto_lecar_hopf
+    COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/auto_check.py
+            $<TARGET_FILE:auto_smoke>
+            ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode iapp hopf
+            ${CMAKE_CURRENT_SOURCE_DIR}/golden/auto/lecar_hopf_iapp.txt)
+endif()

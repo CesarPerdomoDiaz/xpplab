@@ -32,12 +32,17 @@ int go_go_auto() /* this is the entry  at this point, xAuto has been set */
   rap_type rap;
   function_list list;
   int irs=xAuto.irs;
+  /* XPP Studio fix: binary mode. findlb() in autlib1.c steps backwards
+     through fort.3 with relative fseek(), which only works when a line
+     ends in one byte. In Windows text mode (CRLF) it lands on the wrong
+     record, so restarting from a labelled point read garbage. The "b"
+     changes nothing on POSIX systems. */
   if(irs>0){
-          fp3 = fopen(fort3,"r");
+          fp3 = fopen(fort3,"rb");
   }
   else
     {
-            fp3 = fopen(fort3,"w+");
+            fp3 = fopen(fort3,"w+b");
     }
   
 

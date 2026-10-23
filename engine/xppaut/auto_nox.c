@@ -452,6 +452,10 @@ int chk_auto_bnds(int ix,int iy)
 void renamef(old,new)
 char *old,*new;
 {
+#ifdef _WIN32
+ /* XPP Studio fix: on Windows rename() fails if the target exists. */
+ remove(new);
+#endif
  rename(old,new);
 }
 
@@ -546,6 +550,13 @@ void close_auto(flg)  /* labels compatible with A2K  */
       fp8_is_open=0;
     }
   */
+  /* XPP Studio fix: close fort.8 before renaming it to the .s file. POSIX
+     can rename an open file (leaving its tail unflushed); Windows cannot,
+     which lost the restart data needed to continue from labelled points. */
+  if(fp8_is_open){
+    fclose(fp8);
+    fp8_is_open=0;
+  }
   if(flg==0) {/*Overwrite*/
     sprintf(string,"%s.b",this_auto_file);
     renamef(fort7,string);

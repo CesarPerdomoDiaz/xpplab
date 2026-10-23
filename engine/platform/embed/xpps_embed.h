@@ -31,6 +31,16 @@ void xpps_exit(int code)
 /* Where plintf() output goes while embedded. */
 FILE *xpps_log_stream(void);
 
+/* Headless answers for XPPAUT's dialogs. While embedded, every dialog
+   (menus, yes/no questions, text prompts, forms) takes its answer from a
+   queue filled by the API instead of waiting for the user, so no code path
+   can block. An empty queue means "cancel". */
+const char *xpps_answer_next(void);
+/* Fill a form: the next answer is "Name=value;Name=value". Field names are
+   matched without XPPAUT's "*N" prefixes, ignoring case. Returns 1 if an
+   answer was used, 0 if the queue was empty. */
+int xpps_answer_fields(int n, char **names, char *values, int stride);
+
 #ifdef __cplusplus
 }
 #endif

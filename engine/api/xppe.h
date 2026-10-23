@@ -88,6 +88,82 @@ XPPE_API int xppe_column(int col, double *out, int n);
    eigenvalues of the Jacobian there. */
 XPPE_API int xppe_equilibrium(double *x, double *re, double *im);
 
+/* ---- AUTO continuation ----------------------------------------------------
+ *
+ * The same continuation XPPAUT runs from its AUTO window, driven by calls:
+ *
+ *   xppe_auto_parameters("iapp", NULL);   choose what to vary
+ *   xppe_auto_set("DS", 0.02);            numerics, as in the AutoNum dialog
+ *   xppe_auto_run("s");                   start: steady-state branch
+ *   xppe_auto_grab(2);                    pick labelled point 2 (say, HB)
+ *   xppe_auto_run("p");                   periodic orbits from the Hopf
+ *
+ * xppe_auto_run(choice) behaves like XPPAUT's Run button. `choice` is the
+ * key you would press in the menu XPPAUT shows next:
+ *
+ *   nothing grabbed:  s steady state, p periodic, b boundary value,
+ *                     h homoclinic, e heteroclinic (maps need no choice)
+ *   Hopf (HB):        p periodic, e extend, n new point, t two-parameter
+ *   period doubling:  d doubling, t two-parameter, f fixed period, e extend
+ *   torus (TR):       t two-parameter, f fixed period, e extend
+ *   periodic point:   e extend, f fixed period
+ *   branch point:     s switch, e extend, n new point, t two-parameter
+ *   limit point and ordinary steady states need no choice.
+ */
+
+/* Numerical settings: NTST, NMAX, NPR, DS, DSMIN, DSMAX, PARMIN, PARMAX,
+   NORMMIN, NORMMAX, NCOL, EPSL, EPSU, EPSS, IAD, MXBF, IID, ITMX, ITNW,
+   NWTN, IADS, SUPPBP. */
+XPPE_API int xppe_auto_get(const char *name, double *value);
+XPPE_API int xppe_auto_set(const char *name, double value);
+/* The main continuation parameter and, for two-parameter runs, the second
+   one (may be NULL). */
+XPPE_API int xppe_auto_parameters(const char *main_par, const char *second_par);
+/* AUTO's scratch and output files (fort.*, model.b/.d/.s) go here. */
+XPPE_API int xppe_auto_set_workdir(const char *dir);
+/* Forget the bifurcation diagram. */
+XPPE_API int xppe_auto_reset(void);
+XPPE_API int xppe_auto_run(const char *choice);
+/* Select the point with this label as the start of the next run. */
+XPPE_API int xppe_auto_grab(int label);
+XPPE_API int xppe_auto_ungrab(void);
+
+/* AUTO works with up to 8 of the model's parameters ("slots"). */
+XPPE_API int xppe_auto_parameter_count(void);
+XPPE_API const char *xppe_auto_parameter_name(int slot);
+/* Slot of the main (which=0) or secondary (which=1) parameter. */
+XPPE_API int xppe_auto_main_slot(int which);
+
+typedef struct {
+  int branch;        /* AUTO branch number; negative for periodic orbits */
+  int point;         /* point number on the branch; negative when stable */
+  int type;          /* AUTO type code (itp) */
+  int label;         /* label of a special or saved point, else 0 */
+  int stable;        /* 1 if stable */
+  int periodic;      /* 1 for a periodic orbit, 0 for an equilibrium */
+  int two_parameter; /* nonzero for points of a two-parameter curve */
+  int par1_slot, par2_slot;
+  double par1, par2; /* values of the main and secondary parameters */
+  double norm;       /* L2 norm of the solution, as AUTO reports it */
+  double period;     /* period of the orbit (periodic points) */
+  char type_name[4]; /* "HB", "LP", "BP", "PD", "TR", "EP", "UZ", "MX", "" */
+} xppe_auto_point_info;
+
+/* Per-point arrays, for xppe_auto_point_data(). */
+enum {
+  XPPE_AUTO_U0 = 0,     /* the solution (start of the orbit) */
+  XPPE_AUTO_UMAX = 1,   /* maximum of each variable over the orbit */
+  XPPE_AUTO_UMIN = 2,   /* minimum of each variable over the orbit */
+  XPPE_AUTO_UMEAN = 3,  /* mean of each variable over the orbit */
+  XPPE_AUTO_EIG_RE = 4, /* eigenvalues or Floquet multipliers, real part */
+  XPPE_AUTO_EIG_IM = 5, /* ... imaginary part */
+  XPPE_AUTO_PARAMS = 6  /* the values of all AUTO parameter slots */
+};
+
+XPPE_API int xppe_auto_count(void);
+XPPE_API int xppe_auto_point(int index, xppe_auto_point_info *info);
+XPPE_API int xppe_auto_point_data(int index, int what, double *out, int n);
+
 #ifdef __cplusplus
 }
 #endif

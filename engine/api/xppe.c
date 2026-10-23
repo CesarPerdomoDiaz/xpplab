@@ -32,6 +32,8 @@ extern int EVEC_ITER, POIMAP, POIVAR, POISGN, SOS, DelayFlag, SuppressOut;
 extern int N_plist, *plotlist, Nintern_set;
 extern double DELTA_T, TEND, T0, TRANS, BOUND, DELAY, TOLER, ATOLER, HMIN,
     HMAX, NEWT_ERR, EVEC_ERR, POIPLN;
+extern double MY_XLO, MY_XHI, MY_YLO, MY_YHI;
+extern int IXPLT, IYPLT;
 extern char uvar_names[MAXODE][12];
 extern char upar_names[MAXPAR][11];
 extern double last_ic[MAXODE];
@@ -288,6 +290,11 @@ static const option_ref option_table[] = {
     {"NEWT_ITER", NULL, &EVEC_ITER}, {"POIMAP", NULL, &POIMAP},
     {"POIVAR", NULL, &POIVAR},  {"POISGN", NULL, &POISGN},
     {"POISTOP", NULL, &SOS},
+    /* The plot window from the ODE file (@ xp=, yp=, xlo=, ...). XP and YP
+       number the columns: 0 is time, 1 the first variable. */
+    {"XLO", &MY_XLO, NULL},     {"XHI", &MY_XHI, NULL},
+    {"YLO", &MY_YLO, NULL},     {"YHI", &MY_YHI, NULL},
+    {"XP", NULL, &IXPLT},       {"YP", NULL, &IYPLT},
 };
 
 int xppe_get(const char *name, double *value) {

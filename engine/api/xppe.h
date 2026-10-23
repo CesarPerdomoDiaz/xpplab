@@ -88,6 +88,19 @@ XPPE_API int xppe_column(int col, double *out, int n);
    eigenvalues of the Jacobian there. */
 XPPE_API int xppe_equilibrium(double *x, double *re, double *im);
 
+/* The right-hand side of the ODEs at time t and state x (one value per
+   ODE variable). For maps it is the next state. */
+XPPE_API int xppe_rhs(double t, const double *x, double *dxdt);
+
+/* Nullcline of variable `which` (0: the x-variable, 1: the y-variable) in
+   the plane of ODE variables ix and iy (0-based) over the given window, on
+   a grid x grid mesh, by XPPAUT's own contouring. Writes up to
+   max_segments line segments as (x1, y1, x2, y2) quadruples and returns
+   their number. */
+XPPE_API int xppe_nullcline(int which, int ix, int iy, double xlo, double xhi,
+                            double ylo, double yhi, int grid, float *segments,
+                            int max_segments);
+
 /* ---- AUTO continuation ----------------------------------------------------
  *
  * The same continuation XPPAUT runs from its AUTO window, driven by calls:

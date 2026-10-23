@@ -394,11 +394,12 @@ int xppe_rows(void) {
 
 int xppe_column(int col, double *out, int n) {
   int j, i, rows;
-  if (!loaded || col < 0 || col >= xppe_count(XPPE_COLUMNS)) {
+  if (!loaded || col < -1 || col >= xppe_count(XPPE_COLUMNS)) {
     xppe_set_error("no such column", NULL);
     return XPPE_ERR_RANGE;
   }
-  j = N_plist > 0 ? plotlist[col] : col;
+  /* -1 is time, even when an "only" statement leaves it out of the output. */
+  j = col < 0 ? 0 : N_plist > 0 ? plotlist[col] : col;
   rows = xppe_rows();
   if (n > rows) n = rows;
   for (i = 0; i < n; i++)

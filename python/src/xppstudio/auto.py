@@ -3,13 +3,15 @@
 The continuation is XPPAUT's own AUTO, run exactly as XPPAUT's AUTO window
 runs it, without the window:
 
->>> m = xppstudio.load("lecar.ode")
->>> m.apply_set("hopf")
->>> d = m.auto.equilibria("iapp")            # steady states vs. iapp
->>> d.special()                              # labelled points: HB, LP, ...
->>> hb = d.first("HB")
->>> orbits = m.auto.continue_from(hb, "periodic")
->>> m.auto.diagram.plot()                    # the whole diagram
+```python
+m = xppstudio.load("lecar.ode")
+m.apply_set("hopf")
+d = m.auto.equilibria("iapp")            # steady states vs. iapp
+d.special()                              # labelled points: HB, LP, ...
+hb = d.first("HB")
+orbits = m.auto.continue_from(hb, "periodic")
+m.auto.diagram.plot()                    # the whole diagram
+```
 """
 
 from __future__ import annotations
@@ -100,7 +102,22 @@ class Point:
     umax: dict[str, float] = field(repr=False)
     umin: dict[str, float] = field(repr=False)
     umean: dict[str, float] = field(repr=False)
-    eigenvalues: np.ndarray = field(repr=False)
+    #: What XPPAUT's AUTO stores, on the unit circle's terms: exp(lambda) for
+    #: steady states and the Floquet multipliers for periodic orbits. A
+    #: point is stable when all of them lie inside the unit circle (for
+    #: orbits, apart from the trivial multiplier 1).
+    multipliers: np.ndarray = field(repr=False)
+
+    @property
+    def eigenvalues(self) -> np.ndarray | None:
+        """Eigenvalues of the Jacobian at a steady-state point, recovered
+        from ``multipliers`` = exp(eigenvalue). Real parts are exact;
+        imaginary parts are known only modulo 2*pi, as XPPAUT stores them.
+        None for periodic orbits (use ``multipliers``)."""
+        if self.periodic:
+            return None
+        with np.errstate(divide="ignore"):
+            return np.log(self.multipliers.astype(complex))
 
     @property
     def description(self) -> str:
@@ -347,5 +364,5 @@ class Auto:
                 umax=dict(zip(var, data(i, E.AUTO_UMAX, nvar))),
                 umin=dict(zip(var, data(i, E.AUTO_UMIN, nvar))),
                 umean=dict(zip(var, data(i, E.AUTO_UMEAN, nvar))),
-                eigenvalues=ev))
+                multipliers=ev))
         return Diagram(pts, self._model.variables)

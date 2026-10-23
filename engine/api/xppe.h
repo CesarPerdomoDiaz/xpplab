@@ -80,7 +80,8 @@ XPPE_API int xppe_apply_set(const char *set_name);
 XPPE_API int xppe_run(void);
 XPPE_API int xppe_rows(void);
 /* Copy output column col (0 = time) into out, which holds n values.
-   Returns the number of values copied. */
+   Returns the number of values copied. col = -1 always gives time, even
+   when the model's "only" statement leaves time out of the columns. */
 XPPE_API int xppe_column(int col, double *out, int n);
 
 /* Newton's method for an equilibrium starting from x (length = number of

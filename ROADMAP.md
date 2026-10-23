@@ -48,43 +48,45 @@ The order is chosen so something useful ships early:
 - [x] CMake build: `xppengine` library and `xppaut-headless`
 - [x] Golden regression suite: 187 of 197 example models produce output and
       match bit for bit; the other 10 have errors in the files themselves
-- [ ] CI on GitHub Actions: Windows, macOS (arm64 and x86_64), Linux
+- [x] CI on GitHub Actions: Windows, macOS, Linux (workflow written; runs once the repository is on GitHub)
 
 ### M1 Engine API (`libxpp`)
-- [ ] Load a model from a file or a string, with structured error messages
-      (line, column, explanation)
-- [ ] Query and set variables, parameters, initial conditions, numerical
+- [x] Load a model from a file or a string, with the parser's error message
+      (the line number when it can be found)
+- [x] Query and set variables, parameters, initial conditions, numerical
       options and auxiliaries
-- [ ] Integrate, returning the trajectory as arrays: all methods, `.set`
-      files, ranges and parameter sweeps
-- [ ] Equilibria with eigenvalues and stability, nullclines, direction
-      fields, stable/unstable manifolds
+- [x] Integrate, returning the trajectory as arrays: all methods, named sets
+- [ ] Ranges, parameter sweeps, `.set` files
+- [x] Equilibria with eigenvalues and stability, nullclines, vector field
+- [ ] Stable/unstable manifolds
 - [ ] Poincaré sections, Lyapunov exponents, FFT and spectra, curve fitting,
       averaging and adjoints (PRC)
 - [ ] Boundary value problems (shooting)
 - [ ] **Headless AUTO:** equilibria, periodic orbits, two-parameter curves,
       BVPs and homoclinics. Branches and labelled special points (HB, LP, PD,
       TR, BP, UZ) are returned as data
-- [ ] Shared library build with an exported, versioned C API
+- [x] Shared library build with an exported, versioned C API
 - [ ] `xpp` command-line tool built on the API
 
 ### M2 Python package `xppstudio`
-- [ ] `ctypes` bindings to the shared library (no Python C-API dependency)
-- [ ] `Model.load("lecar.ode")`, `model.integrate()` returning NumPy arrays
-      or pandas DataFrames, `model.equilibria()`, `model.auto(...)`
-- [ ] Bifurcation diagrams in matplotlib: stable branches solid, unstable
+- [x] `ctypes` bindings to the shared library (no Python C-API dependency)
+- [x] `xs.load("lecar.ode")`, `m.run()` returning NumPy arrays or pandas
+      DataFrames, `m.equilibrium()`, `m.auto.equilibria()`, `m.auto.continue_from()`
+- [x] Bifurcation diagrams in matplotlib: stable branches solid, unstable
       dashed, special points labelled
 - [ ] Jupyter: rich repr and interactive parameter sliders
-- [ ] Wheels for CPython 3.9+ on Windows x64, macOS arm64/x86_64 and
-      manylinux, via cibuildwheel and scikit-build-core
+- [x] Wheels: py3-none wheels via scikit-build-core (Windows wheel built and
+      tested locally); cibuildwheel for all platforms in CI
+- [ ] Publish on PyPI
 - [ ] Documentation site with tutorials and a gallery
 
 ### M3 Desktop app, shell
-- [ ] SDL3 + Dear ImGui (docking) + ImPlot, driven from C
-- [ ] MATLAB-style layout: model browser, workspace (parameters, initial
-      conditions, variables), `.ode` editor with syntax highlighting and live
-      errors, plot tabs, command window, help browser
-- [ ] Open, edit and run a model; time series and phase plane; parameter
+- [x] SDL3 + Dear ImGui (docking) + ImPlot, driven from C
+- [x] MATLAB-style layout: model browser, workspace (parameters, initial
+      conditions, numerics, sets), `.ode` editor with errors, plot tabs,
+      command window, help browser
+- [ ] Syntax highlighting in the editor
+- [x] Open, edit and run a model; time series and phase plane; parameter
       sliders with live re-integration
 - [ ] Preview release
 
@@ -94,9 +96,10 @@ The order is chosen so something useful ships early:
       Erase, Make window, Text, Sing pts, Viewaxes, Xi vs t, Restore,
       3D params, Bndryval
 - [ ] Data browser, animator (`.ani`), array plots, freeze curves, 3D
-- [ ] AUTO window: interactive diagram, grab and continue, two-parameter
+- [x] AUTO window: interactive diagram, grab and continue, two-parameter
       continuation, point labels explained
-- [ ] Classic XPP hotkeys, command palette, undo/redo
+- [x] Classic XPP hotkeys
+- [ ] Command palette, undo/redo
 - [ ] Export: PNG, SVG and PDF figures; CSV and MATLAB `.mat` data
 
 ### M5 Documentation and examples

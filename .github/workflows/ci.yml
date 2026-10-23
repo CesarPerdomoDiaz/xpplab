@@ -22,6 +22,7 @@ jobs:
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-sdl3
             mingw-w64-ucrt-x86_64-python
             mingw-w64-ucrt-x86_64-python-numpy
             mingw-w64-ucrt-x86_64-python-pytest
@@ -35,6 +36,11 @@ jobs:
         run: ctest --test-dir build --output-on-failure
       - name: Python tests
         run: PYTHONPATH=python/src python -m pytest -q python/tests
+      - name: Desktop app starts, loads a model and renders
+        run: |
+          cd build/app
+          ./xppstudio.exe examples/lecar.ode --cmd "nullclines" --cmd "auto steady iapp" --screenshot shot.bmp --frames 10
+          test -s shot.bmp
 
   unix:
     name: ${{ matrix.os }}
@@ -55,7 +61,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libx11-dev ninja-build pkg-config
       - name: System packages (macOS)
         if: runner.os == 'macOS'
-        run: brew install libx11 ninja pkg-config
+        run: brew install libx11 ninja pkg-config sdl3
       - name: Python packages
         run: python -m pip install numpy pytest matplotlib pandas
       - name: Build

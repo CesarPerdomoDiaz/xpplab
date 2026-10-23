@@ -81,38 +81,53 @@ The order is chosen so something useful ships early:
 - [ ] Publish on PyPI
 - [ ] Documentation site with tutorials and a gallery
 
-### M3 Desktop app, shell
+### M3 Desktop app, shell: done
 - [x] SDL3 + Dear ImGui (docking) + ImPlot, driven from C
 - [x] MATLAB-style layout: model browser, workspace (parameters, initial
       conditions, numerics, sets), `.ode` editor with errors, plot tabs,
       command window, help browser
-- [ ] Syntax highlighting in the editor
+- [x] Syntax highlighting in the editor (parameters and variables too)
 - [x] Open, edit and run a model; time series and phase plane; parameter
       sliders with live re-integration
-- [ ] Preview release
+- [x] Portable Windows zip, tested on a clean PATH
+- [ ] First public preview release (needs the GitHub repository)
 
 ### M4 Desktop app, full XPPAUT parity
-- [ ] Every XPPAUT menu: ICs, Continue, Nullcline, Dir field, Window/zoom,
-      phAsespace, Kinescope, Graphic stuff, nUmerics, File, Parameters,
-      Erase, Make window, Text, Sing pts, Viewaxes, Xi vs t, Restore,
-      3D params, Bndryval
-- [ ] Data browser, animator (`.ani`), array plots, freeze curves, 3D
+Done:
+- [x] Initial conds (Go, Last, Mouse), Continue, Nullclines, Dir field,
+      Window/zoom (mouse), Numerics (all methods and options, Poincare
+      maps), Parameters, Erase, Sing pts (with stability), invariant
+      manifolds of saddles, Xi vs t, phase plane, Data browser, array plots,
+      freeze (keep) curves, sets
 - [x] AUTO window: interactive diagram, grab and continue, two-parameter
       continuation, point labels explained
 - [x] Classic XPP hotkeys
-- [ ] Command palette, undo/redo
-- [ ] Export: PNG, SVG and PDF figures; CSV and MATLAB `.mat` data
+- [x] Export: PNG (as shown) and SVG (vector) figures; CSV data
+
+To do:
+- [ ] Animator (`.ani` files) and Kinescope
+- [ ] 3D plots (3D params)
+- [ ] Boundary value problems (Bndryval) and ranges (Initial conds > Range)
+- [ ] Curve fitting, spectra and histograms, Lyapunov exponents
+- [ ] Text, Make window, Graphic stuff (labels, arrows, several plots)
+- [ ] Command palette; MATLAB `.mat` export; PDF figures
 
 ### M5 Documentation and examples
-- [ ] Getting started, tutorials for each field, a full `.ode` language
-      reference, numerics and AUTO guides
-- [ ] Gallery of every example model with thumbnails
-- [ ] "Coming from XPPAUT", "Coming from MATLAB" and "Coming from
-      AUTO-07p" guides
+- [x] Getting started, tutorial, full `.ode` language reference, numerics
+      and AUTO guides, command reference (in the app and on the website)
+- [x] Python guide and API reference (mkdocstrings)
+- [x] Gallery of the example models with thumbnails (generated at build)
+- [x] "Coming from XPPAUT" guide
+- [ ] Field tutorials (neuroscience, ecology, chemistry, mechanics)
+- [ ] "Coming from MATLAB" and "Coming from AUTO-07p" guides
+- [ ] Jupyter notebooks
 
 ### M6 Release and community
-- [ ] Windows installer and portable zip, notarized universal macOS `.dmg`,
-      Linux AppImage; `.ode` file association
+- [x] Windows portable zip, macOS `.dmg` bundle, Linux tarball (CPack),
+      built by the release workflow on a version tag
+- [ ] macOS notarization and Windows code signing (need developer accounts)
+- [ ] Windows installer with `.ode` file association; Linux AppImage
+- [ ] Publish on GitHub and PyPI
 - [ ] Contact Bard Ermentrout; announce on the xppaut-l list, comp-neuro
       and SIAM DS
 - [ ] Journal of Open Source Software paper

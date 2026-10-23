@@ -134,12 +134,7 @@ static void free_model_cache(App *a) {
   a->nvars = a->npars = a->ncols = a->nsets = 0;
   free_traj(&a->traj);
   app_clear_curves(a);
-  for (i = 0; i < a->neq; i++) {
-    free(a->eq[i].x);
-    free(a->eq[i].re);
-    free(a->eq[i].im);
-  }
-  a->neq = 0;
+  app_clear_equilibria(a);
   a->have_traj = false;
   free(a->pp.ncx);
   free(a->pp.ncy);
@@ -351,6 +346,20 @@ static bool load_engine(App *a) {
   copy_names(a->eng, XPPE_VARIABLES, a->nvars, a->vars);
   copy_names(a->eng, XPPE_PARAMETERS, a->npars, a->pars);
   copy_names(a->eng, XPPE_COLUMNS, a->ncols, a->cols);
+  /* An "only" statement can leave time out of the output: put it back as
+     column 0 (the engine serves it as column -1). */
+  a->time_missing = a->ncols == 0 || SDL_strcasecmp(a->cols[0], "T") != 0;
+  if (a->time_missing) {
+    char(*c)[APP_NAME_LEN] = calloc((size_t)a->ncols + 2, APP_NAME_LEN);
+    bool *pc = calloc((size_t)a->ncols + 2, sizeof *pc);
+    memcpy(c + 1, a->cols, (size_t)a->ncols * APP_NAME_LEN);
+    snprintf(c[0], APP_NAME_LEN, "T");
+    free(a->cols);
+    free(a->plot_col);
+    a->cols = c;
+    a->plot_col = pc;
+    a->ncols++;
+  }
   copy_names(a->eng, XPPE_SETS, a->nsets, a->sets);
   /* By default plot the state variables, not the auxiliaries. */
   {
@@ -567,8 +576,23 @@ void app_freeze(App *a) {
   a->have_traj = false;
 }
 
+/* Copy the engine's current run into t. */
+static void fetch_run(App *a, Trajectory *t) {
+  xpp_engine_api *x = &a->eng->api;
+  int rows = x->xppe_rows(), j;
+  t->nrows = rows;
+  t->ncols = a->ncols;
+  t->names = calloc((size_t)a->ncols, APP_NAME_LEN);
+  t->cols = calloc((size_t)a->ncols, sizeof(double *));
+  for (j = 0; j < a->ncols; j++) {
+    snprintf(t->names[j], APP_NAME_LEN, "%s", a->cols[j]);
+    t->cols[j] = malloc(sizeof(double) * (size_t)(rows > 0 ? rows : 1));
+    x->xppe_column(a->time_missing ? j - 1 : j, t->cols[j], rows);
+  }
+}
+
 bool app_run(App *a) {
-  int rows, j;
+  int rows;
   xpp_engine_api *x;
   a->needs_run = false;
   if (!a->model_ok) return false;
@@ -582,16 +606,8 @@ bool app_run(App *a) {
     app_freeze(a);
   else
     free_traj(&a->traj);
-  rows = x->xppe_rows();
-  a->traj.nrows = rows;
-  a->traj.ncols = a->ncols;
-  a->traj.names = calloc((size_t)a->ncols, APP_NAME_LEN);
-  a->traj.cols = calloc((size_t)a->ncols, sizeof(double *));
-  for (j = 0; j < a->ncols; j++) {
-    snprintf(a->traj.names[j], APP_NAME_LEN, "%s", a->cols[j]);
-    a->traj.cols[j] = malloc(sizeof(double) * (size_t)(rows > 0 ? rows : 1));
-    x->xppe_column(j, a->traj.cols[j], rows);
-  }
+  fetch_run(a, &a->traj);
+  rows = a->traj.nrows;
   snprintf(a->traj.label, sizeof a->traj.label, "run %d", a->nfrozen + 1);
   a->have_traj = true;
   {
@@ -677,18 +693,32 @@ static void classify(Equilibrium *e, int n, bool discrete) {
              unstable ? "unstable" : "stable", complex_pair ? "focus" : "node");
 }
 
+static void free_equilibrium(Equilibrium *e) {
+  int k;
+  free(e->x);
+  free(e->re);
+  free(e->im);
+  for (k = 0; k < e->nmanifolds; k++) free_traj(&e->manifold[k]);
+  memset(e, 0, sizeof *e);
+}
+
+void app_clear_equilibria(App *a) {
+  int i;
+  for (i = 0; i < a->neq; i++) free_equilibrium(&a->eq[i]);
+  a->neq = 0;
+}
+
 bool app_equilibrium(App *a, const double *guess) {
   Equilibrium *e;
   int i, n = a->nvars;
   if (!a->model_ok) return false;
   if (a->neq == APP_MAX_EQUILIBRIA) {
-    free(a->eq[0].x);
-    free(a->eq[0].re);
-    free(a->eq[0].im);
+    free_equilibrium(&a->eq[0]);
     memmove(&a->eq[0], &a->eq[1], sizeof a->eq[0] * (APP_MAX_EQUILIBRIA - 1));
     a->neq--;
   }
   e = &a->eq[a->neq];
+  memset(e, 0, sizeof *e);
   e->x = malloc(sizeof(double) * (size_t)n);
   e->re = calloc((size_t)n, sizeof(double));
   e->im = calloc((size_t)n, sizeof(double));
@@ -697,13 +727,22 @@ bool app_equilibrium(App *a, const double *guess) {
     app_log(a, "No equilibrium found near that point (%s).",
             a->eng->api.xppe_error());
     app_status(a, "No equilibrium found near that point");
-    free(e->x);
-    free(e->re);
-    free(e->im);
+    free_equilibrium(e);
     return false;
   }
   classify(e, n, a->meth == 0);
   a->neq++;
+  /* Saddles: XPPAUT's invariant sets, one branch on each side of every
+     one-dimensional stable or unstable direction. */
+  if (e->unstable > 0 && e->unstable < n && n > 1) {
+    int k, m = a->eng->api.xppe_manifold_count();
+    for (k = 0; k < m && k < 8; k++) {
+      int type = 0;
+      if (a->eng->api.xppe_manifold(k, &type) != XPPE_OK) continue;
+      fetch_run(a, &e->manifold[e->nmanifolds]);
+      e->manifold_type[e->nmanifolds++] = type;
+    }
+  }
   {
     char line[1024];
     int k = 0;
@@ -716,6 +755,9 @@ bool app_equilibrium(App *a, const double *guess) {
       k += snprintf(line + k, sizeof line - k, " %.5g%+.5gi", e->re[i],
                     e->im[i]);
     app_log(a, "%s", line);
+    if (e->nmanifolds)
+      app_log(a, "  %d branches of its stable and unstable manifolds drawn in "
+                 "the phase plane.", e->nmanifolds);
   }
   app_status(a, "Found %s %s", strchr("aeiou", e->kind[0]) ? "an" : "a",
              e->kind);

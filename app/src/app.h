@@ -35,6 +35,10 @@ typedef struct {
   double *re, *im;
   int unstable;
   char kind[32]; /* "stable node", "saddle", ... */
+  /* For saddles: the stable and unstable manifold branches. */
+  Trajectory manifold[8];
+  int manifold_type[8]; /* +1 unstable, -1 stable */
+  int nmanifolds;
 } Equilibrium;
 
 typedef struct {
@@ -84,7 +88,8 @@ typedef struct App {
   char (*sets)[APP_NAME_LEN];
   ParamUI *par;
   double *ic;
-  bool *plot_col; /* which columns the time plot shows */
+  bool *plot_col;    /* which columns the time plot shows */
+  bool time_missing; /* the model's "only" statement leaves out time */
 
   /* numerics */
   double total, dt, t0, trans, bound, tol, atol;
@@ -162,6 +167,7 @@ bool app_continue(App *a, double more_time); /* 0: the current TOTAL */
 void app_freeze(App *a);
 void app_clear_curves(App *a);
 bool app_equilibrium(App *a, const double *guess);
+void app_clear_equilibria(App *a);
 bool app_nullclines(App *a, double xlo, double xhi, double ylo, double yhi);
 
 /* AUTO */

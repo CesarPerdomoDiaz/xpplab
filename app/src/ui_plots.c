@@ -216,11 +216,29 @@ static void draw_nullclines(App *a) {
   }
 }
 
+static void draw_manifolds(App *a, Equilibrium *e) {
+  int k, j, jx, jy;
+  for (k = 0; k < e->nmanifolds; k++) {
+    Trajectory *t = &e->manifold[k];
+    jx = jy = -1;
+    for (j = 1; j < t->ncols; j++) {
+      if (SDL_strcasecmp(t->names[j], a->vars[a->pp.xvar]) == 0) jx = j;
+      if (SDL_strcasecmp(t->names[j], a->vars[a->pp.yvar]) == 0) jy = j;
+    }
+    if (jx < 0 || jy < 0) continue;
+    ImPlot_PlotLine_doublePtrdoublePtr(
+        e->manifold_type[k] > 0 ? "unstable manifold" : "stable manifold",
+        t->cols[jx], t->cols[jy], t->nrows,
+        Spec(e->manifold_type[k] > 0 ? HEX(0xff7f0e) : HEX(0x9467bd), 1.6f));
+  }
+}
+
 static void draw_equilibria(App *a) {
   int i;
   for (i = 0; i < a->neq; i++) {
     Equilibrium *e = &a->eq[i];
     double x = e->x[a->pp.xvar], y = e->x[a->pp.yvar];
+    draw_manifolds(a, e);
     bool stable = e->unstable == 0;
     ImPlotSpec_c s = SpecMarker(stable ? HEX(0x000000) : HEX(0xffffff),
                                 ImPlotMarker_Circle, 5.5f);

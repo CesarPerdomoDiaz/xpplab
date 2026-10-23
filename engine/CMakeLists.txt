@@ -108,34 +108,47 @@ set(XPPAUT_SOURCES
     xppaut/z_log.c
 )
 
-add_library(xppengine STATIC
+# All engine code is compiled once and linked two ways: a static library
+# for the command-line tools and a shared library that exports the engine
+# API (api/xppe.h) for Python and the desktop app.
+add_library(xppengine_obj OBJECT
   ${XPPAUT_SOURCES}
   platform/nullx/nullx.c
+  platform/embed/xpps_embed.c
+  api/xppe.c
   $<$<BOOL:${WIN32}>:platform/compat/dlfcn_win.c>
 )
 
-target_include_directories(xppengine
-  PUBLIC xppaut
-  PUBLIC platform/nullx/include
+target_include_directories(xppengine_obj
+  PUBLIC api
+  PRIVATE xppaut platform/nullx/include platform/embed
 )
 
-target_compile_definitions(xppengine PRIVATE
+target_compile_definitions(xppengine_obj PRIVATE
   AUTO CVODE_YES HAVEDLL NOERRNO NON_UNIX_STDIO MAXW=50
   MYSTR1=8.0 MYSTR2=1
   main=xpp_upstream_main
+  XPPE_BUILD_SHARED
   $<$<BOOL:${WIN32}>:NORAND48>
 )
 
 if(WIN32)
-  target_include_directories(xppengine BEFORE PRIVATE platform/compat/win)
-  target_compile_options(xppengine PRIVATE
-    -include ${CMAKE_CURRENT_SOURCE_DIR}/platform/compat/win/compat.h)
+  target_include_directories(xppengine_obj BEFORE PRIVATE platform/compat/win)
+  target_compile_options(xppengine_obj PRIVATE
+    "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/platform/compat/win/compat.h")
 endif()
+# printf() and exit() go through the embedding layer (see xpps_embed.h).
+target_compile_options(xppengine_obj PRIVATE
+  "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/platform/embed/xpps_embed.h")
 
 # The upstream code predates C99 strictness: K&R-style declarations,
 # implicit int, implicit declarations and tentative definitions shared
 # between files. Modern GCC and Clang reject these by default.
-target_compile_options(xppengine PRIVATE -w -fcommon)
+target_compile_options(xppengine_obj PRIVATE -w -fcommon)
+# Upstream's Makefile builds with -O2; match it rather than CMake's -O3.
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+  target_compile_options(xppengine_obj PRIVATE -O2)
+endif()
 foreach(flag -fpermissive
              -Wno-error=implicit-function-declaration
              -Wno-error=implicit-int
@@ -146,20 +159,37 @@ foreach(flag -fpermissive
   string(MAKE_C_IDENTIFIER "HAVE${flag}" var)
   check_c_compiler_flag(${flag} ${var})
   if(${var})
-    target_compile_options(xppengine PRIVATE ${flag})
+    target_compile_options(xppengine_obj PRIVATE ${flag})
   endif()
 endforeach()
 
 # Same numbers on every platform: no fused multiply-add contraction.
 check_c_compiler_flag(-ffp-contract=off HAVE_FP_CONTRACT_OFF)
 if(HAVE_FP_CONTRACT_OFF)
-  target_compile_options(xppengine PUBLIC -ffp-contract=off)
+  target_compile_options(xppengine_obj PRIVATE -ffp-contract=off)
+endif()
+# Exported API only; everything else stays internal to the shared library.
+if(NOT WIN32)
+  target_compile_options(xppengine_obj PRIVATE -fvisibility=hidden)
 endif()
 
+set(XPPENGINE_LIBS "")
 if(NOT WIN32)
-  target_link_libraries(xppengine PUBLIC ${CMAKE_DL_LIBS})
+  list(APPEND XPPENGINE_LIBS ${CMAKE_DL_LIBS})
 endif()
 find_library(MATH_LIBRARY m)
 if(MATH_LIBRARY)
-  target_link_libraries(xppengine PUBLIC ${MATH_LIBRARY})
+  list(APPEND XPPENGINE_LIBS ${MATH_LIBRARY})
+endif()
+
+add_library(xppengine STATIC $<TARGET_OBJECTS:xppengine_obj>)
+target_include_directories(xppengine PUBLIC api)
+target_link_libraries(xppengine PUBLIC ${XPPENGINE_LIBS})
+
+add_library(xppe SHARED $<TARGET_OBJECTS:xppengine_obj>)
+target_include_directories(xppe PUBLIC api)
+target_link_libraries(xppe PRIVATE ${XPPENGINE_LIBS})
+if(WIN32)
+  # A self-contained DLL: no libgcc/winpthread DLLs needed at run time.
+  target_link_options(xppe PRIVATE -static-libgcc -static)
 endif()

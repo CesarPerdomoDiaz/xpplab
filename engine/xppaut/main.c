@@ -399,7 +399,9 @@ int argc;
   /*Read visualization environement variables here
   since some may be overridden by command line
   */
-  logfile=stdout;
+  /* XPP Studio: when embedded as a library, console output goes to the
+     embedding layer so the caller can read it (see xpps_embed.h). */
+  logfile=xpps_log_stream();
   check_for_quiet(argc, argv);
   /*do_vis_env();*/
   
@@ -503,6 +505,10 @@ if(XPPBatch){
      if_needed_load_ext_options();
      set_extra_graphs();
      set_colorization_stuff();
+     /* XPP Studio: when embedded as a library, stop here. The model is
+        loaded and initialised exactly as for a batch run, and the caller
+        drives the computation through the engine API (api/xppe.c). */
+     if(xpps_embedded) return;
      /* if(!SuppressOut) */
        batch_integrate();
        if(NCBatch>0)silent_nullclines();

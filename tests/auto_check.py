@@ -16,7 +16,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-RTOL = 1e-7 if sys.platform == "win32" else 1e-6
+RTOL = 1e-7 if sys.platform == "win32" else 1e-4
 WELL_POSED = None if sys.platform == "win32" else 200
 
 

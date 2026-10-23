@@ -24,7 +24,8 @@ def main():
         print(r.stdout)
         if r.returncode != 0:
             print(r.stderr)
-            sys.exit("api_smoke failed")
+            sys.exit(f"api_smoke failed (exit code {r.returncode}; a negative "
+                     f"code is the signal that killed it)")
         subprocess.run([str(headless), model.name, "-silent", "-outfile",
                         "ref.dat"], cwd=tmp, capture_output=True,
                        stdin=subprocess.DEVNULL, check=True)

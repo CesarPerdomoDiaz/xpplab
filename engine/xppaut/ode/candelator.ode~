@@ -1,0 +1,12 @@
+!g=980
+par k=.1
+init m1=50,m2=60
+r1=m1/4
+r2=m2/4
+w'=.75*g*sin(th)*(-r1*m1+r2*m2)/(ma*r1^2+m2*r2^2)-k*w
+th'=w
+m1'=0
+m2'=0
+@ meth=cvode
+d
+

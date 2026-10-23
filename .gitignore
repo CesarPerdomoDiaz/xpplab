@@ -1,0 +1,17 @@
+build/
+build-*/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+__pycache__/
+*.egg-info/
+.venv/
+dist/
+output.dat
+/tests/out/
+.vscode/
+.idea/

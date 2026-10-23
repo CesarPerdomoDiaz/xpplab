@@ -1,0 +1,11 @@
+x'=y
+y'=z
+z'=-a*z-b*y-c*x-x^2
+c'=0
+init x=.5,c=2.2
+@ total=1200,meth=euler,trans=1000
+@ poimap=section,poivar=x,poisgn=1,poipln=0
+@ range=1,rangeover=c,rangestep=200,rangelow=2.88
+@ rangehigh=2.96,rangereset=no,rangeoldic=yes
+par a=1,b=2
+d

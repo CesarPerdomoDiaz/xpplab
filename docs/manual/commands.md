@@ -48,6 +48,7 @@ commands. `help` lists them all.
 | `auto from 2 periodic` | Continue from labelled point 2. Actions: `periodic`, `two`, `extend`, `switch`, `doubling`, `fixed`. |
 | `auto set ds=0.01 nmax=300` | AUTO numerics. |
 | `auto reset` | Clear the diagram. |
+| `sweep I 0 1.6 50 V` | Run 50 times with I from 0 to 1.6 and plot the max and min of V (XPPAUT's Range). Leave out `V` to keep each trajectory instead. |
 | `open file.ode`, `new`, `save` | Model files. |
 | `export run.csv` | Save the last run as CSV. |
 | `export fig.svg phase` | Save a figure (`time`, `phase`, `auto`, `auto2`) as SVG; `.png` saves it as shown. |

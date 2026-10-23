@@ -1,0 +1,56 @@
+[build-system]
+requires = ["scikit-build-core>=0.10"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "xppstudio"
+version = "0.1.0.dev0"
+description = "XPPAUT's simulation and AUTO bifurcation engine for Python: pip install and go, no compiler, no X11"
+readme = "python/README.md"
+license = "GPL-2.0-or-later"
+license-files = ["LICENSE", "engine/xppaut/LICENSE"]
+requires-python = ">=3.9"
+dependencies = ["numpy>=1.21"]
+keywords = ["xppaut", "auto", "bifurcation", "continuation", "dynamical systems",
+            "ode", "neuroscience", "nonlinear dynamics"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Education",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: C",
+  "Topic :: Scientific/Engineering :: Mathematics",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+]
+
+[project.optional-dependencies]
+plot = ["matplotlib>=3.5"]
+pandas = ["pandas>=1.3"]
+all = ["matplotlib>=3.5", "pandas>=1.3"]
+test = ["pytest>=7", "matplotlib>=3.5", "pandas>=1.3"]
+
+[project.urls]
+Documentation = "https://github.com/xppstudio/xppstudio"
+Source = "https://github.com/xppstudio/xppstudio"
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+wheel.packages = ["python/src/xppstudio"]
+# The engine is loaded with ctypes and does not link against Python, so a
+# single wheel per platform serves every Python 3 version.
+wheel.py-api = "py3"
+cmake.build-type = "Release"
+build.targets = ["xppe"]
+install.components = ["python"]
+sdist.exclude = ["build*", "tests/golden", "docs/_build", ".github"]
+
+[tool.scikit-build.cmake.define]
+XPPS_BUILD_TESTS = "OFF"
+XPPS_BUILD_CLI = "OFF"
+
+[tool.pytest.ini_options]
+testpaths = ["python/tests"]

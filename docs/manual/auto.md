@@ -48,6 +48,15 @@ are green (stable) and blue (unstable).
 Try it: [open the Morris-Lecar model](example:lecar.ode), apply the `hopf`
 set (Workspace > Sets), then [follow the steady states in iapp](cmd:auto steady iapp).
 
+## Check the diagram with simulations
+
+**Workspace > Sweep** runs the model once for each value of a parameter
+and records the maximum and minimum of a variable after a transient. When
+the parameter and the plotted variable match the Bifurcation window's, the
+results appear as grey dots on AUTO's diagram. They should sit on the stable
+branches: the solid red lines and the solid green ones. Where the system is
+bistable, different initial values land on different branches.
+
 ## The numerical settings
 
 | Setting | Meaning | Advice |

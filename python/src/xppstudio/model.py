@@ -233,6 +233,144 @@ class Model:
         discrete = self.get("METH") == "discrete"
         return Equilibrium(values, eig, discrete)
 
+    # -- phase plane --------------------------------------------------------
+
+    def _var_index(self, name: str) -> int:
+        for i, v in enumerate(self.variables):
+            if _key(v) == _key(name):
+                return i
+        raise KeyError(f"no variable {name!r}; available: {', '.join(self.variables)}")
+
+    def _state(self, state=None) -> "ctypes.Array":
+        n = len(self.variables)
+        x = (ctypes.c_double * n)()
+        for i, v in enumerate(self.variables):
+            x[i] = float(self.get(v))
+        if state is not None:
+            if isinstance(state, dict):
+                for k, val in state.items():
+                    x[self._var_index(k)] = float(val)
+            else:
+                arr = np.asarray(state, dtype=float).ravel()
+                if arr.size != n:
+                    raise ValueError(f"expected {n} values, got {arr.size}")
+                for i in range(n):
+                    x[i] = arr[i]
+        return x
+
+    def rhs(self, state=None, t: float = 0.0) -> np.ndarray:
+        """The right-hand side f(t, x) of the ODEs, as an array.
+
+        ``state`` is a dict of variable values (others keep their initial
+        value) or a full array; by default the initial condition. For maps it
+        is the next state."""
+        x = self._state(state)
+        f = (ctypes.c_double * len(self.variables))()
+        self._engine.call("xppe_rhs", float(t), x, f)
+        return np.array(f[:])
+
+    def nullclines(self, x: str, y: str, xlim, ylim, grid: int = 100):
+        """XPPAUT's nullclines in the (x, y) plane over the given window.
+
+        Returns ``(x_nullcline, y_nullcline)``: arrays of line segments with
+        shape (n, 4) holding x1, y1, x2, y2. The other variables keep their
+        initial values."""
+        ix, iy = self._var_index(x), self._var_index(y)
+        maxseg = 40000
+        out = []
+        for which in (0, 1):
+            buf = (ctypes.c_float * (4 * maxseg))()
+            n = self._engine.call("xppe_nullcline", which, ix, iy,
+                                  float(xlim[0]), float(xlim[1]),
+                                  float(ylim[0]), float(ylim[1]), int(grid),
+                                  buf, maxseg)
+            out.append(np.frombuffer(buf, dtype=np.float32,
+                                     count=4 * n).reshape(n, 4).astype(float))
+        return out[0], out[1]
+
+    def vector_field(self, x: str, y: str, xlim, ylim, n: int = 20):
+        """The vector field on an n x n grid: returns X, Y, U, V for
+        matplotlib's quiver. Other variables keep their initial values."""
+        ix, iy = self._var_index(x), self._var_index(y)
+        xs = np.linspace(xlim[0], xlim[1], n)
+        ys = np.linspace(ylim[0], ylim[1], n)
+        X, Y = np.meshgrid(xs, ys)
+        U, V = np.zeros_like(X), np.zeros_like(Y)
+        base = np.array(self._state()[:])
+        discrete = self.get("METH") == "discrete"
+        for i in range(n):
+            for j in range(n):
+                s = base.copy()
+                s[ix], s[iy] = X[i, j], Y[i, j]
+                f = self.rhs(s)
+                U[i, j] = f[ix] - (s[ix] if discrete else 0)
+                V[i, j] = f[iy] - (s[iy] if discrete else 0)
+        return X, Y, U, V
+
+    def phase_plane(self, x: str | None = None, y: str | None = None, *,
+                    xlim=None, ylim=None, trajectory: bool = True,
+                    nullclines: bool = True, field: bool = True,
+                    equilibrium: bool = True, ax=None):
+        """Draw the phase plane: trajectory, nullclines, direction field and
+        the nearby equilibrium, in one call. Returns the matplotlib axes."""
+        from .plotting import plot_phase_plane
+        x = x or self.variables[0]
+        y = y or self.variables[1]
+        return plot_phase_plane(self, x, y, xlim=xlim, ylim=ylim,
+                                trajectory=trajectory, nullclines=nullclines,
+                                field=field, equilibrium=equilibrium, ax=ax)
+
+    def sweep(self, parameter: str, values, *, measure=None, **run_kw):
+        """Run once per value of ``parameter`` and collect the results.
+
+        Without ``measure`` it returns a list of Trajectory objects. With a
+        function, e.g. ``measure=lambda s: s["V"].max()``, it returns a NumPy
+        array of the measure at each value: a brute-force bifurcation
+        diagram. The parameter is restored afterwards."""
+        old = self.get(parameter)
+        out = []
+        try:
+            for v in values:
+                self.set(**{parameter: float(v)})
+                sol = self.run(**run_kw)
+                out.append(measure(sol) if measure else sol)
+        finally:
+            self.set(**{parameter: old})
+        return np.array(out) if measure else out
+
+    def interact(self, *parameters: str, y: str | list | None = None,
+                 **ranges):
+        """Jupyter sliders for parameters that re-integrate as you drag.
+
+        ``m.interact("I", "eps")`` uses ranges around the current values;
+        ``m.interact(I=(0, 2))`` sets them. Needs ipywidgets and matplotlib."""
+        import ipywidgets as widgets
+        import matplotlib.pyplot as plt
+
+        names = list(parameters) + [k for k in ranges if k not in parameters]
+        if not names:
+            names = list(self.parameters)[:6]
+        sliders = {}
+        for name in names:
+            v = float(self.get(name))
+            lo, hi = ranges.get(name, (min(0.0, 2 * v), max(0.0, 2 * v) or 1.0))
+            sliders[name] = widgets.FloatSlider(
+                value=v, min=lo, max=hi, step=(hi - lo) / 200 or 0.01,
+                description=name, continuous_update=True)
+        cols = [y] if isinstance(y, str) else (y or self.variables[:2])
+
+        def update(**vals):
+            self.set(**vals)
+            sol = self.run()
+            fig, ax = plt.subplots(figsize=(8, 3.5))
+            for c in cols:
+                ax.plot(sol.t, sol[c], label=c)
+            ax.set_xlabel("t")
+            ax.legend(loc="upper right")
+            plt.show()
+
+        return widgets.interactive(update, **sliders)
+
     # -- housekeeping -------------------------------------------------------
 
     @property

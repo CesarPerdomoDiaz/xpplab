@@ -194,3 +194,10 @@ if(WIN32)
   # A self-contained DLL: no libgcc/winpthread DLLs needed at run time.
   target_link_options(xppe PRIVATE -static-libgcc -static)
 endif()
+
+# Inside a Python wheel the library lives next to the package code.
+if(SKBUILD)
+  install(TARGETS xppe
+    RUNTIME DESTINATION xppstudio/_lib COMPONENT python
+    LIBRARY DESTINATION xppstudio/_lib COMPONENT python)
+endif()

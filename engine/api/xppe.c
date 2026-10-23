@@ -114,6 +114,56 @@ const char *xppe_error(void) { return last_error; }
 
 /* ---- Loading ------------------------------------------------------------ */
 
+/* The most informative line of the log after a failed load: the last line
+   that looks like an error message, else the last non-empty line. */
+static void load_failed(const char *path) {
+  static const char *markers[] = {"rror", "llegal", "uplicate", "terminate",
+                                  "Can't", "Cant", "nknown", "Problem",
+                                  "Must", "missing", "Not ", "not "};
+  const char *log = last_log ? last_log : "", *p = log, *best = NULL,
+             *last = NULL;
+  size_t best_len = 0, last_len = 0;
+  while (*p) {
+    const char *end = strchr(p, '\n');
+    size_t len = end ? (size_t)(end - p) : strlen(p);
+    size_t k;
+    int blank = 1;
+    for (k = 0; k < len; k++)
+      if (!isspace((unsigned char)p[k])) blank = 0;
+    if (!blank) {
+      last = p;
+      last_len = len;
+      for (k = 0; k < sizeof markers / sizeof markers[0]; k++) {
+        size_t m = strlen(markers[k]), j;
+        for (j = 0; j + m <= len; j++)
+          if (strncmp(p + j, markers[k], m) == 0) break;
+        if (j + m <= len) {
+          best = p;
+          best_len = len;
+          break;
+        }
+      }
+    }
+    if (!end) break;
+    p = end + 1;
+  }
+  if (!best) {
+    best = last;
+    best_len = last_len;
+  }
+  while (best && best_len > 0 && isspace((unsigned char)*best)) {
+    best++;
+    best_len--;
+  }
+  while (best && best_len > 0 && isspace((unsigned char)best[best_len - 1]))
+    best_len--;
+  if (best && best_len > 0)
+    snprintf(last_error, sizeof last_error, "could not load %s: %.*s", path,
+             (int)(best_len > 300 ? 300 : best_len), best);
+  else
+    snprintf(last_error, sizeof last_error, "could not load %s", path);
+}
+
 int xppe_load(const char *ode_path, int noptions, const char *const *options) {
   char **argv;
   int argc = 0, i;
@@ -152,15 +202,27 @@ int xppe_load(const char *ode_path, int noptions, const char *const *options) {
   for (i = 0; i < noptions; i++) argv[argc++] = (char *)options[i];
 
   xpps_embedded = 1;
-  XPPE_GUARD_BEGIN((void)0);
-  do_main(argc, argv); /* returns early when embedded; see main.c */
-  XPPE_GUARD_END;
+  {
+    /* XPPAUT exits when the model file has an error. Report that as a load
+       error that quotes the parser's message. */
+    jmp_buf jb;
+    if (setjmp(jb)) {
+      free(argv);
+      broken = 1;
+      xppe_end_call();
+      load_failed(ode_path);
+      return XPPE_ERR_LOAD;
+    }
+    xpps_guard_set(&jb);
+    do_main(argc, argv); /* returns early when embedded; see main.c */
+    xpps_guard_set(NULL);
+  }
   free(argv);
 
   if (NODE + NMarkov <= 0) {
     broken = 1;
-    xppe_set_error("could not load %s; see the log", ode_path);
     xppe_end_call();
+    load_failed(ode_path);
     return XPPE_ERR_LOAD;
   }
   loaded = 1;

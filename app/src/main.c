@@ -1,10 +1,11 @@
 /*
  * XPP Studio - the desktop application.
  *
- *   xppstudio [model.ode] [--cmd "command"]... [--screenshot out.bmp]
- *             [--frames N] [--size WxH] [--reset-layout]
+ *   xppstudio [model.ode] [--cmd "command"]... [--then "command"]...
+ *             [--screenshot out.bmp] [--frames N] [--size WxH] [--reset-layout]
  *
- * --cmd runs a command-window command after start-up (repeatable).
+ * --cmd runs a command-window command after start-up (repeatable); --then
+ * runs one after the first few frames, once the windows exist.
  * --screenshot renders N frames (default 12), saves the window to a BMP
  * file and exits; it is used to check the interface automatically.
  */
@@ -15,6 +16,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+#include "export.h"
 #include "gui_backend.h"
 #include "ui.h"
 
@@ -57,8 +59,8 @@ int main(int argc, char **argv) {
   SDL_Renderer *renderer;
   const char *base;
   const char *model = NULL, *shot = NULL;
-  const char *cmds[32];
-  int ncmds = 0, frames = 12, width = 1500, height = 920, frame = 0, i;
+  const char *cmds[32], *later[32];
+  int ncmds = 0, nlater = 0, frames = 12, width = 1500, height = 920, frame = 0, i;
   bool reset_layout = false, applied_dark;
   float applied_scale, dpi;
   char *pref;
@@ -66,6 +68,8 @@ int main(int argc, char **argv) {
   for (i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--cmd") && i + 1 < argc && ncmds < 32)
       cmds[ncmds++] = argv[++i];
+    else if (!strcmp(argv[i], "--then") && i + 1 < argc && nlater < 32)
+      later[nlater++] = argv[++i];
     else if (!strcmp(argv[i], "--screenshot") && i + 1 < argc)
       shot = argv[++i];
     else if (!strcmp(argv[i], "--frames") && i + 1 < argc)
@@ -161,6 +165,15 @@ int main(int argc, char **argv) {
       applied_scale = app.ui_scale;
     }
 
+    /* --then commands run once the windows have been drawn, so that, for
+       example, figures exist and can be exported. */
+    if (frame == 4)
+      for (i = 0; i < nlater; i++) {
+        app_log(&app, ">> %s", later[i]);
+        app_command(&app, later[i]);
+      }
+    if (!shot) frame++;
+
     gui_backend_new_frame();
     igNewFrame();
     ui_draw(&app);
@@ -168,6 +181,7 @@ int main(int argc, char **argv) {
     SDL_SetRenderDrawColor(renderer, 30, 31, 34, 255);
     SDL_RenderClear(renderer);
     gui_backend_render(renderer);
+    export_process_pending(&app, renderer, igGetIO_Nil()->DisplayFramebufferScale.x);
 
     if (shot && ++frame >= frames) {
       SDL_Surface *s = SDL_RenderReadPixels(renderer, NULL);

@@ -6,6 +6,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "export.h"
 #include "ui.h"
 
 static const ImVec4_c palette[] = {
@@ -44,6 +45,8 @@ void ui_time_plot(App *a) {
   Tooltip("Fit the axes to the data (W F). Double-click the plot does the "
           "same.");
   igSameLine(0, -1);
+  ui_export_button(a, FIG_TIME);
+  igSameLine(0, -1);
   igTextDisabled("Drag to pan, scroll to zoom, right-click for options.");
 
   if (ImPlot_BeginPlot("##time", V2(-1, -1), ImPlotFlags_NoTitle)) {
@@ -67,7 +70,9 @@ void ui_time_plot(App *a) {
                                            a->traj.cols[j], a->traj.nrows,
                                            Spec(palette[(j - 1) % NPAL], 2.0f));
       }
+    ui_figure_limits(FIG_TIME);
     ImPlot_EndPlot();
+    ui_figure_rect(FIG_TIME);
   }
   igEnd();
 }
@@ -286,6 +291,8 @@ void ui_phase_plot(App *a) {
           "XPPAUT's Initial conds > Mouse.");
   igSameLine(0, -1);
   if (Button("Fit")) ImPlot_SetNextAxesToFit();
+  igSameLine(0, -1);
+  ui_export_button(a, FIG_PHASE);
 
   if (ImPlot_BeginPlot("##phase", V2(-1, -1), ImPlotFlags_NoTitle)) {
     ImPlotRect_c lim;
@@ -350,7 +357,9 @@ void ui_phase_plot(App *a) {
         app_run(a);
       }
     }
+    ui_figure_limits(FIG_PHASE);
     ImPlot_EndPlot();
+    ui_figure_rect(FIG_PHASE);
   }
   igEnd();
 }

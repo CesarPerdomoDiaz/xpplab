@@ -85,6 +85,12 @@ void ui_dialog_save_as(App *a);
 void ui_dialog_export_csv(App *a);
 void ui_dialog_poll(App *a);
 
+/* An "Export" button with PNG and SVG choices for a figure; and the
+   bookkeeping each plot does so its figure can be exported. */
+void ui_export_button(App *a, int figure);
+void ui_figure_limits(int figure); /* call inside BeginPlot/EndPlot */
+void ui_figure_rect(int figure);   /* call right after EndPlot */
+
 /* Show a help page (by file name, without .md). */
 void ui_show_help(App *a, const char *page);
 

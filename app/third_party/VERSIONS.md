@@ -6,6 +6,7 @@
 | [ImPlot](https://github.com/epezent/implot) | 1.1 WIP | 851cdbd (2026-10-10) | MIT |
 | [cimgui](https://github.com/cimgui/cimgui) | generator at 2a6a93f | regenerated, see below | MIT |
 | [cimplot](https://github.com/cimgui/cimplot) | generator at 73312c0 | regenerated, see below | MIT |
+| [stb_image_write](https://github.com/nothings/stb) | 1.16 | 003501f | public domain / MIT |
 
 The fonts in imgui/fonts are Roboto Medium and Cousine (Apache License 2.0),
 as distributed with Dear ImGui.

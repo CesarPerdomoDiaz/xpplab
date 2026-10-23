@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "export.h"
 #include "ui.h"
 
 static const char *describe(const xppe_auto_point_info *p) {
@@ -203,7 +204,9 @@ static void diagram_plot(App *a, bool two_param) {
     draw_special(a, two_param);
     if (ImPlot_IsPlotHovered() && igIsMouseClicked_Bool(ImGuiMouseButton_Left, false))
       pick_point(a, two_param);
+    ui_figure_limits(two_param ? FIG_AUTO2 : FIG_AUTO);
     ImPlot_EndPlot();
+    ui_figure_rect(two_param ? FIG_AUTO2 : FIG_AUTO);
   }
 }
 
@@ -363,10 +366,12 @@ void ui_auto(App *a) {
   if (igBeginChild_Str("autoplot", V2(0, 0), 0, 0)) {
     if (igBeginTabBar("autotabs", 0)) {
       if (igBeginTabItem("One parameter", NULL, 0)) {
+        ui_export_button(a, FIG_AUTO);
         diagram_plot(a, false);
         igEndTabItem();
       }
       if (igBeginTabItem("Two parameters", NULL, 0)) {
+        ui_export_button(a, FIG_AUTO2);
         diagram_plot(a, true);
         igEndTabItem();
       }

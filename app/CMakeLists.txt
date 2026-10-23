@@ -80,13 +80,14 @@ add_executable(xppstudio WIN32
   src/ui_help.c
   src/ui_browser.c
   src/ui_data.c
+  src/export.c
   ${GEN}/font_roboto.c
   ${GEN}/font_cousine.c
   ${GEN}/docs_index.c
   ${DOC_SOURCES}
   ${PROJECT_SOURCE_DIR}/engine/api/xpp_instance.c
 )
-target_include_directories(xppstudio PRIVATE src ${PROJECT_SOURCE_DIR}/engine/api)
+target_include_directories(xppstudio PRIVATE src ${PROJECT_SOURCE_DIR}/engine/api ${TP})
 target_link_libraries(xppstudio PRIVATE xpps_gui SDL3::SDL3)
 if(NOT WIN32)
   target_link_libraries(xppstudio PRIVATE ${CMAKE_DL_LIBS} m)

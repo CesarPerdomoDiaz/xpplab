@@ -72,6 +72,73 @@ void ui_time_plot(App *a) {
   igEnd();
 }
 
+/* ---- Array plot ------------------------------------------------------------ */
+
+/* XPPAUT's array plot: many variables (say, the cells of a chain) against
+   time, as colours. */
+void ui_array_plot(App *a) {
+  enum { MAXT = 800 };
+  static double *grid;
+  static size_t grid_cap;
+  int first, last, rows, cols, i, j, step;
+  double lo = 1e300, hi = -1e300;
+  if (!igBegin(WIN_ARRAY, &a->show_array, 0)) {
+    igEnd();
+    return;
+  }
+  if (!a->have_traj || a->ncols < 3) {
+    igTextDisabled("Run a model with several variables to see them as an array.");
+    igEnd();
+    return;
+  }
+  if (a->array_first < 1 || a->array_first >= a->ncols) a->array_first = 1;
+  if (a->array_last < a->array_first || a->array_last >= a->ncols)
+    a->array_last = a->nvars < a->ncols ? a->nvars : a->ncols - 1;
+  igSetNextItemWidth(110);
+  Combo("from", &a->array_first, a->cols, a->ncols);
+  igSameLine(0, -1);
+  igSetNextItemWidth(110);
+  Combo("to", &a->array_last, a->cols, a->ncols);
+  if (a->array_first < 1) a->array_first = 1;
+  if (a->array_last < a->array_first) a->array_last = a->array_first;
+  first = a->array_first;
+  last = a->array_last;
+  rows = last - first + 1;
+  step = a->traj.nrows > MAXT ? (a->traj.nrows + MAXT - 1) / MAXT : 1;
+  cols = (a->traj.nrows + step - 1) / step;
+  if ((size_t)rows * (size_t)cols > grid_cap) {
+    free(grid);
+    grid_cap = (size_t)rows * (size_t)cols;
+    grid = malloc(sizeof(double) * grid_cap);
+  }
+  if (!grid || cols < 1) {
+    igEnd();
+    return;
+  }
+  /* Row 0 is drawn at the top: put the last variable there. */
+  for (i = 0; i < rows; i++)
+    for (j = 0; j < cols; j++) {
+      double v = a->traj.cols[last - i][j * step];
+      grid[(size_t)i * cols + j] = v;
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
+  if (!(hi > lo)) hi = lo + 1;
+  if (ImPlot_BeginPlot("##array", V2(-90, -1), ImPlotFlags_NoTitle | ImPlotFlags_NoLegend)) {
+    ImPlotPoint_c bmin = {a->traj.cols[0][0], first - 0.5};
+    ImPlotPoint_c bmax = {a->traj.cols[0][a->traj.nrows - 1], last + 0.5};
+    ImPlot_SetupAxes("t", "variable", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
+    ImPlot_PushColormap_PlotColormap(ImPlotColormap_Viridis);
+    ImPlot_PlotHeatmap_doublePtr("##heat", grid, rows, cols, lo, hi, NULL, bmin, bmax,
+                                 Spec(V4(0, 0, 0, -1), 1.0f));
+    ImPlot_PopColormap(1);
+    ImPlot_EndPlot();
+  }
+  igSameLine(0, -1);
+  ImPlot_ColormapScale("##scale", lo, hi, V2(80, -1), "%g", 0, ImPlotColormap_Viridis);
+  igEnd();
+}
+
 /* ---- Phase plane ---------------------------------------------------------- */
 
 static void draw_dirfield(App *a, ImPlotRect_c lim) {

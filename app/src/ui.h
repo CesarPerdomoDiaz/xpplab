@@ -18,6 +18,7 @@
 #define WIN_CONSOLE "Command Window"
 #define WIN_HELP "Help"
 #define WIN_DATA "Data"
+#define WIN_ARRAY "Array Plot"
 
 typedef struct {
   ImFont *ui, *mono;
@@ -72,6 +73,7 @@ void ui_workspace(App *a);
 void ui_editor(App *a);
 void ui_time_plot(App *a);
 void ui_phase_plot(App *a);
+void ui_array_plot(App *a);
 void ui_auto(App *a);
 void ui_console(App *a);
 void ui_help(App *a);

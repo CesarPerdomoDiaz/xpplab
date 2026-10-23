@@ -89,6 +89,8 @@ typedef struct App {
   /* numerics */
   double total, dt, t0, trans, bound, tol, atol;
   int nout, meth;
+  int poimap, poivar, poisgn, poistop; /* Poincare section (POIVAR: 0 = t) */
+  double poipln;
 
   /* results */
   Trajectory traj;
@@ -113,7 +115,8 @@ typedef struct App {
 
   /* interface */
   bool show_browser, show_workspace, show_editor, show_time, show_phase,
-      show_auto, show_console, show_help, show_data, show_demo;
+      show_auto, show_console, show_help, show_data, show_demo, show_array;
+  int array_first, array_last; /* columns shown in the array plot */
   bool reset_layout;
   bool dark;
   float ui_scale;
@@ -155,6 +158,7 @@ int app_find_par(App *a, const char *name);
 
 /* Computation */
 bool app_run(App *a);
+bool app_continue(App *a, double more_time); /* 0: the current TOTAL */
 void app_freeze(App *a);
 void app_clear_curves(App *a);
 bool app_equilibrium(App *a, const double *guess);

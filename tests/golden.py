@@ -116,10 +116,50 @@ def models():
             yield d, m
 
 
+def compare_executables(exe, reference, rtol, only):
+    """Run every example with both executables and compare the outputs.
+    Each executable gets its own copy of the model directories so that
+    files one writes cannot affect the other."""
+    failures, same = [], 0
+    with tempfile.TemporaryDirectory(prefix="xpps-cmp-") as tmp:
+        tmp = Path(tmp)
+        for side in ("ours", "ref"):
+            for d in MODEL_DIRS:
+                shutil.copytree(UPSTREAM / d, tmp / side / d)
+        for d, model in models():
+            key = f"{d}/{model.stem}"
+            if only and only not in key:
+                continue
+            a, ra = run_model(exe, tmp / "ours" / d, tmp / "ours" / d / model.name)
+            b, rb = run_model(reference, tmp / "ref" / d, tmp / "ref" / d / model.name)
+            if a["status"] != b["status"]:
+                problem = f"status {a['status']} != reference {b['status']}"
+            elif ra is None:
+                problem = None
+            else:
+                problem = compare(rb, ra, rtol)
+            if problem and key in KNOWN_NONDETERMINISTIC:
+                print(f"flaky     {key}: {KNOWN_NONDETERMINISTIC[key]}")
+            elif problem:
+                failures.append(f"{key}: {problem}")
+                print(f"FAIL      {key}: {problem}")
+            else:
+                same += 1
+                print(f"same      {key} ({a['status']})")
+    print(f"summary: {same} same, {len(failures)} different")
+    for f in failures:
+        print("  " + f)
+    return 1 if failures else 0
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("mode", choices=["record", "check"])
+    ap.add_argument("mode", choices=["record", "check", "compare"],
+                    help="record/check against tests/golden, or compare two "
+                         "executables side by side")
     ap.add_argument("--exe", required=True)
+    ap.add_argument("--reference",
+                    help="compare mode: the unmodified XPPAUT executable")
     ap.add_argument("--rtol", type=float, default=0.0,
                     help="relative tolerance (default: bit-identical)")
     ap.add_argument("--only", help="run only models whose name contains this")
@@ -128,6 +168,11 @@ def main():
     exe = Path(args.exe).resolve()
     if not exe.exists() and exe.with_suffix(".exe").exists():
         exe = exe.with_suffix(".exe")
+    if args.mode == "compare":
+        if not args.reference:
+            ap.error("compare mode needs --reference")
+        sys.exit(compare_executables(exe, Path(args.reference).resolve(),
+                                     args.rtol, args.only))
 
     index_path = GOLDEN / "index.json"
     index = json.loads(index_path.read_text()) if index_path.exists() else {}

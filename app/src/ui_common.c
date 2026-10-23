@@ -210,7 +210,7 @@ static void classic_keys(App *a) {
       {'i', 'g', "run"},      {'i', 'l', "ic last"},  {'n', 'n', "nullclines"},
       {'n', 'e', "nullclines off"}, {'d', 'd', "dirfield"},
       {'s', 'g', "eq"},       {'e', 0, "erase"},      {'w', 'f', "fit"},
-      {'f', 'q', "quit"},     {'c', 'c', "run"},
+      {'f', 'q', "quit"},     {'c', 'c', "continue"},
   };
   ImGuiIO *io = igGetIO_Nil();
   int i, k;
@@ -282,6 +282,7 @@ static void default_layout(ImGuiID dock, ImVec2_c size) {
   igDockBuilderDockWindow(WIN_TIME, center);
   igDockBuilderDockWindow(WIN_PHASE, center);
   igDockBuilderDockWindow(WIN_AUTO, center);
+  igDockBuilderDockWindow(WIN_ARRAY, center);
   igDockBuilderDockWindow(WIN_EDITOR, center);
   igDockBuilderDockWindow(WIN_CONSOLE, bottom);
   igDockBuilderDockWindow(WIN_DATA, bottom);
@@ -346,6 +347,7 @@ void ui_draw(App *a) {
   if (a->show_console) ui_console(a);
   if (a->show_help) ui_help(a);
   if (a->show_data) ui_data(a);
+  if (a->show_array) ui_array_plot(a);
   if (a->show_demo) {
     igShowDemoWindow(&a->show_demo);
     ImPlot_ShowDemoWindow(&a->show_demo);
@@ -359,7 +361,7 @@ void ui_draw(App *a) {
                {"auto", WIN_AUTO, NULL},      {"editor", WIN_EDITOR, NULL},
                {"data", WIN_DATA, NULL},      {"help", WIN_HELP, NULL},
                {"console", WIN_CONSOLE, NULL}, {"workspace", WIN_WORKSPACE, NULL},
-               {"models", WIN_BROWSER, NULL}};
+               {"models", WIN_BROWSER, NULL}, {"array", WIN_ARRAY, NULL}};
     int i;
     for (i = 0; i < (int)(sizeof map / sizeof map[0]); i++)
       if (SDL_strncasecmp(a->focus, map[i].key, strlen(a->focus)) == 0) {
@@ -369,6 +371,7 @@ void ui_draw(App *a) {
         if (i == 3) a->show_editor = true;
         if (i == 4) a->show_data = true;
         if (i == 5) a->show_help = true;
+        if (i == 9) a->show_array = true;
         igSetWindowFocus_Str(map[i].win);
         break;
       }

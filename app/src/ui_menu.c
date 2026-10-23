@@ -61,6 +61,7 @@ static void menu_view(App *a) {
   igMenuItem_BoolPtr(WIN_AUTO, NULL, &a->show_auto, true);
   igMenuItem_BoolPtr(WIN_CONSOLE, NULL, &a->show_console, true);
   igMenuItem_BoolPtr(WIN_DATA, NULL, &a->show_data, true);
+  igMenuItem_BoolPtr(WIN_ARRAY, NULL, &a->show_array, true);
   igMenuItem_BoolPtr(WIN_HELP, "F1", &a->show_help, true);
   igSeparator();
   if (igMenuItem_Bool("Reset window layout", NULL, false, true))

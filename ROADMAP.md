@@ -62,9 +62,10 @@ The order is chosen so something useful ships early:
 - [ ] Poincaré sections, Lyapunov exponents, FFT and spectra, curve fitting,
       averaging and adjoints (PRC)
 - [ ] Boundary value problems (shooting)
-- [ ] **Headless AUTO:** equilibria, periodic orbits, two-parameter curves,
-      BVPs and homoclinics. Branches and labelled special points (HB, LP, PD,
+- [x] **Headless AUTO:** equilibria, periodic orbits, two-parameter curves,
+      branch switching. Branches and labelled special points (HB, LP, PD,
       TR, BP, UZ) are returned as data
+- [ ] AUTO: BVPs and homoclinics (reachable through the menu keys; untested)
 - [x] Shared library build with an exported, versioned C API
 - [ ] `xpp` command-line tool built on the API
 

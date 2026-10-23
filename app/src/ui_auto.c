@@ -122,8 +122,11 @@ done:
 }
 
 static void draw_special(App *a, bool two_param) {
+  enum { MAXL = 256 };
   AutoUI *u = &a->au;
-  int i;
+  ImVec2_c drawn[MAXL];
+  char drawn_type[MAXL][4];
+  int ndrawn = 0, i;
   for (i = 0; i < u->count; i++) {
     const xppe_auto_point_info *p = &u->info[i];
     double x, y;
@@ -137,9 +140,25 @@ static void draw_special(App *a, bool two_param) {
                                   i == u->selected ? 6.0f : 4.0f);
       ImPlot_PlotScatter_doublePtrdoublePtr("##sp", &x, &y, 1, s);
     }
-    if (p->type_name[0] && strcmp(p->type_name, "EP") != 0)
-      ImPlot_PlotText(p->type_name, x, y, V2(12, -10),
-                      Spec(COL_SPECIAL, 1.0f));
+    if (p->type_name[0] && strcmp(p->type_name, "EP") != 0) {
+      /* AUTO often passes the same point several times (closed loops of
+         orbits): label it once. */
+      ImVec2_c px = ImPlot_PlotToPixels_double(x, y, ImAxis_X1, ImAxis_Y1);
+      int k;
+      bool crowded = false;
+      for (k = 0; k < ndrawn; k++)
+        if (fabsf(drawn[k].x - px.x) < 18 && fabsf(drawn[k].y - px.y) < 14 &&
+            strcmp(drawn_type[k], p->type_name) == 0)
+          crowded = true;
+      if (!crowded) {
+        ImPlot_PlotText(p->type_name, x, y, V2(12, -10), Spec(COL_SPECIAL, 1.0f));
+        if (ndrawn < MAXL) {
+          drawn[ndrawn] = px;
+          snprintf(drawn_type[ndrawn], 4, "%s", p->type_name);
+          ndrawn++;
+        }
+      }
+    }
   }
 }
 

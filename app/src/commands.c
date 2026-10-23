@@ -14,6 +14,8 @@ void ui_show_help(App *a, const char *page);
 static const char *usage =
     "Commands (XPPAUT keyboard equivalents in brackets):\n"
     "  run                      integrate from the initial values [I G]\n"
+    "  continue [TIME]          integrate further from the end of the last\n"
+    "                           run and append to it [C C]\n"
     "  set NAME=VALUE ...       set parameters, initial values or options\n"
     "                           e.g.  set I=0.5 total=200 meth=stiff\n"
     "  get NAME                 show a value\n"
@@ -200,6 +202,9 @@ void app_command(App *a, const char *line_in) {
       app_log(a, "%s", usage);
   } else if (!strcmp(cmd, "run") || !strcmp(cmd, "go") || !strcmp(cmd, "ig")) {
     app_run(a);
+  } else if (!strcmp(cmd, "continue") || !strcmp(cmd, "cc")) {
+    char *w = next_word(&rest);
+    app_continue(a, w ? atof(w) : 0.0);
   } else if (!strcmp(cmd, "set")) {
     cmd_set(a, rest);
     if (a->needs_run) app_run(a);

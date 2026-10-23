@@ -334,7 +334,13 @@ int xppe_set(const char *name, const char *value) {
   strcpy(v, value);
   xppe_begin_call();
   XPPE_GUARD_BEGIN((void)0);
-  do_intern_set(n, v);
+  /* XPPAUT's POIMAP option knows only section/max/period; let 0, "off" or
+     "none" switch Poincare maps off again. */
+  if (xppe_same_name(n, "POIMAP") &&
+      (v[0] == '0' || v[0] == 'o' || v[0] == 'O' || v[0] == 'n' || v[0] == 'N'))
+    POIMAP = 0;
+  else
+    do_intern_set(n, v);
   redo_stuff();
   XPPE_GUARD_END;
   xppe_end_call();

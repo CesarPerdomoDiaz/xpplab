@@ -152,6 +152,55 @@ static void numerics_tab(App *a) {
                 "Absolute error tolerance of adaptive methods (ATOL).");
   option_double(a, "Bound", "BOUND", a->bound,
                 "Stop if any variable grows beyond this (BOUND).");
+
+  igSeparatorText("Poincare map");
+  {
+    static const char *modes[] = {"Off", "Section", "Max / min", "Period"};
+    static const char *keys[] = {"0", "section", "max", "period"};
+    int i, m = a->poimap >= 0 && a->poimap < 4 ? a->poimap : 0;
+    igSetNextItemWidth(160);
+    if (igBeginCombo("Mode", modes[m], 0)) {
+      for (i = 0; i < 4; i++)
+        if (igSelectable_Bool(modes[i], i == m, 0, V2(0, 0)))
+          app_set_option(a, "POIMAP", keys[i]);
+      igEndCombo();
+    }
+    HelpMarker("Section: store only the points where a variable crosses a "
+               "plane.\nMax / min: store the extrema of a variable.\nPeriod: "
+               "store the times between crossings.");
+    if (m != 0) {
+      const char *vname = a->poivar <= 0 ? "t" : a->poivar - 1 < a->nvars
+                                                     ? a->vars[a->poivar - 1]
+                                                     : "?";
+      igSetNextItemWidth(160);
+      if (igBeginCombo("Variable", vname, 0)) {
+        for (i = 0; i < a->nvars; i++)
+          if (igSelectable_Bool(a->vars[i], a->poivar == i + 1, 0, V2(0, 0)))
+            app_set_option(a, "POIVAR", a->vars[i]);
+        igEndCombo();
+      }
+      option_double(a, "Plane", "POIPLN", a->poipln,
+                    "Record a point each time the variable crosses this "
+                    "value (POIPLN).");
+      {
+        static const char *dirs[] = {"Both ways", "Increasing", "Decreasing"};
+        static const char *dkeys[] = {"0", "1", "-1"};
+        int d = a->poisgn == 1 ? 1 : a->poisgn == -1 ? 2 : 0;
+        igSetNextItemWidth(160);
+        if (igBeginCombo("Direction", dirs[d], 0)) {
+          for (i = 0; i < 3; i++)
+            if (igSelectable_Bool(dirs[i], i == d, 0, V2(0, 0)))
+              app_set_option(a, "POISGN", dkeys[i]);
+          igEndCombo();
+        }
+      }
+      {
+        bool stop = a->poistop != 0;
+        if (igCheckbox("Stop at first crossing", &stop))
+          app_set_option(a, "POISTOP", stop ? "1" : "0");
+      }
+    }
+  }
 }
 
 static void sets_tab(App *a) {

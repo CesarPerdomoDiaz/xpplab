@@ -250,6 +250,11 @@ void app_refresh_values(App *a) {
   a->atol = get_value(a, "ATOL");
   a->nout = (int)get_value(a, "NOUT");
   a->meth = (int)get_value(a, "METH");
+  a->poimap = (int)get_value(a, "POIMAP");
+  a->poivar = (int)get_value(a, "POIVAR");
+  a->poisgn = (int)get_value(a, "POISGN");
+  a->poistop = (int)get_value(a, "POISTOP");
+  a->poipln = get_value(a, "POIPLN");
 }
 
 static void reset_slider_ranges(App *a) {
@@ -600,6 +605,59 @@ bool app_run(App *a) {
   return true;
 }
 
+/* XPPAUT's Continue: integrate further from where the last run ended and
+   append the result, leaving the initial values and T0 as they were. */
+bool app_continue(App *a, double more) {
+  Trajectory old;
+  double t_end, *ic_saved;
+  double t0 = a->t0, total = a->total;
+  bool keep = a->keep_curves;
+  int i, j;
+  if (!a->model_ok) return false;
+  if (!a->have_traj || a->traj.nrows == 0) return app_run(a);
+  if (more <= 0) more = a->total;
+  old = a->traj;
+  memset(&a->traj, 0, sizeof a->traj);
+  a->have_traj = false;
+  t_end = old.cols[0][old.nrows - 1];
+  ic_saved = malloc(sizeof(double) * (size_t)a->nvars);
+  memcpy(ic_saved, a->ic, sizeof(double) * (size_t)a->nvars);
+  a->eng->api.xppe_set_number("T0", t_end);
+  a->eng->api.xppe_set_number("TOTAL", more);
+  for (i = 0; i < a->nvars; i++)
+    for (j = 1; j < old.ncols; j++)
+      if (SDL_strcasecmp(old.names[j], a->vars[i]) == 0)
+        a->eng->api.xppe_set_number(a->vars[i], old.cols[j][old.nrows - 1]);
+  a->keep_curves = false;
+  if (!app_run(a)) {
+    a->traj = old;
+    a->have_traj = true;
+  } else {
+    /* Join: old rows, then the new ones without their duplicate first row. */
+    int n = old.nrows + (a->traj.nrows > 0 ? a->traj.nrows - 1 : 0);
+    for (j = 0; j < a->traj.ncols && j < old.ncols; j++) {
+      double *c = realloc(old.cols[j], sizeof(double) * (size_t)n);
+      if (!c) continue;
+      if (a->traj.nrows > 1)
+        memcpy(c + old.nrows, a->traj.cols[j] + 1,
+               sizeof(double) * (size_t)(a->traj.nrows - 1));
+      old.cols[j] = c;
+    }
+    old.nrows = n;
+    free_traj(&a->traj);
+    a->traj = old;
+    a->have_traj = true;
+    app_status(a, "Continued to t = %g", a->traj.cols[0][n - 1]);
+  }
+  a->keep_curves = keep;
+  a->eng->api.xppe_set_number("T0", t0);
+  a->eng->api.xppe_set_number("TOTAL", total);
+  for (i = 0; i < a->nvars; i++) a->eng->api.xppe_set_number(a->vars[i], ic_saved[i]);
+  free(ic_saved);
+  app_refresh_values(a);
+  return true;
+}
+
 /* ---- Equilibria ---------------------------------------------------------- */
 
 static void classify(Equilibrium *e, int n, bool discrete) {
@@ -855,6 +913,7 @@ bool app_auto_continue(App *a, int point, const char *key) {
   app_auto_refresh(a);
   app_refresh_values(a);
   report_auto(a, before);
+  app_status(a, "AUTO: %d points in the diagram", a->au.count);
   return true;
 }
 

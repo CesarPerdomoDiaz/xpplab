@@ -62,6 +62,10 @@ the mathematics. XPP Studio removes that first wall:
 - **Plain words.** Special points read "Hopf bifurcation" or "fold of limit
   cycles", and from each point you choose an action such as "Periodic orbits
   from this Hopf point".
+- **Simulation and continuation side by side.** A parameter sweep (XPPAUT's
+  *Range*) drops brute-force simulation results right onto AUTO's
+  diagram, so students can see that the stable branches are what the
+  system actually does.
 - **More than 150 example models** from neuroscience, ecology, chemistry and
   mechanics, each with its description.
 

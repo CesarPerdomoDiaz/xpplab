@@ -219,6 +219,51 @@ static void sets_tab(App *a) {
   }
 }
 
+static void sweep_tab(App *a) {
+  SweepUI *s = &a->sw;
+  bool mm = !s->overlay;
+  TextWrapped("Run the model once for each value of a parameter, as "
+              "XPPAUT's Initial conds > Range does.");
+  igSetNextItemWidth(140);
+  if (Combo("Parameter", &s->par, a->pars, a->npars) && s->par >= 0) {
+    s->from = a->par[s->par].lo;
+    s->to = a->par[s->par].hi;
+  }
+  igSetNextItemWidth(110);
+  igInputDouble("From", &s->from, 0, 0, "%.6g", 0);
+  igSetNextItemWidth(110);
+  igInputDouble("To", &s->to, 0, 0, "%.6g", 0);
+  igSetNextItemWidth(110);
+  igInputInt("Steps", &s->steps, 1, 10, 0);
+  if (s->steps < 2) s->steps = 2;
+  if (s->steps > 1000) s->steps = 1000;
+  if (igRadioButton_Bool("Keep each trajectory", s->overlay)) s->overlay = true;
+  Tooltip("Overlay the runs on the plots (at most 16).");
+  if (igRadioButton_Bool("Max / min of a variable", mm)) s->overlay = false;
+  Tooltip("Record the largest and smallest value after a transient: a "
+          "brute-force bifurcation diagram. Compare it with AUTO's.");
+  if (!s->overlay) {
+    int pct = (int)(s->transient * 100 + 0.5);
+    igSetNextItemWidth(110);
+    Combo("Variable", &s->var, a->vars, a->nvars);
+    igSetNextItemWidth(110);
+    if (igSliderInt("Skip first", &pct, 0, 95, "%d%%", 0)) s->transient = pct / 100.0;
+    HelpMarker("The part of each run to ignore, so that transients do not "
+               "count.");
+  }
+  if (ButtonW("Run sweep", -1)) app_sweep(a);
+  if (!s->overlay && s->n > 0 &&
+      ImPlot_BeginPlot("##sweep", V2(-1, -1), ImPlotFlags_NoTitle | ImPlotFlags_NoLegend)) {
+    ImPlot_SetupAxes(a->pars[s->par], a->vars[s->var], ImPlotAxisFlags_AutoFit,
+                     ImPlotAxisFlags_AutoFit);
+    ImPlot_PlotScatter_doublePtrdoublePtr("max", s->x, s->ymax, s->n,
+                                          SpecMarker(HEX(0x1f77b4), ImPlotMarker_Circle, 2.5f));
+    ImPlot_PlotScatter_doublePtrdoublePtr("min", s->x, s->ymin, s->n,
+                                          SpecMarker(HEX(0xd62728), ImPlotMarker_Circle, 2.5f));
+    ImPlot_EndPlot();
+  }
+}
+
 void ui_workspace(App *a) {
   if (!igBegin(WIN_WORKSPACE, &a->show_workspace, 0)) {
     igEnd();
@@ -246,6 +291,11 @@ void ui_workspace(App *a) {
       sets_tab(a);
       igEndTabItem();
     }
+    if (igBeginTabItem("Sweep", NULL, a->sw.reveal ? ImGuiTabItemFlags_SetSelected : 0)) {
+      sweep_tab(a);
+      igEndTabItem();
+    }
+    a->sw.reveal = false;
     igEndTabBar();
   }
   igEnd();

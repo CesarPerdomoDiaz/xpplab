@@ -33,6 +33,8 @@ static const char *usage =
     "  auto set DS=0.01 ...     AUTO numerics (ds, dsmin, dsmax, nmax, npr,\n"
     "                           parmin, parmax, ntst)\n"
     "  auto reset               clear the bifurcation diagram\n"
+    "  sweep PAR FROM TO N [VAR] run N times over PAR; with VAR, plot its\n"
+    "                           max and min (a brute-force diagram)\n"
     "  open FILE | new | save   models\n"
     "  export FILE.csv          save the last run as CSV\n"
     "  export FILE.svg [WHICH]  save a figure (time, phase, auto, auto2);\n"
@@ -260,6 +262,22 @@ void app_command(App *a, const char *line_in) {
     if (!a->nsets) app_log(a, "No parameter sets in this model.");
   } else if (!strcmp(cmd, "auto")) {
     cmd_auto(a, rest);
+  } else if (!strcmp(cmd, "sweep")) {
+    /* sweep PAR FROM TO STEPS [VAR]: max/min of VAR, or keep the runs */
+    char *par = next_word(&rest), *from = next_word(&rest), *to = next_word(&rest);
+    char *steps = next_word(&rest), *var = next_word(&rest);
+    int p = par ? app_find_par(a, par) : -1;
+    if (p < 0 || !from || !to) {
+      app_log(a, "Write: sweep PAR FROM TO [STEPS] [VAR]   (no VAR keeps the runs)");
+    } else {
+      a->sw.par = p;
+      a->sw.from = atof(from);
+      a->sw.to = atof(to);
+      a->sw.steps = steps ? atoi(steps) : 20;
+      a->sw.overlay = var == NULL;
+      if (var) a->sw.var = app_find_var(a, var) >= 0 ? app_find_var(a, var) : 0;
+      app_sweep(a);
+    }
   } else if (!strcmp(cmd, "open")) {
     char *p = skip_space(rest);
     if (*p) app_open(a, p);

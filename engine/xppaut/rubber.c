@@ -22,6 +22,8 @@ int rubber(x1,y1,x2,y2,w,f)
  int *x1,*y1,*x2,*y2,f;
  Window w;
  {
+   /* XPP Studio: headless, there is no mouse. */
+   if(xpps_embedded)return 0;
    XEvent ev;
    int there=0;
    int error=0;

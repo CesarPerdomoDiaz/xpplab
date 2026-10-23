@@ -14,4 +14,8 @@ int xpps_guard_code(void);
 char *xpps_capture_take(void);
 void xpps_capture_reset(void);
 
+/* Queue answers for the next dialogs (see xpps_answer_next). */
+void xpps_answers_push(const char *answer);
+void xpps_answers_clear(void);
+
 #endif

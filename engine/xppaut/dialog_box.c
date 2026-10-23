@@ -46,6 +46,8 @@ int get_dialog(wname,name,value,ok,cancel,max)
 char *wname,*name,*value,*ok,*cancel;
 int max;
 {
+ /* XPP Studio: headless, the text comes from the answer queue. */
+ if(xpps_embedded){const char *a=xpps_answer_next();if(!a)return FORGET_ALL;strcpy(value,a);return ALL_DONE;}
  int lm=strlen(name)*DCURX;
  int lv=max*DCURX;
  int pos,colm;

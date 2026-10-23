@@ -244,6 +244,8 @@ int do_string_box(n,row,col,title,names,values,maxchar)
      char **names,values[][MAX_LEN_SBOX],*title;
 
 {
+ /* XPP Studio: headless, field values come from the answer queue. */
+ if(xpps_embedded)return xpps_answer_fields(n,names,&values[0][0],MAX_LEN_SBOX)?DONE_ALL:FORGET_ALL;
  STRING_BOX sb;
  int i,status;
  int colm,pos;
@@ -1073,6 +1075,8 @@ void expose_resp_box(button,message,wb,wm,w)
 void respond_box(button,message)
     char *button,*message;
     {
+      /* XPP Studio: headless, show the message in the log instead. */
+      if(xpps_embedded){plintf("%s\n",message);return;}
      int l1=strlen(message);
       int l2=strlen(button);
       int width;
@@ -1169,6 +1173,8 @@ int two_choice(choice1,choice2,string,key,x,y,w,title)
  int x,y;
   Window w;
  {
+  /* XPP Studio: headless, the choice comes from the answer queue. */
+  if(xpps_embedded){const char *a=xpps_answer_next();return (a&&a[0])?a[0]:0;}
   Window base,c1,c2,wm;
   XEvent ev;
   int not_done=1;
@@ -1276,6 +1282,8 @@ int def,n,max,x,y;
 Window *root,hwin;
 
  {
+  /* XPP Studio: headless, the menu choice comes from the answer queue. */
+  if(xpps_embedded){const char *a=xpps_answer_next();return (a&&a[0])?a[0]:27;}
   POP_UP p;
   XEvent ev;
 	Window w;

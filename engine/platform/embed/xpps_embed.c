@@ -2,6 +2,7 @@
  * The embedding layer behind xpps_embed.h: output capture and the exit()
  * guard. See xpps_embed.h for why this exists.
  */
+#include <ctype.h>
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -75,4 +76,69 @@ char *xpps_capture_take(void) {
   text[n] = '\0';
   xpps_capture_reset();
   return text;
+}
+
+/* ---- Headless dialog answers ------------------------------------------- */
+
+#define MAX_ANSWERS 32
+#define MAX_ANSWER_LEN 512
+
+static char answers[MAX_ANSWERS][MAX_ANSWER_LEN];
+static int answer_head, answer_count;
+
+void xpps_answers_push(const char *answer) {
+  int slot;
+  if (answer_count >= MAX_ANSWERS) return;
+  slot = (answer_head + answer_count) % MAX_ANSWERS;
+  snprintf(answers[slot], MAX_ANSWER_LEN, "%s", answer);
+  answer_count++;
+}
+
+void xpps_answers_clear(void) { answer_head = answer_count = 0; }
+
+const char *xpps_answer_next(void) {
+  const char *a;
+  if (answer_count == 0) return NULL;
+  a = answers[answer_head];
+  answer_head = (answer_head + 1) % MAX_ANSWERS;
+  answer_count--;
+  return a;
+}
+
+/* Field labels in XPPAUT forms may carry a "*N" prefix that selects the
+   kind of input widget; it is not part of the name. */
+static const char *field_label(const char *name) {
+  if (name[0] == '*' && name[1] != '\0') return name + 2;
+  return name;
+}
+
+static int same_label(const char *a, const char *b, size_t blen) {
+  size_t i;
+  for (i = 0; i < blen; i++)
+    if (a[i] == '\0' ||
+        toupper((unsigned char)a[i]) != toupper((unsigned char)b[i]))
+      return 0;
+  return a[blen] == '\0';
+}
+
+int xpps_answer_fields(int n, char **names, char *values, int stride) {
+  const char *a = xpps_answer_next(), *p;
+  if (!a) return 0;
+  for (p = a; *p;) {
+    const char *eq = strchr(p, '='), *end = strchr(p, ';');
+    int i;
+    if (!end) end = p + strlen(p);
+    if (eq && eq < end) {
+      for (i = 0; i < n; i++)
+        if (same_label(field_label(names[i]), p, (size_t)(eq - p))) {
+          size_t len = (size_t)(end - eq - 1);
+          if (len >= (size_t)stride) len = (size_t)stride - 1;
+          memcpy(values + (size_t)i * (size_t)stride, eq + 1, len);
+          values[(size_t)i * (size_t)stride + len] = '\0';
+          break;
+        }
+    }
+    p = *end ? end + 1 : end;
+  }
+  return 1;
 }

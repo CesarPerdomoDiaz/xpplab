@@ -40,10 +40,13 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - run: brew install ninja sdl3
+      # A universal app (Apple Silicon and Intel). Homebrew's SDL3 is built
+      # for one architecture only, so SDL3 is compiled from source here.
+      - run: brew install ninja
       - run: |
           cmake -S . -B build -G Ninja -DXPPS_BUILD_TESTS=OFF \
-                -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+                -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+                "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64" -DXPPS_FETCH_SDL3=ON
           cmake --build build
           cd build && cpack
       - uses: actions/upload-artifact@v4

@@ -20,6 +20,14 @@
 #define WIN_DATA "Data"
 #define WIN_ARRAY "Array Plot"
 
+/* The shortcut modifier as shown in menus. ImGui maps its Ctrl shortcuts
+   to the Command key on macOS. */
+#ifdef __APPLE__
+#define MOD "Cmd+"
+#else
+#define MOD "Ctrl+"
+#endif
+
 typedef struct {
   ImFont *ui, *mono;
 } UiFonts;

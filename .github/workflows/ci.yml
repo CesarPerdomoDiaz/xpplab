@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: Windows (MinGW-w64)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-python
+            mingw-w64-ucrt-x86_64-python-numpy
+            mingw-w64-ucrt-x86_64-python-pytest
+            mingw-w64-ucrt-x86_64-python-matplotlib
+            mingw-w64-ucrt-x86_64-python-pandas
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja
+          cmake --build build
+      - name: Engine tests (bit-identical to unmodified XPPAUT)
+        run: ctest --test-dir build --output-on-failure
+      - name: Python tests
+        run: PYTHONPATH=python/src python -m pytest -q python/tests
+
+  unix:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the reference build needs the import commit
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: System packages (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev ninja-build pkg-config
+      - name: System packages (macOS)
+        if: runner.os == 'macOS'
+        run: brew install libx11 ninja pkg-config
+      - name: Python packages
+        run: python -m pip install numpy pytest matplotlib pandas
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja
+          cmake --build build
+      - name: Engine tests
+        # The stored goldens were recorded with the Windows C runtime's maths
+        # library; here the oracle is unmodified XPPAUT built on this machine.
+        run: ctest --test-dir build --output-on-failure -E golden_examples
+      - name: Build unmodified XPPAUT 8.0 with X11
+        run: sh tests/build_reference.sh build-reference
+      - name: Every example matches unmodified XPPAUT
+        run: >-
+          python tests/golden.py compare
+          --exe build/cli/xppaut-headless
+          --reference build-reference/xppaut-reference
+      - name: Python tests
+        run: PYTHONPATH=python/src python -m pytest -q python/tests
+
+  wheels:
+    name: Wheel (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: MinGW-w64 toolchain (Windows)
+        if: runner.os == 'Windows'
+        id: msys2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+      - name: Put MinGW-w64 on PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "${{ steps.msys2.outputs.msys2-location }}\ucrt64\bin" >> $env:GITHUB_PATH
+      - name: Build wheels
+        run: |
+          python -m pip install cibuildwheel
+          python -m cibuildwheel --output-dir wheelhouse
+        env:
+          # The wheel is py3-none-<platform>: one build serves every Python 3.
+          CIBW_BUILD: "cp312-*"
+          CIBW_SKIP: "*-musllinux_*"
+          CIBW_ARCHS_LINUX: "x86_64"
+          CIBW_ARCHS_WINDOWS: "AMD64"
+          CIBW_ARCHS_MACOS: "universal2"
+          CIBW_ENVIRONMENT_WINDOWS: CC=gcc CMAKE_GENERATOR=Ninja
+          CIBW_TEST_REQUIRES: pytest matplotlib pandas
+          CIBW_TEST_COMMAND: pytest -q {project}/python/tests
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.os }}
+          path: wheelhouse/*.whl

@@ -82,6 +82,23 @@ jobs:
       - name: Python tests
         run: PYTHONPATH=python/src python -m pytest -q python/tests
 
+  linux-app:
+    name: Linux desktop app (SDL3 from source)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libx11-dev libxext-dev libxrandr-dev             libxcursor-dev libxi-dev libxss-dev libxkbcommon-dev libwayland-dev             wayland-protocols libegl1-mesa-dev libgl1-mesa-dev libdbus-1-dev xvfb
+      - run: |
+          cmake -S . -B build -G Ninja -DXPPS_BUILD_TESTS=OFF -DXPPS_FETCH_SDL3=ON
+          cmake --build build --target xppstudio
+      - name: The app starts under a virtual display and renders
+        run: |
+          cd build/app
+          xvfb-run -a ./xppstudio examples/lecar.ode --cmd "auto steady iapp" --screenshot shot.bmp --frames 10
+          test -s shot.bmp
+
   wheels:
     name: Wheel (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

@@ -93,6 +93,16 @@ int main(int argc, char **argv) {
     fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError());
     return 1;
   }
+  {
+    /* The window icon, embedded as 64x64 RGBA (tools/make_icon.py). */
+    extern const unsigned char icon_rgba[];
+    SDL_Surface *icon = SDL_CreateSurfaceFrom(64, 64, SDL_PIXELFORMAT_RGBA32,
+                                              (void *)icon_rgba, 64 * 4);
+    if (icon) {
+      SDL_SetWindowIcon(window, icon);
+      SDL_DestroySurface(icon);
+    }
+  }
   renderer = SDL_CreateRenderer(window, NULL);
   if (!renderer) {
     fprintf(stderr, "SDL_CreateRenderer: %s\n", SDL_GetError());

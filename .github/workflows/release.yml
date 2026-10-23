@@ -1,0 +1,84 @@
+name: Release
+
+# Push a tag like v0.1.0 to build the desktop app for Windows, macOS and
+# Linux and the Python wheels, and attach them all to a GitHub release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-sdl3
+            mingw-w64-ucrt-x86_64-python
+      - run: |
+          cmake -S . -B build -G Ninja -DXPPS_BUILD_TESTS=OFF
+          cmake --build build
+          cd build && cpack
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-windows
+          path: build/XPPStudio-*.zip
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install ninja sdl3
+      - run: |
+          cmake -S . -B build -G Ninja -DXPPS_BUILD_TESTS=OFF \
+                -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          cmake --build build
+          cd build && cpack
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-macos
+          path: build/XPPStudio-*.dmg
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build dependencies for SDL3
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libx11-dev libxext-dev libxrandr-dev \
+            libxcursor-dev libxi-dev libxss-dev libxkbcommon-dev libwayland-dev \
+            wayland-protocols libegl1-mesa-dev libgl1-mesa-dev libdbus-1-dev
+      - run: |
+          cmake -S . -B build -G Ninja -DXPPS_BUILD_TESTS=OFF -DXPPS_FETCH_SDL3=ON
+          cmake --build build
+          cd build && cpack
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-linux
+          path: build/XPPStudio-*.tar.gz
+
+  publish:
+    needs: [windows, macos, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

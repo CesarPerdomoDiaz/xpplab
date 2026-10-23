@@ -43,7 +43,7 @@ The order is chosen so something useful ships early:
 ## Milestones
 
 ### M0 Foundation: done
-- [x] XPPAUT 8.0 imported unmodified (commit `cc1ba74`)
+- [x] XPPAUT 8.0 imported unmodified (the first commit)
 - [x] No-op Xlib and MinGW compatibility layer; native Windows build
 - [x] CMake build: `xppengine` library and `xppaut-headless`
 - [x] Golden regression suite: 187 of 197 example models produce output and

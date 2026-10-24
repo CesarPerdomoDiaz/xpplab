@@ -149,6 +149,40 @@ jobs:
           cat shot.bmp.err 2>/dev/null || true
           test -s shot.bmp
 
+  asan:
+    name: Memory errors (AddressSanitizer)
+    # glibc sometimes aborts with heap corruption that Windows does not
+    # notice; AddressSanitizer reports the exact line of a bad access.
+    runs-on: ubuntu-latest
+    env:
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Build with AddressSanitizer
+        run: |
+          cmake -S . -B build -G Ninja -DXPPS_BUILD_APP=OFF \
+                -DCMAKE_C_FLAGS="-fsanitize=address -fno-omit-frame-pointer -g" \
+                -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address \
+                -DCMAKE_SHARED_LINKER_FLAGS=-fsanitize=address
+          cmake --build build
+      - name: API tests
+        run: ctest --test-dir build --output-on-failure -E golden_examples
+      - name: Every example model
+        run: |
+          d=$(mktemp -d)
+          cp -r engine/xppaut/ode engine/xppaut/tstauto "$d/"
+          bad=0
+          for m in "$d"/ode/*.ode "$d"/tstauto/*.ode; do
+            (cd "$(dirname "$m")" && timeout 300 "$GITHUB_WORKSPACE/build/cli/xppaut-headless" \
+               "$(basename "$m")" -silent -outfile out.dat \
+               </dev/null >/dev/null 2>err.txt)
+            if grep -q AddressSanitizer "$(dirname "$m")/err.txt"; then
+              echo "::error::${m#$d/}"; cat "$(dirname "$m")/err.txt"; bad=1
+            fi
+          done
+          exit $bad
+
   wheels:
     name: Wheel (${{ matrix.os }})
     # Wheels take long (macOS minutes count tenfold on private repositories):

@@ -70,9 +70,22 @@ static int file_exists(const char *path) {
   return f != NULL;
 }
 
+/* The app changes into the folder of each model it opens, so a relative
+   path given on the command line is made absolute first. */
+static const char *absolute(const char *path, char *buf, size_t size) {
+  char *cwd;
+  if (!path || path[0] == '/' || path[0] == '\\' || (path[0] && path[1] == ':'))
+    return path;
+  cwd = SDL_GetCurrentDirectory(); /* ends with a separator */
+  if (!cwd) return path;
+  snprintf(buf, size, "%s%s", cwd, path);
+  SDL_free(cwd);
+  return buf;
+}
+
 int main(int argc, char **argv) {
   static App app;
-  static char ini_path[1100];
+  static char ini_path[1100], shot_path[1100];
   SDL_Window *window;
   SDL_Renderer *renderer;
   const char *base;
@@ -100,6 +113,7 @@ int main(int argc, char **argv) {
       model = argv[i];
   }
 
+  shot = absolute(shot, shot_path, sizeof shot_path);
   err_file = shot;
   if (!SDL_Init(SDL_INIT_VIDEO)) {
     fail("SDL_Init");

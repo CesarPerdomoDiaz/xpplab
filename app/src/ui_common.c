@@ -183,10 +183,15 @@ void ui_dialog_open_ani(App *a) {
 }
 
 void ui_dialog_save_as(App *a) {
+  char copy[1024];
+  const char *start = a->model_path[0] ? a->model_path : NULL;
   if (!dlg_lock) dlg_lock = SDL_CreateMutex();
+  /* For an example, start where Save would put its copy, not in the app. */
+  if (start && app_is_example(a, start) &&
+      app_example_copy_path(a, copy, sizeof copy))
+    start = copy;
   SDL_ShowSaveFileDialog(dialog_done, (void *)(intptr_t)DLG_SAVE_AS,
-                         (SDL_Window *)a->window, ode_filters, 2,
-                         a->model_path[0] ? a->model_path : NULL);
+                         (SDL_Window *)a->window, ode_filters, 2, start);
 }
 
 void ui_dialog_export_csv(App *a) {

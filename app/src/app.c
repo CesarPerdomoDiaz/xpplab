@@ -462,6 +462,108 @@ bool app_open_text(App *a, const char *text, const char *name) {
   return app_open(a, path);
 }
 
+/* ---- Copies of the examples ----------------------------------------------- */
+
+/* The examples come with the app: inside the bundle on macOS, next to the
+   program elsewhere. Saving one in place would change the app itself (on
+   macOS it breaks the app's signature, and run from the disk image the save
+   fails), so an edited example is saved as a copy in Documents/XPP Studio. */
+
+#ifdef _WIN32
+#define SEP "\\"
+#else
+#define SEP "/"
+#endif
+
+bool app_is_example(const App *a, const char *path) {
+  size_t n;
+  bool in;
+#ifdef _WIN32
+  char *dir = _fullpath(NULL, a->examples_dir, 0);
+#else
+  char *dir = realpath(a->examples_dir, NULL);
+#endif
+  if (!dir) return false;
+  n = strlen(dir);
+#if defined(_WIN32) || defined(__APPLE__) /* case-insensitive file systems */
+  in = SDL_strncasecmp(path, dir, n) == 0;
+#else
+  in = strncmp(path, dir, n) == 0;
+#endif
+  in = in && (path[n] == '/' || path[n] == '\\');
+  free(dir);
+  return in;
+}
+
+/* The folder for the copies, made if need be. XPPSTUDIO_DOCUMENTS, if set,
+   stands for Documents (tests/parity.py points it at its own folder). */
+static bool copies_dir(char *out, size_t len) {
+  const char *docs = SDL_getenv("XPPSTUDIO_DOCUMENTS");
+  size_t n;
+  if (!docs || !*docs) docs = SDL_GetUserFolder(SDL_FOLDER_DOCUMENTS);
+  if (!docs) docs = SDL_GetUserFolder(SDL_FOLDER_HOME);
+  if (!docs) return false;
+  n = strlen(docs);
+  snprintf(out, len, "%s%sXPP Studio", docs,
+           n && (docs[n - 1] == '/' || docs[n - 1] == '\\') ? "" : SEP);
+  return SDL_CreateDirectory(out);
+}
+
+bool app_example_copy_path(const App *a, char *out, size_t len) {
+  char dir[1024];
+  const char *name = base_of(a->model_path), *dot = strrchr(name, '.');
+  int stem = dot ? (int)(dot - name) : (int)strlen(name), k;
+  if (!copies_dir(dir, sizeof dir)) return false;
+  /* A name not yet taken: lecar.ode, then lecar 2.ode, lecar 3.ode, ... */
+  for (k = 1; k < 1000; k++) {
+    if (k == 1)
+      snprintf(out, len, "%s" SEP "%s", dir, name);
+    else
+      snprintf(out, len, "%s" SEP "%.*s %d%s", dir, stem, name, k, dot ? dot : "");
+    if (!SDL_GetPathInfo(out, NULL)) return true;
+  }
+  return false;
+}
+
+typedef struct {
+  const App *a;
+  const char *dest, *name;
+  size_t stem;
+} Companions;
+
+/* Bring along the files an example reads next to it, unless the folder has
+   them already: those named like the model (lorenz.ani, lecar.ode.set) and
+   those its text names (pendx.ani in pendx.ode, a compiled library). */
+static SDL_EnumerationResult SDLCALL copy_companion(void *ud, const char *dir,
+                                                    const char *file) {
+  const Companions *c = ud;
+  char from[1100], to[1100];
+  size_t n = strlen(file);
+  if (strcmp(file, c->name) == 0 || (n && file[n - 1] == '~')) /* backups */
+    return SDL_ENUM_CONTINUE;
+  if (!(strncmp(file, c->name, c->stem) == 0 && file[c->stem] == '.') &&
+      !strstr(c->a->editor, file))
+    return SDL_ENUM_CONTINUE;
+  snprintf(from, sizeof from, "%s%s", dir, file);
+  snprintf(to, sizeof to, "%s" SEP "%s", c->dest, file);
+  if (!SDL_GetPathInfo(to, NULL)) SDL_CopyFile(from, to);
+  return SDL_ENUM_CONTINUE;
+}
+
+static void copy_companions(const App *a, const char *copy) {
+  char src[1024], dest[1024];
+  const char *dot;
+  Companions c;
+  dir_of(a->model_path, src, sizeof src);
+  dir_of(copy, dest, sizeof dest);
+  c.a = a;
+  c.dest = dest;
+  c.name = base_of(a->model_path);
+  dot = strrchr(c.name, '.');
+  c.stem = dot ? (size_t)(dot - c.name) : strlen(c.name);
+  SDL_EnumerateDirectory(src, copy_companion, &c);
+}
+
 bool app_save_editor(App *a, const char *path) {
   FILE *f = fopen(path, "wb");
   if (!f) {
@@ -488,7 +590,20 @@ bool app_apply_editor(App *a) {
     SDL_free(pref);
     snprintf(a->model_name, sizeof a->model_name, "untitled.ode");
   }
-  if (!app_save_editor(a, a->model_path)) return false;
+  if (app_is_example(a, a->model_path)) {
+    char copy[1024];
+    if (!app_example_copy_path(a, copy, sizeof copy)) {
+      app_log(a, "error: cannot make a folder for your copy in Documents: %s",
+              SDL_GetError());
+      return false;
+    }
+    copy_companions(a, copy);
+    app_log(a, "note: the examples come with the app and stay as they are; "
+               "your version of %s is a copy in %s.", a->model_name, copy);
+    if (!app_save_editor(a, copy)) return false;
+  } else if (!app_save_editor(a, a->model_path)) {
+    return false;
+  }
   if (!load_engine(a)) {
     app_status(a, "The model has errors: %s", a->load_error);
     return false;

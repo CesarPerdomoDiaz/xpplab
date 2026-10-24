@@ -51,7 +51,7 @@ commands. `help` lists them all.
 | `auto reset` | Clear the diagram. |
 | `range I 0 1.6 50 V` | Run 50 times with I from 0 to 1.6 and plot the max and min of V (XPPAUT's Range). Leave out `V` to keep each trajectory, write `lyap` for the Liapunov exponent, add `continue` to start each run where the last ended. The name can also be a variable (its initial value). `sweep` does the same. |
 | `bvp` | Solve the boundary-value problem given by the model's `bndry` statements. |
-| `view3d X Y Z` | Show three columns in the 3D view. |
+| `view3d X Y Z` | Show three columns in the 3D view. `view3d spin` turns it slowly (`view3d spin 60` at 60 degrees a second, `view3d spin off` stops it); `view3d angles 30 60` sets theta and phi. |
 | `ani pend.ani`, `ani play`, `ani row 100` | Open an XPPAUT animation, play it, or show one frame. |
 | `spectrum V 1024` | Power spectral density of V in windows of 1024 points. `spectrum V W coherence` compares two columns (`psd`, `cross`, `coherence`). |
 | `fourier V`, `power V` | Fourier series of V over the run: cos and sin, or amplitude and phase. |
@@ -67,4 +67,6 @@ commands. `help` lists them all.
 | `export fig.svg phase` | Save a figure (`time`, `phase`, `auto`, `auto2`) as SVG; `.png` saves it as shown. |
 | `continue 50` | Integrate 50 more time units from the end of the last run (C C). |
 | `clc` | Clear the command window. |
+| `show phase`, `hide help` | Bring a window forward, or close it: `time`, `phase`, `auto`, `editor`, `data`, `analysis`, `3d`, `animator`, `help`, `console`, `workspace`, `models`. |
+| `layout side`, `layout tabs` | Put the phase plane beside the time series (also in **View**), or all plots back in tabs. |
 | `help auto` | Open a manual page. |

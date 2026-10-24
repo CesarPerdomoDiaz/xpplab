@@ -4,6 +4,11 @@
 #include <string.h>
 
 #include <SDL3/SDL.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#endif
 
 #include "ui.h"
 
@@ -50,24 +55,66 @@ static void read_about(const char *path, char *out, size_t len) {
   fclose(f);
 }
 
-static void scan(App *a) {
-  char **files;
-  int n = 0, i;
-  free(examples);
-  examples = NULL;
-  nexamples = 0;
-  files = SDL_GlobDirectory(a->examples_dir, "*.ode", 0, &n);
-  if (!files) return;
-  examples = calloc((size_t)n + 1, sizeof *examples);
-  for (i = 0; i < n; i++) {
-    char path[1300];
-    snprintf(examples[i].name, sizeof examples[i].name, "%s", files[i]);
-    snprintf(path, sizeof path, "%s/%s", a->examples_dir, files[i]);
-    read_about(path, examples[i].about, sizeof examples[i].about);
+static int capacity;
+
+/* On Windows the folder is listed with FindFirstFileExW: SDL's directory
+   functions (SDL 3.4) failed there now and then with "cannot find the file
+   specified" while the folder was in plain sight, leaving the list empty. */
+static SDL_EnumerationResult SDLCALL add_example(void *ud, const char *dir,
+                                                 const char *name);
+
+#ifdef _WIN32
+static bool list_folder(const char *dir) {
+  wchar_t pattern[1100];
+  char sep_dir[1100], name[400];
+  WIN32_FIND_DATAW e;
+  HANDLE h;
+  snprintf(sep_dir, sizeof sep_dir, "%s\\", dir);
+  if (!MultiByteToWideChar(CP_UTF8, 0, sep_dir, -1, pattern, 1090)) return false;
+  wcscat(pattern, L"*");
+  h = FindFirstFileExW(pattern, FindExInfoBasic, &e, FindExSearchNameMatch, NULL, 0);
+  if (h == INVALID_HANDLE_VALUE) return false;
+  do {
+    if (e.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
+    if (WideCharToMultiByte(CP_UTF8, 0, e.cFileName, -1, name, sizeof name, NULL, NULL) &&
+        add_example(NULL, sep_dir, name) == SDL_ENUM_FAILURE)
+      break;
+  } while (FindNextFileW(h, &e));
+  FindClose(h);
+  return true;
+}
+#else
+static bool list_folder(const char *dir) {
+  return SDL_EnumerateDirectory(dir, add_example, NULL);
+}
+#endif
+
+static SDL_EnumerationResult SDLCALL add_example(void *ud, const char *dir,
+                                                 const char *name) {
+  size_t len = strlen(name);
+  char path[1300];
+  (void)ud;
+  if (len < 5 || SDL_strcasecmp(name + len - 4, ".ode") != 0 ||
+      len >= sizeof examples->name)
+    return SDL_ENUM_CONTINUE;
+  if (nexamples == capacity) {
+    Example *more = realloc(examples, (size_t)(capacity ? 2 * capacity : 256) *
+                                          sizeof *examples);
+    if (!more) return SDL_ENUM_FAILURE;
+    examples = more;
+    capacity = capacity ? 2 * capacity : 256;
   }
-  nexamples = n;
-  SDL_free(files);
-  qsort(examples, (size_t)nexamples, sizeof *examples, by_name);
+  snprintf(examples[nexamples].name, sizeof examples->name, "%s", name);
+  snprintf(path, sizeof path, "%s%s", dir, name);
+  read_about(path, examples[nexamples].about, sizeof examples->about);
+  nexamples++;
+  return SDL_ENUM_CONTINUE;
+}
+
+static void scan(App *a) {
+  nexamples = 0;
+  if (!list_folder(a->examples_dir)) nexamples = 0;
+  if (nexamples > 0) qsort(examples, (size_t)nexamples, sizeof *examples, by_name);
 }
 
 void ui_browser(App *a) {
@@ -76,7 +123,9 @@ void ui_browser(App *a) {
     igEnd();
     return;
   }
-  if (nexamples < 0) scan(a);
+  /* An empty list is looked at again every few seconds: the folder may
+     have been in the middle of being rewritten (by a build, say). */
+  if (nexamples < 0 || (nexamples == 0 && igGetFrameCount() % 180 == 0)) scan(a);
   igSetNextItemWidth(-1);
   igInputTextWithHint("##find", "Search examples...", filter, sizeof filter, 0,
                       NULL, NULL);

@@ -19,10 +19,10 @@
 
 <p align="center">
   <img src="docs/images/demo.gif" width="900"
-       alt="Raising the current I in the FitzHugh-Nagumo model: the equilibrium loses stability and the neuron starts to fire">
-  <br><sub>The FitzHugh-Nagumo neuron as the current <i>I</i> rises: the nullclines
-  move, the equilibrium loses stability at a Hopf bifurcation, and the neuron
-  starts to fire.</sub>
+       alt="The Morris-Lecar model as the current iapp rises and falls: the parameter slider, the nullclines, the trajectory and the time series all follow at once">
+  <br><sub>The Morris-Lecar neuron as the injected current <i>iapp</i> rises and
+  falls. Everything follows at once, with no re-running or restarting: the
+  nullclines move, the rest state gives way to repetitive firing, and back.</sub>
 </p>
 
 ---
@@ -76,12 +76,12 @@ the mathematics. XPP Studio removes that first wall:
 
 <table>
   <tr>
-    <td><img src="docs/images/manifolds.png" alt="Phase plane with nullclines and the stable and unstable manifolds of a saddle"></td>
-    <td><img src="docs/images/bifurcation-dark.png" alt="AUTO bifurcation diagram of the Morris-Lecar model, dark theme"></td>
+    <td><img src="docs/images/phase-plane.gif" alt="Trajectories started one after another fill in the phase portrait of the Duffing oscillator; then the saddle, its stable and unstable manifolds, and the flow"></td>
+    <td><img src="docs/images/bifurcation.gif" alt="AUTO in the Morris-Lecar model: the steady states and their Hopf points, then the branch of periodic orbits, dark theme"></td>
   </tr>
   <tr>
-    <td align="center"><sub>Phase plane: nullclines, flow, and the stable and unstable manifolds of a saddle</sub></td>
-    <td align="center"><sub>AUTO: steady states, Hopf points and periodic orbits (dark theme)</sub></td>
+    <td align="center"><sub>Phase plane: start trajectories anywhere, then find the saddle and its manifolds</sub></td>
+    <td align="center"><sub>AUTO: steady states and Hopf points, then the periodic orbits (dark theme)</sub></td>
   </tr>
   <tr>
     <td><img src="docs/images/editor.png" alt="The model editor with syntax colouring"></td>
@@ -100,11 +100,11 @@ the mathematics. XPP Studio removes that first wall:
     <td align="center"><sub>The same tools from Python: <code>m.phase_response()</code>, <code>m.spectrum("V")</code></sub></td>
   </tr>
   <tr>
-    <td><img src="docs/images/view3d.png" alt="The Lorenz attractor in the 3D view"></td>
-    <td><img src="docs/images/animator.png" alt="The double pendulum in the Animator"></td>
+    <td><img src="docs/images/view3d.gif" alt="The Lorenz attractor turning in the 3D view"></td>
+    <td><img src="docs/images/animator.gif" alt="The double pendulum in the Animator"></td>
   </tr>
   <tr>
-    <td align="center"><sub>The 3D view: drag to turn; models' own 3D settings are honoured</sub></td>
+    <td align="center"><sub>The 3D view: drag to turn it, or let it spin; models' own 3D settings are honoured</sub></td>
     <td align="center"><sub>The Animator plays XPPAUT's <code>.ani</code> files</sub></td>
   </tr>
 </table>

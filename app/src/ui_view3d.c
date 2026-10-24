@@ -123,6 +123,16 @@ void ui_view3d(App *a) {
   Tooltip("The view, box and columns the model asks for (its @ options).");
   igSameLine(0, -1);
   igCheckbox("Box from the data", &v->auto_box);
+  igSameLine(0, -1);
+  {
+    bool on = v->spin != 0;
+    if (igCheckbox("Spin", &on)) v->spin = on ? 24.0f : 0.0f; /* a turn in 15 s */
+  }
+  if (v->spin != 0) {
+    v->theta += v->spin * igGetIO_Nil()->DeltaTime;
+    if (v->theta > 180) v->theta -= 360;
+    if (v->theta < -180) v->theta += 360;
+  }
   igTextDisabled("Drag to turn, scroll to zoom, double-click to reset the "
                  "zoom.");
 

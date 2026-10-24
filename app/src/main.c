@@ -3,13 +3,21 @@
  *
  *   xppstudio [model.ode] [--cmd "command"]... [--then "command"]...
  *             [--screenshot out.bmp] [--frames N] [--size WxH] [--reset-layout]
+ *             [--record DIR [--fps N] [--script FILE] [--at FRAME "command"]...]
  *
  * --cmd runs a command-window command after start-up (repeatable); --then
  * runs one after the first few frames, once the windows exist.
  * --screenshot renders N frames (default 12), saves the window to a BMP file
  * (a PNG if the name ends in .png) and exits; it is used to check the
  * interface automatically.
+ * --record saves N frames (--frames) as DIR/frame_00000.png ... and exits,
+ * with time running at --fps frames a second (default 20) whatever the
+ * speed of the machine. --at and --script (lines "FRAME command") run
+ * commands at given frames, so a recording can show the app at work; a
+ * command written @command is not echoed in the command window.
+ * tools/make_demo.py turns recordings into the README's animations.
  */
+#include <float.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -84,19 +92,60 @@ static const char *absolute(const char *path, char *buf, size_t size) {
   return buf;
 }
 
+/* Commands to run at given frames of a recording (--at, --script). */
+typedef struct {
+  int frame;
+  char *cmd;
+} Timed;
+
+static Timed *timed;
+static int ntimed, cap_timed;
+
+static void add_timed(int frame, const char *cmd) {
+  if (ntimed == cap_timed) {
+    cap_timed = cap_timed ? 2 * cap_timed : 64;
+    timed = SDL_realloc(timed, (size_t)cap_timed * sizeof *timed);
+  }
+  timed[ntimed].frame = frame;
+  timed[ntimed++].cmd = SDL_strdup(cmd);
+}
+
+/* A script: one "FRAME command" per line; # starts a comment line. */
+static bool read_script(const char *path) {
+  char line[1200];
+  FILE *f = fopen(path, "r");
+  if (!f) return false;
+  while (fgets(line, sizeof line, f)) {
+    char *p = line, *end;
+    long n;
+    line[strcspn(line, "\r\n")] = '\0';
+    while (*p == ' ' || *p == '\t') p++;
+    if (!*p || *p == '#') continue;
+    n = strtol(p, &end, 10);
+    if (end == p) continue;
+    while (*end == ' ' || *end == '\t') end++;
+    if (*end) add_timed((int)n, end);
+  }
+  fclose(f);
+  return true;
+}
+
 int main(int argc, char **argv) {
   static App app;
-  static char ini_path[1100], shot_path[1100];
+  static char ini_path[1100], shot_path[1100], rec_path[1100], script_path[1100];
   SDL_Window *window;
   SDL_Renderer *renderer;
   const char *base;
-  const char *model = NULL, *shot = NULL;
+  const char *model = NULL, *shot = NULL, *record = NULL, *script = NULL;
   const char *cmds[32], *later[32];
   int ncmds = 0, nlater = 0, frames = 12, width = 1500, height = 920, frame = 0, i;
-  bool reset_layout = false, applied_dark, shot_taken = false;
+  int fps = 20, saved = 0;
+  bool reset_layout = false, applied_dark, shot_taken = false, scripted;
   const char *quit_reason = NULL;
   float applied_scale, dpi;
   char *pref;
+  /* A recording starts once the windows have been laid out. */
+  const int warmup = 6;
 
   for (i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--cmd") && i + 1 < argc && ncmds < 32)
@@ -105,7 +154,16 @@ int main(int argc, char **argv) {
       later[nlater++] = argv[++i];
     else if (!strcmp(argv[i], "--screenshot") && i + 1 < argc)
       shot = argv[++i];
-    else if (!strcmp(argv[i], "--frames") && i + 1 < argc)
+    else if (!strcmp(argv[i], "--record") && i + 1 < argc)
+      record = argv[++i];
+    else if (!strcmp(argv[i], "--fps") && i + 1 < argc)
+      fps = atoi(argv[++i]);
+    else if (!strcmp(argv[i], "--script") && i + 1 < argc)
+      script = argv[++i];
+    else if (!strcmp(argv[i], "--at") && i + 2 < argc) {
+      int n = atoi(argv[++i]);
+      add_timed(n, argv[++i]);
+    } else if (!strcmp(argv[i], "--frames") && i + 1 < argc)
       frames = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--size") && i + 1 < argc)
       sscanf(argv[++i], "%dx%d", &width, &height);
@@ -114,16 +172,24 @@ int main(int argc, char **argv) {
     else if (argv[i][0] != '-')
       model = argv[i];
   }
+  if (fps < 1) fps = 20;
 
   shot = absolute(shot, shot_path, sizeof shot_path);
-  err_file = shot;
+  record = absolute(record, rec_path, sizeof rec_path);
+  scripted = shot || record;
+  err_file = shot ? shot : record;
+  if (script && !read_script(absolute(script, script_path, sizeof script_path))) {
+    SDL_SetError("cannot read the script %s", script);
+    fail("--script");
+    return 1;
+  }
   if (!SDL_Init(SDL_INIT_VIDEO)) {
     fail("SDL_Init");
     return 1;
   }
   window = SDL_CreateWindow("XPP Studio", width, height,
                             SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY |
-                                (shot ? 0 : SDL_WINDOW_MAXIMIZED));
+                                (scripted ? 0 : SDL_WINDOW_MAXIMIZED));
   if (!window) {
     fail("SDL_CreateWindow");
     return 1;
@@ -156,8 +222,8 @@ int main(int argc, char **argv) {
     pref = SDL_GetPrefPath("XPPStudio", "XPPStudio");
     snprintf(ini_path, sizeof ini_path, "%slayout.ini", pref ? pref : "");
     SDL_free(pref);
-    io->IniFilename = shot ? NULL : ini_path;
-    if (shot || !file_exists(ini_path)) reset_layout = true;
+    io->IniFilename = scripted ? NULL : ini_path;
+    if (scripted || !file_exists(ini_path)) reset_layout = true;
     g_fonts.ui = add_font(font_roboto, font_roboto_size);
     g_fonts.mono = add_font(font_cousine, font_cousine_size);
     io->FontDefault = g_fonts.ui;
@@ -166,7 +232,7 @@ int main(int argc, char **argv) {
   gui_backend_init(window, renderer);
 
   base = SDL_GetBasePath();
-  app_init(&app, base ? base : "./", shot != NULL);
+  app_init(&app, base ? base : "./", scripted);
   app.window = window;
   app.reset_layout = reset_layout;
   dpi = SDL_GetWindowDisplayScale(window);
@@ -191,7 +257,10 @@ int main(int argc, char **argv) {
   while (!app.quit) {
     SDL_Event ev;
     while (SDL_PollEvent(&ev)) {
-      gui_backend_process_event(&ev);
+      /* A scripted run shows what the script does, not where the mouse
+         happens to be. */
+      bool input = (ev.type >= SDL_EVENT_KEY_DOWN && ev.type < SDL_EVENT_JOYSTICK_AXIS_MOTION);
+      if (!(scripted && input)) gui_backend_process_event(&ev);
       if (ev.type == SDL_EVENT_QUIT) {
         app.quit = true;
         quit_reason = "the system asked the app to quit";
@@ -224,9 +293,23 @@ int main(int argc, char **argv) {
         app_log(&app, ">> %s", later[i]);
         app_command(&app, later[i]);
       }
+    if (record && frame >= warmup)
+      for (i = 0; i < ntimed; i++)
+        if (timed[i].frame == frame - warmup) {
+          const char *c = timed[i].cmd;
+          if (c[0] == '@') /* quietly: not echoed in the command window */
+            c++;
+          else
+            app_log(&app, ">> %s", c);
+          app_command(&app, c);
+        }
     if (!shot) frame++;
 
     gui_backend_new_frame();
+    /* Recorded time runs at a steady rate, however long a frame takes to
+       save: animations (the Animator, a spinning 3D view) stay smooth. */
+    if (record) igGetIO_Nil()->DeltaTime = 1.0f / (float)fps;
+    if (scripted) ImGuiIO_AddMousePosEvent(igGetIO_Nil(), -FLT_MAX, -FLT_MAX);
     igNewFrame();
     ui_draw(&app);
     if (app.quit && !quit_reason) quit_reason = "a quit command or shortcut";
@@ -246,9 +329,23 @@ int main(int argc, char **argv) {
       app.quit = true;
       shot_taken = true;
     }
+    if (record && frame > warmup) {
+      char path[1200];
+      SDL_Surface *s = SDL_RenderReadPixels(renderer, NULL);
+      snprintf(path, sizeof path, "%s/frame_%05d.png", record, saved++);
+      if (!s || !export_surface_png(s, path)) {
+        fail("record");
+        app.quit = true;
+      }
+      SDL_DestroySurface(s);
+      if (saved >= frames) {
+        app.quit = true;
+        shot_taken = true;
+      }
+    }
     SDL_RenderPresent(renderer);
   }
-  if (shot && !shot_taken) {
+  if ((shot || record) && !shot_taken) {
     char why[256];
     snprintf(why, sizeof why, "stopped at frame %d of %d before the "
              "screenshot: %s", frame, frames, quit_reason ? quit_reason : "?");

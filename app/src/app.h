@@ -135,6 +135,7 @@ typedef struct {
   bool auto_box;        /* the box from the data, else box[] */
   double box[6];        /* xmin xmax ymin ymax zmin zmax */
   int front;            /* bring the view forward this many frames from now */
+  float spin;           /* degrees a second about the vertical axis; 0: still */
 } View3D;
 
 /* The animator: an XPPAUT .ani file played over the run (XPPAUT's
@@ -225,6 +226,7 @@ typedef struct App {
       show_analysis, show_view3d, show_ani;
   int array_first, array_last; /* columns shown in the array plot */
   bool reset_layout;
+  int layout; /* 0: the plots in tabs; 1: the phase plane beside the time series */
   bool dark;
   float ui_scale;
   bool classic_keys; /* XPPAUT two-key shortcuts (I G, N N, ...) */

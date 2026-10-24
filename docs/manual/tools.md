@@ -53,7 +53,8 @@ shooting limits.
 
 **View > 3D View** shows three columns of the run (and any kept curves) in
 a box. Drag to turn it, scroll to zoom, double-click to reset the zoom.
-Choose the columns with *x*, *y* and *z*.
+Tick **Spin** to have it turn slowly by itself. Choose the columns with
+*x*, *y* and *z*.
 
 The angles are XPPAUT's: *theta* turns the box about the vertical axis, and
 *phi* tilts it, with 90 for a side view and 0 looking straight down. A model
@@ -61,7 +62,7 @@ that asks for a 3D plot (`@ xplot=x, yplot=y, zplot=z, axes=3d, phi=60`, and
 `xmin=` ... `zmax=` for the box) opens with its view, as in XPPAUT; *Reset*
 returns to it. Try the [Lorenz model](example:lorenz.ode).
 
-Command: `view3d X Y Z`.
+Commands: `view3d X Y Z`, `view3d spin` (`view3d spin off`), `view3d angles THETA PHI`.
 
 ## Animations
 

@@ -42,7 +42,8 @@ static const char *usage =
     "  bvp                      solve the boundary-value problem (bndry)\n"
     "  ani FILE.ani             open an XPPAUT animation of the run;\n"
     "                           ani play, ani stop, ani row N\n"
-    "  view3d X Y Z             show three columns in the 3-D view\n"
+    "  view3d X Y Z             show three columns in the 3-D view;\n"
+    "                           view3d spin [DEG/S | off], view3d angles TH PHI\n"
     "Analysis of the last run (XPPAUT's Numerics > stocHastic, Averaging):\n"
     "  spectrum COL [COL2] [psd|cross|coherence] [N]\n"
     "                           spectral density, windows of N points\n"
@@ -62,7 +63,9 @@ static const char *usage =
     "                           .png saves it as it looks on screen\n"
     "  show WINDOW              bring a window forward: time, phase, auto,\n"
     "                           editor, data, analysis, 3d, animator, help,\n"
-    "                           console, workspace\n"
+    "                           console, workspace; hide WINDOW closes one\n"
+    "  layout side | tabs       the phase plane beside the time series, or\n"
+    "                           all plots in tabs\n"
     "  help [TOPIC]             open the manual (topics: tutorial, auto,\n"
     "                           analysis, odefile, numerics, commands, xppaut)\n";
 
@@ -264,6 +267,22 @@ static const char *action_key(App *a, int point, const char *word) {
   return NULL;
 }
 
+/* The show_ flag of a window named as in 'show NAME'. */
+static bool *window_flag(App *a, const char *w) {
+  static const char *names[] = {"time",      "phase",   "auto",   "editor",   "data",
+                                "help",      "console", "workspace", "models", "array",
+                                "analysis",  "3d",      "animator"};
+  bool *flags[] = {&a->show_time,     &a->show_phase,    &a->show_auto,
+                   &a->show_editor,   &a->show_data,     &a->show_help,
+                   &a->show_console,  &a->show_workspace, &a->show_browser,
+                   &a->show_array,    &a->show_analysis, &a->show_view3d,
+                   &a->show_ani};
+  int i;
+  for (i = 0; i < (int)(sizeof names / sizeof names[0]); i++)
+    if (SDL_strncasecmp(w, names[i], strlen(w)) == 0) return flags[i];
+  return NULL;
+}
+
 static void cmd_auto(App *a, char *rest) {
   char *w = next_word(&rest);
   if (!a->model_ok) {
@@ -424,9 +443,19 @@ void app_command(App *a, const char *line_in) {
       snprintf(a->focus, sizeof a->focus, "animator");
     }
   } else if (!strcmp(cmd, "view3d")) {
+    /* view3d [X Y Z] | view3d spin [SPEED | off] | view3d angles THETA PHI */
     char *w[3];
     int k, c;
     for (k = 0; k < 3; k++) w[k] = next_word(&rest);
+    if (w[0] && !strcmp(w[0], "spin")) {
+      /* view3d spin [DEGREES_PER_SECOND | off] */
+      a->v3.spin = !w[1] ? 24.0f : !strcmp(w[1], "off") ? 0.0f : (float)atof(w[1]);
+      w[0] = NULL;
+    } else if (w[0] && !strcmp(w[0], "angles")) {
+      if (w[1]) a->v3.theta = (float)atof(w[1]);
+      if (w[2]) a->v3.phi = (float)atof(w[2]);
+      w[0] = NULL;
+    }
     for (k = 0; k < 3 && w[k]; k++) {
       if ((c = col_index(a, w[k])) < 0) break;
       if (k == 0) a->v3.x = c;
@@ -502,6 +531,17 @@ void app_command(App *a, const char *line_in) {
   } else if (!strcmp(cmd, "show")) {
     char *w = next_word(&rest);
     if (w) snprintf(a->focus, sizeof a->focus, "%s", w);
+  } else if (!strcmp(cmd, "hide")) {
+    char *w = next_word(&rest);
+    bool *shown = w ? window_flag(a, w) : NULL;
+    if (shown)
+      *shown = false;
+    else
+      app_log(a, "error: no window called %s", w ? w : "?");
+  } else if (!strcmp(cmd, "layout")) {
+    char *w = next_word(&rest);
+    a->layout = w && !strcmp(w, "side");
+    a->reset_layout = true;
   } else if (!strcmp(cmd, "theme")) {
     char *w = next_word(&rest);
     a->dark = w && !strcmp(w, "dark");

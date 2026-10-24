@@ -1,0 +1,86 @@
+# Settings of the XPP Studio maintainer agent. Copy this file to
+# C:\xpps-agent\config.toml and edit it there. Secrets do not go here: they
+# go in C:\xpps-agent\secrets.env (see README.md).
+
+[repository]
+slug = "CesarPerdomoDiaz/xppstudio"
+owner = "CesarPerdomoDiaz"        # the only person the agent takes work from
+base = "main"
+
+[agent]
+home = "C:/xpps-agent"            # its clone, worktrees, state and logs
+max_open = 3                      # tasks in progress at once, pull requests included
+poll_seconds = 60
+
+[claude]
+claude = "claude"                 # or the full path to claude.exe
+model = ""                        # empty: Claude Code's default
+review_model = ""                 # e.g. a different model for the second opinion
+run_minutes = 60                  # a run that takes longer is stopped
+max_turns = 250
+
+[pacing]
+# The Max subscription is shared with you. These keep the agent to a part
+# of each five-hour usage window and out of the hours you work.
+window_hours = 5
+runs_per_window = 8
+quiet_hours = []                  # e.g. ["09:00-14:00", "16:00-19:00"]
+
+[rounds]
+# How many tries before the agent stops and asks you.
+gate_rounds = 3
+review_rounds = 2
+ci_rounds = 3
+ci_timeout_minutes = 90
+
+[checks]
+# Run in each worktree before anything is pushed (the same as CLAUDE.md).
+shell = ["C:/msys64/usr/bin/bash.exe", "-c"]
+path_prefix = ["C:/msys64/ucrt64/bin", "C:/msys64/usr/bin"]
+gates = [
+  "cmake -S . -B build -G Ninja",
+  "cmake --build build",
+  "ctest --test-dir build --output-on-failure",
+  "PYTHONPATH=python/src python -m pytest -q python/tests",
+  "python tests/golden.py check --exe build/cli/xppaut-headless.exe",
+]
+
+[log]
+log_issue_title = "Maintainer agent log"
+log_hour = 7                      # local time of the daily summary
+post_merge_watch_hours = 12
+
+# Recurring work: the agent opens an issue with this title every
+# `every_hours` (unless one is still open) and works on it like any other.
+
+[[jobs]]
+name = "dependencies"
+every_hours = 168
+title = "Weekly check: third-party versions"
+body = """
+Check the versions XPP Studio pins: SDL3, cimgui, Dear ImGui, ImPlot and
+the GitHub Actions in .github/workflows (report those; do not edit
+workflow files). If a newer stable release of a library exists and the
+update is small, update one library, with the build and all tests
+passing. Otherwise report what is out of date.
+"""
+
+[[jobs]]
+name = "manual"
+every_hours = 168
+title = "Weekly check: the manual against the app"
+body = """
+Pick one page of docs/manual. Check what it says against the code and,
+where you can, the app (with --screenshot). Fix what is wrong or missing
+in the page; if everything is right, report that.
+"""
+
+[[jobs]]
+name = "examples"
+every_hours = 336
+title = "Fortnightly check: models that fail to load"
+body = """
+Look for .ode files in the repository's tests and examples that load in
+XPPAUT but fail or warn in XPP Studio's Python package or app. Fix one
+cause, with a test. If you find none, report what you checked.
+"""

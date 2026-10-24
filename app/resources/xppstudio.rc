@@ -1,7 +1,12 @@
-// Windows resources: the application icon and version information.
+// Windows resources: the application icon, the manifest and version
+// information.
 #include <winver.h>
 
 1 ICON "icon.ico"
+
+// The application manifest (resource type 24, RT_MANIFEST, number 1): the
+// UTF-8 code page, so that file names with non-ASCII letters open.
+1 24 "xppstudio.manifest"
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION 0,1,0,0

@@ -112,6 +112,8 @@ set(APP_SOURCES
 if(WIN32)
   enable_language(RC)
   list(APPEND APP_SOURCES resources/xppstudio.rc)
+  set_source_files_properties(resources/xppstudio.rc PROPERTIES OBJECT_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/xppstudio.manifest;${CMAKE_CURRENT_SOURCE_DIR}/resources/icon.ico")
 endif()
 if(APPLE)
   set(MACOSX_BUNDLE_ICON_FILE icon.icns)

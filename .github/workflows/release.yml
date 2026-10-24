@@ -230,6 +230,10 @@ jobs:
           CIBW_ARCHS_MACOS: "universal2"
           CIBW_ENVIRONMENT_WINDOWS: CC=gcc CMAKE_GENERATOR=Ninja
           CIBW_TEST_REQUIRES: pytest matplotlib pandas mcp
+          # The universal macOS wheel is also tested under Rosetta, where
+          # mcp's dependencies (cryptography) would be compiled from source;
+          # without mcp, the tests that need its client are skipped there.
+          CIBW_TEST_REQUIRES_MACOS: pytest matplotlib pandas
           CIBW_TEST_COMMAND: pytest -q {project}/python/tests
       - uses: actions/upload-artifact@v4
         with:

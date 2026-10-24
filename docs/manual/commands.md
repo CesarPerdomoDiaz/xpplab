@@ -94,6 +94,7 @@ starts.
 | `--fps N` | Frames a second of a recording (default 20). Time in the app runs at this rate however long each frame takes to save, so animations stay smooth. |
 | `--script FILE` | Run commands at given frames of a recording. Each line is `FRAME command`; lines starting with `#` are comments. |
 | `--at FRAME "command"` | Run one command at a given frame of a recording. Repeatable. |
+| `--log FILE` | Write the command window's text to the file when the app exits. |
 
 Frames for `--at` and `--script` count from the first saved frame, which is
 frame 0. A command written `@command` runs without being echoed in the

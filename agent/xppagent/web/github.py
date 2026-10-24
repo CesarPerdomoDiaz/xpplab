@@ -27,13 +27,7 @@ query($owner: String!, $name: String!) {
         number title url isDraft createdAt updatedAt mergeable headRefName
         additions deletions changedFiles body
         author { login }
-        commits(last: 1) { nodes { commit { oid statusCheckRollup {
-          state
-          contexts(first: 40) { nodes {
-            __typename
-            ... on StatusContext { context state targetUrl }
-          } }
-        } } } }
+        commits(last: 1) { nodes { commit { oid } } }
       }
     }
     merged: pullRequests(states: MERGED, first: 12, orderBy: {field: UPDATED_AT, direction: DESC}) {

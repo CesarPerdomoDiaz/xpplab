@@ -383,17 +383,11 @@ class Dashboard:
         return (nodes[0].get("commit") or {}).get("oid") or ""
 
     def _checks(self, pr: dict) -> dict:
-        """CI of the pull request's head: its Actions jobs, and any commit
-        statuses. The overall state: failure, pending, success or none."""
-        nodes = (pr.get("commits") or {}).get("nodes") or [{}]
-        roll = (nodes[0].get("commit") or {}).get("statusCheckRollup") or {}
+        """CI of the pull request's head, from its Actions jobs. The overall
+        state: failure, pending, success, or none."""
         items = [{"name": j["name"], "url": j.get("url"),
                   "result": (j.get("conclusion") or j.get("status") or "").lower()}
                  for j in self._jobs.get(self._head(pr), [])]
-        for c in (roll.get("contexts") or {}).get("nodes") or []:
-            if c and c.get("context"):
-                items.append({"name": c["context"], "url": c.get("targetUrl"),
-                              "result": (c.get("state") or "").lower()})
         results = {i["result"] for i in items}
         if results & {"failure", "error", "cancelled", "timed_out", "action_required"}:
             state = "failure"

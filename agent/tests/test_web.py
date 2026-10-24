@@ -47,8 +47,7 @@ class FakeAPI:
                      "headRefName": "agent/6-x", "additions": 65, "deletions": 4, "changedFiles": 5,
                      "body": "Closes #6.\n\nfail() now flags an error.\n\n**Checks run before pushing**\n\n- x\n\n<!-- xpps-agent -->",
                      "author": {"login": "limit-cyclist"},
-                     "commits": {"nodes": [{"commit": {"oid": "abc", "statusCheckRollup": {
-                         "state": "SUCCESS", "contexts": {"nodes": [None]}}}}]}}]},
+                     "commits": {"nodes": [{"commit": {"oid": "abc"}}]}}]},
                 "merged": {"nodes": []},
                 "milestones": {"nodes": []},
                 "roadmap": {"text": "## Milestones\n### M1 Engine\n- [x] load\n- [ ] the `xpp` tool\n"},

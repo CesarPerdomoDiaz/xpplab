@@ -1,0 +1,5035 @@
+{
+ "source": "https://modeldb.science",
+ "fetched": "2026-10-24",
+ "note": "Model files are not in this repository; each model carries its own licence. Fetch them with tools/fetch_modeldb.py.",
+ "models": [
+  {
+   "id": 35358,
+   "title": "CA3 pyramidal cell: rhythmogenesis in a reduced Traub model (Pinsky, Rinzel 1994)",
+   "simulators": [
+    "NEURON",
+    "XPPAUT"
+   ],
+   "ver_date": "2022-05-27T09:37:41.877",
+   "url": "https://modeldb.science/35358",
+   "download": "https://modeldb.science/download/35358",
+   "zip_sha256": "fc64c1ddc511304954a8b2a783bb3e5c97cc12c10dc3d6651a2e55eeb3cce410",
+   "models": [
+    {
+     "name": "35358/booth_bose.ode",
+     "run_in": "35358"
+    }
+   ],
+   "files": [
+    {
+     "name": "35358/booth_bose.ode",
+     "size": 1891,
+     "sha256": "8d0654debb4ce0bc3583c34c87c499321e837a6a27ad957a036f74fda69f2337",
+     "url": "https://modeldb.science/getModelFile?model=35358&file=35358/booth_bose.ode"
+    }
+   ],
+   "other_files": 15
+  },
+  {
+   "id": 45513,
+   "title": "The activity phase of postsynaptic neurons (Bose et al 2004)",
+   "simulators": [
+    "XPPAUT",
+    "MATLAB"
+   ],
+   "ver_date": "2013-06-05T11:39:36",
+   "url": "https://modeldb.science/45513",
+   "download": "https://modeldb.science/download/45513",
+   "zip_sha256": "780ab1977dfb75ebff516ee688ec6529b796e280e6569d4fdba05f1ac5844f6d",
+   "models": [
+    {
+     "name": "activityphase/DBdep+A.ode",
+     "run_in": "activityphase"
+    }
+   ],
+   "files": [
+    {
+     "name": "activityphase/DBdep+A.ode",
+     "size": 1725,
+     "sha256": "0bcfe0dce46f761b7ee29d73118872f157b007c0e1e51cd9496e85a4c649be38",
+     "url": "https://modeldb.science/getModelFile?model=45513&file=activityphase/DBdep%2BA.ode"
+    }
+   ],
+   "other_files": 5
+  },
+  {
+   "id": 57910,
+   "title": "HERG K+ channels spike-frequency adaptation (Chiesa et al 1997)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2009-01-26T16:26:03",
+   "url": "https://modeldb.science/57910",
+   "download": "https://modeldb.science/download/57910",
+   "zip_sha256": "502230d6ebbac1fc0d183310a4542fe7246fec84d3535e6871dd6bbc5803fe64",
+   "models": [
+    {
+     "name": "kir_sim/kir_sim.ode",
+     "run_in": "kir_sim"
+    }
+   ],
+   "files": [
+    {
+     "name": "kir_sim/kir_sim.ode",
+     "size": 2094,
+     "sha256": "23f308d715039f4289aac4e8ed86940d2cf56ae4693588d7456b8e97de0e8e84",
+     "url": "https://modeldb.science/getModelFile?model=57910&file=kir_sim/kir_sim.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 58172,
+   "title": "Consequences of HERG mutations in the long QT syndrome (Clancy, Rudy 2001)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2009-07-13T15:55:49",
+   "url": "https://modeldb.science/58172",
+   "download": "https://modeldb.science/download/58172",
+   "zip_sha256": "cfa6ccd4f1ea266431733e6eee1760138fcf4f481a3e17545d7129b47920e5a5",
+   "models": [
+    {
+     "name": "clancyrudy2001/IERG_Mar.ode",
+     "run_in": "clancyrudy2001"
+    }
+   ],
+   "files": [
+    {
+     "name": "clancyrudy2001/IERG_Mar.ode",
+     "size": 1316,
+     "sha256": "229fd257962f4e8191b19510a08ba985167194d63413efd1b735f5699de69e88",
+     "url": "https://modeldb.science/getModelFile?model=58172&file=clancyrudy2001/IERG_Mar.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 58195,
+   "title": "Allosteric gating of K channels (Horrigan et al 1999)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2015-07-26T11:13:00.303",
+   "url": "https://modeldb.science/58195",
+   "download": "https://modeldb.science/download/58195",
+   "zip_sha256": "fb2c66d1a30a005349510acddc729fd2a4da4d4df5914eae52bab8cd34e3bb32",
+   "models": [
+    {
+     "name": "ikca_horrigan_etal1999/IKCa_HCA.ode",
+     "run_in": "ikca_horrigan_etal1999"
+    }
+   ],
+   "files": [
+    {
+     "name": "ikca_horrigan_etal1999/IKCa_HCA.ode",
+     "size": 1743,
+     "sha256": "c8895e881e90c864f591f66b431952b294262afa2e95ae2736def6c8639d34c6",
+     "url": "https://modeldb.science/getModelFile?model=58195&file=ikca_horrigan_etal1999/IKCa_HCA.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 58199,
+   "title": "Ca(2+) oscillations based on Ca-induced Ca-release (Dupont et al 1991)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2015-07-26T11:16:58.487",
+   "url": "https://modeldb.science/58199",
+   "download": "https://modeldb.science/download/58199",
+   "zip_sha256": "886882260e94ad56ebf4997a3705d3fe865e975c65243625600509ce33a1f14b",
+   "models": [
+    {
+     "name": "Ca_Oscill/Ca_Oscill.ode",
+     "run_in": "Ca_Oscill"
+    }
+   ],
+   "files": [
+    {
+     "name": "Ca_Oscill/Ca_Oscill.ode",
+     "size": 737,
+     "sha256": "0fbb2a4e8f481108fafb2dba764a184f69d76452c9c18caf15e361027fcb6987",
+     "url": "https://modeldb.science/getModelFile?model=58199&file=Ca_Oscill/Ca_Oscill.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 58581,
+   "title": "Role of KCNQ1 and IKs in cardiac repolarization (Silva, Rudy 2005) (XPP)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2018-02-26T11:01:05.383",
+   "url": "https://modeldb.science/58581",
+   "download": "https://modeldb.science/download/58581",
+   "zip_sha256": "fb954d988c2c08bfce4333d09bb88c9170b6205dd368c90c9416e4a5bf7e2239",
+   "models": [
+    {
+     "name": "IKs_Mar/IKs_Mar.ode",
+     "run_in": "IKs_Mar"
+    }
+   ],
+   "files": [
+    {
+     "name": "IKs_Mar/IKs_Mar.ode",
+     "size": 2218,
+     "sha256": "c15f298874cf9e36802e2aaa32267307f2a49f99aff3a4bc7b86a0e8f277c7ac",
+     "url": "https://modeldb.science/getModelFile?model=58581&file=IKs_Mar/IKs_Mar.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 62268,
+   "title": "Inhibitory control by an integral feedback signal in prefrontal cortex (Miller and Wang 2006)",
+   "simulators": [
+    "XPPAUT",
+    "C or C++ program (web link to model)"
+   ],
+   "ver_date": "2013-01-15T10:35:45",
+   "url": "https://modeldb.science/62268",
+   "download": "https://modeldb.science/download/62268",
+   "zip_sha256": "2ada1bb9ea6676c184173355e1df4a6806c1678009dc734b9724a6852382fa6b",
+   "models": [
+    {
+     "name": "weblink2_miller_wang2006/xppaut/2pop.ode",
+     "run_in": "weblink2_miller_wang2006/xppaut"
+    },
+    {
+     "name": "weblink2_miller_wang2006/xppaut/2pope.ode",
+     "run_in": "weblink2_miller_wang2006/xppaut"
+    }
+   ],
+   "files": [
+    {
+     "name": "weblink2_miller_wang2006/xppaut/2pop.ode",
+     "size": 994,
+     "sha256": "441b202d3b66576ad885e12607e7fce9a2d325b61c69fafb188c133796c95e5b",
+     "url": "https://modeldb.science/getModelFile?model=62268&file=weblink2_miller_wang2006/xppaut/2pop.ode"
+    },
+    {
+     "name": "weblink2_miller_wang2006/xppaut/2pope.ode",
+     "size": 2045,
+     "sha256": "ada4adea6d0696551f20e7659d24765b247a01487f495daa7f28ea93487d5373",
+     "url": "https://modeldb.science/getModelFile?model=62268&file=weblink2_miller_wang2006/xppaut/2pope.ode"
+    }
+   ],
+   "other_files": 11
+  },
+  {
+   "id": 62272,
+   "title": "A model for pituitary GH(3) lactotroph (Wu and Chang 2005)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2015-07-26T11:25:08.303",
+   "url": "https://modeldb.science/62272",
+   "download": "https://modeldb.science/download/62272",
+   "zip_sha256": "cba611fb6f5afe5c3ef47c240b02e367d7b064c859aca1c7d8de4a251b6b9842",
+   "models": [
+    {
+     "name": "GH3_Katp/GH3_Katp.ode",
+     "run_in": "GH3_Katp"
+    }
+   ],
+   "files": [
+    {
+     "name": "GH3_Katp/GH3_Katp.ode",
+     "size": 2700,
+     "sha256": "8810faf6367f82fd0f27979060d84cc8188dbf4fabbc332ff3b42a3e49a4395e",
+     "url": "https://modeldb.science/getModelFile?model=62272&file=GH3_Katp/GH3_Katp.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 62287,
+   "title": "Kv4.3, Kv1.4 encoded K(+) channel in heart cells (Greenstein et al 2000) (XPP)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2009-07-13T10:53:49",
+   "url": "https://modeldb.science/62287",
+   "download": "https://modeldb.science/download/62287",
+   "zip_sha256": "7ba2f7512b10d904505906e881c0997fba96ff319d95437e54d72e30d36271b5",
+   "models": [
+    {
+     "name": "hKv4x/hKv4x.ode",
+     "run_in": "hKv4x"
+    }
+   ],
+   "files": [
+    {
+     "name": "hKv4x/hKv4x.ode",
+     "size": 2188,
+     "sha256": "62d0643ed58a3c92f555fca45cae7afd7d82fc06e9a35ce3949e33daa8e109ff",
+     "url": "https://modeldb.science/getModelFile?model=62287&file=hKv4x/hKv4x.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 62661,
+   "title": "Markovian model for cardiac sodium channel (Clancy, Rudy 2002)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2018-02-26T11:01:27.257",
+   "url": "https://modeldb.science/62661",
+   "download": "https://modeldb.science/download/62661",
+   "zip_sha256": "92d3504154ba1a8fc2a328f4e93c87340fd389a6044b74fdf104e9c047d8cd4b",
+   "models": [
+    {
+     "name": "Ina_Markov/Ina_Mar.ode",
+     "run_in": "Ina_Markov"
+    }
+   ],
+   "files": [
+    {
+     "name": "Ina_Markov/Ina_Mar.ode",
+     "size": 1940,
+     "sha256": "9a4b342b2c3df8a9913c6e31cd03c981b6325268fce51f9b4e9ca5781f610c21",
+     "url": "https://modeldb.science/getModelFile?model=62661&file=Ina_Markov/Ina_Mar.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 62676,
+   "title": "Markovian model for single-channel recordings of Ik_1 in ventricular cells (Matsuoka et al 2003)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2018-02-26T11:01:57.51",
+   "url": "https://modeldb.science/62676",
+   "download": "https://modeldb.science/download/62676",
+   "zip_sha256": "5aa17490d03d6ac273167cd09795970e8878f5573468afbbf337292603a053fd",
+   "models": [
+    {
+     "name": "ik1/Ik_1_sim.ode",
+     "run_in": "ik1"
+    }
+   ],
+   "files": [
+    {
+     "name": "ik1/Ik_1_sim.ode",
+     "size": 1859,
+     "sha256": "779770794c9ab7cdab53ea337f7740e065018bb0e3c71f292239733a0765fbca",
+     "url": "https://modeldb.science/getModelFile?model=62676&file=ik1/Ik_1_sim.ode"
+    }
+   ],
+   "other_files": 4
+  },
+  {
+   "id": 64171,
+   "title": "Cardiac action potential based on Luo-Rudy phase 1 model (Luo and Rudy 1991), (Wu 2004)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2007-04-13T16:44:34",
+   "url": "https://modeldb.science/64171",
+   "download": "https://modeldb.science/download/64171",
+   "zip_sha256": "31a2bafb8e106396408ea003a44ac8cc7c70bd97a4801770bc4509ef35adc0d1",
+   "models": [
+    {
+     "name": "LR_test/LR1_test.ode",
+     "run_in": "LR_test"
+    }
+   ],
+   "files": [
+    {
+     "name": "LR_test/LR1_test.ode",
+     "size": 3518,
+     "sha256": "0f16af33af0918296d453aea321efcf510609472dd8202800bad59b5d8d6b1cd",
+     "url": "https://modeldb.science/getModelFile?model=64171&file=LR_test/LR1_test.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 64285,
+   "title": "Dopaminergic cell bursting model (Kuznetsov et al 2006)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2006-05-17T21:58:55",
+   "url": "https://modeldb.science/64285",
+   "download": "https://modeldb.science/download/64285",
+   "zip_sha256": "6bfbea08b64f8a7184423589c404d571432912f671a6c67b2e3ae79416ba44c6",
+   "models": [
+    {
+     "name": "kuzkopwil2006/KuzKopWil2006.ode",
+     "run_in": "kuzkopwil2006"
+    }
+   ],
+   "files": [
+    {
+     "name": "kuzkopwil2006/KuzKopWil2006.ode",
+     "size": 2067,
+     "sha256": "b68a169b909619730af9c0d3b1b6725b4f7801eadcd25204a3a67650c4df738e",
+     "url": "https://modeldb.science/getModelFile?model=64285&file=kuzkopwil2006/KuzKopWil2006.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 66268,
+   "title": "CA1 pyramidal cell: I_NaP and I_M contributions to somatic bursting (Golomb et al 2006)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2012-01-18T16:33:05",
+   "url": "https://modeldb.science/66268",
+   "download": "https://modeldb.science/download/66268",
+   "zip_sha256": "484e828974d54ded075a37e2c5667e8284c247251af4dab8aaea99b4c263e4da",
+   "models": [
+    {
+     "name": "ca1_model_db/nca.ode",
+     "run_in": "ca1_model_db"
+    },
+    {
+     "name": "ca1_model_db/zca.ode",
+     "run_in": "ca1_model_db"
+    }
+   ],
+   "files": [
+    {
+     "name": "ca1_model_db/nca.ode",
+     "size": 2098,
+     "sha256": "3066eb26794c9b5c1653b09738a233e74243ea716d721db45a2c53073e9cfda6",
+     "url": "https://modeldb.science/getModelFile?model=66268&file=ca1_model_db/nca.ode"
+    },
+    {
+     "name": "ca1_model_db/zca.ode",
+     "size": 1623,
+     "sha256": "ea47c195b435f896e1bada5cce28375176ece67b72388b02a239fad0a019490b",
+     "url": "https://modeldb.science/getModelFile?model=66268&file=ca1_model_db/zca.ode"
+    }
+   ],
+   "other_files": 4
+  },
+  {
+   "id": 76879,
+   "title": "Excitatory and inhibitory interactions in populations of model neurons (Wilson and Cowan 1972)",
+   "simulators": [
+    "NEURON",
+    "XPPAUT"
+   ],
+   "ver_date": "2015-01-02T22:00:10",
+   "url": "https://modeldb.science/76879",
+   "download": "https://modeldb.science/download/76879",
+   "zip_sha256": "1b81772deba892dbb63990a52e9b97e903d3d1549b54e33dd817422c7df9c701",
+   "models": [
+    {
+     "name": "WC/wc.ode",
+     "run_in": "WC"
+    }
+   ],
+   "files": [
+    {
+     "name": "WC/wc.ode",
+     "size": 311,
+     "sha256": "8a8224fc899452b24ba9808d70795578bdd0f30b7b8a556fbda02d0f31c60cf6",
+     "url": "https://modeldb.science/getModelFile?model=76879&file=WC/wc.ode"
+    }
+   ],
+   "other_files": 4
+  },
+  {
+   "id": 79238,
+   "title": "Action potential of striated muscle fiber (Adrian et al 1970)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2015-09-02T13:27:02.21",
+   "url": "https://modeldb.science/79238",
+   "download": "https://modeldb.science/download/79238",
+   "zip_sha256": "bd0fa2f28472ecf2c7c4130bc37d5d7d51fd7edb3e10091d6c678c06f41b4d0a",
+   "models": [
+    {
+     "name": "muscleAP/muscleAP.ode",
+     "run_in": "muscleAP"
+    }
+   ],
+   "files": [
+    {
+     "name": "muscleAP/muscleAP.ode",
+     "size": 1797,
+     "sha256": "00848f2a731d68f25342ecc1c0fceced3e3b9f870773334f290848404ce39436",
+     "url": "https://modeldb.science/getModelFile?model=79238&file=muscleAP/muscleAP.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 83319,
+   "title": "Networks of spiking neurons: a review of tools and strategies (Brette et al. 2007)",
+   "simulators": [
+    "NEURON",
+    "GENESIS",
+    "NEST",
+    "C or C++ program",
+    "XPPAUT",
+    "CSIM",
+    "NCS",
+    "SPLIT",
+    "MVASpike",
+    "SciLab",
+    "Brian",
+    "PyNN",
+    "Python"
+   ],
+   "ver_date": "2017-07-28T13:55:31.95",
+   "url": "https://modeldb.science/83319",
+   "download": "https://modeldb.science/download/83319",
+   "zip_sha256": "5eeb6188cf49212a299b10c820878a907b9822f3024fdac545a4c6a2b5f50519",
+   "models": [
+    {
+     "name": "destexhe_benchmarks/XPP/hh200x50.ode",
+     "run_in": "destexhe_benchmarks/XPP"
+    },
+    {
+     "name": "destexhe_benchmarks/XPP/iaf200x50.ode",
+     "run_in": "destexhe_benchmarks/XPP"
+    }
+   ],
+   "files": [
+    {
+     "name": "destexhe_benchmarks/XPP/hh200x50.ode",
+     "size": 2177,
+     "sha256": "5887086d89c41d2d00aed623ab73de1f8e67ce4931c155ecd5a8a8d98594cc1e",
+     "url": "https://modeldb.science/getModelFile?model=83319&file=destexhe_benchmarks/XPP/hh200x50.ode"
+    },
+    {
+     "name": "destexhe_benchmarks/XPP/iaf200x50.ode",
+     "size": 1332,
+     "sha256": "15b4b52a12146a4caa4a78eae0bf764ac9bd5e8585242988aface8f08623af70",
+     "url": "https://modeldb.science/getModelFile?model=83319&file=destexhe_benchmarks/XPP/iaf200x50.ode"
+    }
+   ],
+   "other_files": 113,
+   "skipped": [
+    {
+     "name": "destexhe_benchmarks/GENESIS/isynchan/igenesis",
+     "reason": "program or library"
+    }
+   ]
+  },
+  {
+   "id": 83558,
+   "title": "Role of active dendrites in rhythmically-firing neurons (Goldberg et al 2006)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2011-03-10T10:20:06",
+   "url": "https://modeldb.science/83558",
+   "download": "https://modeldb.science/download/83558",
+   "zip_sha256": "5acdc2a99732539957b05ba3972470bbd069cfdc35ceb91f6685845007c5793d",
+   "models": [
+    {
+     "name": "goldbergEtAl2006/TypeIISomaCablePairFig2.ode",
+     "run_in": "goldbergEtAl2006"
+    },
+    {
+     "name": "goldbergEtAl2006/TypeIISomaPassiveCableFig1.ode",
+     "run_in": "goldbergEtAl2006"
+    },
+    {
+     "name": "goldbergEtAl2006/TypeISomaCable2NaPFig3.ode",
+     "run_in": "goldbergEtAl2006"
+    },
+    {
+     "name": "goldbergEtAl2006/TypeISomaCablePairFig4.ode",
+     "run_in": "goldbergEtAl2006"
+    },
+    {
+     "name": "goldbergEtAl2006/TypeISomaCablewHCNFig3.ode",
+     "run_in": "goldbergEtAl2006"
+    }
+   ],
+   "files": [
+    {
+     "name": "goldbergEtAl2006/TypeIISomaCablePairFig2.ode",
+     "size": 2295,
+     "sha256": "437ca34ceb42aeaea650e6d696fcde58ac19c161651ec45b99f2484f5455ff52",
+     "url": "https://modeldb.science/getModelFile?model=83558&file=goldbergEtAl2006/TypeIISomaCablePairFig2.ode"
+    },
+    {
+     "name": "goldbergEtAl2006/TypeIISomaPassiveCableFig1.ode",
+     "size": 1420,
+     "sha256": "c2632367ba133f3234684393b90b2eb705d4c4738446b12f08a9f8f3c579909e",
+     "url": "https://modeldb.science/getModelFile?model=83558&file=goldbergEtAl2006/TypeIISomaPassiveCableFig1.ode"
+    },
+    {
+     "name": "goldbergEtAl2006/TypeISomaCable2NaPFig3.ode",
+     "size": 2446,
+     "sha256": "96f3633d4294a7edd821864eabc0e32ee0f3443dc168d2f73c3cf2502402414e",
+     "url": "https://modeldb.science/getModelFile?model=83558&file=goldbergEtAl2006/TypeISomaCable2NaPFig3.ode"
+    },
+    {
+     "name": "goldbergEtAl2006/TypeISomaCablePairFig4.ode",
+     "size": 2197,
+     "sha256": "2b2974eae750063d952b0fd23f778eb1d57541cfd709de99a9699c976f252776",
+     "url": "https://modeldb.science/getModelFile?model=83558&file=goldbergEtAl2006/TypeISomaCablePairFig4.ode"
+    },
+    {
+     "name": "goldbergEtAl2006/TypeISomaCablewHCNFig3.ode",
+     "size": 2476,
+     "sha256": "935c767e075d29771a48ff4a6779fc534b6512a9768189982aed7683a9c719d6",
+     "url": "https://modeldb.science/getModelFile?model=83558&file=goldbergEtAl2006/TypeISomaCablewHCNFig3.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 83570,
+   "title": "A theory of ongoing activity in V1 (Goldberg et al 2004)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2018-10-17T16:47:17.077",
+   "url": "https://modeldb.science/83570",
+   "download": "https://modeldb.science/download/83570",
+   "zip_sha256": "6f8d060f87f25e627ace9f06b4eae90c1cc47a511cc38782c936ae09c3a932d8",
+   "models": [
+    {
+     "name": "goldbergEtAl2004/NoisyRing.ode",
+     "run_in": "goldbergEtAl2004"
+    }
+   ],
+   "files": [
+    {
+     "name": "goldbergEtAl2004/CosIntCol20.tab",
+     "size": 10416,
+     "sha256": "2e03d176268a336f59f28744aec62dca90513e14f9db70b2222936321a498eb6",
+     "url": "https://modeldb.science/getModelFile?model=83570&file=goldbergEtAl2004/CosIntCol20.tab"
+    },
+    {
+     "name": "goldbergEtAl2004/NoisyRing.ode",
+     "size": 1637,
+     "sha256": "5e6305bd98fc6c9c29af9882cfffef5b9fef62a28dc174aaf978fb979830ffa5",
+     "url": "https://modeldb.science/getModelFile?model=83570&file=goldbergEtAl2004/NoisyRing.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 83575,
+   "title": "Modeling interactions in Aplysia neuron R15 (Yu et al 2004)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2014-07-18T15:55:46",
+   "url": "https://modeldb.science/83575",
+   "download": "https://modeldb.science/download/83575",
+   "zip_sha256": "a50ed85ed7b657776c4018feb8cbc2155cf459dc489d7097e88daf7db0205926",
+   "models": [
+    {
+     "name": "Yu_et_al_04_R15_model/Yu_et_al_04_R15_model.ODE",
+     "run_in": "Yu_et_al_04_R15_model"
+    }
+   ],
+   "files": [
+    {
+     "name": "Yu_et_al_04_R15_model/Yu_et_al_04_R15_model.ODE",
+     "size": 5967,
+     "sha256": "aff374b7f3306d897af2dfa3b99ed264a9509907418a48d3ea642d9a5eab99f3",
+     "url": "https://modeldb.science/getModelFile?model=83575&file=Yu_et_al_04_R15_model/Yu_et_al_04_R15_model.ODE"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 84606,
+   "title": "Zonisamide-induced inhibition of the firing of APs in hippocampal neurons (Huang et al. 2007)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2015-07-26T13:28:16.64",
+   "url": "https://modeldb.science/84606",
+   "download": "https://modeldb.science/download/84606",
+   "zip_sha256": "c678e4560944bd4a4e1cc37a402a60a808b3f3cffdac06313caab0cf6c2bda2a",
+   "models": [
+    {
+     "name": "Neuron_ZNS/Neuron_ZNS.ode",
+     "run_in": "Neuron_ZNS"
+    }
+   ],
+   "files": [
+    {
+     "name": "Neuron_ZNS/Neuron_ZNS.ode",
+     "size": 2693,
+     "sha256": "60819181e405f77179fe82584d92229ddcad6790c15f25721f7bb2205556445b",
+     "url": "https://modeldb.science/getModelFile?model=84606&file=Neuron_ZNS/Neuron_ZNS.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 87450,
+   "title": "Squid axon (Hodgkin, Huxley 1952) (SBML, XPP, other)",
+   "simulators": [
+    "XML (web link to model)",
+    "XPP (web link to model)",
+    "SBML (web link to model)"
+   ],
+   "ver_date": "2015-12-14T11:47:43.55",
+   "url": "https://modeldb.science/87450",
+   "download": "https://modeldb.science/download/87450",
+   "zip_sha256": "6967406e148ce533520611fd02c19c4bf76bbcc9d3b38597e1f4c7de50aa0b6e",
+   "models": [
+    {
+     "name": "weblinktomodel/BIOMD0000000020.xpp",
+     "run_in": "weblinktomodel"
+    }
+   ],
+   "files": [
+    {
+     "name": "weblinktomodel/BIOMD0000000020.xpp",
+     "size": 3499,
+     "sha256": "3accb1e9ac06711c462558fce284c1d55cc2d9a19d72d6418e02a21a61654b3a",
+     "url": "https://modeldb.science/getModelFile?model=87450&file=weblinktomodel/BIOMD0000000020.xpp"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 87762,
+   "title": "The role of ATP-sensitive potassium channels in a hippocampal neuron (Huang et al. 2007)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2007-04-13T08:06:40",
+   "url": "https://modeldb.science/87762",
+   "download": "https://modeldb.science/download/87762",
+   "zip_sha256": "246f53bfbe509fa986ace98503f949277c2bdcb1a267bfddf42ba6e0e203e161",
+   "models": [
+    {
+     "name": "Neuron_KATP/NeuronKATP_Stoch.ode",
+     "run_in": "Neuron_KATP"
+    }
+   ],
+   "files": [
+    {
+     "name": "Neuron_KATP/NeuronKATP_Stoch.ode",
+     "size": 2640,
+     "sha256": "35f8a1d89ece63a3125395c15eb3c9a5378dc2b26ce1d7126f9cf45e521c77f9",
+     "url": "https://modeldb.science/getModelFile?model=87762&file=Neuron_KATP/NeuronKATP_Stoch.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 91893,
+   "title": "Oxytocin and VIP involvement in prolactin secretion (Egli et al. 2004,2006, Bertram et al. 2006)",
+   "simulators": [
+    "XPP (web link to model)"
+   ],
+   "ver_date": "2015-07-26T13:33:01.77",
+   "url": "https://modeldb.science/91893",
+   "download": "https://modeldb.science/download/91893",
+   "zip_sha256": "caeede6032e44d78ab892dbee226b9dbf2ef6522971e845091f72d959abd88c6",
+   "models": [],
+   "files": [],
+   "other_files": 1
+  },
+  {
+   "id": 91898,
+   "title": "Low dose of dopamine may stimulate prolactin secretion by increasing K currents (Tabak et al. 2006)",
+   "simulators": [
+    "XPP (web link to model)"
+   ],
+   "ver_date": "2007-05-08T16:21:46",
+   "url": "https://modeldb.science/91898",
+   "download": "https://modeldb.science/download/91898",
+   "zip_sha256": "3edb51f829334b535a965068868f9449a5c0ebeb1f515234f4d2a7d24fed801a",
+   "models": [],
+   "files": [],
+   "other_files": 1
+  },
+  {
+   "id": 91899,
+   "title": "Endothelin action on pituitary latotrophs (Bertram et al. 2006)",
+   "simulators": [
+    "XPP (web link to model)"
+   ],
+   "ver_date": "2007-05-09T10:06:03",
+   "url": "https://modeldb.science/91899",
+   "download": "https://modeldb.science/download/91899",
+   "zip_sha256": "d07def23f1aef1d52e68e6d29640155f3d2ff4ff568f47982b7e82673aaa7917",
+   "models": [],
+   "files": [],
+   "other_files": 1
+  },
+  {
+   "id": 97743,
+   "title": "Model of DARPP-32 phosphorylation in striatal medium spiny neurons (Lindskog et al. 2006)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2015-07-26T13:35:36.947",
+   "url": "https://modeldb.science/97743",
+   "download": "https://modeldb.science/download/97743",
+   "zip_sha256": "108a6d34c587fc40b9bbe79e1792f05e024c6ae206ede3b2c5b164c709013a24",
+   "models": [
+    {
+     "name": "DARPPmodel_2006/DARPPmodel_2006.ode",
+     "run_in": "DARPPmodel_2006"
+    }
+   ],
+   "files": [
+    {
+     "name": "DARPPmodel_2006/DARPPmodel_2006.ode",
+     "size": 30930,
+     "sha256": "4ef7542f7f4c5b18002324d840d9367cd32531adfb458cfde065bc20328ae8ef",
+     "url": "https://modeldb.science/getModelFile?model=97743&file=DARPPmodel_2006/DARPPmodel_2006.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 97747,
+   "title": "Fast-spiking cortical interneuron (Golomb et al. 2007)",
+   "simulators": [
+    "NEURON",
+    "XPPAUT"
+   ],
+   "ver_date": "2015-01-03T11:27:47",
+   "url": "https://modeldb.science/97747",
+   "download": "https://modeldb.science/download/97747",
+   "zip_sha256": "20aac9874d0a88dfceaea127fb752e2419319b24f370eaa53bca50a39df0f1fe",
+   "models": [
+    {
+     "name": "fs_internrn/gah_fig2c.ode",
+     "run_in": "fs_internrn"
+    }
+   ],
+   "files": [
+    {
+     "name": "fs_internrn/gah_fig2c.ode",
+     "size": 1517,
+     "sha256": "47c9576e7f551dee4ee77ed3457a1dfb2f6e60a34d69840a26b97081a2bf0431",
+     "url": "https://modeldb.science/getModelFile?model=97747&file=fs_internrn/gah_fig2c.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 97850,
+   "title": "Study of augmented Rubin and Terman 2004 deep brain stim. model in Parkinsons (Pascual et al. 2006)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2017-06-21T14:44:07.223",
+   "url": "https://modeldb.science/97850",
+   "download": "https://modeldb.science/download/97850",
+   "zip_sha256": "1e102d868ce0e552534d57c469c885c4ec516363cdacbc720a484da3f2797822",
+   "models": [
+    {
+     "name": "mdl_modif_mdb/mdl_modif.ode",
+     "run_in": "mdl_modif_mdb"
+    }
+   ],
+   "files": [
+    {
+     "name": "mdl_modif_mdb/mdl_modif.ode",
+     "size": 14640,
+     "sha256": "5c0b7469381ba727f205a0b7ffc8a1468ad8e7e80f4e3e30d81ab2cb1200e022",
+     "url": "https://modeldb.science/getModelFile?model=97850&file=mdl_modif_mdb/mdl_modif.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 105528,
+   "title": "Effect of riluzole on action potential in cultured human skeletal muscle cells (Wang YJ et al. 2008)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2007-12-22T12:41:53",
+   "url": "https://modeldb.science/105528",
+   "download": "https://modeldb.science/download/105528",
+   "zip_sha256": "ba20d17d61b6e6de07682a665ec007567f011fc3a054fad76aa32ec034ca0b91",
+   "models": [
+    {
+     "name": "SkM_AP/SkM_AP_KCa.ode",
+     "run_in": "SkM_AP"
+    }
+   ],
+   "files": [
+    {
+     "name": "SkM_AP/SkM_AP_KCa.ode",
+     "size": 2959,
+     "sha256": "7f41b5d5cd3bd470c0c660eed5eb8ef092f0d6f42b309e871d402801120588ac",
+     "url": "https://modeldb.science/getModelFile?model=105528&file=SkM_AP/SkM_AP_KCa.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 111877,
+   "title": "Ca-dependent K Channel: kinetics from rat muscle (Moczydlowski, Latorre 1983) XPP",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2008-02-04T09:54:53",
+   "url": "https://modeldb.science/111877",
+   "download": "https://modeldb.science/download/111877",
+   "zip_sha256": "a5678653badf84d032153c221f85827f6fb7369d82aee67d117cb0551b02dd33",
+   "models": [
+    {
+     "name": "IKCa/Ikca_Mocz.ode",
+     "run_in": "IKCa"
+    }
+   ],
+   "files": [
+    {
+     "name": "IKCa/Ikca_Mocz.ode",
+     "size": 1455,
+     "sha256": "d69aa203b7c3ec78b8dfb03b1e31093e66525d3f54f93accf98e7c41dcd33967",
+     "url": "https://modeldb.science/getModelFile?model=111877&file=IKCa/Ikca_Mocz.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 112079,
+   "title": "Properties of aconitine-induced block of KDR current in NG108-15 neurons (Lin et al. 2008)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2008-03-17T11:26:03",
+   "url": "https://modeldb.science/112079",
+   "download": "https://modeldb.science/download/112079",
+   "zip_sha256": "07974ea30875ea0d310d7334869076f51e7f744fcf46550e17dcb9425ad2c4b6",
+   "models": [
+    {
+     "name": "NG108-ACO/NG108_Acon.ode",
+     "run_in": "NG108-ACO"
+    }
+   ],
+   "files": [
+    {
+     "name": "NG108-ACO/NG108_Acon.ode",
+     "size": 3026,
+     "sha256": "aa6e011b8d489a60fe39fcc1040c51b8c388e6c3516b4256ace0c2adf4ff11f8",
+     "url": "https://modeldb.science/getModelFile?model=112079&file=NG108-ACO/NG108_Acon.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 112547,
+   "title": "Spontaneous calcium oscillations in astrocytes (Lavrentovich and Hemkin 2008)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2014-04-21T10:47:27",
+   "url": "https://modeldb.science/112547",
+   "download": "https://modeldb.science/download/112547",
+   "zip_sha256": "7849ef3786f782dfeddf3573f8209dd9c37ed3832e9bcbd1f3fd023f55a50594",
+   "models": [
+    {
+     "name": "Glia-Ca/Ca-Oscil-Astrocyte.ode",
+     "run_in": "Glia-Ca"
+    }
+   ],
+   "files": [
+    {
+     "name": "Glia-Ca/Ca-Oscil-Astrocyte.ode",
+     "size": 784,
+     "sha256": "bed71ae7102334007daad07a72107195a989fae8117f70d078f55de08ba2e903",
+     "url": "https://modeldb.science/getModelFile?model=112547&file=Glia-Ca/Ca-Oscil-Astrocyte.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 112836,
+   "title": "Spike trains in Hodgkin–Huxley model and ISIs of acupuncture manipulations (Wang et al. 2008)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2008-04-15T10:19:23",
+   "url": "https://modeldb.science/112836",
+   "download": "https://modeldb.science/download/112836",
+   "zip_sha256": "d7885043175adc96d4d0e734cf1862b980eb7660e6a9bd5284b0ce8fc2c68668",
+   "models": [
+    {
+     "name": "HH-ext/HH-ext.ode",
+     "run_in": "HH-ext"
+    }
+   ],
+   "files": [
+    {
+     "name": "HH-ext/HH-ext.ode",
+     "size": 970,
+     "sha256": "06a1e474b7503a0c6e6de9b9f6c3fc0eebd47211fcd00d867066885aa054aa11",
+     "url": "https://modeldb.science/getModelFile?model=112836&file=HH-ext/HH-ext.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 112968,
+   "title": "Synchronization by D4 dopamine receptor-mediated phospholipid methylation (Kuznetsova, Deth 2008)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2015-10-08T15:43:40.88",
+   "url": "https://modeldb.science/112968",
+   "download": "https://modeldb.science/download/112968",
+   "zip_sha256": "973988a70eb266e21a3ca1f1f91e5b9466abde7476722e13a0b3368f62ba94a2",
+   "models": [
+    {
+     "name": "xppcodes/Fig3.ode",
+     "run_in": "xppcodes"
+    },
+    {
+     "name": "xppcodes/Fig4.ode",
+     "run_in": "xppcodes"
+    },
+    {
+     "name": "xppcodes/Fig5Abot.ode",
+     "run_in": "xppcodes"
+    },
+    {
+     "name": "xppcodes/Fig5Aup.ode",
+     "run_in": "xppcodes"
+    },
+    {
+     "name": "xppcodes/Fig5Bbot.ode",
+     "run_in": "xppcodes"
+    },
+    {
+     "name": "xppcodes/Fig5Bup.ode",
+     "run_in": "xppcodes"
+    },
+    {
+     "name": "xppcodes/Fig5Cbot.ode",
+     "run_in": "xppcodes"
+    },
+    {
+     "name": "xppcodes/Fig5Cup.ode",
+     "run_in": "xppcodes"
+    }
+   ],
+   "files": [
+    {
+     "name": "xppcodes/Fig3.ode",
+     "size": 609,
+     "sha256": "7b8525ec2832af7f7c1d990ccb423ee33f25cafd36617d8d45a779c7705d5301",
+     "url": "https://modeldb.science/getModelFile?model=112968&file=xppcodes/Fig3.ode"
+    },
+    {
+     "name": "xppcodes/Fig4.ode",
+     "size": 2445,
+     "sha256": "b05cc7a9e772ed2d2474f679a917e76cd9e26997ba17c388963e292e97798a85",
+     "url": "https://modeldb.science/getModelFile?model=112968&file=xppcodes/Fig4.ode"
+    },
+    {
+     "name": "xppcodes/Fig5Abot.ode",
+     "size": 2007,
+     "sha256": "63b852e66a726c35c213762d03f78d08afb2741d42803de4099c6417b928c994",
+     "url": "https://modeldb.science/getModelFile?model=112968&file=xppcodes/Fig5Abot.ode"
+    },
+    {
+     "name": "xppcodes/Fig5Aup.ode",
+     "size": 2005,
+     "sha256": "be2cddc009b13feb87b58aaff33258742241747b0b5c112558080597be8dba32",
+     "url": "https://modeldb.science/getModelFile?model=112968&file=xppcodes/Fig5Aup.ode"
+    },
+    {
+     "name": "xppcodes/Fig5Bbot.ode",
+     "size": 3986,
+     "sha256": "0a867eb39ab9a0842e88b81b2b73d3c4fc0f17a049f9eefd503aa954a203e9a4",
+     "url": "https://modeldb.science/getModelFile?model=112968&file=xppcodes/Fig5Bbot.ode"
+    },
+    {
+     "name": "xppcodes/Fig5Bup.ode",
+     "size": 3983,
+     "sha256": "1ccdc8410cc6d65513297b1cf3db186a29ad026fe1e46ceb47dc35965f05b829",
+     "url": "https://modeldb.science/getModelFile?model=112968&file=xppcodes/Fig5Bup.ode"
+    },
+    {
+     "name": "xppcodes/Fig5Cbot.ode",
+     "size": 4212,
+     "sha256": "4acda7bb18a14c3ac80a9ea9020536cbeaaf928d41f76b97902d4e85a16844f1",
+     "url": "https://modeldb.science/getModelFile?model=112968&file=xppcodes/Fig5Cbot.ode"
+    },
+    {
+     "name": "xppcodes/Fig5Cup.ode",
+     "size": 4210,
+     "sha256": "14834066222a5427017f7a191dae4664de52223f51d9e990a185e1299581176c",
+     "url": "https://modeldb.science/getModelFile?model=112968&file=xppcodes/Fig5Cup.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 114108,
+   "title": "Effect of slowly inactivating IKdr to delayed firing of action potentials (Wu et al. 2008)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2008-06-06T10:12:48",
+   "url": "https://modeldb.science/114108",
+   "download": "https://modeldb.science/download/114108",
+   "zip_sha256": "24a049589030bed0dd329c44dfc2e62e60be88347034dce5d4f2efe581448eb5",
+   "models": [
+    {
+     "name": "JTBfig7/JTBfig07.ode",
+     "run_in": "JTBfig7"
+    }
+   ],
+   "files": [
+    {
+     "name": "JTBfig7/JTBfig07.ode",
+     "size": 2274,
+     "sha256": "ca00e1d9a249604c48810eba39c1e40c28e89aab2f212d8c5eb72996e75fe497",
+     "url": "https://modeldb.science/getModelFile?model=114108&file=JTBfig7/JTBfig07.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 114424,
+   "title": "A simplified model of NMDA oscillations in lamprey locomotor neurons (Huss et al. 2008)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2015-07-26T13:46:05.03",
+   "url": "https://modeldb.science/114424",
+   "download": "https://modeldb.science/download/114424",
+   "zip_sha256": "4dc51778f9e7a5f509d6042763b3afbc2534ab2e886696bcee07a1d8dd12a73e",
+   "models": [
+    {
+     "name": "LampreyNMDAosc/LampreyNMDAosc.ode",
+     "run_in": "LampreyNMDAosc"
+    }
+   ],
+   "files": [
+    {
+     "name": "LampreyNMDAosc/LampreyNMDAosc.ode",
+     "size": 1509,
+     "sha256": "e7d06238664bf157d7bd53f98965a559c7e7edc68e8d6b7c6053de924c1911a7",
+     "url": "https://modeldb.science/getModelFile?model=114424&file=LampreyNMDAosc/LampreyNMDAosc.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 114450,
+   "title": "Synergistic inhibitory action of oxcarbazepine on INa and IK (Huang et al. 2008)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2008-08-05T11:52:06",
+   "url": "https://modeldb.science/114450",
+   "download": "https://modeldb.science/download/114450",
+   "zip_sha256": "8af3f25e02cb0b4d3eb31ce66aa6aceddcfbf9897af253ed03c10137a402035b",
+   "models": [
+    {
+     "name": "Neuron-OXC/Neuron_OXC.ode",
+     "run_in": "Neuron-OXC"
+    }
+   ],
+   "files": [
+    {
+     "name": "Neuron-OXC/Neuron_OXC.ode",
+     "size": 2338,
+     "sha256": "288fdc3046c4c55829e8a062a597f98c038ab1b0217f7fe48b97f6a4f2baf597",
+     "url": "https://modeldb.science/getModelFile?model=114450&file=Neuron-OXC/Neuron_OXC.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 114451,
+   "title": "Efffect of propofol on potassium current in cardiac H9c2 cells (Liu et al. 2008)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2015-07-26T13:47:25.767",
+   "url": "https://modeldb.science/114451",
+   "download": "https://modeldb.science/download/114451",
+   "zip_sha256": "3e9396082bab8f66cfc7ed27fac23e1a3b5998f21fc044db37a392acf34fb2f7",
+   "models": [
+    {
+     "name": "IK-Prop/IK_Prop.ode",
+     "run_in": "IK-Prop"
+    }
+   ],
+   "files": [
+    {
+     "name": "IK-Prop/IK_Prop.ode",
+     "size": 1886,
+     "sha256": "42c10cafd1cd66d5093594ad767304e2b379cb4282ca1436b2a2e89f68d9d4bd",
+     "url": "https://modeldb.science/getModelFile?model=114451&file=IK-Prop/IK_Prop.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 114452,
+   "title": "CaMKII system exhibiting bistability with respect to calcium (Graupner and Brunel 2007)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2008-08-21T10:04:03",
+   "url": "https://modeldb.science/114452",
+   "download": "https://modeldb.science/download/114452",
+   "zip_sha256": "74c363ca0af7a2e2cdea812147096de7f224fe40e6d756c7ec279f0d85657f0b",
+   "models": [
+    {
+     "name": "graupnerBrunel2007/six_sub_protein_cascade_graupner2007_lower_branch.ode",
+     "run_in": "graupnerBrunel2007"
+    },
+    {
+     "name": "graupnerBrunel2007/six_sub_protein_cascade_graupner2007_upper_branch.ode",
+     "run_in": "graupnerBrunel2007"
+    }
+   ],
+   "files": [
+    {
+     "name": "graupnerBrunel2007/six_sub_protein_cascade_graupner2007_lower_branch.ode",
+     "size": 4445,
+     "sha256": "346527d0759d1a74f9fa1f1544a207dc6b5df66a5d754948a3d1d802a23f0a43",
+     "url": "https://modeldb.science/getModelFile?model=114452&file=graupnerBrunel2007/six_sub_protein_cascade_graupner2007_lower_branch.ode"
+    },
+    {
+     "name": "graupnerBrunel2007/six_sub_protein_cascade_graupner2007_upper_branch.ode",
+     "size": 4617,
+     "sha256": "8fbd941dac4acb142b2ea003399c5eafb54e3c205a634d082e6221e476b5e6d7",
+     "url": "https://modeldb.science/getModelFile?model=114452&file=graupnerBrunel2007/six_sub_protein_cascade_graupner2007_upper_branch.ode"
+    }
+   ],
+   "other_files": 5
+  },
+  {
+   "id": 116123,
+   "title": "Dynamics of Spike Initiation (Prescott et al. 2008)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2015-05-11T10:54:34.893",
+   "url": "https://modeldb.science/116123",
+   "download": "https://modeldb.science/download/116123",
+   "zip_sha256": "0e003b1439322bfe4178a7de0d18b6989d0f2a33f0b30b9734368466bf30f261",
+   "models": [
+    {
+     "name": "prescottEtAl2008/2d-ML.ode",
+     "run_in": "prescottEtAl2008"
+    },
+    {
+     "name": "prescottEtAl2008/3d-ML.ode",
+     "run_in": "prescottEtAl2008"
+    }
+   ],
+   "files": [
+    {
+     "name": "prescottEtAl2008/2d-ML.ode",
+     "size": 3111,
+     "sha256": "931ecf2e2033a04e1895fdc0b96ecab34c8d098aa5283d1b2f2189420c38ea87",
+     "url": "https://modeldb.science/getModelFile?model=116123&file=prescottEtAl2008/2d-ML.ode"
+    },
+    {
+     "name": "prescottEtAl2008/3d-ML.ode",
+     "size": 3086,
+     "sha256": "db77e62ed701baeb7e50e69ba975314c283d78cebc4a973a6b7243f1c38410db",
+     "url": "https://modeldb.science/getModelFile?model=116123&file=prescottEtAl2008/3d-ML.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 116386,
+   "title": "Pyramidal neurons switch from integrators to resonators (Prescott et al. 2008)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2013-06-05T11:40:24",
+   "url": "https://modeldb.science/116386",
+   "download": "https://modeldb.science/download/116386",
+   "zip_sha256": "1c1b6f2ba7a759b31091193e7e9d6d008d6d6c3a2b618bc3e679722413b473ea",
+   "models": [
+    {
+     "name": "prescottEtAl2008a/ML(noNainactivation).ode",
+     "run_in": "prescottEtAl2008a"
+    },
+    {
+     "name": "prescottEtAl2008a/ML(withNainactivation).ode",
+     "run_in": "prescottEtAl2008a"
+    }
+   ],
+   "files": [
+    {
+     "name": "prescottEtAl2008a/ML(noNainactivation).ode",
+     "size": 4409,
+     "sha256": "b36899b055dce8f8571e08c57e65434281463d979ee461f7cc2030abc7f4278d",
+     "url": "https://modeldb.science/getModelFile?model=116386&file=prescottEtAl2008a/ML%28noNainactivation%29.ode"
+    },
+    {
+     "name": "prescottEtAl2008a/ML(withNainactivation).ode",
+     "size": 4443,
+     "sha256": "9666d755bd061291e710f25a1537cc8b01ca4ea5e4dfaa4236e073c18c087bc1",
+     "url": "https://modeldb.science/getModelFile?model=116386&file=prescottEtAl2008a/ML%28withNainactivation%29.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 116867,
+   "title": "High frequency stimulation of the Subthalamic Nucleus (Rubin and Terman 2004)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2009-01-20T15:26:00",
+   "url": "https://modeldb.science/116867",
+   "download": "https://modeldb.science/download/116867",
+   "zip_sha256": "906491c4a1390f2b61d946d2f1018b1f50ad772b3ad083aba6232b87f0f54e5d",
+   "models": [
+    {
+     "name": "rubin_terman2004/rubin_terman_dbs.ode",
+     "run_in": "rubin_terman2004"
+    },
+    {
+     "name": "rubin_terman2004/rubin_terman_pd.ode",
+     "run_in": "rubin_terman2004"
+    }
+   ],
+   "files": [
+    {
+     "name": "rubin_terman2004/rubin_terman_dbs.ode",
+     "size": 9792,
+     "sha256": "b3f46dd3d627633ae47712647b663f858168d3df8a2971414d0a1a6fd639d4f1",
+     "url": "https://modeldb.science/getModelFile?model=116867&file=rubin_terman2004/rubin_terman_dbs.ode"
+    },
+    {
+     "name": "rubin_terman2004/rubin_terman_pd.ode",
+     "size": 9340,
+     "sha256": "cf58f334165f64716d15771ecf44d4adbd223817678aec24a3474cd0d1aee023",
+     "url": "https://modeldb.science/getModelFile?model=116867&file=rubin_terman2004/rubin_terman_pd.ode"
+    }
+   ],
+   "other_files": 5
+  },
+  {
+   "id": 117330,
+   "title": "Hodgkin-Huxley simplifed 2D and 3D models (Lundstrom et al. 2009)",
+   "simulators": [
+    "C or C++ program",
+    "XPPAUT"
+   ],
+   "ver_date": "2012-01-18T16:38:33",
+   "url": "https://modeldb.science/117330",
+   "download": "https://modeldb.science/download/117330",
+   "zip_sha256": "fba5cbc44f66168f16559253aaa074c10d7b60db9954cae0366ee1ccc96c6ec5",
+   "models": [
+    {
+     "name": "LundstromEtAl2009/hh2TypeAnoiseTau.ode",
+     "run_in": "LundstromEtAl2009"
+    }
+   ],
+   "files": [
+    {
+     "name": "LundstromEtAl2009/hh2TypeAnoiseTau.ode",
+     "size": 732,
+     "sha256": "8710ebd007f4662631124dcdf912dc122107eea701f8021542bed361bae7b852",
+     "url": "https://modeldb.science/getModelFile?model=117330&file=LundstromEtAl2009/hh2TypeAnoiseTau.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 118014,
+   "title": "Roles of I(A) and morphology in AP prop. in CA1 pyramidal cell dendrites (Acker and White 2007)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2009-03-10T15:36:20",
+   "url": "https://modeldb.science/118014",
+   "download": "https://modeldb.science/download/118014",
+   "zip_sha256": "92caf2b88b979b3425b5ed099fd1eb8dd5116021dc09c14a23818928a4ffbe65",
+   "models": [
+    {
+     "name": "acker_white/CA1dendwave.ode",
+     "run_in": "acker_white"
+    }
+   ],
+   "files": [
+    {
+     "name": "acker_white/CA1dendwave.ode",
+     "size": 3198,
+     "sha256": "d44025970a67471f0606af815c2a29e7eec06233c84085a8cc0b44b6a17b7fcf",
+     "url": "https://modeldb.science/getModelFile?model=118014&file=acker_white/CA1dendwave.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 118020,
+   "title": "Reduction of nonlinear ODE systems possessing multiple scales (Clewley et al. 2005)",
+   "simulators": [
+    "MATLAB (web link to model)",
+    "XPP (web link to model)"
+   ],
+   "ver_date": "2017-02-23T11:04:08.17",
+   "url": "https://modeldb.science/118020",
+   "download": "https://modeldb.science/download/118020",
+   "zip_sha256": "381f4f30267c399ad102468f1926d9ee23a64e49445ecbba870f94db7373e812",
+   "models": [],
+   "files": [],
+   "other_files": 2
+  },
+  {
+   "id": 120243,
+   "title": "Contribution of ATP-sensitive potassium channels in the neuronal network (Huang et al. 2009)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2009-05-11T13:38:41",
+   "url": "https://modeldb.science/120243",
+   "download": "https://modeldb.science/download/120243",
+   "zip_sha256": "6b2b2b4db0509f16df3de3b26ceac56bd7ccbf763f48be7c3a9b209feb905c49",
+   "models": [
+    {
+     "name": "Network-Katp/hh200x50_Katp.ode",
+     "run_in": "Network-Katp"
+    }
+   ],
+   "files": [
+    {
+     "name": "Network-Katp/hh200x50_Katp.ode",
+     "size": 2721,
+     "sha256": "a7e7cb49dcd1fdde9f4a41d4becc161a299e68ba405fff0f42dfb36fa3439806",
+     "url": "https://modeldb.science/getModelFile?model=120243&file=Network-Katp/hh200x50_Katp.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 120246,
+   "title": "Action potential of adult rat ventricle (Wang et al. 2008)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2009-05-12T10:51:34",
+   "url": "https://modeldb.science/120246",
+   "download": "https://modeldb.science/download/120246",
+   "zip_sha256": "de392f4038e1508a9c680335827a7094c63d7299f04ce53ddf0d7794d7f03ef2",
+   "models": [
+    {
+     "name": "RatAP/RatAPtest01.ode",
+     "run_in": "RatAP"
+    }
+   ],
+   "files": [
+    {
+     "name": "RatAP/RatAPtest01.ode",
+     "size": 11313,
+     "sha256": "6a84cdb6e48da14fb3a8c726892b315f4e9f46999b9bb5d6719d188a13738ffe",
+     "url": "https://modeldb.science/getModelFile?model=120246&file=RatAP/RatAPtest01.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 120320,
+   "title": "A nicotinic acetylcholine receptor kinetic model (Edelstein et al. 1996)",
+   "simulators": [
+    "Virtual Cell (web link to model)",
+    "XML (web link to model)",
+    "XPP (web link to model)",
+    "Scilab (web link to model)",
+    "CellML (web link to model)",
+    "BioPAX (web link to model)",
+    "SBML (web link to model)"
+   ],
+   "ver_date": "2010-02-03T10:26:32",
+   "url": "https://modeldb.science/120320",
+   "download": "https://modeldb.science/download/120320",
+   "zip_sha256": "41239d22ba6c3e52990ae67cfda5b3a4e7ac2c27110ad3d8011de9cfb780db4b",
+   "models": [],
+   "files": [],
+   "other_files": 3
+  },
+  {
+   "id": 125154,
+   "title": "Simulation studies on mechanisms of levetiracetam-mediated inhibition of IK(DR) (Huang et al. 2009)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2009-11-27T14:00:29",
+   "url": "https://modeldb.science/125154",
+   "download": "https://modeldb.science/download/125154",
+   "zip_sha256": "dd4fa64f65dbcaca17fa9cd74175eba7bb1381d943805a1ce39e058ba1655178",
+   "models": [
+    {
+     "name": "LEV-study/hh200x50-LEV01.ode",
+     "run_in": "LEV-study"
+    }
+   ],
+   "files": [
+    {
+     "name": "LEV-study/hh200x50-LEV01.ode",
+     "size": 2889,
+     "sha256": "dfc9053e9eda5452edbb42b29c74c4be3f19de16671e1d1bd94536de576b7875",
+     "url": "https://modeldb.science/getModelFile?model=125154&file=LEV-study/hh200x50-LEV01.ode"
+    }
+   ],
+   "other_files": 4
+  },
+  {
+   "id": 125529,
+   "title": "Respiratory central pattern generator network in mammalian brainstem (Rubin et al. 2009)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2010-01-07T14:49:01",
+   "url": "https://modeldb.science/125529",
+   "download": "https://modeldb.science/download/125529",
+   "zip_sha256": "9dcf23db5c064f5ce37f633007bbfa9b3b26a64b179c4ad5aab8e2ad24e8aa21",
+   "models": [
+    {
+     "name": "RubinEtAlJNeuro2009/rubinetal_resp_cpg.ode",
+     "run_in": "RubinEtAlJNeuro2009"
+    }
+   ],
+   "files": [
+    {
+     "name": "RubinEtAlJNeuro2009/rubinetal_resp_cpg.ode",
+     "size": 2283,
+     "sha256": "ad0aff50f72b8ff0826d7f78a408ab521d2d1b9dcb4ae367e303958fd457534f",
+     "url": "https://modeldb.science/getModelFile?model=125529&file=RubinEtAlJNeuro2009/rubinetal_resp_cpg.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 125649,
+   "title": "Ca2+-activated I_CAN and synaptic depression promotes network-dependent oscil. (Rubin et al. 2009)",
+   "simulators": [
+    "C or C++ program (web link to model)",
+    "XPP (web link to model)",
+    "NeuronetExperimenter (web link to model)"
+   ],
+   "ver_date": "2017-09-13T17:34:14.057",
+   "url": "https://modeldb.science/125649",
+   "download": "https://modeldb.science/download/125649",
+   "zip_sha256": "82dfab2ef9a9476dd9afe6e27f17433626ad9f00f16aa2d1ac8a846052b9753f",
+   "models": [],
+   "files": [],
+   "other_files": 1
+  },
+  {
+   "id": 125683,
+   "title": "Deterministic chaos in a mathematical model of a snail neuron (Komendantov and Kononenko 1996)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2019-02-26T10:19:05.737",
+   "url": "https://modeldb.science/125683",
+   "download": "https://modeldb.science/download/125683",
+   "zip_sha256": "a7202b6aacdb2c39325e773f02666fc45f46b233f956fd3d501a0e340a6e6e7c",
+   "models": [
+    {
+     "name": "KomendantovEtAl1996/jtb-kk.ode",
+     "run_in": "KomendantovEtAl1996"
+    }
+   ],
+   "files": [
+    {
+     "name": "KomendantovEtAl1996/jtb-kk.ode",
+     "size": 2509,
+     "sha256": "9db076710909d7deba094dfa706cf3caaa36990330592e750355df2994b43723",
+     "url": "https://modeldb.science/getModelFile?model=125683&file=KomendantovEtAl1996/jtb-kk.ode"
+    }
+   ],
+   "other_files": 4
+  },
+  {
+   "id": 125733,
+   "title": "Hippocampus CA1: Temporal sensitivity of signaling pathways underlying LTP (Kim et al. 2010)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2010-02-26T10:48:08",
+   "url": "https://modeldb.science/125733",
+   "download": "https://modeldb.science/download/125733",
+   "zip_sha256": "5b1deffee7a1f2f2bf606423ba4ae69f3f072ceed8c4f7c09723d839f5407fbc",
+   "models": [
+    {
+     "name": "Blackwell/Manuscript_Ref_addCaMalt.ode",
+     "run_in": "Blackwell"
+    }
+   ],
+   "files": [
+    {
+     "name": "Blackwell/Manuscript_Ref_addCaMalt.ode",
+     "size": 12092,
+     "sha256": "dde24d1fce89524785bc97d5b314850ef88ed31d0e351af8399d0f15f7af388a",
+     "url": "https://modeldb.science/getModelFile?model=125733&file=Blackwell/Manuscript_Ref_addCaMalt.ode"
+    }
+   ],
+   "other_files": 5
+  },
+  {
+   "id": 127022,
+   "title": "Control of vibrissa motoneuron firing (Harish and Golomb 2010)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2010-05-13T07:14:35",
+   "url": "https://modeldb.science/127022",
+   "download": "https://modeldb.science/download/127022",
+   "zip_sha256": "dcde308097b503364605d0181cd43781a474fb1156b0cc19477b939e00bf2b0a",
+   "models": [
+    {
+     "name": "vmn/vMN_fig2A.ode",
+     "run_in": "vmn"
+    },
+    {
+     "name": "vmn/vMN_ref_parameter_set.ode",
+     "run_in": "vmn"
+    }
+   ],
+   "files": [
+    {
+     "name": "vmn/vMN_fig2A.ode",
+     "size": 1616,
+     "sha256": "6b19733543747b7f2cfa597117dbd34716b884b3c2568285dcddd1d8e7d40ffa",
+     "url": "https://modeldb.science/getModelFile?model=127022&file=vmn/vMN_fig2A.ode"
+    },
+    {
+     "name": "vmn/vMN_ref_parameter_set.ode",
+     "size": 1757,
+     "sha256": "ebbc2068bce7287e7dbe7c155c988b99eb9fdd2b7bbf8b5f6cabbaab9cb3c558",
+     "url": "https://modeldb.science/getModelFile?model=127022&file=vmn/vMN_ref_parameter_set.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 127355,
+   "title": "Prediction for the presence of voltage-gated Ca2+ channels in myelinated central axons (Brown 2003)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2010-06-18T11:19:14",
+   "url": "https://modeldb.science/127355",
+   "download": "https://modeldb.science/download/127355",
+   "zip_sha256": "ea188de2d4ec5da26c5b36d85d881255423dbd4e82c9cf5aac58e57392424bd3",
+   "models": [
+    {
+     "name": "AP-Sim-Ca/AP-sim-Ca.ode",
+     "run_in": "AP-Sim-Ca"
+    }
+   ],
+   "files": [
+    {
+     "name": "AP-Sim-Ca/AP-sim-Ca.ode",
+     "size": 1275,
+     "sha256": "15d56587114da6644769cec7a9471234e74a7df895746323e2e1af85f358dc37",
+     "url": "https://modeldb.science/getModelFile?model=127355&file=AP-Sim-Ca/AP-sim-Ca.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 136097,
+   "title": "Multiscale model of olfactory receptor neuron in mouse (Dougherty 2009)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2018-10-17T16:07:43.897",
+   "url": "https://modeldb.science/136097",
+   "download": "https://modeldb.science/download/136097",
+   "zip_sha256": "4794e6378b3cee3005d3b859328eceb1caff222d1d338d6e4eb8150d066de1d8",
+   "models": [
+    {
+     "name": "mouse_ORN_multiscale/mouse_ORN_cilia_ModelDB.ode",
+     "run_in": "mouse_ORN_multiscale"
+    },
+    {
+     "name": "mouse_ORN_multiscale/mouse_ORN_cilia_osc_ModelDB.ode",
+     "run_in": "mouse_ORN_multiscale"
+    },
+    {
+     "name": "mouse_ORN_multiscale/mouse_ORN_whole_cell_ModelDB.ode",
+     "run_in": "mouse_ORN_multiscale"
+    },
+    {
+     "name": "mouse_ORN_multiscale/mouse_ORN_whole_cell_osc_ModelDB.ode",
+     "run_in": "mouse_ORN_multiscale"
+    }
+   ],
+   "files": [
+    {
+     "name": "mouse_ORN_multiscale/mouse_ORN_cilia_ModelDB.ode",
+     "size": 5674,
+     "sha256": "2da2b04aff1cfe5225ae0384ecf6cbee2155a3edcd0e9bf03e190f3e8608e983",
+     "url": "https://modeldb.science/getModelFile?model=136097&file=mouse_ORN_multiscale/mouse_ORN_cilia_ModelDB.ode"
+    },
+    {
+     "name": "mouse_ORN_multiscale/mouse_ORN_cilia_osc_ModelDB.ode",
+     "size": 5232,
+     "sha256": "0f25619ac22d14c89a3983ca029938e6de0393c3ae30f0617ca351d87d24f1f1",
+     "url": "https://modeldb.science/getModelFile?model=136097&file=mouse_ORN_multiscale/mouse_ORN_cilia_osc_ModelDB.ode"
+    },
+    {
+     "name": "mouse_ORN_multiscale/mouse_ORN_whole_cell_ModelDB.ode",
+     "size": 7525,
+     "sha256": "a4fe0914739b707fef9172d70e66a88cc5337d450f2e3f9ce1f472d38e36b471",
+     "url": "https://modeldb.science/getModelFile?model=136097&file=mouse_ORN_multiscale/mouse_ORN_whole_cell_ModelDB.ode"
+    },
+    {
+     "name": "mouse_ORN_multiscale/mouse_ORN_whole_cell_osc_ModelDB.ode",
+     "size": 7320,
+     "sha256": "00b77c9e97dcd4fb8a5ad8bef5d20c20ae92c262e737e7c8080eb6c6d461753a",
+     "url": "https://modeldb.science/getModelFile?model=136097&file=mouse_ORN_multiscale/mouse_ORN_whole_cell_osc_ModelDB.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 136773,
+   "title": "Single neuron with dynamic ion concentrations (Cressman et al. 2009)",
+   "simulators": [
+    "C or C++ program",
+    "XPPAUT"
+   ],
+   "ver_date": "2011-01-11T16:13:23",
+   "url": "https://modeldb.science/136773",
+   "download": "https://modeldb.science/download/136773",
+   "zip_sha256": "ef3682871f2f8fdfacc3ea3689b7a5a6594614937864e0b49fd4d03dffad46d9",
+   "models": [
+    {
+     "name": "CressmanEtAl2009/Cressman_et_al_JCNS_1_reducedmodel.ode",
+     "run_in": "CressmanEtAl2009"
+    }
+   ],
+   "files": [
+    {
+     "name": "CressmanEtAl2009/Cressman_et_al_JCNS_1_reducedmodel.ode",
+     "size": 2739,
+     "sha256": "02ec0894caaf105e1a3a163ece3609496bdf5c942a5fe1277ae335725d599b6e",
+     "url": "https://modeldb.science/getModelFile?model=136773&file=CressmanEtAl2009/Cressman_et_al_JCNS_1_reducedmodel.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 137263,
+   "title": "Effect of trp-like current on APs during exposure to sinusoidal voltage (Chen et al. 2010)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2011-02-08T11:51:23",
+   "url": "https://modeldb.science/137263",
+   "download": "https://modeldb.science/download/137263",
+   "zip_sha256": "ae5bf35cdf8913b48068bec9091ebbc99c3ae1fa3bff2ea7c1cb82a5e13672ed",
+   "models": [
+    {
+     "name": "V_trp/HH-Vext.ode",
+     "run_in": "V_trp"
+    }
+   ],
+   "files": [
+    {
+     "name": "V_trp/HH-Vext.ode",
+     "size": 1146,
+     "sha256": "17c19b4ad216c715371b579724336b51780e715a9353f4e3063e3388ff25d181",
+     "url": "https://modeldb.science/getModelFile?model=137263&file=V_trp/HH-Vext.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 140788,
+   "title": "Motoneuron model of self-sustained firing after spinal cord injury (Kurian et al. 2011)",
+   "simulators": [
+    "XPPAUT",
+    "MATLAB"
+   ],
+   "ver_date": "2011-08-08T17:04:37",
+   "url": "https://modeldb.science/140788",
+   "download": "https://modeldb.science/download/140788",
+   "zip_sha256": "5eeff72d43c92789bd561188d4ef80746242ad9eb115f706d1adabfb2b8d8c67",
+   "models": [
+    {
+     "name": "kurian_crook_jung_2011/twocompart_mnmodel.ode",
+     "run_in": "kurian_crook_jung_2011"
+    }
+   ],
+   "files": [
+    {
+     "name": "kurian_crook_jung_2011/twocompart_mnmodel.ode",
+     "size": 4402,
+     "sha256": "0ee8b845d41e6ad51a69790f6963a5ca4d61163e77671112a82b6ba287fbac00",
+     "url": "https://modeldb.science/getModelFile?model=140788&file=kurian_crook_jung_2011/twocompart_mnmodel.ode"
+    }
+   ],
+   "other_files": 5
+  },
+  {
+   "id": 141835,
+   "title": "Mathematical Foundations of Neuroscience (Ermentrout and Terman 2010)",
+   "simulators": [
+    "XPP (web link to model)"
+   ],
+   "ver_date": "2016-06-16T13:29:19.673",
+   "url": "https://modeldb.science/141835",
+   "download": "https://modeldb.science/download/141835",
+   "zip_sha256": "89f2bbd69035ba7e7971dba4ab165626c7cb7a506a7acff1fa2c9ed95de84026",
+   "models": [],
+   "files": [],
+   "other_files": 2
+  },
+  {
+   "id": 142630,
+   "title": "Ion concentration dynamics as a mechanism for neuronal bursting (Barreto & Cressman 2011)",
+   "simulators": [
+    "C or C++ program",
+    "XPPAUT"
+   ],
+   "ver_date": "2011-12-21T16:46:12",
+   "url": "https://modeldb.science/142630",
+   "download": "https://modeldb.science/download/142630",
+   "zip_sha256": "79c8280696856d0e158f9aef989ffb59804820052b00845508e71f83aa3a4d11",
+   "models": [
+    {
+     "name": "Barreto_Cressman_JBiolPhys_2011/One_full_cell_fixed_Ko_and_Nai.ode",
+     "run_in": "Barreto_Cressman_JBiolPhys_2011"
+    },
+    {
+     "name": "Barreto_Cressman_JBiolPhys_2011/One_full_cell_with_dyn_ion_conc.ode",
+     "run_in": "Barreto_Cressman_JBiolPhys_2011"
+    }
+   ],
+   "files": [
+    {
+     "name": "Barreto_Cressman_JBiolPhys_2011/One_full_cell_fixed_Ko_and_Nai.ode",
+     "size": 1352,
+     "sha256": "b630bc27246b7a0d0b6f6872db6deb21ddba89c830520734699cf88f3f670aaf",
+     "url": "https://modeldb.science/getModelFile?model=142630&file=Barreto_Cressman_JBiolPhys_2011/One_full_cell_fixed_Ko_and_Nai.ode"
+    },
+    {
+     "name": "Barreto_Cressman_JBiolPhys_2011/One_full_cell_with_dyn_ion_conc.ode",
+     "size": 2171,
+     "sha256": "befacef1e2fed6529694f628f3c0dd5dcde38dd2f0fec87473afc008d924563b",
+     "url": "https://modeldb.science/getModelFile?model=142630&file=Barreto_Cressman_JBiolPhys_2011/One_full_cell_with_dyn_ion_conc.ode"
+    }
+   ],
+   "other_files": 6
+  },
+  {
+   "id": 142993,
+   "title": "ClC-2 channels regulate neuronal excitability, not intracellular Cl- levels (Ratte & Prescott 2011)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2011-11-22T18:45:23",
+   "url": "https://modeldb.science/142993",
+   "download": "https://modeldb.science/download/142993",
+   "zip_sha256": "1495854cae4d16a4ec799dddb02e5bd790a5bbdf8c391b76b3e88d64fb3166d8",
+   "models": [
+    {
+     "name": "RattePrescott2011/ClC2-IClamp-Prescott.ode",
+     "run_in": "RattePrescott2011"
+    },
+    {
+     "name": "RattePrescott2011/ClC2-VClamp-Prescott.ode",
+     "run_in": "RattePrescott2011"
+    }
+   ],
+   "files": [
+    {
+     "name": "RattePrescott2011/ClC2-IClamp-Prescott.ode",
+     "size": 5743,
+     "sha256": "158cf1f1ef116e0ce3bb1631ce0b13496ae4abd92dc972f26b44bd6781cfd114",
+     "url": "https://modeldb.science/getModelFile?model=142993&file=RattePrescott2011/ClC2-IClamp-Prescott.ode"
+    },
+    {
+     "name": "RattePrescott2011/ClC2-VClamp-Prescott.ode",
+     "size": 5047,
+     "sha256": "793102b710caddaf6e4fece51616384fe9b02cb6bfbf1bbd2e3b8e0f801d685f",
+     "url": "https://modeldb.science/getModelFile?model=142993&file=RattePrescott2011/ClC2-VClamp-Prescott.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 143072,
+   "title": "Explaining pathological changes in axonal excitability by dynamical analysis (Coggan et al. 2011)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2019-05-07T16:11:29.287",
+   "url": "https://modeldb.science/143072",
+   "download": "https://modeldb.science/download/143072",
+   "zip_sha256": "86b330c3f7527bb2d20893845ca7c04ca8f19d5b51b5d58336f41c2874fc056a",
+   "models": [
+    {
+     "name": "CogganEtAl2011/afterdischarge-Prescott.ode",
+     "run_in": "CogganEtAl2011"
+    }
+   ],
+   "files": [
+    {
+     "name": "CogganEtAl2011/afterdischarge-Prescott.ode",
+     "size": 2485,
+     "sha256": "7232d23f31e1d4d04ea67055b5897d66bdc9b5b5651a252126544b9b9a84e1a9",
+     "url": "https://modeldb.science/getModelFile?model=143072&file=CogganEtAl2011/afterdischarge-Prescott.ode"
+    }
+   ],
+   "other_files": 11
+  },
+  {
+   "id": 143253,
+   "title": "Effects of eugenol on the firing of action potentials in NG108-15 neurons (Huang et al. 2011)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2012-01-03T16:58:23",
+   "url": "https://modeldb.science/143253",
+   "download": "https://modeldb.science/download/143253",
+   "zip_sha256": "c0c12e59b7f3fa8338b9df7aa868547301aba716fa1deb3e9721b0b55216c773",
+   "models": [
+    {
+     "name": "EUG_sim/Neuron_EUG01.ode",
+     "run_in": "EUG_sim"
+    }
+   ],
+   "files": [
+    {
+     "name": "EUG_sim/Neuron_EUG01.ode",
+     "size": 2471,
+     "sha256": "0309c0e9ee0143df3dab1ffd24e966583694dab99966b514e87456d0ad90a930",
+     "url": "https://modeldb.science/getModelFile?model=143253&file=EUG_sim/Neuron_EUG01.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 145800,
+   "title": "Circadian clock model based on protein sequestration (simple version) (Kim & Forger 2012)",
+   "simulators": [
+    "C or C++ program",
+    "XPPAUT",
+    "MATLAB",
+    "Mathematica",
+    "SBML"
+   ],
+   "ver_date": "2016-04-05T16:59:25.293",
+   "url": "https://modeldb.science/145800",
+   "download": "https://modeldb.science/download/145800",
+   "zip_sha256": "4b5dce9808bc1050f1c41604f7c8412a02f176ccbccd6905ff894545fefe7c5d",
+   "models": [
+    {
+     "name": "Simple_model/NNF.ode",
+     "run_in": "Simple_model"
+    },
+    {
+     "name": "Simple_model/PNF.ode",
+     "run_in": "Simple_model"
+    },
+    {
+     "name": "Simple_model/SNF.ode",
+     "run_in": "Simple_model"
+    }
+   ],
+   "files": [
+    {
+     "name": "Simple_model/NNF.ode",
+     "size": 1448,
+     "sha256": "a2782051ffa868fb272119546b8f7990d0a517acc58a4739ed0328bcb222d64c",
+     "url": "https://modeldb.science/getModelFile?model=145800&file=Simple_model/NNF.ode"
+    },
+    {
+     "name": "Simple_model/PNF.ode",
+     "size": 1449,
+     "sha256": "aa99f4047c8fae8138a34115c1883b4e83f5012dd5e2125dd39137af4f734858",
+     "url": "https://modeldb.science/getModelFile?model=145800&file=Simple_model/PNF.ode"
+    },
+    {
+     "name": "Simple_model/SNF.ode",
+     "size": 1329,
+     "sha256": "0779500c1fe5e0aa7154cb563c4025283e75eb0708982d103796f030f7a3512e",
+     "url": "https://modeldb.science/getModelFile?model=145800&file=Simple_model/SNF.ode"
+    }
+   ],
+   "other_files": 11
+  },
+  {
+   "id": 145801,
+   "title": "Circadian clock model in mammals (detailed version)  (Kim & Forger 2012)",
+   "simulators": [
+    "XPPAUT",
+    "MATLAB",
+    "Mathematica"
+   ],
+   "ver_date": "2016-05-26T11:31:00.403",
+   "url": "https://modeldb.science/145801",
+   "download": "https://modeldb.science/download/145801",
+   "zip_sha256": "80a5fa689799598873144eb905b201d3f44d427e7f815d0ad1a4686b1629ed27",
+   "models": [
+    {
+     "name": "Detailed_model/DetailedModel.ode",
+     "run_in": "Detailed_model"
+    }
+   ],
+   "files": [
+    {
+     "name": "Detailed_model/DetailedModel.ode",
+     "size": 33091,
+     "sha256": "2729e4c2dfb67976ffb254047eecf9dcf281ecff9b8b6caa3d1d5fa384ed30d5",
+     "url": "https://modeldb.science/getModelFile?model=145801&file=Detailed_model/DetailedModel.ode"
+    }
+   ],
+   "other_files": 4
+  },
+  {
+   "id": 146734,
+   "title": "Modeling the effects of dopamine on network synchronization (Komek et al. 2012)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2012-11-21T10:45:17",
+   "url": "https://modeldb.science/146734",
+   "download": "https://modeldb.science/download/146734",
+   "zip_sha256": "22cbf2efc9dbd5bdcd2d09a8f4a57a0728ee3a98fd1d52b9d45cfc3efea5424d",
+   "models": [
+    {
+     "name": "Komek_etal_EJN/BatchThetaTonic.ode",
+     "run_in": "Komek_etal_EJN"
+    },
+    {
+     "name": "Komek_etal_EJN/ThetaPeriodic.ode",
+     "run_in": "Komek_etal_EJN"
+    },
+    {
+     "name": "Komek_etal_EJN/ThetaTonic.ode",
+     "run_in": "Komek_etal_EJN"
+    },
+    {
+     "name": "Komek_etal_EJN/WBperiodic.ode",
+     "run_in": "Komek_etal_EJN"
+    },
+    {
+     "name": "Komek_etal_EJN/WBtonic.ode",
+     "run_in": "Komek_etal_EJN"
+    }
+   ],
+   "files": [
+    {
+     "name": "Komek_etal_EJN/BatchThetaTonic.ode",
+     "size": 1513,
+     "sha256": "75df003824c283902c331bbe293714b66423bf442c5dc4d83cec125ec087c4cb",
+     "url": "https://modeldb.science/getModelFile?model=146734&file=Komek_etal_EJN/BatchThetaTonic.ode"
+    },
+    {
+     "name": "Komek_etal_EJN/ThetaPeriodic.ode",
+     "size": 1206,
+     "sha256": "9df9e426caa83125f3c5a956f6355fb1b6bac8a3721a1daf8b12be7ae0aaae39",
+     "url": "https://modeldb.science/getModelFile?model=146734&file=Komek_etal_EJN/ThetaPeriodic.ode"
+    },
+    {
+     "name": "Komek_etal_EJN/ThetaTonic.ode",
+     "size": 919,
+     "sha256": "0b464da7eab8993a7fc3149083fe1326259789722562fc687a2e95f9945a6d26",
+     "url": "https://modeldb.science/getModelFile?model=146734&file=Komek_etal_EJN/ThetaTonic.ode"
+    },
+    {
+     "name": "Komek_etal_EJN/WBperiodic.ode",
+     "size": 2792,
+     "sha256": "8afc408862a096c840e72625c9d086f2a957a54a23addca960e62a8e29073049",
+     "url": "https://modeldb.science/getModelFile?model=146734&file=Komek_etal_EJN/WBperiodic.ode"
+    },
+    {
+     "name": "Komek_etal_EJN/WBtonic.ode",
+     "size": 2730,
+     "sha256": "f8d7e65302ba3d30ba54a7c5e3d17f57f6f1dc6a0d73b42ba8df992312feaaa4",
+     "url": "https://modeldb.science/getModelFile?model=146734&file=Komek_etal_EJN/WBtonic.ode"
+    }
+   ],
+   "other_files": 5
+  },
+  {
+   "id": 147748,
+   "title": "Human sleep/wake cycle (Rempe et al. 2010)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2013-02-11T14:28:18",
+   "url": "https://modeldb.science/147748",
+   "download": "https://modeldb.science/download/147748",
+   "zip_sha256": "c82c06ca6ad85a316c01dcba0ae29352a154174a1a6bf8c8eb6cbff7d4febea9",
+   "models": [
+    {
+     "name": "flipflop/flipflop.ode",
+     "run_in": "flipflop"
+    }
+   ],
+   "files": [
+    {
+     "name": "flipflop/flipflop.ode",
+     "size": 3820,
+     "sha256": "03b3fbe5b70486c0384fc7d03582493485102d08a144fa1ce602889894babef0",
+     "url": "https://modeldb.science/getModelFile?model=147748&file=flipflop/flipflop.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 148637,
+   "title": "Failure of Deep Brain Stimulation in a basal ganglia neuronal network model (Dovzhenok et al. 2013)",
+   "simulators": [
+    "XPPAUT",
+    "MATLAB"
+   ],
+   "ver_date": "2013-03-29T14:47:49",
+   "url": "https://modeldb.science/148637",
+   "download": "https://modeldb.science/download/148637",
+   "zip_sha256": "e2936cd8d3ba17c08efd51151781cc3bfe2ac0edb80f90b61d55f8cabb52463e",
+   "models": [
+    {
+     "name": "DBS_Dovzhenoketal2013/tenStim1electr.ode",
+     "run_in": "DBS_Dovzhenoketal2013"
+    },
+    {
+     "name": "DBS_Dovzhenoketal2013/tenStim2electr_v1.ode",
+     "run_in": "DBS_Dovzhenoketal2013"
+    },
+    {
+     "name": "DBS_Dovzhenoketal2013/tenStim2electr_v2.ode",
+     "run_in": "DBS_Dovzhenoketal2013"
+    },
+    {
+     "name": "DBS_Dovzhenoketal2013/tenStim3electr_v1.ode",
+     "run_in": "DBS_Dovzhenoketal2013"
+    },
+    {
+     "name": "DBS_Dovzhenoketal2013/tenStim3electr_v2.ode",
+     "run_in": "DBS_Dovzhenoketal2013"
+    }
+   ],
+   "files": [
+    {
+     "name": "DBS_Dovzhenoketal2013/tenStim1electr.ode",
+     "size": 5815,
+     "sha256": "98aa6a054f8fa65039204af510f9e57d2c5a114dfdaf008c6d0d9b894a6162d4",
+     "url": "https://modeldb.science/getModelFile?model=148637&file=DBS_Dovzhenoketal2013/tenStim1electr.ode"
+    },
+    {
+     "name": "DBS_Dovzhenoketal2013/tenStim2electr_v1.ode",
+     "size": 6147,
+     "sha256": "ccae7fd7a557179a08d50a1f5312ee0d6d9150498cc917e546a27a3df88030cf",
+     "url": "https://modeldb.science/getModelFile?model=148637&file=DBS_Dovzhenoketal2013/tenStim2electr_v1.ode"
+    },
+    {
+     "name": "DBS_Dovzhenoketal2013/tenStim2electr_v2.ode",
+     "size": 6147,
+     "sha256": "b5edb9c89dc99942555ac3dcf4cbedf132103e1c9aa49865094afc41532c8916",
+     "url": "https://modeldb.science/getModelFile?model=148637&file=DBS_Dovzhenoketal2013/tenStim2electr_v2.ode"
+    },
+    {
+     "name": "DBS_Dovzhenoketal2013/tenStim3electr_v1.ode",
+     "size": 6444,
+     "sha256": "42cdfe75cefe18f8bd85eab4c35e1833c59355696dbebcdf58369b7389ab4a79",
+     "url": "https://modeldb.science/getModelFile?model=148637&file=DBS_Dovzhenoketal2013/tenStim3electr_v1.ode"
+    },
+    {
+     "name": "DBS_Dovzhenoketal2013/tenStim3electr_v2.ode",
+     "size": 6442,
+     "sha256": "c23a2ff4947319d9e46ca3fc7a4e78e1dd6113036f1c9908857e91a34aee921c",
+     "url": "https://modeldb.science/getModelFile?model=148637&file=DBS_Dovzhenoketal2013/tenStim3electr_v2.ode"
+    }
+   ],
+   "other_files": 10
+  },
+  {
+   "id": 149162,
+   "title": "Rescue of plasticity by a computationally predicted protocol (Liu et al. 2013)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2019-02-26T10:08:39.3",
+   "url": "https://modeldb.science/149162",
+   "download": "https://modeldb.science/download/149162",
+   "zip_sha256": "0cb5f40f2f460df52fa18eb31cf89d43fe938e47c6f25cea058f8683f0ce4de1",
+   "models": [
+    {
+     "name": "LiuEtAl2013/LiuEtAl2013.ode",
+     "run_in": "LiuEtAl2013"
+    }
+   ],
+   "files": [
+    {
+     "name": "LiuEtAl2013/LiuEtAl2013.ode",
+     "size": 4053,
+     "sha256": "700db33081181a0e98e8b21e0cca5b07056972372a58ef402eb3a4b10b4791c4",
+     "url": "https://modeldb.science/getModelFile?model=149162&file=LiuEtAl2013/LiuEtAl2013.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 150217,
+   "title": "Reliability of Morris-Lecar neurons with added T, h, and AHP currents (Zeldenrust et al. 2013)",
+   "simulators": [
+    "XPPAUT",
+    "MATLAB"
+   ],
+   "ver_date": "2013-06-05T10:58:58",
+   "url": "https://modeldb.science/150217",
+   "download": "https://modeldb.science/download/150217",
+   "zip_sha256": "36cc27a02a52d38001acbcf355558482ed4f182bc74f921a43cac299cc45b20a",
+   "models": [
+    {
+     "name": "xpp_code/prescott+T+adap/prescott_rubin_adap_noisestim.ode",
+     "run_in": "xpp_code"
+    },
+    {
+     "name": "xpp_code/prescott+T+h/prescott_rubin_h_noisestim.ode",
+     "run_in": "xpp_code"
+    },
+    {
+     "name": "xpp_code/prescott+T/prescott_rubin_noisestim.ode",
+     "run_in": "xpp_code"
+    },
+    {
+     "name": "xpp_code/prescott+Tvar/prescott_rubin_vart_noisestim.ode",
+     "run_in": "xpp_code"
+    },
+    {
+     "name": "xpp_code/prescott/prescott_noisestim.ode",
+     "run_in": "xpp_code"
+    }
+   ],
+   "files": [
+    {
+     "name": "xpp_code/prescott+T+adap/prescott_rubin_adap_noisestim.ode",
+     "size": 2435,
+     "sha256": "2c2ec2a2935b957a45d1cd9e3d3a979d8a53929bfbe0b63728c403cb5b77d893",
+     "url": "https://modeldb.science/getModelFile?model=150217&file=xpp_code/prescott%2BT%2Badap/prescott_rubin_adap_noisestim.ode"
+    },
+    {
+     "name": "xpp_code/prescott+T+h/prescott_rubin_h_noisestim.ode",
+     "size": 2225,
+     "sha256": "e67e4d35ad9f5c5e4e809bbaee7f3c62abec1ca2ebfb642a1c365f8a243c4468",
+     "url": "https://modeldb.science/getModelFile?model=150217&file=xpp_code/prescott%2BT%2Bh/prescott_rubin_h_noisestim.ode"
+    },
+    {
+     "name": "xpp_code/prescott+T/prescott_rubin_noisestim.ode",
+     "size": 1922,
+     "sha256": "eff2a99c750abea153063ac9553016d4a0fa2e8b7048c19031ff325aafa99128",
+     "url": "https://modeldb.science/getModelFile?model=150217&file=xpp_code/prescott%2BT/prescott_rubin_noisestim.ode"
+    },
+    {
+     "name": "xpp_code/prescott+Tvar/prescott_rubin_vart_noisestim.ode",
+     "size": 1966,
+     "sha256": "dbca3b95570751e7536d5874f5573070a85862a750f026ba200bde07c151556c",
+     "url": "https://modeldb.science/getModelFile?model=150217&file=xpp_code/prescott%2BTvar/prescott_rubin_vart_noisestim.ode"
+    },
+    {
+     "name": "xpp_code/prescott/prescott_noisestim.ode",
+     "size": 1678,
+     "sha256": "2b11df39bfb35e2ec6e9496b9f41fe5820122024e531913c721820571bf12ad1",
+     "url": "https://modeldb.science/getModelFile?model=150217&file=xpp_code/prescott/prescott_noisestim.ode"
+    },
+    {
+     "name": "xpp_code/stim.tab",
+     "size": 54814643,
+     "sha256": "b2b98e73ba883b1c783b7c984b494d248b82afc271f0051781b61b981ab785fe",
+     "url": "https://modeldb.science/getModelFile?model=150217&file=xpp_code/stim.tab"
+    }
+   ],
+   "other_files": 6
+  },
+  {
+   "id": 151677,
+   "title": "Tapered whiskers are required for active tactile sensation (Hires et al. 2013)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2013-11-28T10:59:06",
+   "url": "https://modeldb.science/151677",
+   "download": "https://modeldb.science/download/151677",
+   "zip_sha256": "ec8c6f62df2fbd58a74d09cb6dfcc9d9e3b5c1560433d60218ae1730f5ea38f5",
+   "models": [
+    {
+     "name": "HiresEtAl2013/conical_whisker.ode",
+     "run_in": "HiresEtAl2013"
+    }
+   ],
+   "files": [
+    {
+     "name": "HiresEtAl2013/conical_whisker.ode",
+     "size": 2217,
+     "sha256": "7039d9f2ba0a79073284e775b78b664b9c0075110a21d2f2bf1c5f77e8762970",
+     "url": "https://modeldb.science/getModelFile?model=151677&file=HiresEtAl2013/conical_whisker.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 152028,
+   "title": "Drosophila 3rd instar larval aCC motoneuron (Gunay et al. 2015)",
+   "simulators": [
+    "NEURON",
+    "XPPAUT",
+    "MATLAB"
+   ],
+   "ver_date": "2019-02-26T10:10:18.14",
+   "url": "https://modeldb.science/152028",
+   "download": "https://modeldb.science/download/152028",
+   "zip_sha256": "2021ba8ac03d640eccb483e2146a5f2f1e8d6516b5b2f991718b4192a89a1804",
+   "models": [
+    {
+     "name": "Gunay_etal_2014/xpp-models/ball-and-stick.ode",
+     "run_in": "Gunay_etal_2014/xpp-models"
+    },
+    {
+     "name": "Gunay_etal_2014/xpp-models/isopotential.ode",
+     "run_in": "Gunay_etal_2014/xpp-models"
+    }
+   ],
+   "files": [
+    {
+     "name": "Gunay_etal_2014/xpp-models/ball-and-stick.ode",
+     "size": 5345,
+     "sha256": "8b1252fe68a1867288b87b0b65484c8e3a39b5f2aea3572e1e26c6223e1592dc",
+     "url": "https://modeldb.science/getModelFile?model=152028&file=Gunay_etal_2014/xpp-models/ball-and-stick.ode"
+    },
+    {
+     "name": "Gunay_etal_2014/xpp-models/isopotential.ode",
+     "size": 2258,
+     "sha256": "1a702eb7a67c31866f176f3b337df910d961c2f1d3c0cf21c6fb95504384d059",
+     "url": "https://modeldb.science/getModelFile?model=152028&file=Gunay_etal_2014/xpp-models/isopotential.ode"
+    }
+   ],
+   "other_files": 245
+  },
+  {
+   "id": 152113,
+   "title": "Basal ganglia-corticothalamic (BGCT) network (Chen et al., 2014)",
+   "simulators": [
+    "XPPAUT",
+    "MATLAB"
+   ],
+   "ver_date": "2015-09-15T17:18:24.443",
+   "url": "https://modeldb.science/152113",
+   "download": "https://modeldb.science/download/152113",
+   "zip_sha256": "d0380fd8a25b95734e664fc4533b3661ab11945cec4c2d54056b70ee8f3092b0",
+   "models": [
+    {
+     "name": "ChenEtAl2014/BGCT_Basic.ode",
+     "run_in": "ChenEtAl2014"
+    }
+   ],
+   "files": [
+    {
+     "name": "ChenEtAl2014/BGCT_Basic.ode",
+     "size": 4258,
+     "sha256": "98aa16497bc9095a35d836e5e702502767f6126d294ffbd10e507a8f150d6b44",
+     "url": "https://modeldb.science/getModelFile?model=152113&file=ChenEtAl2014/BGCT_Basic.ode"
+    }
+   ],
+   "other_files": 30
+  },
+  {
+   "id": 152292,
+   "title": "PreBotzinger Complex inspiratory neuron with NaP and CAN currents (Park and Rubin 2013)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2017-09-13T17:34:49.86",
+   "url": "https://modeldb.science/152292",
+   "download": "https://modeldb.science/download/152292",
+   "zip_sha256": "fd2243d2cc4ffa454a71d2374f708dc4ed1d75de22ec56f67610c64f98b2d399",
+   "models": [
+    {
+     "name": "ParkRubin2013/OneCellTwoOsc.ode",
+     "run_in": "ParkRubin2013"
+    }
+   ],
+   "files": [
+    {
+     "name": "ParkRubin2013/OneCellTwoOsc.ode",
+     "size": 1685,
+     "sha256": "e4fb8ba0efadb8e43cc275f0ea97cf9dd63a3f48bfcf748307d89878dd9d4811",
+     "url": "https://modeldb.science/getModelFile?model=152292&file=ParkRubin2013/OneCellTwoOsc.ode"
+    }
+   ],
+   "other_files": 8
+  },
+  {
+   "id": 152966,
+   "title": "Ventricular cell model (Luo Rudy dynamic model) (Luo Rudy 1994) used in (Wang et al 2006) (XPP)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2015-07-26T14:38:59.55",
+   "url": "https://modeldb.science/152966",
+   "download": "https://modeldb.science/download/152966",
+   "zip_sha256": "352109ed20b9c1dbbf08e9e9d45d9a2e0f180e7ce9d9aebeae1d2708e8dfd92e",
+   "models": [
+    {
+     "name": "LRdynamic/LRd01.ode",
+     "run_in": "LRdynamic"
+    }
+   ],
+   "files": [
+    {
+     "name": "LRdynamic/LRd01.ode",
+     "size": 9054,
+     "sha256": "a2e0324cb4b4c856906b78072486739a6432db2412e1c8e2472f80b982f959d0",
+     "url": "https://modeldb.science/getModelFile?model=152966&file=LRdynamic/LRd01.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 154769,
+   "title": "Mixed mode oscillations as a mechanism for pseudo-plateau bursting (Vo et al. 2010)",
+   "simulators": [
+    "XPP (web link to model)"
+   ],
+   "ver_date": "2014-06-06T17:43:56",
+   "url": "https://modeldb.science/154769",
+   "download": "https://modeldb.science/download/154769",
+   "zip_sha256": "6b077d0fa26793c9fe0edd697cdcbc7e23846bd4f50c042c407d7cc4e59a28c6",
+   "models": [
+    {
+     "name": "VoEtAl2010/JCNS_10.ode",
+     "run_in": "VoEtAl2010"
+    }
+   ],
+   "files": [
+    {
+     "name": "VoEtAl2010/JCNS_10.ode",
+     "size": 1430,
+     "sha256": "bbbb1fff662f49e931e41ab1d6324383daf409f7f28a2c2d1ada2e9d6a1b9242",
+     "url": "https://modeldb.science/getModelFile?model=154769&file=VoEtAl2010/JCNS_10.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 154871,
+   "title": "The relationship between two fast/slow analysis techniques for bursting oscill. (Teka et al. 2012)",
+   "simulators": [
+    "XPP (web link to model)"
+   ],
+   "ver_date": "2014-06-06T17:46:16",
+   "url": "https://modeldb.science/154871",
+   "download": "https://modeldb.science/download/154871",
+   "zip_sha256": "b40e94daf4759e7a07d50eacddf4d0388a1f799c7e22688ea8757ca4d5404d71",
+   "models": [
+    {
+     "name": "TekaEtAl2012/Chaos_12.ode",
+     "run_in": "TekaEtAl2012"
+    }
+   ],
+   "files": [
+    {
+     "name": "TekaEtAl2012/Chaos_12.ode",
+     "size": 1494,
+     "sha256": "b056505cd8a65c244bd8d258929439eb2e1fb05301a35edcf29ec3aea9787c28",
+     "url": "https://modeldb.science/getModelFile?model=154871&file=TekaEtAl2012/Chaos_12.ode"
+    }
+   ],
+   "other_files": 4
+  },
+  {
+   "id": 154955,
+   "title": "Understanding how fast activating K+ channels promote bursting in pituitary cells (Vo et al 2014)",
+   "simulators": [
+    "XPP (web link to model)"
+   ],
+   "ver_date": "2014-06-10T14:41:53",
+   "url": "https://modeldb.science/154955",
+   "download": "https://modeldb.science/download/154955",
+   "zip_sha256": "f7bba740ff40e6aecce45eff7bf96b774ff4b681e1f03e1c9220537bc779aa13",
+   "models": [
+    {
+     "name": "VoEtAl2014/JCNS_14.ode",
+     "run_in": "VoEtAl2014"
+    }
+   ],
+   "files": [
+    {
+     "name": "VoEtAl2014/JCNS_14.ode",
+     "size": 1467,
+     "sha256": "643d3f083ff46287859190570a72672fb855b7598e07c81bfffeabe649c69381",
+     "url": "https://modeldb.science/getModelFile?model=154955&file=VoEtAl2014/JCNS_14.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 156470,
+   "title": "The dynamics underlying pseudo-plateau bursting in a pituitary cell model (Teka et al. 2011)",
+   "simulators": [
+    "MATLAB (web link to model)",
+    "XPP (web link to model)"
+   ],
+   "ver_date": "2014-08-14T16:50:58",
+   "url": "https://modeldb.science/156470",
+   "download": "https://modeldb.science/download/156470",
+   "zip_sha256": "271687fcacb7497e8a427e0daf512b4da15007c5272a52e517f4dca497321c55",
+   "models": [
+    {
+     "name": "TekaEtAl2011a/desingularized.ode",
+     "run_in": "TekaEtAl2011a"
+    },
+    {
+     "name": "TekaEtAl2011a/lactotroph.ode",
+     "run_in": "TekaEtAl2011a"
+    }
+   ],
+   "files": [
+    {
+     "name": "TekaEtAl2011a/desingularized.ode",
+     "size": 1763,
+     "sha256": "2a655aa42cd026ba14e757f036f062978414994fff30a2c6296b6f8a6cbf052a",
+     "url": "https://modeldb.science/getModelFile?model=156470&file=TekaEtAl2011a/desingularized.ode"
+    },
+    {
+     "name": "TekaEtAl2011a/lactotroph.ode",
+     "size": 1626,
+     "sha256": "7a97bd2ad19a444ad36eaafc464f22bd26050a5cb511e5b47c8129fb06c0c08c",
+     "url": "https://modeldb.science/getModelFile?model=156470&file=TekaEtAl2011a/lactotroph.ode"
+    }
+   ],
+   "other_files": 6
+  },
+  {
+   "id": 167714,
+   "title": "Hodgkin-Huxley with dynamic ion concentrations (Hubel and Dahlem, 2014)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2014-10-09T10:31:02",
+   "url": "https://modeldb.science/167714",
+   "download": "https://modeldb.science/download/167714",
+   "zip_sha256": "b9c1effeee47e05f0366983133c436880d354ac5c7acf375d7f51cdae686af7c",
+   "models": [
+    {
+     "name": "HubelDahlem2014/spreading-depression-bistable-cont.ode",
+     "run_in": "HubelDahlem2014"
+    },
+    {
+     "name": "HubelDahlem2014/spreading-depression.ode",
+     "run_in": "HubelDahlem2014"
+    }
+   ],
+   "files": [
+    {
+     "name": "HubelDahlem2014/spreading-depression-bistable-cont.ode",
+     "size": 3911,
+     "sha256": "1f7267e015495439e906b01584f0ba9c436810f590a087b51795389fe4f9d813",
+     "url": "https://modeldb.science/getModelFile?model=167714&file=HubelDahlem2014/spreading-depression-bistable-cont.ode"
+    },
+    {
+     "name": "HubelDahlem2014/spreading-depression.ode",
+     "size": 4515,
+     "sha256": "0b8195d7045902ea53630d325e480502f2a5d04d328ea5b9c6688ccd3cff7c97",
+     "url": "https://modeldb.science/getModelFile?model=167714&file=HubelDahlem2014/spreading-depression.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 167715,
+   "title": "Spreading depression model for FHM3 with Nav1.1 mutation (Dahlem et al. 2014)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2014-10-08T22:12:54",
+   "url": "https://modeldb.science/167715",
+   "download": "https://modeldb.science/download/167715",
+   "zip_sha256": "8f38e6e344dbccab506bde1e7d89707df98c2b189354c49eeed28516d6c14d7d",
+   "models": [
+    {
+     "name": "sd/sd-mutation.ode",
+     "run_in": "sd"
+    },
+    {
+     "name": "sd/sd-wild-type.ode",
+     "run_in": "sd"
+    }
+   ],
+   "files": [
+    {
+     "name": "sd/sd-mutation.ode",
+     "size": 4571,
+     "sha256": "787729ef0160e0e0537b12f832ae67774fc8e548eb7fbeb945a8cf5451c6af69",
+     "url": "https://modeldb.science/getModelFile?model=167715&file=sd/sd-mutation.ode"
+    },
+    {
+     "name": "sd/sd-wild-type.ode",
+     "size": 4511,
+     "sha256": "25b27f2dee84ef88d5e8b466439195ddc9959594576dc4c73e1eaff0b5f0b287",
+     "url": "https://modeldb.science/getModelFile?model=167715&file=sd/sd-wild-type.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 182758,
+   "title": "Activity patterns in a subthalamopallidal network of the basal ganglia model (Terman et al 2002)",
+   "simulators": [
+    "XPPAUT",
+    "NEURON",
+    "Python"
+   ],
+   "ver_date": "2017-11-12T09:52:31.013",
+   "url": "https://modeldb.science/182758",
+   "download": "https://modeldb.science/download/182758",
+   "zip_sha256": "b3464af5beca686be0c31c6a3038c9f6363322e71402f4982dff9a6dffe09f5c",
+   "models": [
+    {
+     "name": "TermanEtAl2002/xppfiles/cluster.ode",
+     "run_in": "TermanEtAl2002/xppfiles"
+    },
+    {
+     "name": "TermanEtAl2002/xppfiles/episodic.ode",
+     "run_in": "TermanEtAl2002/xppfiles"
+    },
+    {
+     "name": "TermanEtAl2002/xppfiles/wave.ode",
+     "run_in": "TermanEtAl2002/xppfiles"
+    }
+   ],
+   "files": [
+    {
+     "name": "TermanEtAl2002/xppfiles/cluster.ode",
+     "size": 6918,
+     "sha256": "78dc04e881804d9761e6552ff8f45dff8576c658ee2cf8757a30d0f745a79c34",
+     "url": "https://modeldb.science/getModelFile?model=182758&file=TermanEtAl2002/xppfiles/cluster.ode"
+    },
+    {
+     "name": "TermanEtAl2002/xppfiles/episodic.ode",
+     "size": 4658,
+     "sha256": "d2b76e73e6b2e4cc65bbb075bd3fdd332170c1656a309b9599d533a3f54eadd9",
+     "url": "https://modeldb.science/getModelFile?model=182758&file=TermanEtAl2002/xppfiles/episodic.ode"
+    },
+    {
+     "name": "TermanEtAl2002/xppfiles/wave.ode",
+     "size": 4805,
+     "sha256": "cfbe0cd67d00d69ba97406c8397dc7881ce5972da84765e1cc16c6015c439f36",
+     "url": "https://modeldb.science/getModelFile?model=182758&file=TermanEtAl2002/xppfiles/wave.ode"
+    }
+   ],
+   "other_files": 46
+  },
+  {
+   "id": 185334,
+   "title": "Double boundary value problem (A. Bose and J.E. Rubin, 2015)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2015-10-20T10:04:30.877",
+   "url": "https://modeldb.science/185334",
+   "download": "https://modeldb.science/download/185334",
+   "zip_sha256": "57c86db8a684e71164608109ae5b96e8c4f2ea44bbc716f4b774a8372fb2123d",
+   "models": [
+    {
+     "name": "BoseRubin2015/doublebvp.ode",
+     "run_in": "BoseRubin2015"
+    }
+   ],
+   "files": [
+    {
+     "name": "BoseRubin2015/doublebvp.ode",
+     "size": 900,
+     "sha256": "1c9444df2c25f21e1febd8508e0b660773fd53c7d136e39b6517c99b21576088",
+     "url": "https://modeldb.science/getModelFile?model=185334&file=BoseRubin2015/doublebvp.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 187213,
+   "title": "Anoxic depolarization, recovery: effect of brain regions and extracellular space (Hubel et al. 2016)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2016-01-19T10:38:28.11",
+   "url": "https://modeldb.science/187213",
+   "download": "https://modeldb.science/download/187213",
+   "zip_sha256": "abda05a4179f5791e0350404749e51841f7bfa56ea150c6c1b3a83ba5bc40698",
+   "models": [
+    {
+     "name": "Huebel_Andrew_Ullah_2015/continuations.ode",
+     "run_in": "Huebel_Andrew_Ullah_2015"
+    },
+    {
+     "name": "Huebel_Andrew_Ullah_2015/time_series.ode",
+     "run_in": "Huebel_Andrew_Ullah_2015"
+    }
+   ],
+   "files": [
+    {
+     "name": "Huebel_Andrew_Ullah_2015/continuations.ode",
+     "size": 8423,
+     "sha256": "93aa8cda2d2725b15601d5b881ccb1482616526b76fd1efe9cf91ff47aa201b9",
+     "url": "https://modeldb.science/getModelFile?model=187213&file=Huebel_Andrew_Ullah_2015/continuations.ode"
+    },
+    {
+     "name": "Huebel_Andrew_Ullah_2015/time_series.ode",
+     "size": 5982,
+     "sha256": "ad2ba852475d447b963861bef2b3dbeaef9cbf8b5772bf31ce45117d887daec3",
+     "url": "https://modeldb.science/getModelFile?model=187213&file=Huebel_Andrew_Ullah_2015/time_series.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 187599,
+   "title": "An ion-based model for swelling of neurons and astrocytes (Hubel & Ullah 2016)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2016-02-03T15:19:45.54",
+   "url": "https://modeldb.science/187599",
+   "download": "https://modeldb.science/download/187599",
+   "zip_sha256": "cdfe74c5b350a4ed065ad5dd6a4d13a98dd6d8b0952789d1c53f12ae1af02172",
+   "models": [
+    {
+     "name": "Anions_Govern_Cell_Volume/code_Fig3.ode",
+     "run_in": "Anions_Govern_Cell_Volume"
+    },
+    {
+     "name": "Anions_Govern_Cell_Volume/code_Fig7.ode",
+     "run_in": "Anions_Govern_Cell_Volume"
+    }
+   ],
+   "files": [
+    {
+     "name": "Anions_Govern_Cell_Volume/code_Fig3.ode",
+     "size": 6985,
+     "sha256": "90afd7c99e52e8dc78ade6c1ab668ec6a0f0aba497b65f90c673991ed89788cc",
+     "url": "https://modeldb.science/getModelFile?model=187599&file=Anions_Govern_Cell_Volume/code_Fig3.ode"
+    },
+    {
+     "name": "Anions_Govern_Cell_Volume/code_Fig7.ode",
+     "size": 8616,
+     "sha256": "4fcd1ff85dbb5d84acc79a471364428ec262a2a57c10b355e0a234040ecf9738",
+     "url": "https://modeldb.science/getModelFile?model=187599&file=Anions_Govern_Cell_Volume/code_Fig7.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 189088,
+   "title": "Fully continuous Pinsky-Rinzel model for bifurcation analysis (Atherton et al. 2016)",
+   "simulators": [
+    "XPPAUT",
+    "XPP (web link to model)",
+    "Python"
+   ],
+   "ver_date": "2016-04-27T15:01:40.833",
+   "url": "https://modeldb.science/189088",
+   "download": "https://modeldb.science/download/189088",
+   "zip_sha256": "7a1205a55cd4e654cca3ece496d9a483f09d5728895ca48a4a84e8560b452f2e",
+   "models": [
+    {
+     "name": "PinskyRinzel_1994/booth_bose.ode",
+     "run_in": "PinskyRinzel_1994"
+    },
+    {
+     "name": "PinskyRinzel_1994/booth_bose_cont.ode",
+     "run_in": "PinskyRinzel_1994"
+    },
+    {
+     "name": "PinskyRinzel_1994/CA3_cell.ode",
+     "run_in": "PinskyRinzel_1994"
+    },
+    {
+     "name": "PinskyRinzel_1994/CA3_cell_fastslow_Ca.ode",
+     "run_in": "PinskyRinzel_1994"
+    },
+    {
+     "name": "PinskyRinzel_1994/CA3_cell_fastslow_q .ode",
+     "run_in": "PinskyRinzel_1994"
+    }
+   ],
+   "files": [
+    {
+     "name": "PinskyRinzel_1994/booth_bose.ode",
+     "size": 2136,
+     "sha256": "6dcfe9a657e054dca5236e8aa4489ff6196fe1ea121eea7de4343ba2ac7e8a47",
+     "url": "https://modeldb.science/getModelFile?model=189088&file=PinskyRinzel_1994/booth_bose.ode"
+    },
+    {
+     "name": "PinskyRinzel_1994/booth_bose_cont.ode",
+     "size": 2169,
+     "sha256": "b16e75a669de61dd12da3b53bb798f552053d611342bd51ff8ea6678757e741a",
+     "url": "https://modeldb.science/getModelFile?model=189088&file=PinskyRinzel_1994/booth_bose_cont.ode"
+    },
+    {
+     "name": "PinskyRinzel_1994/CA3_cell.ode",
+     "size": 2116,
+     "sha256": "5fbcc59d5fa0f054ac926733d78845fc3b1ce91c8674ec7ebe748e2f2f69b477",
+     "url": "https://modeldb.science/getModelFile?model=189088&file=PinskyRinzel_1994/CA3_cell.ode"
+    },
+    {
+     "name": "PinskyRinzel_1994/CA3_cell_fastslow_Ca.ode",
+     "size": 2187,
+     "sha256": "e62a6a77c17ed37719b5fdd62d705c911320cf6716bc57e005edabb9c584bbe6",
+     "url": "https://modeldb.science/getModelFile?model=189088&file=PinskyRinzel_1994/CA3_cell_fastslow_Ca.ode"
+    },
+    {
+     "name": "PinskyRinzel_1994/CA3_cell_fastslow_q .ode",
+     "size": 2185,
+     "sha256": "5406ae386a08f3d4b470ffd3ba034276a7e5321859bcb40173ed1df44413c06a",
+     "url": "https://modeldb.science/getModelFile?model=189088&file=PinskyRinzel_1994/CA3_cell_fastslow_q%20.ode"
+    }
+   ],
+   "other_files": 5
+  },
+  {
+   "id": 189344,
+   "title": "A mathematical model of evoked calcium dynamics in astrocytes (Handy et al 2017)",
+   "simulators": [
+    "MATLAB",
+    "XPPAUT"
+   ],
+   "ver_date": "2017-03-31T12:26:31.747",
+   "url": "https://modeldb.science/189344",
+   "download": "https://modeldb.science/download/189344",
+   "zip_sha256": "16f3300218af12afbda9a34052926d068d1a498c0d4e3274d29bcbf9841c6b75",
+   "models": [
+    {
+     "name": "HandyEtAl2017/ca_bifurcation_xpp_TH.ode",
+     "run_in": "HandyEtAl2017"
+    }
+   ],
+   "files": [
+    {
+     "name": "HandyEtAl2017/ca_bifurcation_xpp_TH.ode",
+     "size": 1352,
+     "sha256": "937fb9fa5be1525941f40ed1cdda99eac5765e0bc43c6dce5606567b5ae08f4a",
+     "url": "https://modeldb.science/getModelFile?model=189344&file=HandyEtAl2017/ca_bifurcation_xpp_TH.ode"
+    }
+   ],
+   "other_files": 21
+  },
+  {
+   "id": 190261,
+   "title": "Dorsal root ganglion (primary somatosensory) neurons (Rho & Prescott 2012)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2016-06-16T11:31:14.96",
+   "url": "https://modeldb.science/190261",
+   "download": "https://modeldb.science/download/190261",
+   "zip_sha256": "a3ea8014d6b4e7838cdac2f9d16a7c061e100c2695c9f65c7b6677353331933e",
+   "models": [
+    {
+     "name": "RhoPrescott2012/2D-BaseModel-PLOS2012.ode",
+     "run_in": "RhoPrescott2012"
+    },
+    {
+     "name": "RhoPrescott2012/3D-BaseModel +Noise+Adaptation-PLOS2012.ode",
+     "run_in": "RhoPrescott2012"
+    },
+    {
+     "name": "RhoPrescott2012/3D-BaseModel+SlowNaInactivation-PLOS2012.ode",
+     "run_in": "RhoPrescott2012"
+    },
+    {
+     "name": "RhoPrescott2012/3D-UngroupedModel-PLOS2012.ode",
+     "run_in": "RhoPrescott2012"
+    }
+   ],
+   "files": [
+    {
+     "name": "RhoPrescott2012/2D-BaseModel-PLOS2012.ode",
+     "size": 934,
+     "sha256": "06594ddeaa0cb21c82206ccdf8ad98a779166b186fb95613f49e092a8ccdf265",
+     "url": "https://modeldb.science/getModelFile?model=190261&file=RhoPrescott2012/2D-BaseModel-PLOS2012.ode"
+    },
+    {
+     "name": "RhoPrescott2012/3D-BaseModel +Noise+Adaptation-PLOS2012.ode",
+     "size": 1285,
+     "sha256": "ce8fe17486584e5c8f2baf3f6ff60763cee7fc086a776bcc6bbbe267c080a940",
+     "url": "https://modeldb.science/getModelFile?model=190261&file=RhoPrescott2012/3D-BaseModel%20%2BNoise%2BAdaptation-PLOS2012.ode"
+    },
+    {
+     "name": "RhoPrescott2012/3D-BaseModel+SlowNaInactivation-PLOS2012.ode",
+     "size": 1158,
+     "sha256": "009e4f466ee6e0e7230c6a0ce06b26dd4bc2fcd4b45ccd1a63562d9c7f207930",
+     "url": "https://modeldb.science/getModelFile?model=190261&file=RhoPrescott2012/3D-BaseModel%2BSlowNaInactivation-PLOS2012.ode"
+    },
+    {
+     "name": "RhoPrescott2012/3D-UngroupedModel-PLOS2012.ode",
+     "size": 1384,
+     "sha256": "c7bf942485dc01dfc27e2b603fe98d280fe32c11119c1cee72540040575c27ed",
+     "url": "https://modeldb.science/getModelFile?model=190261&file=RhoPrescott2012/3D-UngroupedModel-PLOS2012.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 206364,
+   "title": "Inverse stochastic resonance of cerebellar Purkinje cell (Buchin et al. 2016)",
+   "simulators": [
+    "MATLAB",
+    "NEURON",
+    "XPPAUT"
+   ],
+   "ver_date": "2019-03-23T16:36:09.007",
+   "url": "https://modeldb.science/206364",
+   "download": "https://modeldb.science/download/206364",
+   "zip_sha256": "e736a0d2229d97743f8ed08e1196531e0867c739bd844a56c68387ccb23396d6",
+   "models": [
+    {
+     "name": "BuchinEtAl2016ISR/XPP/aEIF.ode",
+     "run_in": "BuchinEtAl2016ISR/XPP"
+    }
+   ],
+   "files": [
+    {
+     "name": "BuchinEtAl2016ISR/XPP/aEIF.ode",
+     "size": 400,
+     "sha256": "b138dce62f7125f942affd48a9f82bbf9d403ac2c149e56f2e1e128d49c988bb",
+     "url": "https://modeldb.science/getModelFile?model=206364&file=BuchinEtAl2016ISR/XPP/aEIF.ode"
+    }
+   ],
+   "other_files": 249
+  },
+  {
+   "id": 206365,
+   "title": "Subiculum network model with dynamic chloride/potassium homeostasis (Buchin et al 2016)",
+   "simulators": [
+    "MATLAB",
+    "XPPAUT"
+   ],
+   "ver_date": "2019-03-22T16:02:44.157",
+   "url": "https://modeldb.science/206365",
+   "download": "https://modeldb.science/download/206365",
+   "zip_sha256": "378cbe9f44a58c903fecacaec7d18d30799ef013b0886c267c685f617478dea6",
+   "models": [
+    {
+     "name": "BuchinEtAl2016KCC2/Fig. 2/B/Bazh_PY_altKCC2_Ko_Cli_min_burst_Ko_Cli_fix_NEW.ode",
+     "run_in": "BuchinEtAl2016KCC2/Fig. 2/B"
+    }
+   ],
+   "files": [
+    {
+     "name": "BuchinEtAl2016KCC2/Fig. 2/B/Bazh_PY_altKCC2_Ko_Cli_min_burst_Ko_Cli_fix_NEW.ode",
+     "size": 9912,
+     "sha256": "89e0524bbbc643ce57873b12aa608cf317cc167eafea465889d137ec19ae903e",
+     "url": "https://modeldb.science/getModelFile?model=206365&file=BuchinEtAl2016KCC2/Fig.%202/B/Bazh_PY_altKCC2_Ko_Cli_min_burst_Ko_Cli_fix_NEW.ode"
+    }
+   ],
+   "other_files": 690
+  },
+  {
+   "id": 206380,
+   "title": "Excitability of DA neurons and their regulation by synaptic input (Morozova et al. 2016a, 2016b)",
+   "simulators": [
+    "MATLAB",
+    "XPPAUT"
+   ],
+   "ver_date": "2018-06-06T17:26:07.06",
+   "url": "https://modeldb.science/206380",
+   "download": "https://modeldb.science/download/206380",
+   "zip_sha256": "a926f9bb6cd00205b1eb78c4781e69ebef2df32f6cb399a10aca055a987bbbcf",
+   "models": [
+    {
+     "name": "DAmodelDB/DAandGABAneurons.ode",
+     "run_in": "DAmodelDB"
+    }
+   ],
+   "files": [
+    {
+     "name": "DAmodelDB/DAandGABAneurons.ode",
+     "size": 3619,
+     "sha256": "fb5efe3751e7155af548ef39b64e9defe5aded32e60013cb4e7ae6ca62a07717",
+     "url": "https://modeldb.science/getModelFile?model=206380&file=DAmodelDB/DAandGABAneurons.ode"
+    }
+   ],
+   "other_files": 8,
+   "skipped": [
+    {
+     "name": "DAmodelDB/DAneuronDB.mexa64",
+     "reason": "program or library"
+    },
+    {
+     "name": "DAmodelDB/DAneuronDB.mexmaci64",
+     "reason": "program or library"
+    },
+    {
+     "name": "DAmodelDB/DAneuronDB.mexw64",
+     "reason": "program or library"
+    },
+    {
+     "name": "DAmodelDB/DAneuronGABApopulationDB.mexa64",
+     "reason": "program or library"
+    },
+    {
+     "name": "DAmodelDB/DAneuronGABApopulationDB.mexmaci64",
+     "reason": "program or library"
+    },
+    {
+     "name": "DAmodelDB/DAneuronGABApopulationDB.mexw64",
+     "reason": "program or library"
+    }
+   ]
+  },
+  {
+   "id": 222715,
+   "title": "Model of a BDNF feedback loop (Zhang et al 2016)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2017-01-05T15:55:50.39",
+   "url": "https://modeldb.science/222715",
+   "download": "https://modeldb.science/download/222715",
+   "zip_sha256": "396f40d3dd786fd0134d75f06b0541d80b485140e973c1df1a945230a0f845b9",
+   "models": [
+    {
+     "name": "ZhangEtAl2016/BDNFloop-model-Zhang-2016.ode",
+     "run_in": "ZhangEtAl2016"
+    }
+   ],
+   "files": [
+    {
+     "name": "ZhangEtAl2016/BDNFloop-model-Zhang-2016.ode",
+     "size": 4910,
+     "sha256": "5a6cc1751b3dccc185161abac9f3a069a0765ee62fb3921c9e0ac4b101c24a03",
+     "url": "https://modeldb.science/getModelFile?model=222715&file=ZhangEtAl2016/BDNFloop-model-Zhang-2016.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 227577,
+   "title": "Pallidostriatal projections promote beta oscillations (Corbit, Whalen, et al 2016)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2017-05-12T18:07:08.87",
+   "url": "https://modeldb.science/227577",
+   "download": "https://modeldb.science/download/227577",
+   "zip_sha256": "c02951aa3c131dd1ff87cfe5e036d6ce5f5c53d41f90f128a1065be1d5525004",
+   "models": [
+    {
+     "name": "CorbitWhalenEtAl2016/Corbit2016_basic_PS.ode",
+     "run_in": "CorbitWhalenEtAl2016"
+    }
+   ],
+   "files": [
+    {
+     "name": "CorbitWhalenEtAl2016/conntableF2Fv3.txt",
+     "size": 88,
+     "sha256": "b5da65c69c9c50a65c6e457c38349966876aa3c129c4a233d3ea1a90f1f8c966",
+     "url": "https://modeldb.science/getModelFile?model=227577&file=CorbitWhalenEtAl2016/conntableF2Fv3.txt"
+    },
+    {
+     "name": "CorbitWhalenEtAl2016/conntableF2Mv3.txt",
+     "size": 250,
+     "sha256": "e6a7a8f74ccc2df5ab36cffe0af34fdf15c127a23e1f74acb189453defbc1f44",
+     "url": "https://modeldb.science/getModelFile?model=227577&file=CorbitWhalenEtAl2016/conntableF2Mv3.txt"
+    },
+    {
+     "name": "CorbitWhalenEtAl2016/conntableG2Fv3.txt",
+     "size": 56,
+     "sha256": "70d829bda0799ce3de6c01242be8c40f2adca2345fa31218585d1e99bebd2ccf",
+     "url": "https://modeldb.science/getModelFile?model=227577&file=CorbitWhalenEtAl2016/conntableG2Fv3.txt"
+    },
+    {
+     "name": "CorbitWhalenEtAl2016/conntableG2Gv3.txt",
+     "size": 40,
+     "sha256": "df25ab3574823485158337915796a598dabb6d5e309d07e633a39e9deb5baff5",
+     "url": "https://modeldb.science/getModelFile?model=227577&file=CorbitWhalenEtAl2016/conntableG2Gv3.txt"
+    },
+    {
+     "name": "CorbitWhalenEtAl2016/conntableM2Gv3.txt",
+     "size": 342,
+     "sha256": "511454db1a65562443aada5a8b7775290c4ea51e81c03ad3539e755c21998422",
+     "url": "https://modeldb.science/getModelFile?model=227577&file=CorbitWhalenEtAl2016/conntableM2Gv3.txt"
+    },
+    {
+     "name": "CorbitWhalenEtAl2016/conntableM2Mv3.txt",
+     "size": 1563,
+     "sha256": "1d1f670b40236d84e26e8bb9f046cb30cfd1038ccb565333b29e5c074d8bb431",
+     "url": "https://modeldb.science/getModelFile?model=227577&file=CorbitWhalenEtAl2016/conntableM2Mv3.txt"
+    },
+    {
+     "name": "CorbitWhalenEtAl2016/Corbit2016_basic_PS.ode",
+     "size": 21251,
+     "sha256": "d7e4c23ae3d49808a43519d2775bc31edda217624598b957179e6d6642f16911",
+     "url": "https://modeldb.science/getModelFile?model=227577&file=CorbitWhalenEtAl2016/Corbit2016_basic_PS.ode"
+    }
+   ],
+   "other_files": 17
+  },
+  {
+   "id": 228337,
+   "title": "Nicotinic control of dopamine release in nucleus accumbens (Maex et al. 2014)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2017-05-22T09:15:14.027",
+   "url": "https://modeldb.science/228337",
+   "download": "https://modeldb.science/download/228337",
+   "zip_sha256": "74599a1357d16897e74d83806375feb2aa0d2726d4ebfbf935e02621ecf3d23b",
+   "models": [
+    {
+     "name": "MaexEtAl2014/Fig2/Fig2B.ode",
+     "run_in": "MaexEtAl2014/Fig2"
+    },
+    {
+     "name": "MaexEtAl2014/Fig3/Fig3B.ode",
+     "run_in": "MaexEtAl2014/Fig3"
+    },
+    {
+     "name": "MaexEtAl2014/Fig6/Fig6.ode",
+     "run_in": "MaexEtAl2014/Fig6"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Aleft.ode",
+     "run_in": "MaexEtAl2014/FigS4"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Aright.ode",
+     "run_in": "MaexEtAl2014/FigS4"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Bleft.ode",
+     "run_in": "MaexEtAl2014/FigS4"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Bright.ode",
+     "run_in": "MaexEtAl2014/FigS4"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Cleft.ode",
+     "run_in": "MaexEtAl2014/FigS4"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Cright.ode",
+     "run_in": "MaexEtAl2014/FigS4"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Dleft.ode",
+     "run_in": "MaexEtAl2014/FigS4"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Dright.ode",
+     "run_in": "MaexEtAl2014/FigS4"
+    },
+    {
+     "name": "MaexEtAl2014/FigS5/FigS5A.ode",
+     "run_in": "MaexEtAl2014/FigS5"
+    },
+    {
+     "name": "MaexEtAl2014/FigS5/FigS5B.ode",
+     "run_in": "MaexEtAl2014/FigS5"
+    }
+   ],
+   "files": [
+    {
+     "name": "MaexEtAl2014/Fig2/Fig2B.ode",
+     "size": 8091,
+     "sha256": "f5c6dcba16171321d6ae3db3ccbd735a99427a650c9599c22247b94e48a15b77",
+     "url": "https://modeldb.science/getModelFile?model=228337&file=MaexEtAl2014/Fig2/Fig2B.ode"
+    },
+    {
+     "name": "MaexEtAl2014/Fig3/Fig3B.ode",
+     "size": 8416,
+     "sha256": "70c47b693d726e83be5cc81a86a9a03d52db60c9756516e7197ae40804f9e7dd",
+     "url": "https://modeldb.science/getModelFile?model=228337&file=MaexEtAl2014/Fig3/Fig3B.ode"
+    },
+    {
+     "name": "MaexEtAl2014/Fig6/Fig6.ode",
+     "size": 7865,
+     "sha256": "3a2d5e4c2448059595ad1a74c8681e15b65a38d8da355b6403257267ba0a8a3b",
+     "url": "https://modeldb.science/getModelFile?model=228337&file=MaexEtAl2014/Fig6/Fig6.ode"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Aleft.ode",
+     "size": 8082,
+     "sha256": "7c92153931e4092fc66163f369d48cabb27d6f3f2774068d0674f5b13f33ff11",
+     "url": "https://modeldb.science/getModelFile?model=228337&file=MaexEtAl2014/FigS4/FigS4-Aleft.ode"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Aright.ode",
+     "size": 8043,
+     "sha256": "8fc8d253a29f0c8e791af881ec5fa50b44566aa54acb1c63f4e88a5a2d42db3a",
+     "url": "https://modeldb.science/getModelFile?model=228337&file=MaexEtAl2014/FigS4/FigS4-Aright.ode"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Bleft.ode",
+     "size": 8056,
+     "sha256": "1a90bca3e448349be1abd0e6d422fe614c6b102178b83a779d1adb8819c8b858",
+     "url": "https://modeldb.science/getModelFile?model=228337&file=MaexEtAl2014/FigS4/FigS4-Bleft.ode"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Bright.ode",
+     "size": 8004,
+     "sha256": "f9352da3a7352dd2e340e8a7dfb49e993aa97183c564307cc6fe02793af3a247",
+     "url": "https://modeldb.science/getModelFile?model=228337&file=MaexEtAl2014/FigS4/FigS4-Bright.ode"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Cleft.ode",
+     "size": 8058,
+     "sha256": "024885dfba52135183a6378db3dc608f032ff3947790dc8b5fe8ef7f57201435",
+     "url": "https://modeldb.science/getModelFile?model=228337&file=MaexEtAl2014/FigS4/FigS4-Cleft.ode"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Cright.ode",
+     "size": 8055,
+     "sha256": "6d8670bcb95132da76087fb489852987245e4ac02c666a9956d1f86ed5b3f2ac",
+     "url": "https://modeldb.science/getModelFile?model=228337&file=MaexEtAl2014/FigS4/FigS4-Cright.ode"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Dleft.ode",
+     "size": 8348,
+     "sha256": "82feb2e3b510c8eaecb608610563d3a3fadb1f437cd6de3974f1cfda3db9846a",
+     "url": "https://modeldb.science/getModelFile?model=228337&file=MaexEtAl2014/FigS4/FigS4-Dleft.ode"
+    },
+    {
+     "name": "MaexEtAl2014/FigS4/FigS4-Dright.ode",
+     "size": 8501,
+     "sha256": "b43b81a1dca556ebf6521f1fe4429e2d5e7285b80b5a571be075c7cbdf61d701",
+     "url": "https://modeldb.science/getModelFile?model=228337&file=MaexEtAl2014/FigS4/FigS4-Dright.ode"
+    },
+    {
+     "name": "MaexEtAl2014/FigS5/FigS5A.ode",
+     "size": 9939,
+     "sha256": "97adc13aff5090e73a68f22b6a8f3d58874d571a1c5fe5b967a6187dddc0ad4e",
+     "url": "https://modeldb.science/getModelFile?model=228337&file=MaexEtAl2014/FigS5/FigS5A.ode"
+    },
+    {
+     "name": "MaexEtAl2014/FigS5/FigS5B.ode",
+     "size": 10140,
+     "sha256": "d5a7298db245761ddb53fdfced125527658215c5bfdda0f763c7d16ceac066cc",
+     "url": "https://modeldb.science/getModelFile?model=228337&file=MaexEtAl2014/FigS5/FigS5B.ode"
+    }
+   ],
+   "other_files": 6
+  },
+  {
+   "id": 229640,
+   "title": "Respiratory control model with brainstem CPG and sensory feedback (Diekman, Thomas, and Wilson 2017)",
+   "simulators": [
+    "MATLAB",
+    "XPPAUT"
+   ],
+   "ver_date": "2017-09-13T17:09:24.5",
+   "url": "https://modeldb.science/229640",
+   "download": "https://modeldb.science/download/229640",
+   "zip_sha256": "860ae2737e41c4a8f476f773d1fe4c16be35cb7518c128b2d5f096727f149312",
+   "models": [
+    {
+     "name": "DiekmanThomasWilson2017/generate_figure10_bifurcation_curves.ode",
+     "run_in": "DiekmanThomasWilson2017"
+    },
+    {
+     "name": "DiekmanThomasWilson2017/generate_figure4_bifurcation_curves.ode",
+     "run_in": "DiekmanThomasWilson2017"
+    }
+   ],
+   "files": [
+    {
+     "name": "DiekmanThomasWilson2017/generate_figure10_bifurcation_curves.ode",
+     "size": 1561,
+     "sha256": "d5f1df074c984fd2fec32224a70eb3917580771680a395576642f5d038a343ea",
+     "url": "https://modeldb.science/getModelFile?model=229640&file=DiekmanThomasWilson2017/generate_figure10_bifurcation_curves.ode"
+    },
+    {
+     "name": "DiekmanThomasWilson2017/generate_figure4_bifurcation_curves.ode",
+     "size": 1389,
+     "sha256": "e7b8d5c6849f002453a77250d278c2accbc4f2ed536628843f096da469566afa",
+     "url": "https://modeldb.science/getModelFile?model=229640&file=DiekmanThomasWilson2017/generate_figure4_bifurcation_curves.ode"
+    }
+   ],
+   "other_files": 3699
+  },
+  {
+   "id": 235377,
+   "title": "A model for recurrent spreading depolarizations (Conte et al. 2017)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2017-12-14T18:58:42.46",
+   "url": "https://modeldb.science/235377",
+   "download": "https://modeldb.science/download/235377",
+   "zip_sha256": "4a9a34296e283252c5bd8cfaae384009632c99c730acabd832cd31a40b2c4e93",
+   "models": [
+    {
+     "name": "terman-ModelDB/single_cells.ode",
+     "run_in": "terman-ModelDB"
+    },
+    {
+     "name": "terman-ModelDB/waves.ode",
+     "run_in": "terman-ModelDB"
+    }
+   ],
+   "files": [
+    {
+     "name": "terman-ModelDB/single_cells.ode",
+     "size": 4830,
+     "sha256": "9f2d7eb9f997292c52f165daf54db39538a551dd11dded936006591009a353a6",
+     "url": "https://modeldb.science/getModelFile?model=235377&file=terman-ModelDB/single_cells.ode"
+    },
+    {
+     "name": "terman-ModelDB/waves.ode",
+     "size": 5591,
+     "sha256": "4154384fe4997400df9200ea5a78bcdc59c1ad0403c29383e8f581038c528208",
+     "url": "https://modeldb.science/getModelFile?model=235377&file=terman-ModelDB/waves.ode"
+    }
+   ],
+   "other_files": 7
+  },
+  {
+   "id": 235774,
+   "title": "The role of glutamate in neuronal ion homeostasis: spreading depolarization (Hubel et al 2017)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2017-12-19T16:00:43.013",
+   "url": "https://modeldb.science/235774",
+   "download": "https://modeldb.science/download/235774",
+   "zip_sha256": "c6774c9eecde5efd936ffbea1dd8de5f269c0b28de4f7103137459e360b88af1",
+   "models": [
+    {
+     "name": "HubelEtAl2017/SD.ode",
+     "run_in": "HubelEtAl2017"
+    }
+   ],
+   "files": [
+    {
+     "name": "HubelEtAl2017/SD.ode",
+     "size": 17380,
+     "sha256": "f17d23fd4bf95347cf12431272b6ff5a225a02f3acf1ad7569d892d59c843aae",
+     "url": "https://modeldb.science/getModelFile?model=235774&file=HubelEtAl2017/SD.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 239039,
+   "title": "Locational influence of dendritic PIC on input-output properties of spinal motoneurons (Kim 2017)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2018-03-08T10:50:07.287",
+   "url": "https://modeldb.science/239039",
+   "download": "https://modeldb.science/download/239039",
+   "zip_sha256": "9752d1a946a19d33bc7fef768c15dc388acc6cfb68244d726a2ec567768470ad",
+   "models": [
+    {
+     "name": "Kim2017/fig3a.ode",
+     "run_in": "Kim2017"
+    },
+    {
+     "name": "Kim2017/fig3b.ode",
+     "run_in": "Kim2017"
+    },
+    {
+     "name": "Kim2017/fig3c.ode",
+     "run_in": "Kim2017"
+    },
+    {
+     "name": "Kim2017/fig3d.ode",
+     "run_in": "Kim2017"
+    }
+   ],
+   "files": [
+    {
+     "name": "Kim2017/fig3a.ode",
+     "size": 1163,
+     "sha256": "88c928a03615bf6f6bf25d4e8ae00544f4527ee65e60d2f21252b44df94106df",
+     "url": "https://modeldb.science/getModelFile?model=239039&file=Kim2017/fig3a.ode"
+    },
+    {
+     "name": "Kim2017/fig3b.ode",
+     "size": 3754,
+     "sha256": "0d8eee15cdb4c0ae463addbef85887a8f23185a357aeee98482e147adc2073c2",
+     "url": "https://modeldb.science/getModelFile?model=239039&file=Kim2017/fig3b.ode"
+    },
+    {
+     "name": "Kim2017/fig3c.ode",
+     "size": 3387,
+     "sha256": "60a30f4493f817f746a83a4d7f0adf9071b57f564636919c90642d53c69b6354",
+     "url": "https://modeldb.science/getModelFile?model=239039&file=Kim2017/fig3c.ode"
+    },
+    {
+     "name": "Kim2017/fig3d.ode",
+     "size": 3607,
+     "sha256": "7bffab0a362adf9d269ef46eb6825ecd42938b2fea456cc7018a626161544fb5",
+     "url": "https://modeldb.science/getModelFile?model=239039&file=Kim2017/fig3d.ode"
+    }
+   ],
+   "other_files": 6
+  },
+  {
+   "id": 240364,
+   "title": "External Tufted Cell Model (Ryan Viertel, Alla Borisyuk 2019)",
+   "simulators": [
+    "MATLAB",
+    "C or C++ program",
+    "XPPAUT"
+   ],
+   "ver_date": "2019-01-07T15:08:08.243",
+   "url": "https://modeldb.science/240364",
+   "download": "https://modeldb.science/download/240364",
+   "zip_sha256": "1c3f2444149b33719bf47e604893c2a2faaee980f61953968c8bb10dbb3d61e9",
+   "models": [
+    {
+     "name": "ET-Cell-Model-master/xpp/bifurcation.ode",
+     "run_in": "ET-Cell-Model-master/xpp"
+    }
+   ],
+   "files": [
+    {
+     "name": "ET-Cell-Model-master/xpp/bifurcation.ode",
+     "size": 3413,
+     "sha256": "f06e772d26c17d53d6b268bf8bca1fefbcc1254f89069afa1468ed728f49cfa5",
+     "url": "https://modeldb.science/getModelFile?model=240364&file=ET-Cell-Model-master/xpp/bifurcation.ode"
+    }
+   ],
+   "other_files": 14
+  },
+  {
+   "id": 240961,
+   "title": "Actions of Rotenone on ionic currents and MEPPs in Mouse Hippocampal Neurons (Huang et al 2018) ",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2018-05-17T11:28:10.897",
+   "url": "https://modeldb.science/240961",
+   "download": "https://modeldb.science/download/240961",
+   "zip_sha256": "9834d74e16cc65ccec29e3a9f6ce0dd1fd769893e779b8824ea44c04e814578b",
+   "models": [
+    {
+     "name": "Rotenone-ChemAut/Rotenone_ChemAut.ode",
+     "run_in": "Rotenone-ChemAut"
+    }
+   ],
+   "files": [
+    {
+     "name": "Rotenone-ChemAut/Rotenone_ChemAut.ode",
+     "size": 4559,
+     "sha256": "3cbe15cd413dc315e354f6f1f2bbbc29caff37e6beb82bacaba84deefa59e51a",
+     "url": "https://modeldb.science/getModelFile?model=240961&file=Rotenone-ChemAut/Rotenone_ChemAut.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 247646,
+   "title": "A phantom bursting mechanism for episodic bursting (Bertram et al 2008)",
+   "simulators": [
+    "XPP (web link to model)",
+    "CellML (web link to model)"
+   ],
+   "ver_date": "2018-11-28T16:50:26.427",
+   "url": "https://modeldb.science/247646",
+   "download": "https://modeldb.science/download/247646",
+   "zip_sha256": "af99d8305759741fdf29d8262a2e6198e86fcbad6331108065648b097c4d47a1",
+   "models": [
+    {
+     "name": "weblink1/xpp/BMB_08b.ode",
+     "run_in": "weblink1/xpp"
+    },
+    {
+     "name": "weblink1/xpp/BMB_08b_noisy.ode",
+     "run_in": "weblink1/xpp"
+    }
+   ],
+   "files": [
+    {
+     "name": "weblink1/xpp/BMB_08b.ode",
+     "size": 1829,
+     "sha256": "2f44689825b1a5deeca38b76eac542623800cc321f01a977cc45859fa122efaa",
+     "url": "https://modeldb.science/getModelFile?model=247646&file=weblink1/xpp/BMB_08b.ode"
+    },
+    {
+     "name": "weblink1/xpp/BMB_08b_noisy.ode",
+     "size": 2573,
+     "sha256": "293e73a85e899ce7aff3e28da3fa4676f08b78785487dee80e0556e2a28a0430",
+     "url": "https://modeldb.science/getModelFile?model=247646&file=weblink1/xpp/BMB_08b_noisy.ode"
+    }
+   ],
+   "other_files": 5
+  },
+  {
+   "id": 247694,
+   "title": "Simulation of calcium signaling in fine astrocytic processes (Denizot et al 2019)",
+   "simulators": [
+    "Python",
+    "STEPS",
+    "C or C++ program",
+    "XPPAUT"
+   ],
+   "ver_date": "2019-07-14T19:20:13.733",
+   "url": "https://modeldb.science/247694",
+   "download": "https://modeldb.science/download/247694",
+   "zip_sha256": "883a7e64b215fdedfea9fca4a799949e68005a70756c12953237db12be5207e5",
+   "models": [
+    {
+     "name": "DenizotEtAl_2019/ODE/IP3R_model.ode",
+     "run_in": "DenizotEtAl_2019/ODE"
+    }
+   ],
+   "files": [
+    {
+     "name": "DenizotEtAl_2019/ODE/IP3R_model.ode",
+     "size": 1563,
+     "sha256": "717ba85ddd545cd273283589887523ff994fec9f0e5e5a38b81053d757b942b6",
+     "url": "https://modeldb.science/getModelFile?model=247694&file=DenizotEtAl_2019/ODE/IP3R_model.ode"
+    }
+   ],
+   "other_files": 26,
+   "skipped": [
+    {
+     "name": "DenizotEtAl_2019/STEPS/ip3r_model_mesh_gcamp.pyc",
+     "reason": "program or library"
+    }
+   ]
+  },
+  {
+   "id": 247704,
+   "title": "Thalamocortical  loop with delay for investigation of absence epilepsy (Liu et al 2019)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2019-02-15T14:29:43.043",
+   "url": "https://modeldb.science/247704",
+   "download": "https://modeldb.science/download/247704",
+   "zip_sha256": "ec56f9cbbfd140cdafdb99362e0f936e68cdd722c4fe6cd02aa97b5c7d74f307",
+   "models": [
+    {
+     "name": "TCRTCT/TC_RT_CT_twodelaymodel.ode",
+     "run_in": "TCRTCT"
+    }
+   ],
+   "files": [
+    {
+     "name": "TCRTCT/TC_RT_CT_twodelaymodel.ode",
+     "size": 10033,
+     "sha256": "5b2ef897bf1c50e26c738fa1e09074d52c0ac404dc6b8219232cb0a69301fa2b",
+     "url": "https://modeldb.science/getModelFile?model=247704&file=TCRTCT/TC_RT_CT_twodelaymodel.ode"
+    }
+   ],
+   "other_files": 6
+  },
+  {
+   "id": 247709,
+   "title": "Universal feature of developing networks (Tabak et al 2010)",
+   "simulators": [
+    "XPP (web link to model)"
+   ],
+   "ver_date": "2018-12-05T16:42:11.787",
+   "url": "https://modeldb.science/247709",
+   "download": "https://modeldb.science/download/247709",
+   "zip_sha256": "fc59728a40f4ccac7af7db8111f5550216a3ee278028aa23c5becfcf5f8a9bdd",
+   "models": [
+    {
+     "name": "weblink12/HH_syndep_100.ode",
+     "run_in": "weblink12"
+    },
+    {
+     "name": "weblink12/IF_celladapt_100.ode",
+     "run_in": "weblink12"
+    },
+    {
+     "name": "weblink12/IF_syndep_100.ode",
+     "run_in": "weblink12"
+    },
+    {
+     "name": "weblink12/IF_syndep_sparse.ode",
+     "run_in": "weblink12"
+    },
+    {
+     "name": "weblink12/s_model.ode",
+     "run_in": "weblink12"
+    }
+   ],
+   "files": [
+    {
+     "name": "weblink12/HH_syndep_100.ode",
+     "size": 1722,
+     "sha256": "f609cbb76b0a07392bc9d3780078d5d1c8567d563b20145267314f20bbb1a528",
+     "url": "https://modeldb.science/getModelFile?model=247709&file=weblink12/HH_syndep_100.ode"
+    },
+    {
+     "name": "weblink12/IF_celladapt_100.ode",
+     "size": 1587,
+     "sha256": "91121b8b7d6c2dd209c50ac892e72ca88ce3ef716c50eab31f30aedf4a904564",
+     "url": "https://modeldb.science/getModelFile?model=247709&file=weblink12/IF_celladapt_100.ode"
+    },
+    {
+     "name": "weblink12/IF_syndep_100.ode",
+     "size": 1628,
+     "sha256": "fd226778e695bfbb9fc0d0e5e5ffa0d84d7b7bc3cf04aafd45d2f4b6f9d077e2",
+     "url": "https://modeldb.science/getModelFile?model=247709&file=weblink12/IF_syndep_100.ode"
+    },
+    {
+     "name": "weblink12/IF_syndep_sparse.ode",
+     "size": 1853,
+     "sha256": "0f1cf1f5f70a07eebb14372519551cc3763a924efbbc98dd40ae651af4aff0d0",
+     "url": "https://modeldb.science/getModelFile?model=247709&file=weblink12/IF_syndep_sparse.ode"
+    },
+    {
+     "name": "weblink12/s_model.ode",
+     "size": 818,
+     "sha256": "87901e4fe84ccdf82b3e7618ca69f6b8241edfffc2505eba1938075dba2c836a",
+     "url": "https://modeldb.science/getModelFile?model=247709&file=weblink12/s_model.ode"
+    }
+   ],
+   "other_files": 4
+  },
+  {
+   "id": 249405,
+   "title": "A Computational Model of Bidirectional Plasticity Regulation by betaCaMKII (Pinto et al. 2019)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2019-01-14T12:25:12.163",
+   "url": "https://modeldb.science/249405",
+   "download": "https://modeldb.science/download/249405",
+   "zip_sha256": "80f5ea6c8b7f728bd3429918470d0541260a9b0a2929571bf624d6694afb3851",
+   "models": [
+    {
+     "name": "PintoTM_2019_PLoSComputBiol/bp_simple_100min.ode",
+     "run_in": "PintoTM_2019_PLoSComputBiol"
+    }
+   ],
+   "files": [
+    {
+     "name": "PintoTM_2019_PLoSComputBiol/bp_simple_100min.ode",
+     "size": 6185,
+     "sha256": "22ab53c5d76fa5f1fe57e98cc8b47a5b69c8b1026efc24c3adae2a0b4e9f5ec8",
+     "url": "https://modeldb.science/getModelFile?model=249405&file=PintoTM_2019_PLoSComputBiol/bp_simple_100min.ode"
+    },
+    {
+     "name": "PintoTM_2019_PLoSComputBiol/Ca2+PFCF_Pinto.tab",
+     "size": 224607,
+     "sha256": "d4d4b5f65bab1f3d0f98fea5bbcfc0b0e58d3701c9a1dff0f3f359432763e31f",
+     "url": "https://modeldb.science/getModelFile?model=249405&file=PintoTM_2019_PLoSComputBiol/Ca2%2BPFCF_Pinto.tab"
+    }
+   ],
+   "other_files": 14
+  },
+  {
+   "id": 255569,
+   "title": "Persistent Spiking in ACC Neurons (Ratte et al 2018)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2019-04-05T18:00:28.543",
+   "url": "https://modeldb.science/255569",
+   "download": "https://modeldb.science/download/255569",
+   "zip_sha256": "6459258be01f21dc10a5b0b2090c0723bd06ff966fa8aca0cf86023f5305699d",
+   "models": [
+    {
+     "name": "RatteEtAl2018/ACCPersistentSpiking-Ratte2018.ode",
+     "run_in": "RatteEtAl2018"
+    },
+    {
+     "name": "RatteEtAl2018/ACCPersistentSpiking-Ratte2018_ca.ode",
+     "run_in": "RatteEtAl2018"
+    },
+    {
+     "name": "RatteEtAl2018/ACCPersistentSpiking-Ratte2018_v.ode",
+     "run_in": "RatteEtAl2018"
+    }
+   ],
+   "files": [
+    {
+     "name": "RatteEtAl2018/ACCPersistentSpiking-Ratte2018.ode",
+     "size": 3080,
+     "sha256": "eac43af579ef8a0ac755c26e3c58a3a348f49a175daf7c2faa149adac8f2fa74",
+     "url": "https://modeldb.science/getModelFile?model=255569&file=RatteEtAl2018/ACCPersistentSpiking-Ratte2018.ode"
+    },
+    {
+     "name": "RatteEtAl2018/ACCPersistentSpiking-Ratte2018_ca.ode",
+     "size": 3074,
+     "sha256": "c880648568a80302e5ea2cfd2ff82f679d03d5f8fcd7dc6fe237d7ab4c705415",
+     "url": "https://modeldb.science/getModelFile?model=255569&file=RatteEtAl2018/ACCPersistentSpiking-Ratte2018_ca.ode"
+    },
+    {
+     "name": "RatteEtAl2018/ACCPersistentSpiking-Ratte2018_v.ode",
+     "size": 3066,
+     "sha256": "e52372e29dbd6db9ef9670909822920189be5a5cdc68b577c4113150317cedfa",
+     "url": "https://modeldb.science/getModelFile?model=255569&file=RatteEtAl2018/ACCPersistentSpiking-Ratte2018_v.ode"
+    }
+   ],
+   "other_files": 4
+  },
+  {
+   "id": 256627,
+   "title": "Criticality,degeneracy in injury-induced changes in primary afferent excitability (Ratte et al 2014)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2019-05-10T23:15:43.56",
+   "url": "https://modeldb.science/256627",
+   "download": "https://modeldb.science/download/256627",
+   "zip_sha256": "a74e435886dba1caf8d1d184f9803d470ccc80adb4c24a2045c3f07fea9c383b",
+   "models": [
+    {
+     "name": "RatteEtAl2014/eLIFE_model.ode",
+     "run_in": "RatteEtAl2014"
+    }
+   ],
+   "files": [
+    {
+     "name": "RatteEtAl2014/eLIFE_model.ode",
+     "size": 1339,
+     "sha256": "c27e54946599b021bea0af35f316faa4d18821f5d66744ac69bd495f1d9e8843",
+     "url": "https://modeldb.science/getModelFile?model=256627&file=RatteEtAl2014/eLIFE_model.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 257608,
+   "title": "Respiratory central pattern generator (mammalian brainstem) (Rubin & Smith 2019)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2019-07-14T23:03:38.517",
+   "url": "https://modeldb.science/257608",
+   "download": "https://modeldb.science/download/257608",
+   "zip_sha256": "15cf903e4eceea07abde98fa28dd01f5d7daf7b47ffced7f47cb5d07bfa881e8",
+   "models": [
+    {
+     "name": "RubinSmith2019/basenet.ode",
+     "run_in": "RubinSmith2019"
+    },
+    {
+     "name": "RubinSmith2019/basenetpico3.ode",
+     "run_in": "RubinSmith2019"
+    },
+    {
+     "name": "RubinSmith2019/basenetTA.ode",
+     "run_in": "RubinSmith2019"
+    }
+   ],
+   "files": [
+    {
+     "name": "RubinSmith2019/basenet.ode",
+     "size": 2797,
+     "sha256": "ddc6463bf040dad08aae5c298c916c47e9e8a9f333b1e18893e3ff1514f76d83",
+     "url": "https://modeldb.science/getModelFile?model=257608&file=RubinSmith2019/basenet.ode"
+    },
+    {
+     "name": "RubinSmith2019/basenetpico3.ode",
+     "size": 3394,
+     "sha256": "f68394dedd3106ef928ab0184ecedb0ff6d07416706bfad0eb9e425ca657bdeb",
+     "url": "https://modeldb.science/getModelFile?model=257608&file=RubinSmith2019/basenetpico3.ode"
+    },
+    {
+     "name": "RubinSmith2019/basenetTA.ode",
+     "size": 3085,
+     "sha256": "788d335746b512479be328f2708cf75c3f23fd61576b64b139050f81a001bc0f",
+     "url": "https://modeldb.science/getModelFile?model=257608&file=RubinSmith2019/basenetTA.ode"
+    }
+   ],
+   "other_files": 4
+  },
+  {
+   "id": 258234,
+   "title": "Inhibitory control of motoneuron excitability (Venugopal et al 2011)",
+   "simulators": [
+    "MATLAB",
+    "XPPAUT"
+   ],
+   "ver_date": "2019-07-29T17:34:39.17",
+   "url": "https://modeldb.science/258234",
+   "download": "https://modeldb.science/download/258234",
+   "zip_sha256": "15f6c8dae95aea2efd4342ef0c3961451c763de79f272289a25b01adb14d39ea",
+   "models": [
+    {
+     "name": "SCIMN/VSmn.ode",
+     "run_in": "SCIMN"
+    },
+    {
+     "name": "SCIMN/VSmn_inh.ode",
+     "run_in": "SCIMN"
+    }
+   ],
+   "files": [
+    {
+     "name": "SCIMN/VSmn.ode",
+     "size": 4383,
+     "sha256": "efc084c342ceacd8f38553d8a5e28c48d3b4d95d75b505c74214dfdf5a6afd7c",
+     "url": "https://modeldb.science/getModelFile?model=258234&file=SCIMN/VSmn.ode"
+    },
+    {
+     "name": "SCIMN/VSmn_inh.ode",
+     "size": 6004,
+     "sha256": "a545a57fe83a0d34f6159ff26e181fe75d148ab8ae2aeb3f5f81299ddbbc7bb1",
+     "url": "https://modeldb.science/getModelFile?model=258234&file=SCIMN/VSmn_inh.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 259786,
+   "title": "Respiratory central pattern generator including Kolliker-Fuse nucleus (Wittman et al 2019)",
+   "simulators": [
+    "XPPAUT",
+    "MATLAB"
+   ],
+   "ver_date": "2019-10-15T15:19:52.33",
+   "url": "https://modeldb.science/259786",
+   "download": "https://modeldb.science/download/259786",
+   "zip_sha256": "cc769011cb687ca881ff6b636682a4ff69c7298b8f8920ea5580bcb0f2407d06",
+   "models": [
+    {
+     "name": "WittmanEtAl2019/3p/3p.ode",
+     "run_in": "WittmanEtAl2019/3p"
+    },
+    {
+     "name": "WittmanEtAl2019/4p-e/4p-e.ode",
+     "run_in": "WittmanEtAl2019/4p-e"
+    },
+    {
+     "name": "WittmanEtAl2019/4p-r/4p-r.ode",
+     "run_in": "WittmanEtAl2019/4p-r"
+    }
+   ],
+   "files": [
+    {
+     "name": "WittmanEtAl2019/3p/3p.ode",
+     "size": 2881,
+     "sha256": "c846ed05e0b382c1428b3e2367a6005f19ce120c548a2b113ebb2bdd1b889b66",
+     "url": "https://modeldb.science/getModelFile?model=259786&file=WittmanEtAl2019/3p/3p.ode"
+    },
+    {
+     "name": "WittmanEtAl2019/4p-e/4p-e.ode",
+     "size": 3582,
+     "sha256": "2a0d6e808e9c98f31d28843a1d3091cb927ddc1fb92b64bc858d0be10e5ee85c",
+     "url": "https://modeldb.science/getModelFile?model=259786&file=WittmanEtAl2019/4p-e/4p-e.ode"
+    },
+    {
+     "name": "WittmanEtAl2019/4p-r/4p-r.ode",
+     "size": 3639,
+     "sha256": "969a21ad813ab5fce609736b5f6d70f13011efb3ff9a252e87756e2b29cf4288",
+     "url": "https://modeldb.science/getModelFile?model=259786&file=WittmanEtAl2019/4p-r/4p-r.ode"
+    }
+   ],
+   "other_files": 48
+  },
+  {
+   "id": 260190,
+   "title": "Signal fidelity in the rostral nucleus of the solitary tract (Boxwell et al 2018)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2019-11-13T13:50:59.333",
+   "url": "https://modeldb.science/260190",
+   "download": "https://modeldb.science/download/260190",
+   "zip_sha256": "b2235b21e0df24a2e35d10ca0bccfc394955ae5ee5d06af6986330991295e535",
+   "models": [
+    {
+     "name": "BoxwellEtAl2018/boxwell.ode",
+     "run_in": "BoxwellEtAl2018"
+    }
+   ],
+   "files": [
+    {
+     "name": "BoxwellEtAl2018/boxwell.ode",
+     "size": 2651,
+     "sha256": "4c9b68b83315c350d7ccf65d98084f086eae18bf1867d008916d07003e256dac",
+     "url": "https://modeldb.science/getModelFile?model=260190&file=BoxwellEtAl2018/boxwell.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 260730,
+   "title": "How adaptation makes low firing rates robust (Sherman & Ha 2017)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2020-03-25T11:40:47.85",
+   "url": "https://modeldb.science/260730",
+   "download": "https://modeldb.science/download/260730",
+   "zip_sha256": "339e96fba78c76e48c65933defc1e3c021c48813b6fcc4341e1d45b0e57e6817",
+   "models": [
+    {
+     "name": "ShermanHa2017/HR_Hopf.ode",
+     "run_in": "ShermanHa2017"
+    },
+    {
+     "name": "ShermanHa2017/HR_Hopf_2D.ode",
+     "run_in": "ShermanHa2017"
+    },
+    {
+     "name": "ShermanHa2017/HR_SNIC.ode",
+     "run_in": "ShermanHa2017"
+    },
+    {
+     "name": "ShermanHa2017/HR_SNIC_2D.ode",
+     "run_in": "ShermanHa2017"
+    },
+    {
+     "name": "ShermanHa2017/ML.ode",
+     "run_in": "ShermanHa2017"
+    }
+   ],
+   "files": [
+    {
+     "name": "ShermanHa2017/HR_Hopf.ode",
+     "size": 904,
+     "sha256": "af90a05e7d044a8b69dc2193c95f6ccce94a982c92c24a8d2c4f9cd8bd9dd111",
+     "url": "https://modeldb.science/getModelFile?model=260730&file=ShermanHa2017/HR_Hopf.ode"
+    },
+    {
+     "name": "ShermanHa2017/HR_Hopf_2D.ode",
+     "size": 380,
+     "sha256": "4912ff933059abd173596d6b014095af2b774ffa5280f0080740483d61cea4d6",
+     "url": "https://modeldb.science/getModelFile?model=260730&file=ShermanHa2017/HR_Hopf_2D.ode"
+    },
+    {
+     "name": "ShermanHa2017/HR_SNIC.ode",
+     "size": 881,
+     "sha256": "f6549fc5695ded26f5cdd654b5046882e11cf9fa5f143100585a6d6dded9bf4f",
+     "url": "https://modeldb.science/getModelFile?model=260730&file=ShermanHa2017/HR_SNIC.ode"
+    },
+    {
+     "name": "ShermanHa2017/HR_SNIC_2D.ode",
+     "size": 609,
+     "sha256": "cf044bb1ef8b8f76ae011180cb7dd8beff4d347da674daf9329b37cd3c70cc6a",
+     "url": "https://modeldb.science/getModelFile?model=260730&file=ShermanHa2017/HR_SNIC_2D.ode"
+    },
+    {
+     "name": "ShermanHa2017/ML.ode",
+     "size": 697,
+     "sha256": "539ea8db926de06f50ea094b9520162ffc7a4b1a744c87b4248099bc34d86cfd",
+     "url": "https://modeldb.science/getModelFile?model=260730&file=ShermanHa2017/ML.ode"
+    }
+   ],
+   "other_files": 11
+  },
+  {
+   "id": 264591,
+   "title": "A computational model of a small DRG neuron to explore pain (Verma et al. 2019, 2020)",
+   "simulators": [
+    "MATLAB",
+    "XPPAUT"
+   ],
+   "ver_date": "2020-05-21T14:11:20.997",
+   "url": "https://modeldb.science/264591",
+   "download": "https://modeldb.science/download/264591",
+   "zip_sha256": "b8fd7e9c48d65a1aa4d6273aea504677cf06b57c8802bd18b6a4a8bcd997fc16",
+   "models": [
+    {
+     "name": "DRG_Codes/XPP/CIPN_HillPax.ode",
+     "run_in": "DRG_Codes/XPP"
+    },
+    {
+     "name": "DRG_Codes/XPP/DRG.ode",
+     "run_in": "DRG_Codes/XPP"
+    }
+   ],
+   "files": [
+    {
+     "name": "DRG_Codes/XPP/CIPN_HillPax.ode",
+     "size": 2478,
+     "sha256": "8fdb1601ec44a6a86e0152d5a4dee36faafedbd838ae9976c05972208ef44cdd",
+     "url": "https://modeldb.science/getModelFile?model=264591&file=DRG_Codes/XPP/CIPN_HillPax.ode"
+    },
+    {
+     "name": "DRG_Codes/XPP/DRG.ode",
+     "size": 2362,
+     "sha256": "74951b7d3f770ea155b354d9bb3aad0c2defe977a723e4ef115cc78d6b5bd7b1",
+     "url": "https://modeldb.science/getModelFile?model=264591&file=DRG_Codes/XPP/DRG.ode"
+    }
+   ],
+   "other_files": 8
+  },
+  {
+   "id": 266636,
+   "title": "BK Channels Promote Bursting in Pituitary Cells (Tabak et al 2011)",
+   "simulators": [
+    "XPP (web link to model)",
+    "NEURON (web link to model)",
+    "Python (web link to model)"
+   ],
+   "ver_date": "2020-06-17T17:03:51.147",
+   "url": "https://modeldb.science/266636",
+   "download": "https://modeldb.science/download/266636",
+   "zip_sha256": "2aa93eb558463917f1680d46b3722025c66fb11fbdf7afdf17f967c234729f22",
+   "models": [
+    {
+     "name": "TabakEtAl2011/JNS_11b.ode.txt",
+     "run_in": "TabakEtAl2011"
+    }
+   ],
+   "files": [
+    {
+     "name": "TabakEtAl2011/JNS_11b.ode.txt",
+     "size": 1275,
+     "sha256": "9bf03a6c9f66cbe780afd181eada9caec5da98f26d15c99e0cfd1359eefb902b",
+     "url": "https://modeldb.science/getModelFile?model=266636&file=TabakEtAl2011/JNS_11b.ode.txt"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 266718,
+   "title": "Cerebellar stellate cells: changes in threshold, latency and frequency of firing (Mitry et al 2020)",
+   "simulators": [
+    "MATLAB (web link to model)",
+    "XPP (web link to model)"
+   ],
+   "ver_date": "2020-07-01T09:59:40.077",
+   "url": "https://modeldb.science/266718",
+   "download": "https://modeldb.science/download/266718",
+   "zip_sha256": "e342bb78b5bedb6a9755c54642e047b9a532ddc65f5d3252125cbcd3ba96c123",
+   "models": [
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 10 & 11/Inset/Stellate_Cell_Post.ode",
+     "run_in": "MitryEtAl2020/StellateCellCode/Code/Fig 10 & 11/Inset"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 10 & 11/Stellate_Cell_Post.ode",
+     "run_in": "MitryEtAl2020/StellateCellCode/Code/Fig 10 & 11"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 10 & 11/Stellate_Cell_Pre.ode",
+     "run_in": "MitryEtAl2020/StellateCellCode/Code/Fig 10 & 11"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 12/Stellate_Cell_Post.ode",
+     "run_in": "MitryEtAl2020/StellateCellCode/Code/Fig 12"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 12/Stellate_Cell_Pre.ode",
+     "run_in": "MitryEtAl2020/StellateCellCode/Code/Fig 12"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 6 & top panels Fig 8/Stellate_Cell_Post.ode",
+     "run_in": "MitryEtAl2020/StellateCellCode/Code/Fig 6 & top panels Fig 8"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 6 & top panels Fig 8/Stellate_Cell_Pre.ode",
+     "run_in": "MitryEtAl2020/StellateCellCode/Code/Fig 6 & top panels Fig 8"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 7/Stellate_Cell_Post.ode",
+     "run_in": "MitryEtAl2020/StellateCellCode/Code/Fig 7"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 7/Stellate_Cell_Pre.ode",
+     "run_in": "MitryEtAl2020/StellateCellCode/Code/Fig 7"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 8/Stellate_Cell_Post.ode",
+     "run_in": "MitryEtAl2020/StellateCellCode/Code/Fig 8"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 8/Stellate_Cell_Pre.ode",
+     "run_in": "MitryEtAl2020/StellateCellCode/Code/Fig 8"
+    }
+   ],
+   "files": [
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 10 & 11/Inset/Stellate_Cell_Post.ode",
+     "size": 1502,
+     "sha256": "debef02b4b3df3aad467108b55344cb9e3151840d2f9d011b95cbed386f3e7ce",
+     "in": "MitryEtAl2020/StellateCellCode.zip",
+     "url": "https://modeldb.science/getModelFile?model=266718&file=MitryEtAl2020/StellateCellCode.zip"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 10 & 11/Stellate_Cell_Post.ode",
+     "size": 1502,
+     "sha256": "4ed0e1f45779f37ff84826306f261174e72cc456a1afbc068b5d7562a7cdb556",
+     "in": "MitryEtAl2020/StellateCellCode.zip",
+     "url": "https://modeldb.science/getModelFile?model=266718&file=MitryEtAl2020/StellateCellCode.zip"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 10 & 11/Stellate_Cell_Pre.ode",
+     "size": 1442,
+     "sha256": "cb0b1f47f3c79a0c420cc7c3c7e22a56e3b4e90dae63d8b2f381271daf07f288",
+     "in": "MitryEtAl2020/StellateCellCode.zip",
+     "url": "https://modeldb.science/getModelFile?model=266718&file=MitryEtAl2020/StellateCellCode.zip"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 12/Stellate_Cell_Post.ode",
+     "size": 1504,
+     "sha256": "1af989f01bbf63d0f0fef60a607e1226e5ef2fce8204b93caaf3d5b28214f961",
+     "in": "MitryEtAl2020/StellateCellCode.zip",
+     "url": "https://modeldb.science/getModelFile?model=266718&file=MitryEtAl2020/StellateCellCode.zip"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 12/Stellate_Cell_Pre.ode",
+     "size": 1414,
+     "sha256": "d42420c8686ba9c08530001db6755bf897f1dbe2f1c67063e25dc872e4f28cd0",
+     "in": "MitryEtAl2020/StellateCellCode.zip",
+     "url": "https://modeldb.science/getModelFile?model=266718&file=MitryEtAl2020/StellateCellCode.zip"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 6 & top panels Fig 8/Stellate_Cell_Post.ode",
+     "size": 1317,
+     "sha256": "483d42b3e03b50eb3ab5446b29700e0336391710112b42d00b69a51ef9142074",
+     "in": "MitryEtAl2020/StellateCellCode.zip",
+     "url": "https://modeldb.science/getModelFile?model=266718&file=MitryEtAl2020/StellateCellCode.zip"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 6 & top panels Fig 8/Stellate_Cell_Pre.ode",
+     "size": 1298,
+     "sha256": "e1b01aaf1559cda8bc2278dde16b03164344853620f0eeb3e146fc947173363d",
+     "in": "MitryEtAl2020/StellateCellCode.zip",
+     "url": "https://modeldb.science/getModelFile?model=266718&file=MitryEtAl2020/StellateCellCode.zip"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 7/Stellate_Cell_Post.ode",
+     "size": 1460,
+     "sha256": "d4d33e2c528cb5fc0461c0c94656eec69a7fb2e533b7d9364b4a52de3230feb8",
+     "in": "MitryEtAl2020/StellateCellCode.zip",
+     "url": "https://modeldb.science/getModelFile?model=266718&file=MitryEtAl2020/StellateCellCode.zip"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 7/Stellate_Cell_Pre.ode",
+     "size": 1443,
+     "sha256": "f85c05aed680afc37777fa96959bb1cb5ab25ff7225590208639de40542ba2a2",
+     "in": "MitryEtAl2020/StellateCellCode.zip",
+     "url": "https://modeldb.science/getModelFile?model=266718&file=MitryEtAl2020/StellateCellCode.zip"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 8/Stellate_Cell_Post.ode",
+     "size": 1525,
+     "sha256": "8f8c6e3cb47ccd0e707c897b3a8e8cc10ea151a7bb126297719869771567347b",
+     "in": "MitryEtAl2020/StellateCellCode.zip",
+     "url": "https://modeldb.science/getModelFile?model=266718&file=MitryEtAl2020/StellateCellCode.zip"
+    },
+    {
+     "name": "MitryEtAl2020/StellateCellCode/Code/Fig 8/Stellate_Cell_Pre.ode",
+     "size": 1435,
+     "sha256": "77c54a0601ba325b02e32acdd88be4351a0a7d99f9f03edaa3dc072810a5affd",
+     "in": "MitryEtAl2020/StellateCellCode.zip",
+     "url": "https://modeldb.science/getModelFile?model=266718&file=MitryEtAl2020/StellateCellCode.zip"
+    }
+   ],
+   "other_files": 44
+  },
+  {
+   "id": 266726,
+   "title": "Markovian model for SCN8A-encoded channel (Kuo et al 2020)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2020-07-06T10:12:28.073",
+   "url": "https://modeldb.science/266726",
+   "download": "https://modeldb.science/download/266726",
+   "zip_sha256": "38c8754297fbb6402ec94c38e42569bcbd4f7b1cf5d61147faf5e451f6a9d0e7",
+   "models": [
+    {
+     "name": "Sesamin-NaV-Model/RB-INa-Molecules.ode",
+     "run_in": "Sesamin-NaV-Model"
+    }
+   ],
+   "files": [
+    {
+     "name": "Sesamin-NaV-Model/RB-INa-Molecules.ode",
+     "size": 2317,
+     "sha256": "e3506f8b8c021e3128f6ec071b27a411690e374a7c66fc9e6073c305e6006528",
+     "url": "https://modeldb.science/getModelFile?model=266726&file=Sesamin-NaV-Model/RB-INa-Molecules.ode"
+    }
+   ],
+   "other_files": 7
+  },
+  {
+   "id": 266837,
+   "title": "Neuroprotective Role of Gap Junctions in a Neuron Astrocyte Network Model (Huguet et al 2016)",
+   "simulators": [
+    "C or C++ program",
+    "XPPAUT"
+   ],
+   "ver_date": "2020-11-15T12:30:01.17",
+   "url": "https://modeldb.science/266837",
+   "download": "https://modeldb.science/download/266837",
+   "zip_sha256": "1234620131d29ea7a333b6934171684f1dd26ac545918ff1aaea463331579d7b",
+   "models": [
+    {
+     "name": "modeldb/gap.ode",
+     "run_in": "modeldb"
+    }
+   ],
+   "files": [
+    {
+     "name": "modeldb/gap.ode",
+     "size": 7087,
+     "sha256": "0f786c48fd995c1debaa91ff3bd2d0232ce395eac8e36145567253ba0577f81e",
+     "url": "https://modeldb.science/getModelFile?model=266837&file=modeldb/gap.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 267027,
+   "title": "Model for pancreatic beta-cells (Law et al. 2020)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2021-04-25T16:35:42.85",
+   "url": "https://modeldb.science/267027",
+   "download": "https://modeldb.science/download/267027",
+   "zip_sha256": "f9c82e3e82151e34043af990715987f19061f8c5934762f65b5dc6aabcda3561",
+   "models": [
+    {
+     "name": "AJP_20/AJP_20.ode",
+     "run_in": "AJP_20"
+    }
+   ],
+   "files": [
+    {
+     "name": "AJP_20/AJP_20.ode",
+     "size": 6698,
+     "sha256": "764e3e8f6b525ca4fe2c15775b1b42d964c465816c2a88a6c84a25af22afc128",
+     "url": "https://modeldb.science/getModelFile?model=267027&file=AJP_20/AJP_20.ode"
+    }
+   ],
+   "other_files": 1
+  },
+  {
+   "id": 267047,
+   "title": "Two-neuron conductance-based model with dynamic ion concentrations to study NaV1.1 channel mutations",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2021-08-17T09:35:59.813",
+   "url": "https://modeldb.science/267047",
+   "download": "https://modeldb.science/download/267047",
+   "zip_sha256": "5e1072deadbdf596e59335de80a591a016e35fc54e579a88275d701c2d9f393d",
+   "models": [
+    {
+     "name": "2_neurons_NaV1_1/2_neurons.ode",
+     "run_in": "2_neurons_NaV1_1"
+    }
+   ],
+   "files": [
+    {
+     "name": "2_neurons_NaV1_1/2_neurons.ode",
+     "size": 8393,
+     "sha256": "316b02470f98679a8078b73437d558401417b2560969305708f0067737d2d32d",
+     "url": "https://modeldb.science/getModelFile?model=267047&file=2_neurons_NaV1_1/2_neurons.ode"
+    }
+   ],
+   "other_files": 10
+  },
+  {
+   "id": 267086,
+   "title": "Interactions among kinase cascades underlying LTP in Aplysia sensory neurons (Zhang et al 2021)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2022-02-11T11:24:11.133",
+   "url": "https://modeldb.science/267086",
+   "download": "https://modeldb.science/download/267086",
+   "zip_sha256": "f599752fa36060c024e74e2e9ab5598747b3d54a3679a244915bfff07f6e1195",
+   "models": [
+    {
+     "name": "model_Yili_Zhang_2021_SciRep/model_Yili_Zhang_2021_SciRep.txt",
+     "run_in": "model_Yili_Zhang_2021_SciRep"
+    }
+   ],
+   "files": [
+    {
+     "name": "model_Yili_Zhang_2021_SciRep/model_Yili_Zhang_2021_SciRep.txt",
+     "size": 5266,
+     "sha256": "bebf1b4e6cd84e85f4ed3ad5ba73b74b253bd3d8d9f6dac7792a2afdb844b6be",
+     "url": "https://modeldb.science/getModelFile?model=267086&file=model_Yili_Zhang_2021_SciRep/model_Yili_Zhang_2021_SciRep.txt"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 267093,
+   "title": "Dynamics of ramping bursts in a respiratory pre-Botzinger Complex model (Abdulla et al, 2021)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2023-02-13T10:51:02.233",
+   "url": "https://modeldb.science/267093",
+   "download": "https://modeldb.science/download/267093",
+   "zip_sha256": "fddbcee87ae9bda0f2962101faa86ad3c1134d85690f99ac6839ff8d610bf710",
+   "models": [
+    {
+     "name": "prelramp/preIramp.ode",
+     "run_in": "prelramp"
+    }
+   ],
+   "files": [
+    {
+     "name": "prelramp/preIramp.ode",
+     "size": 2217,
+     "sha256": "53bd1114ab26e45b5d5b8047d36422d4cb43b0a0c6af71159c25c900396199ab",
+     "url": "https://modeldb.science/getModelFile?model=267093&file=prelramp/preIramp.ode"
+    }
+   ],
+   "other_files": 0
+  },
+  {
+   "id": 267157,
+   "title": "Initiation of spreading depolarization by GABAergic neuron hyperactivity & NaV 1.1 (Chever et al 21)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2021-10-19T08:50:25.557",
+   "url": "https://modeldb.science/267157",
+   "download": "https://modeldb.science/download/267157",
+   "zip_sha256": "f2d11594719f1c70f987102badd946851a52288ff59d305494b30d0064b86280",
+   "models": [
+    {
+     "name": "2_neurons_NaV1_1/2_neurons.ode",
+     "run_in": "2_neurons_NaV1_1"
+    }
+   ],
+   "files": [
+    {
+     "name": "2_neurons_NaV1_1/2_neurons.ode",
+     "size": 8535,
+     "sha256": "d90d7ff014c238722d77d50b606ef2e2584fba2a51072b5605b054c6f7e219d4",
+     "url": "https://modeldb.science/getModelFile?model=267157&file=2_neurons_NaV1_1/2_neurons.ode"
+    }
+   ],
+   "other_files": 7
+  },
+  {
+   "id": 267187,
+   "title": "Biophysical models of AWCon and RMD C. elegans neurons (M. Nicoletti at al. 2019)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2022-01-02T15:38:02.677",
+   "url": "https://modeldb.science/267187",
+   "download": "https://modeldb.science/download/267187",
+   "zip_sha256": "97fce90ee4650dfdcbb902a0bf5484d9b47bc173a8ce66739bf207b1c7a7063d",
+   "models": [
+    {
+     "name": "MNicoletti_2019_XPP/AWC.ode",
+     "run_in": "MNicoletti_2019_XPP"
+    },
+    {
+     "name": "MNicoletti_2019_XPP/RMD.ode",
+     "run_in": "MNicoletti_2019_XPP"
+    }
+   ],
+   "files": [
+    {
+     "name": "MNicoletti_2019_XPP/AWC.ode",
+     "size": 15900,
+     "sha256": "6b391d3560bdfcce9e32b59e74e8a066a1f7f7c9ab8b41a8683e3c49d877ad2e",
+     "url": "https://modeldb.science/getModelFile?model=267187&file=MNicoletti_2019_XPP/AWC.ode"
+    },
+    {
+     "name": "MNicoletti_2019_XPP/RMD.ode",
+     "size": 14316,
+     "sha256": "b977f208ad21a449cd1f3049973e0791a95f565ab3d3a623075817d1b0ac9f87",
+     "url": "https://modeldb.science/getModelFile?model=267187&file=MNicoletti_2019_XPP/RMD.ode"
+    }
+   ],
+   "other_files": 0
+  },
+  {
+   "id": 267222,
+   "title": "Mauthner cell with two pre-synaptic cells, an inhibitory and an excitatory cell (Orr et al 2021)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2022-01-06T20:38:13.58",
+   "url": "https://modeldb.science/267222",
+   "download": "https://modeldb.science/download/267222",
+   "zip_sha256": "13e2b01e66f3374e77c3a33a4160263180836441c399a1729c5912679cf25bc5",
+   "models": [
+    {
+     "name": "zebrafish_cb1r_ode_files/zebrafish_cb1r.ode",
+     "run_in": "zebrafish_cb1r_ode_files"
+    }
+   ],
+   "files": [
+    {
+     "name": "zebrafish_cb1r_ode_files/zebrafish_cb1r.ode",
+     "size": 2823,
+     "sha256": "3b14c8db4634bd2189c57c717a16417f33f42b645a85841745cc8fdd47e84f49",
+     "url": "https://modeldb.science/getModelFile?model=267222&file=zebrafish_cb1r_ode_files/zebrafish_cb1r.ode"
+    }
+   ],
+   "other_files": 6
+  },
+  {
+   "id": 267252,
+   "title": "An ODE model of the inspiratory & sigh rhythms (Borrus et al., 2024)",
+   "simulators": [
+    "MATLAB",
+    "XPPAUT"
+   ],
+   "ver_date": "2024-02-14T22:21:01.827376",
+   "url": "https://modeldb.science/267252",
+   "download": "https://modeldb.science/download/267252",
+   "zip_sha256": "a1db2c19cbe184c997ae11063dcc29573f708928abf58786abe7322315755749",
+   "models": [
+    {
+     "name": "ModelDB_version/v4_EupneaSigh.ode",
+     "run_in": "ModelDB_version"
+    }
+   ],
+   "files": [
+    {
+     "name": "ModelDB_version/v4_EupneaSigh.ode",
+     "size": 1447,
+     "sha256": "07d11ad5676eb31b6bcf57c202c1f7545162ada7a7c39b9e287e54c22f3e15b0",
+     "url": "https://modeldb.science/getModelFile?model=267252&file=ModelDB_version/v4_EupneaSigh.ode"
+    }
+   ],
+   "other_files": 3
+  },
+  {
+   "id": 267382,
+   "title": "Exact mean-field models for Izhikevich networks (Chen and Campbell 2022)",
+   "simulators": [
+    "MATLAB",
+    "XPPAUT"
+   ],
+   "ver_date": "2022-07-23T12:02:12.657",
+   "url": "https://modeldb.science/267382",
+   "download": "https://modeldb.science/download/267382",
+   "zip_sha256": "a032480caa10788b362b3423a1e400f7ddf0420eee88b614120dd696406f5d75",
+   "models": [
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure1/Figure1ab/mf_izh.ode",
+     "run_in": "Code_IzhikevichNetwork_MF_ModelDB/Figure1/Figure1ab"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure1/Figure1c/wm_mu_MF_XPPAUT/mf_izh.ode",
+     "run_in": "Code_IzhikevichNetwork_MF_ModelDB/Figure1/Figure1c/wm_mu_MF_XPPAUT"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure3/Figure3a/mf_izh.ode",
+     "run_in": "Code_IzhikevichNetwork_MF_ModelDB/Figure3/Figure3a"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure3/Figure3b/mf_izh.ode",
+     "run_in": "Code_IzhikevichNetwork_MF_ModelDB/Figure3/Figure3b"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure3/Figure3d/mf_izh.ode",
+     "run_in": "Code_IzhikevichNetwork_MF_ModelDB/Figure3/Figure3d"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5a/mf2.ode",
+     "run_in": "Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5a"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5b/mf2.ode",
+     "run_in": "Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5b"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5c/mf2.ode",
+     "run_in": "Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5c"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5d/mf2.ode",
+     "run_in": "Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5d"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure6/Figure6a/mf2.ode",
+     "run_in": "Code_IzhikevichNetwork_MF_ModelDB/Figure6/Figure6a"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure6/Figure6b/mf2.ode",
+     "run_in": "Code_IzhikevichNetwork_MF_ModelDB/Figure6/Figure6b"
+    }
+   ],
+   "files": [
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure1/Figure1ab/mf_izh.ode",
+     "size": 945,
+     "sha256": "0aadef52ae4bf7fc61e25657312352da15bb23ce0273148b97e881d0fecc31cb",
+     "url": "https://modeldb.science/getModelFile?model=267382&file=Code_IzhikevichNetwork_MF_ModelDB/Figure1/Figure1ab/mf_izh.ode"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure1/Figure1c/wm_mu_MF_XPPAUT/mf_izh.ode",
+     "size": 945,
+     "sha256": "d8ee7ab926ed1d6c33c55e83e57515889dcdb77991f485f18129a58d4aa26797",
+     "url": "https://modeldb.science/getModelFile?model=267382&file=Code_IzhikevichNetwork_MF_ModelDB/Figure1/Figure1c/wm_mu_MF_XPPAUT/mf_izh.ode"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure3/Figure3a/mf_izh.ode",
+     "size": 953,
+     "sha256": "90dce4c60858da7dbb5e0022a53c099d6883ec76cc6255c573067976d3f04bc5",
+     "url": "https://modeldb.science/getModelFile?model=267382&file=Code_IzhikevichNetwork_MF_ModelDB/Figure3/Figure3a/mf_izh.ode"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure3/Figure3b/mf_izh.ode",
+     "size": 943,
+     "sha256": "2f480db8564e05a406041ae5028fdf7b987421700739c73f80171cd4ca803047",
+     "url": "https://modeldb.science/getModelFile?model=267382&file=Code_IzhikevichNetwork_MF_ModelDB/Figure3/Figure3b/mf_izh.ode"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure3/Figure3d/mf_izh.ode",
+     "size": 950,
+     "sha256": "432a18e70f7af3e6650b8bcaf56cef1e7f853730ae49bb3c0b754033fec3d085",
+     "url": "https://modeldb.science/getModelFile?model=267382&file=Code_IzhikevichNetwork_MF_ModelDB/Figure3/Figure3d/mf_izh.ode"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5a/mf2.ode",
+     "size": 1781,
+     "sha256": "0e08cbf27bc3060352afcb2348fa56e291a9987ff06351238b88e55fa389f5c7",
+     "url": "https://modeldb.science/getModelFile?model=267382&file=Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5a/mf2.ode"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5b/mf2.ode",
+     "size": 1782,
+     "sha256": "80542e2638aecef28d619fa0ab0cac036e7f57623d0aa69230fedb00fb797940",
+     "url": "https://modeldb.science/getModelFile?model=267382&file=Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5b/mf2.ode"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5c/mf2.ode",
+     "size": 1785,
+     "sha256": "e00b26940b153bd6f6aa1e8de678716c08a1e5e5f8b0f8421f8f246fb1bb26b2",
+     "url": "https://modeldb.science/getModelFile?model=267382&file=Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5c/mf2.ode"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5d/mf2.ode",
+     "size": 1785,
+     "sha256": "e00b26940b153bd6f6aa1e8de678716c08a1e5e5f8b0f8421f8f246fb1bb26b2",
+     "url": "https://modeldb.science/getModelFile?model=267382&file=Code_IzhikevichNetwork_MF_ModelDB/Figure5/Figure5d/mf2.ode"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure6/Figure6a/mf2.ode",
+     "size": 1782,
+     "sha256": "3622e6d50c0eb723436bf5515774f17c5f4c48b55a288dc82d92738a8ee75afb",
+     "url": "https://modeldb.science/getModelFile?model=267382&file=Code_IzhikevichNetwork_MF_ModelDB/Figure6/Figure6a/mf2.ode"
+    },
+    {
+     "name": "Code_IzhikevichNetwork_MF_ModelDB/Figure6/Figure6b/mf2.ode",
+     "size": 1784,
+     "sha256": "0c1313cea27c39a6b56608857a49b72530fe7854362d471dab056eea2bf44127",
+     "url": "https://modeldb.science/getModelFile?model=267382&file=Code_IzhikevichNetwork_MF_ModelDB/Figure6/Figure6b/mf2.ode"
+    }
+   ],
+   "other_files": 124
+  },
+  {
+   "id": 267562,
+   "title": "Model for pusatile insulin secretion at basal levels of glucose (Fletcher et al, 2022)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2022-09-23T12:47:20.087",
+   "url": "https://modeldb.science/267562",
+   "download": "https://modeldb.science/download/267562",
+   "zip_sha256": "86c35808c79526fe8a2567ade7a2d967969537da9181c586b9e8a41c6dc40ba2",
+   "models": [
+    {
+     "name": "Physiology_22/Physiology_22.ode",
+     "run_in": "Physiology_22"
+    }
+   ],
+   "files": [
+    {
+     "name": "Physiology_22/Physiology_22.ode",
+     "size": 10683,
+     "sha256": "b116412ca1a7be073d9b83990bb12dd80ff2583b0138fd510fa978a5a93fbcb3",
+     "url": "https://modeldb.science/getModelFile?model=267562&file=Physiology_22/Physiology_22.ode"
+    }
+   ],
+   "other_files": 0
+  },
+  {
+   "id": 267563,
+   "title": "A model for early afterdepolarizations in the cardiomyocyte action potential (Kimrey et al., 2022)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2022-09-23T12:39:31.653",
+   "url": "https://modeldb.science/267563",
+   "download": "https://modeldb.science/download/267563",
+   "zip_sha256": "b2a503bae8d58b06f3b5db96f19fa8643838abacf6375a8b0457f699268e70de",
+   "models": [
+    {
+     "name": "SIADS_22/SIADS_22.ode",
+     "run_in": "SIADS_22"
+    }
+   ],
+   "files": [
+    {
+     "name": "SIADS_22/SIADS_22.ode",
+     "size": 7604,
+     "sha256": "3ce3edb08fc296c801249631ab51d81a5a73ccb82509aa88f7472d3f6c2f9355",
+     "url": "https://modeldb.science/getModelFile?model=267563&file=SIADS_22/SIADS_22.ode"
+    }
+   ],
+   "other_files": 0
+  },
+  {
+   "id": 267564,
+   "title": "Integrated Oscillator Model for pancreatic islet beta-cells (Marinelli et al., 2022)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2022-09-23T14:18:31.737",
+   "url": "https://modeldb.science/267564",
+   "download": "https://modeldb.science/download/267564",
+   "zip_sha256": "896d61d7d76972d7d8db4d6f16c471e47609a9264ee794ce526c78b7c95f4f7d",
+   "models": [
+    {
+     "name": "IOM/IOM.ode",
+     "run_in": "IOM"
+    }
+   ],
+   "files": [
+    {
+     "name": "IOM/IOM.ode",
+     "size": 8588,
+     "sha256": "80b5b9085f40e3bc5db08b0310b2069f94197998bb8a10290ddb5f5b6eb13203",
+     "url": "https://modeldb.science/getModelFile?model=267564&file=IOM/IOM.ode"
+    }
+   ],
+   "other_files": 0
+  },
+  {
+   "id": 267565,
+   "title": "Model for pancreatic beta-cells with two isoforms of PFK (Marinelli et al., 2022)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2022-09-23T11:38:28.837",
+   "url": "https://modeldb.science/267565",
+   "download": "https://modeldb.science/download/267565",
+   "zip_sha256": "18c9d96715a4543492186da7ff5dc421278aa280233047fa7b67a14a8839a6e0",
+   "models": [
+    {
+     "name": "BJ_22a/BJ_22a.ode",
+     "run_in": "BJ_22a"
+    }
+   ],
+   "files": [
+    {
+     "name": "BJ_22a/BJ_22a.ode",
+     "size": 8530,
+     "sha256": "9755151596642ffff0ea83b048efb05f8452fa2383eac83f0cb1dbc3ec93b911",
+     "url": "https://modeldb.science/getModelFile?model=267565&file=BJ_22a/BJ_22a.ode"
+    }
+   ],
+   "other_files": 0
+  },
+  {
+   "id": 267614,
+   "title": "HH-type model of fast-spiking parvalbumin interneurons in spinal dorsal horn (Ma et al, 2023)",
+   "simulators": [
+    "XPPAUT",
+    "MATLAB"
+   ],
+   "ver_date": "2023-05-28T15:37:59.033",
+   "url": "https://modeldb.science/267614",
+   "download": "https://modeldb.science/download/267614",
+   "zip_sha256": "b9490acc0c6b3c2222de06871cbfca6a05a329e3f2319bc4e2e2fa8102ee7ec9",
+   "models": [
+    {
+     "name": "PVIN_MaEtAl2023/XPP/PVIN_2023.ode",
+     "run_in": "PVIN_MaEtAl2023/XPP"
+    }
+   ],
+   "files": [
+    {
+     "name": "PVIN_MaEtAl2023/XPP/PVIN_2023.ode",
+     "size": 2166,
+     "sha256": "7939ecc48f5f655c34218154145898bac0e23e96423495912fc556fa334bb62a",
+     "url": "https://modeldb.science/getModelFile?model=267614&file=PVIN_MaEtAl2023/XPP/PVIN_2023.ode"
+    }
+   ],
+   "other_files": 23
+  },
+  {
+   "id": 267695,
+   "title": "Aplysia LTF model (Liu et al, 2020; Zhang et al, 2021; Liu et al 2022)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2023-03-29T09:40:19.477",
+   "url": "https://modeldb.science/267695",
+   "download": "https://modeldb.science/download/267695",
+   "zip_sha256": "d036c26ec7f999c64e6f5b38cd2d2cfdd3b70ba9b9005269569f4102d99271a8",
+   "models": [
+    {
+     "name": "Zhang_et_al_2022_LTF model/NN-model-2022-synergism.ode.txt",
+     "run_in": "Zhang_et_al_2022_LTF model"
+    }
+   ],
+   "files": [
+    {
+     "name": "Zhang_et_al_2022_LTF model/NN-model-2022-synergism.ode.txt",
+     "size": 5321,
+     "sha256": "1ca13e3c68be51889c4d0c8385ff83f8b1cd3113efbce839a31a6dc24f08e42b",
+     "url": "https://modeldb.science/getModelFile?model=267695&file=Zhang_et_al_2022_LTF%20model/NN-model-2022-synergism.ode.txt"
+    }
+   ],
+   "other_files": 0
+  },
+  {
+   "id": 267696,
+   "title": "Glial voltage dynamics driven by Kir & K2P currents (Janjic et al 2023)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2023-03-24T09:42:23.5",
+   "url": "https://modeldb.science/267696",
+   "download": "https://modeldb.science/download/267696",
+   "zip_sha256": "c879b8ea0bf1ba13c5e00a0159ec53d4cbedd3f3612c77797d3bcd8b58953ffe",
+   "models": [
+    {
+     "name": "XPPAUT_Code_and_Data_D-22-00597/BIF_izh-v01-20230103-Adrian_zBA_origForm_and_deltaBoltzmann_Ko-dep.ode",
+     "run_in": "XPPAUT_Code_and_Data_D-22-00597"
+    },
+    {
+     "name": "XPPAUT_Code_and_Data_D-22-00597/SIM_izh-v01-20230103-Adrian_zBA_origForm_and_deltaBoltzmann_dV-dc_Ko-dep.ode",
+     "run_in": "XPPAUT_Code_and_Data_D-22-00597"
+    }
+   ],
+   "files": [
+    {
+     "name": "XPPAUT_Code_and_Data_D-22-00597/BIF_izh-v01-20230103-Adrian_zBA_origForm_and_deltaBoltzmann_Ko-dep.ode",
+     "size": 3268,
+     "sha256": "98c35494297d82d3acac0f50bb11b5782579803b9a8c980d4e6dabe9f262faf8",
+     "url": "https://modeldb.science/getModelFile?model=267696&file=XPPAUT_Code_and_Data_D-22-00597/BIF_izh-v01-20230103-Adrian_zBA_origForm_and_deltaBoltzmann_Ko-dep.ode"
+    },
+    {
+     "name": "XPPAUT_Code_and_Data_D-22-00597/SIM_izh-v01-20230103-Adrian_zBA_origForm_and_deltaBoltzmann_dV-dc_Ko-dep.ode",
+     "size": 4152,
+     "sha256": "6df6c731dd9cbf73cbdf44a0592992524d487ee58e8fd62aa57d78017e7b8fe0",
+     "url": "https://modeldb.science/getModelFile?model=267696&file=XPPAUT_Code_and_Data_D-22-00597/SIM_izh-v01-20230103-Adrian_zBA_origForm_and_deltaBoltzmann_dV-dc_Ko-dep.ode"
+    },
+    {
+     "name": "XPPAUT_Code_and_Data_D-22-00597/TraynGlia_dV_dc_SHIFTED_ms.txt",
+     "size": 2513462,
+     "sha256": "e4f2eb8a312d62aa05490d04264359ee134cf1916f32f5d27a8ea2d3e19e0d39",
+     "url": "https://modeldb.science/getModelFile?model=267696&file=XPPAUT_Code_and_Data_D-22-00597/TraynGlia_dV_dc_SHIFTED_ms.txt"
+    },
+    {
+     "name": "XPPAUT_Code_and_Data_D-22-00597/TraynGlia_Vext_ms.txt",
+     "size": 3551645,
+     "sha256": "41714af571a298c02486c093b2ba5c2a21a9eab9586b65188066a05794777437",
+     "url": "https://modeldb.science/getModelFile?model=267696&file=XPPAUT_Code_and_Data_D-22-00597/TraynGlia_Vext_ms.txt"
+    }
+   ],
+   "other_files": 0
+  },
+  {
+   "id": 267710,
+   "title": "Relating anatomical and biophysical properties to motoneuron excitabilty (Moustafa et al. 2023)",
+   "simulators": [
+    "NEURON",
+    "XPPAUT"
+   ],
+   "ver_date": "2023-04-05T11:04:59.49",
+   "url": "https://modeldb.science/267710",
+   "download": "https://modeldb.science/download/267710",
+   "zip_sha256": "eefef267ba8bc9133628ef57289a1e83a4c0b17bc9ca7a662c5dc5321eefd621",
+   "models": [
+    {
+     "name": "moustafaetal2023/XPPAUT Model/6cModel Xppaut/main.ode",
+     "run_in": "moustafaetal2023/XPPAUT Model/6cModel Xppaut"
+    }
+   ],
+   "files": [
+    {
+     "name": "moustafaetal2023/XPPAUT Model/6cModel Xppaut/ah.inc",
+     "size": 1044,
+     "sha256": "b8fabc3f24c9e1a130614c51a0b28d2afe5f3ad2dc8bf3d0878698e8e8d749e1",
+     "url": "https://modeldb.science/getModelFile?model=267710&file=moustafaetal2023/XPPAUT%20Model/6cModel%20Xppaut/ah.inc"
+    },
+    {
+     "name": "moustafaetal2023/XPPAUT Model/6cModel Xppaut/conn.inc",
+     "size": 697,
+     "sha256": "1cf774b3dbffc9ce0d7d568b112dccd833d8a808bdef611717797f1ed2d1b87d",
+     "url": "https://modeldb.science/getModelFile?model=267710&file=moustafaetal2023/XPPAUT%20Model/6cModel%20Xppaut/conn.inc"
+    },
+    {
+     "name": "moustafaetal2023/XPPAUT Model/6cModel Xppaut/dend0.inc",
+     "size": 849,
+     "sha256": "7925490923849657233de5e9f2ef1c70c5fbc1c549ce43881b81214d48b64b2b",
+     "url": "https://modeldb.science/getModelFile?model=267710&file=moustafaetal2023/XPPAUT%20Model/6cModel%20Xppaut/dend0.inc"
+    },
+    {
+     "name": "moustafaetal2023/XPPAUT Model/6cModel Xppaut/dend1.inc",
+     "size": 824,
+     "sha256": "ce4fc61b693ace0c1646e8920da6140e16dc8102ecfbf74916793def62f7f1bb",
+     "url": "https://modeldb.science/getModelFile?model=267710&file=moustafaetal2023/XPPAUT%20Model/6cModel%20Xppaut/dend1.inc"
+    },
+    {
+     "name": "moustafaetal2023/XPPAUT Model/6cModel Xppaut/dend2.inc",
+     "size": 953,
+     "sha256": "4c71f5efee41aec5566523c640407018900837ef9543c1879b366a15dc83e01f",
+     "url": "https://modeldb.science/getModelFile?model=267710&file=moustafaetal2023/XPPAUT%20Model/6cModel%20Xppaut/dend2.inc"
+    },
+    {
+     "name": "moustafaetal2023/XPPAUT Model/6cModel Xppaut/dend3.inc",
+     "size": 945,
+     "sha256": "03f7b17aeda93ba71f1d4dee20b70f95eb5e9b30227546a46c704c9034ea8ff2",
+     "url": "https://modeldb.science/getModelFile?model=267710&file=moustafaetal2023/XPPAUT%20Model/6cModel%20Xppaut/dend3.inc"
+    },
+    {
+     "name": "moustafaetal2023/XPPAUT Model/6cModel Xppaut/func.inc",
+     "size": 889,
+     "sha256": "1b24205e8c3764ce2e3a661a9aa87fec224473a7d3b98a9edd7d9c8984ac8e1d",
+     "url": "https://modeldb.science/getModelFile?model=267710&file=moustafaetal2023/XPPAUT%20Model/6cModel%20Xppaut/func.inc"
+    },
+    {
+     "name": "moustafaetal2023/XPPAUT Model/6cModel Xppaut/glob.inc",
+     "size": 556,
+     "sha256": "1610015c46dcb5ee7df4715c47804afbc1cdfbed95860ecd369fea2441589525",
+     "url": "https://modeldb.science/getModelFile?model=267710&file=moustafaetal2023/XPPAUT%20Model/6cModel%20Xppaut/glob.inc"
+    },
+    {
+     "name": "moustafaetal2023/XPPAUT Model/6cModel Xppaut/main.ode",
+     "size": 661,
+     "sha256": "e87f6cf031370d599e4aa95caf42cfbbc9252213fa6e2781a99a13b5f4c9b11c",
+     "url": "https://modeldb.science/getModelFile?model=267710&file=moustafaetal2023/XPPAUT%20Model/6cModel%20Xppaut/main.ode"
+    },
+    {
+     "name": "moustafaetal2023/XPPAUT Model/6cModel Xppaut/opt.inc",
+     "size": 731,
+     "sha256": "0fba9b10aebbf2516cb5d686320fce1933c418a89e0d0f8b86c012ffce52bdd2",
+     "url": "https://modeldb.science/getModelFile?model=267710&file=moustafaetal2023/XPPAUT%20Model/6cModel%20Xppaut/opt.inc"
+    },
+    {
+     "name": "moustafaetal2023/XPPAUT Model/6cModel Xppaut/soma.inc",
+     "size": 1011,
+     "sha256": "d5180ba8e97203bfa2015a3fc0fa4f32fdf1a6c9095c0339771ec5eb99a891bc",
+     "url": "https://modeldb.science/getModelFile?model=267710&file=moustafaetal2023/XPPAUT%20Model/6cModel%20Xppaut/soma.inc"
+    },
+    {
+     "name": "moustafaetal2023/XPPAUT Model/6cModel Xppaut/stim.inc",
+     "size": 585,
+     "sha256": "7f0c361f5096b7985af658bc8531a44e713dfdeb92107475a9f22fe8382efa68",
+     "url": "https://modeldb.science/getModelFile?model=267710&file=moustafaetal2023/XPPAUT%20Model/6cModel%20Xppaut/stim.inc"
+    }
+   ],
+   "other_files": 30
+  },
+  {
+   "id": 2014817,
+   "title": "Minimal model for human ventricular action potentials (Bueno-Orovio et al 2008)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2023-07-03T07:40:14.205442+00:00",
+   "url": "https://modeldb.science/2014817",
+   "download": "https://modeldb.science/download/2014817",
+   "zip_sha256": "de1893054f9a04188bda122b00f72ae5123d24e2f97526fff5e86c20cc44e657",
+   "models": [
+    {
+     "name": "Bueno-Model/Bueno.ode",
+     "run_in": "Bueno-Model"
+    }
+   ],
+   "files": [
+    {
+     "name": "Bueno-Model/Bueno.ode",
+     "size": 2926,
+     "sha256": "5f8c1372720f2c24a816deed61ae59716cff27f594a4334d8748f2571f9aa22d",
+     "url": "https://modeldb.science/getModelFile?model=2014817&file=Bueno-Model/Bueno.ode"
+    }
+   ],
+   "other_files": 2
+  },
+  {
+   "id": 2014996,
+   "title": "Exploring the role of Kӧlliker-Fuse nucleus in breathing variability via mathematical modeling (John et al., 2023)",
+   "simulators": [
+    "MATLAB",
+    "XPPAUT"
+   ],
+   "ver_date": "2023-09-17T01:10:04.499935+00:00",
+   "url": "https://modeldb.science/2014996",
+   "download": "https://modeldb.science/download/2014996",
+   "zip_sha256": "5c6365ab9e5667c7ae7439b98dbb4092c732609e28b3f1e3d1c064b2f6fcf455",
+   "models": [
+    {
+     "name": "kf_s1.ode",
+     "run_in": "."
+    },
+    {
+     "name": "kf_s2.ode",
+     "run_in": "."
+    },
+    {
+     "name": "kf_t.ode",
+     "run_in": "."
+    }
+   ],
+   "files": [
+    {
+     "name": "kf_s1.ode",
+     "size": 4021,
+     "sha256": "6f86c6f4d43ef557ae5cf6a4b09c3a295092c0ccdc38090b4281e2fece0dc0eb",
+     "url": "https://modeldb.science/getModelFile?model=2014996&file=kf_s1.ode"
+    },
+    {
+     "name": "kf_s2.ode",
+     "size": 4046,
+     "sha256": "a28233d5350495f4a6a97e234a232e261232a7cf7281196e037f895ee2ac3de4",
+     "url": "https://modeldb.science/getModelFile?model=2014996&file=kf_s2.ode"
+    },
+    {
+     "name": "kf_t.ode",
+     "size": 3498,
+     "sha256": "33be35bbb296856a57a05e44f0fcdb01bda0e61566e71bcf949a8f1bf8be2e0c",
+     "url": "https://modeldb.science/getModelFile?model=2014996&file=kf_t.ode"
+    }
+   ],
+   "other_files": 0
+  },
+  {
+   "id": 2015414,
+   "title": "Zebrafish Mauthner escape circuit with dopamine, gaba, and glycine (Clements et al., 2023)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2025-03-04T01:05:52.130969",
+   "url": "https://modeldb.science/2015414",
+   "download": "https://modeldb.science/download/2015414",
+   "zip_sha256": "325a54aa00ff8492414342c8078fc30ad8e1c3cfc0dfeafdb5383e076c839ed4",
+   "models": [
+    {
+     "name": "dopa_gaba_glyc_eneuro.ode",
+     "run_in": "."
+    }
+   ],
+   "files": [
+    {
+     "name": "dopa_gaba_glyc_eneuro.ode",
+     "size": 5050,
+     "sha256": "e55a674f720bba51c8d243ba245142c4f24e0cca927043f172dd9078190693ec",
+     "url": "https://modeldb.science/getModelFile?model=2015414&file=dopa_gaba_glyc_eneuro.ode"
+    }
+   ],
+   "other_files": 0
+  },
+  {
+   "id": 2016216,
+   "title": "A novel mechanism for ramping bursts based on slow negative feedback in model respiratory neurons (John et al., 2024)",
+   "simulators": [
+    "MATLAB",
+    "XPPAUT"
+   ],
+   "ver_date": "2025-03-04T01:19:36.588380",
+   "url": "https://modeldb.science/2016216",
+   "download": "https://modeldb.science/download/2016216",
+   "zip_sha256": "47ec01b3423dd6464c15bc54d5ddda4f29d1f317ed13e262c9169c83ac8a836f",
+   "models": [
+    {
+     "name": "2016216/DSPK.ode",
+     "run_in": "2016216"
+    }
+   ],
+   "files": [
+    {
+     "name": "2016216/DSPK.ode",
+     "size": 1679,
+     "sha256": "f22debe88781a308f8bcc18e23d241e81be4b17923640a2320f3f53c02ae1cf4",
+     "url": "https://modeldb.science/getModelFile?model=2016216&file=2016216/DSPK.ode"
+    }
+   ],
+   "other_files": 5
+  },
+  {
+   "id": 2016995,
+   "title": "Markovian model for HCN-encoded current regulated by capsazepine (Wong et al., 2024)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2024-05-23T15:13:17.092817",
+   "url": "https://modeldb.science/2016995",
+   "download": "https://modeldb.science/download/2016995",
+   "zip_sha256": "8943164b02ca090912c587ab4ea0f5334ee32582c50ce66ea53a9308eb7aa284",
+   "models": [
+    {
+     "name": "Capsazepine-HCN-Model/Iha_sim.ode",
+     "run_in": "Capsazepine-HCN-Model"
+    }
+   ],
+   "files": [
+    {
+     "name": "Capsazepine-HCN-Model/Iha_sim.ode",
+     "size": 1596,
+     "sha256": "7820249aa929e8ca1c4f74f24b7985d28e55ac68d24310554c4279ebf16d1aab",
+     "url": "https://modeldb.science/getModelFile?model=2016995&file=Capsazepine-HCN-Model/Iha_sim.ode"
+    }
+   ],
+   "other_files": 4
+  },
+  {
+   "id": 2020506,
+   "title": "Presynaptic ATP homeostasis (Maex 2026)",
+   "simulators": [
+    "XPPAUT"
+   ],
+   "ver_date": "2025-11-20T11:45:00.396962+00:00",
+   "url": "https://modeldb.science/2020506",
+   "download": "https://modeldb.science/download/2020506",
+   "zip_sha256": "0d1cb3e78e43d836326d5a53645f19e9b8cedff195045f3598ecc524440dd39e",
+   "models": [
+    {
+     "name": "modelDB/Figure3black.ode",
+     "run_in": "modelDB"
+    },
+    {
+     "name": "modelDB/Figure3blue.ode",
+     "run_in": "modelDB"
+    },
+    {
+     "name": "modelDB/Figure3green.ode",
+     "run_in": "modelDB"
+    },
+    {
+     "name": "modelDB/Figure4red.ode",
+     "run_in": "modelDB"
+    }
+   ],
+   "files": [
+    {
+     "name": "modelDB/Figure3black.ode",
+     "size": 1435,
+     "sha256": "d71659d161b5e7c392f57e02882541cd591b231637663e6605eeb5f47a3a5ef7",
+     "url": "https://modeldb.science/getModelFile?model=2020506&file=modelDB/Figure3black.ode"
+    },
+    {
+     "name": "modelDB/Figure3blue.ode",
+     "size": 1500,
+     "sha256": "d41db30d87aeac23ab68f4ffbef58caa1b1d7b56e16e51de85ad88ddfc8a8dcc",
+     "url": "https://modeldb.science/getModelFile?model=2020506&file=modelDB/Figure3blue.ode"
+    },
+    {
+     "name": "modelDB/Figure3green.ode",
+     "size": 1538,
+     "sha256": "95ab18d3024604f66ba20cb3e4deca40f4592196933b090ff1d288ef1f326f26",
+     "url": "https://modeldb.science/getModelFile?model=2020506&file=modelDB/Figure3green.ode"
+    },
+    {
+     "name": "modelDB/Figure4red.ode",
+     "size": 1551,
+     "sha256": "5ca1a0d7539674fff36e832b6399ee8832af902206e33df752ce08fa88aa30bd",
+     "url": "https://modeldb.science/getModelFile?model=2020506&file=modelDB/Figure4red.ode"
+    }
+   ],
+   "other_files": 1
+  }
+ ]
+}

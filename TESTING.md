@@ -69,6 +69,13 @@ into the report helps a lot.
 
 ## Known gaps in this preview
 
-These parts of XPPAUT are not in the new interface yet (the engine supports
-them): animations (`.ani`), 3D plots, boundary-value problems, ranges, curve
-fitting, spectra and histograms. See [ROADMAP.md](ROADMAP.md).
+These parts of XPPAUT are not in the new interface yet: two-parameter
+ranges, the Kinescope (saving frames), labels and arrows on plots, and
+several plots in one window. AUTO's homoclinic and boundary-value
+continuations are reachable but untested. See [ROADMAP.md](ROADMAP.md).
+
+New since the first preview, and worth a try: the **Analysis** window
+(spectra, histograms, phase response curves, fitting), **Range** in the
+Workspace, **boundary-value problems** (*Run > Boundary-value problem*),
+the **3D View** and the **Animator** (open `doubpend.ode`, run it, press
+*Animate*).

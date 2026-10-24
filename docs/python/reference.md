@@ -8,6 +8,8 @@
 
 ::: xppstudio.Table
 
+::: xppstudio.Animation
+
 ::: xppstudio.auto.Auto
 
 ::: xppstudio.Diagram

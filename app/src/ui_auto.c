@@ -202,7 +202,8 @@ static void diagram_plot(App *a, bool two_param) {
                      ImPlotAxisFlags_AutoFit);
     /* A brute-force sweep of the same parameter and variable, for
        comparison: simulations should sit on the stable branches. */
-    if (!two_param && a->sw.n > 0 && a->sw.par == u->main_par && u->yvar == a->sw.var) {
+    if (!two_param && a->sw.n > 0 && a->sw.mode == SWEEP_MAXMIN &&
+        !a->sw.over_ic && a->sw.par == u->main_par && u->yvar == a->sw.var) {
       ImPlotSpec_c s = SpecMarker(V4(0.5f, 0.5f, 0.5f, 0.7f), ImPlotMarker_Circle, 2.2f);
       ImPlot_PlotScatter_doublePtrdoublePtr("##swmax", a->sw.x, a->sw.ymax, a->sw.n, s);
       ImPlot_PlotScatter_doublePtrdoublePtr("##swmin", a->sw.x, a->sw.ymin, a->sw.n, s);

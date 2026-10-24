@@ -405,6 +405,7 @@ static bool load_engine(App *a) {
     a->sw.to = a->par[0].hi;
   }
   a->sw.steps = 40;
+  a->sw.mode = SWEEP_MAXMIN;
   a->sw.transient = 0.5;
   app_analysis_reset(a);
   return true;
@@ -712,13 +713,21 @@ bool app_continue(App *a, double more) {
 
 bool app_sweep(App *a) {
   SweepUI *s = &a->sw;
-  double old;
+  double old, *ics;
   bool live = a->live, keep = a->keep_curves;
   int k, n, col = -1, j;
-  if (!a->model_ok || s->par < 0 || s->par >= a->npars) return false;
+  const char *what;
+  if (!a->model_ok) return false;
+  if (s->over_ic ? (s->par < 0 || s->par >= a->nvars)
+                 : (s->par < 0 || s->par >= a->npars))
+    return false;
+  what = s->over_ic ? a->vars[s->par] : a->pars[s->par];
+  s->overlay = s->mode == SWEEP_OVERLAY;
   n = s->steps < 2 ? 2 : s->steps;
   if (s->overlay && n > APP_MAX_FROZEN) n = APP_MAX_FROZEN;
-  old = a->par[s->par].value;
+  old = s->over_ic ? a->ic[s->par] : a->par[s->par].value;
+  ics = malloc(sizeof(double) * (size_t)(a->nvars + 1));
+  memcpy(ics, a->ic, sizeof(double) * (size_t)a->nvars);
   a->live = false;
   if (s->overlay) {
     app_clear_curves(a);
@@ -736,9 +745,24 @@ bool app_sweep(App *a) {
   }
   for (k = 0; k < n; k++) {
     double v = s->from + (s->to - s->from) * k / (n - 1);
-    app_set_param(a, s->par, v);
+    /* "Use old ICs" = No: start where the last run ended (Initial conds >
+       Last, in full precision). */
+    if (s->continue_runs && k > 0) {
+      a->eng->api.xppe_ic_last();
+      app_refresh_values(a);
+    }
+    if (s->over_ic)
+      app_set_ic(a, s->par, v);
+    else
+      app_set_param(a, s->par, v);
     if (!app_run(a)) break;
-    if (!s->overlay) {
+    if (s->mode == SWEEP_LYAPUNOV) {
+      double z = 0;
+      if (a->eng->api.xppe_lyapunov(&z) != XPPE_OK) z = NAN;
+      s->x[s->n] = v;
+      s->ymax[s->n] = s->ymin[s->n] = z;
+      s->n++;
+    } else if (!s->overlay) {
       const Trajectory *t = &a->traj;
       int start = (int)(t->nrows * s->transient);
       double hi = -1e300, lo = 1e300;
@@ -757,7 +781,12 @@ bool app_sweep(App *a) {
       s->n++;
     }
   }
-  app_set_param(a, s->par, old);
+  for (j = 0; j < a->nvars; j++) app_set_ic(a, j, ics[j]);
+  free(ics);
+  if (s->over_ic)
+    app_set_ic(a, s->par, old);
+  else
+    app_set_param(a, s->par, old);
   a->live = live;
   a->keep_curves = keep;
   if (!s->overlay) {
@@ -766,9 +795,11 @@ bool app_sweep(App *a) {
     a->show_workspace = true;
     snprintf(a->focus, sizeof a->focus, "workspace");
   }
-  app_log(a, "Swept %s from %g to %g in %d steps%s.", a->pars[s->par], s->from,
-          s->to, n, s->overlay ? " (trajectories kept on the plots)" : "");
-  app_status(a, "Sweep of %s done", a->pars[s->par]);
+  app_log(a, "Range over %s from %g to %g in %d runs%s%s.", what, s->from,
+          s->to, n, s->continue_runs ? ", each starting where the last ended" : "",
+          s->overlay ? " (trajectories kept on the plots)"
+                     : s->mode == SWEEP_LYAPUNOV ? " (Liapunov exponents)" : "");
+  app_status(a, "Range over %s done", what);
   return true;
 }
 

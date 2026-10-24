@@ -323,6 +323,35 @@ class AnalysisMixin:
         self._engine.call("xppe_hfunction", len(formulas), arr)
         return self._result("H function")
 
+    # -- Boundary-value problems and animations ---------------------------------
+
+    def bvp(self, *, max_iterations: int = 0, tolerance: float = 0.0,
+            epsilon: float = 0.0):
+        """Solve the model's boundary-value problem by XPPAUT's shooting
+        method (Bndryval), from the current initial conditions as the first
+        guess, over [T0, T0 + total].
+
+        The boundary conditions are the model's ``bndry`` statements, in
+        which a primed name means the variable at the right end (``b
+        v'-1``). On success the initial conditions hold the solution's and
+        the solution is returned as a Trajectory."""
+        if self._engine.call("xppe_bvp_count", check=False) <= 0:
+            raise E.EngineError("the model has no boundary conditions "
+                                "(bndry statements)")
+        self._engine.call("xppe_bvp", int(max_iterations), float(tolerance),
+                          float(epsilon))
+        return self._collect()
+
+    def animation(self, path):
+        """An XPPAUT animation (.ani file) of the last run: see
+        :class:`xppstudio.Animation`. A relative path is taken next to the
+        model."""
+        from .animation import Animation
+        p = Path(path)
+        if not p.is_absolute():
+            p = self.path.parent / p
+        return Animation(self, p)
+
     # -- Curve fitting -------------------------------------------------------
 
     def fit(self, data, *, variables, parameters, columns=None,

@@ -133,7 +133,7 @@ void ui_apply_theme(App *a) {
 
 /* ---- File dialogs ------------------------------------------------------------- */
 
-enum { DLG_NONE, DLG_OPEN, DLG_SAVE_AS, DLG_EXPORT, DLG_PNG, DLG_SVG };
+enum { DLG_NONE, DLG_OPEN, DLG_SAVE_AS, DLG_EXPORT, DLG_PNG, DLG_SVG, DLG_ANI };
 static SDL_Mutex *dlg_lock;
 static int dlg_kind;
 static char dlg_result[1024];
@@ -164,6 +164,24 @@ void ui_dialog_open(App *a) {
                          a->examples_dir, false);
 }
 
+static const SDL_DialogFileFilter ani_filters[] = {
+    {"XPPAUT animations (*.ani)", "ani"}, {"All files", "*"}};
+
+void ui_dialog_open_ani(App *a) {
+  char dir[1024];
+  const char *slash;
+  if (!dlg_lock) dlg_lock = SDL_CreateMutex();
+  /* Start in the model's folder, where its animations usually are. */
+  slash = strrchr(a->model_path, '/');
+  if (!slash || strrchr(a->model_path, '\\') > slash)
+    slash = strrchr(a->model_path, '\\');
+  snprintf(dir, sizeof dir, "%.*s", slash ? (int)(slash - a->model_path) : 0,
+           a->model_path);
+  SDL_ShowOpenFileDialog(dialog_done, (void *)(intptr_t)DLG_ANI,
+                         (SDL_Window *)a->window, ani_filters, 2,
+                         dir[0] ? dir : NULL, false);
+}
+
 void ui_dialog_save_as(App *a) {
   if (!dlg_lock) dlg_lock = SDL_CreateMutex();
   SDL_ShowSaveFileDialog(dialog_done, (void *)(intptr_t)DLG_SAVE_AS,
@@ -187,6 +205,7 @@ void ui_dialog_poll(App *a) {
   dlg_ready = false;
   SDL_UnlockMutex(dlg_lock);
   if (kind == DLG_OPEN) app_open(a, path);
+  if (kind == DLG_ANI && app_ani_load(a, path)) a->show_ani = true;
   if (kind == DLG_SAVE_AS) {
     char p[1100];
     size_t n = strlen(path);
@@ -337,6 +356,8 @@ static void default_layout(ImGuiID dock, ImVec2_c size) {
   igDockBuilderDockWindow(WIN_AUTO, center);
   igDockBuilderDockWindow(WIN_ARRAY, center);
   igDockBuilderDockWindow(WIN_ANALYSIS, center);
+  igDockBuilderDockWindow(WIN_VIEW3D, center);
+  igDockBuilderDockWindow(WIN_ANI, center);
   igDockBuilderDockWindow(WIN_EDITOR, center);
   igDockBuilderDockWindow(WIN_CONSOLE, bottom);
   igDockBuilderDockWindow(WIN_DATA, bottom);
@@ -403,6 +424,8 @@ void ui_draw(App *a) {
   if (a->show_data) ui_data(a);
   if (a->show_array) ui_array_plot(a);
   if (a->show_analysis) ui_analysis(a);
+  if (a->show_view3d) ui_view3d(a);
+  if (a->show_ani) ui_animator(a);
   if (a->show_demo) {
     igShowDemoWindow(&a->show_demo);
     ImPlot_ShowDemoWindow(&a->show_demo);
@@ -417,7 +440,8 @@ void ui_draw(App *a) {
                {"data", WIN_DATA, NULL},      {"help", WIN_HELP, NULL},
                {"console", WIN_CONSOLE, NULL}, {"workspace", WIN_WORKSPACE, NULL},
                {"models", WIN_BROWSER, NULL}, {"array", WIN_ARRAY, NULL},
-               {"analysis", WIN_ANALYSIS, NULL}};
+               {"analysis", WIN_ANALYSIS, NULL}, {"3d", WIN_VIEW3D, NULL},
+               {"animator", WIN_ANI, NULL}};
     int i;
     for (i = 0; i < (int)(sizeof map / sizeof map[0]); i++)
       if (SDL_strncasecmp(a->focus, map[i].key, strlen(a->focus)) == 0) {
@@ -429,6 +453,8 @@ void ui_draw(App *a) {
         if (i == 5) a->show_help = true;
         if (i == 9) a->show_array = true;
         if (i == 10) a->show_analysis = true;
+        if (i == 11) a->show_view3d = true;
+        if (i == 12) a->show_ani = true;
         igSetWindowFocus_Str(map[i].win);
         break;
       }

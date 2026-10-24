@@ -40,6 +40,7 @@ extern "C" {
   X(int, xppe_run, (void))                                                    \
   X(int, xppe_rows, (void))                                                   \
   X(int, xppe_column, (int, double *, int))                                   \
+  X(int, xppe_ic_last, (void))                                                \
   X(int, xppe_equilibrium, (double *, double *, double *))                    \
   X(int, xppe_rhs, (double, const double *, double *))                        \
   X(int, xppe_nullcline,                                                      \
@@ -64,6 +65,12 @@ extern "C" {
   X(int, xppe_result_count, (void))                                           \
   X(const char *, xppe_result_name, (int))                                    \
   X(int, xppe_result_column, (int, double *, int))                            \
+  X(int, xppe_bvp_count, (void))                                              \
+  X(int, xppe_bvp, (int, double, double))                                     \
+  X(int, xppe_ani_load, (const char *))                                       \
+  X(int, xppe_ani_window, (double *, double *, double *, double *))           \
+  X(int, xppe_ani_frame, (int))                                               \
+  X(int, xppe_ani_get, (int, xppe_ani_item *))                                \
   X(int, xppe_auto_get, (const char *, double *))                             \
   X(int, xppe_auto_set, (const char *, double))                               \
   X(int, xppe_auto_parameters, (const char *, const char *))                  \

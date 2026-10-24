@@ -350,21 +350,41 @@ class Model(AnalysisMixin):
                                 trajectory=trajectory, nullclines=nullclines,
                                 field=field, equilibrium=equilibrium, ax=ax)
 
-    def sweep(self, parameter: str, values, *, measure=None, **run_kw):
-        """Run once per value of ``parameter`` and collect the results.
+    def ic_last(self) -> "Model":
+        """Start the next run where the last one ended (XPPAUT's Initial
+        conds > Last, I L): the final state, in full precision, becomes the
+        initial condition."""
+        self._engine.call("xppe_ic_last")
+        return self
+
+    def sweep(self, parameter: str, values, *, measure=None,
+              continue_runs: bool = False, **run_kw):
+        """Run once per value of a parameter or initial condition and collect
+        the results: XPPAUT's Initial conds > Range.
 
         Without ``measure`` it returns a list of Trajectory objects. With a
         function, e.g. ``measure=lambda s: s["V"].max()``, it returns a NumPy
         array of the measure at each value: a brute-force bifurcation
-        diagram. The parameter is restored afterwards."""
+        diagram (``measure=lambda s: m.lyapunov()`` gives the Liapunov
+        exponent at each value).
+
+        Each run starts from the initial conditions (XPPAUT's "Use old ICs"
+        = Yes), or with ``continue_runs=True`` from where the previous run
+        ended ("Use old ICs" = No), which follows an attractor as the
+        parameter changes. The parameter and initial conditions are restored
+        afterwards."""
         old = self.get(parameter)
+        ics = {v: float(self.get(v)) for v in self.variables}
         out = []
         try:
-            for v in values:
+            for i, v in enumerate(values):
+                if continue_runs and i > 0:
+                    self.ic_last()
                 self.set(**{parameter: float(v)})
                 sol = self.run(**run_kw)
                 out.append(measure(sol) if measure else sol)
         finally:
+            self.set(**ics)
             self.set(**{parameter: old})
         return np.array(out) if measure else out
 
@@ -475,6 +495,17 @@ class Trajectory:
         """Plot columns against time (or against another column with x=)."""
         from .plotting import plot_trajectory
         return plot_trajectory(self, list(y), x=x, ax=ax, **kw)
+
+    def plot3d(self, x: str, y: str, z: str, ax=None, **kw):
+        """A 3-D plot of three columns (XPPAUT's 3D view), with matplotlib."""
+        import matplotlib.pyplot as plt
+        if ax is None:
+            ax = plt.figure().add_subplot(projection="3d")
+        ax.plot(self[x], self[y], self[z], **kw)
+        ax.set_xlabel(x)
+        ax.set_ylabel(y)
+        ax.set_zlabel(z)
+        return ax
 
     def __repr__(self) -> str:
         if not len(self):

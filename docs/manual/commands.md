@@ -49,7 +49,10 @@ commands. `help` lists them all.
 | `auto from 2 periodic` | Continue from labelled point 2. Actions: `periodic`, `two`, `extend`, `switch`, `doubling`, `fixed`. |
 | `auto set ds=0.01 nmax=300` | AUTO numerics. |
 | `auto reset` | Clear the diagram. |
-| `sweep I 0 1.6 50 V` | Run 50 times with I from 0 to 1.6 and plot the max and min of V (XPPAUT's Range). Leave out `V` to keep each trajectory instead. |
+| `range I 0 1.6 50 V` | Run 50 times with I from 0 to 1.6 and plot the max and min of V (XPPAUT's Range). Leave out `V` to keep each trajectory, write `lyap` for the Liapunov exponent, add `continue` to start each run where the last ended. The name can also be a variable (its initial value). `sweep` does the same. |
+| `bvp` | Solve the boundary-value problem given by the model's `bndry` statements. |
+| `view3d X Y Z` | Show three columns in the 3D view. |
+| `ani pend.ani`, `ani play`, `ani row 100` | Open an XPPAUT animation, play it, or show one frame. |
 | `spectrum V 1024` | Power spectral density of V in windows of 1024 points. `spectrum V W coherence` compares two columns (`psd`, `cross`, `coherence`). |
 | `fourier V`, `power V` | Fourier series of V over the run: cos and sin, or amplitude and phase. |
 | `hist V 50 -1 1` | Histogram of V in 50 bins from -1 to 1 (leave out the range to take it from the data). |

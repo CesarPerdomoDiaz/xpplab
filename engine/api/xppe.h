@@ -65,7 +65,9 @@ XPPE_API const char *xppe_name(int list, int index);
 
 /* Read a variable's initial condition, a parameter, or a numerical option
    (TOTAL, DT, T0, TRANS, BOUND, TOL, ATOL, DTMIN, DTMAX, NOUT, MAXSTOR,
-   METH, DELAY, NEWT_TOL, NEWT_ITER, JAC_EPS, ...). Names ignore case. */
+   METH, DELAY, NEWT_TOL, NEWT_ITER, JAC_EPS, ...) or plot setting from the
+   ODE file (XLO, XHI, YLO, YHI, XP, YP; for 3D also ZP, AXES (5 = 3D),
+   VIEW_THETA, VIEW_PHI, XMIN ... ZMAX). Names ignore case. */
 XPPE_API int xppe_get(const char *name, double *value);
 /* Set an initial condition, parameter or option exactly as a "set"
    statement or an ODE-file "@" line would. value is text so that options
@@ -83,6 +85,9 @@ XPPE_API int xppe_rows(void);
    Returns the number of values copied. col = -1 always gives time, even
    when the model's "only" statement leaves time out of the columns. */
 XPPE_API int xppe_column(int col, double *out, int n);
+/* Start the next run where the last one ended (Initial conds > Last): the
+   final state, in double precision, becomes the initial condition. */
+XPPE_API int xppe_ic_last(void);
 
 /* Newton's method for an equilibrium starting from x (length = number of
    ODE variables). On success x holds the equilibrium and re/im the
@@ -186,6 +191,54 @@ XPPE_API int xppe_result_rows(void);
 XPPE_API int xppe_result_count(void);
 XPPE_API const char *xppe_result_name(int col);
 XPPE_API int xppe_result_column(int col, double *out, int n);
+
+/* ---- Boundary-value problems ------------------------------------------------
+ *
+ * For models with "bndry" statements (the number is xppe_bvp_count()),
+ * XPPAUT's shooting method adjusts the initial conditions so that the
+ * solution over [T0, T0 + TOTAL] satisfies the boundary conditions
+ * (Bndryval > No show). On success the initial conditions hold the answer
+ * and the solution is the current run. max_iterations, tolerance and
+ * epsilon replace BVP_MAXIT, BVP_TOL and BVP_EPS when positive.
+ */
+XPPE_API int xppe_bvp_count(void);
+XPPE_API int xppe_bvp(int max_iterations, double tolerance, double epsilon);
+
+/* ---- The animator -----------------------------------------------------------
+ *
+ * XPPAUT's .ani files, parsed by XPPAUT. xppe_ani_frame(row) evaluates every
+ * command at that row of the current run (row 0 also evaluates the
+ * "permanent" ones) and returns the number of shapes, read with
+ * xppe_ani_get(). Coordinates are in the animation's window, from
+ * xppe_ani_window() ("dimension"; 0..1 by default), with y upwards.
+ */
+enum {
+  XPPE_ANI_LINE = 0,    /* (x1,y1)-(x2,y2) */
+  XPPE_ANI_RECT = 1,    /* corners (x1,y1) and (x2,y2) */
+  XPPE_ANI_ELLIPSE = 2, /* centre (x1,y1), radii x2 and y2 (circles too) */
+  XPPE_ANI_TEXT = 3,    /* text at (x1,y1) */
+  XPPE_ANI_COMET = 4    /* the newest point (x1,y1) of a trail of `trail` */
+};
+
+typedef struct {
+  int shape;     /* XPPE_ANI_* */
+  int command;   /* index of the command in the file; comets keep trails by it */
+  int filled;
+  double x1, y1, x2, y2;
+  int color;     /* XPPAUT colour: 0 black, 20-29 red ... purple; -1: see level */
+  double level;  /* for computed colours: 0..1 along XPPAUT's colour scale */
+  int thickness; /* line width; for comets below 0, dots of that radius */
+  int trail;
+  int font_size; /* 0-4 */
+  int serif;
+  char text[128];
+} xppe_ani_item;
+
+XPPE_API int xppe_ani_load(const char *path); /* returns the command count */
+XPPE_API int xppe_ani_window(double *xlo, double *ylo, double *xhi,
+                             double *yhi);
+XPPE_API int xppe_ani_frame(int row);
+XPPE_API int xppe_ani_get(int i, xppe_ani_item *out);
 
 /* ---- AUTO continuation ----------------------------------------------------
  *

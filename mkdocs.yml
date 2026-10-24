@@ -58,6 +58,7 @@ nav:
       - "Tutorial: your first model": manual/tutorial.md
       - Bifurcation analysis with AUTO: manual/auto.md
       - Data analysis: manual/analysis.md
+      - Range, BVPs, 3D and animations: manual/tools.md
       - Commands and shortcuts: manual/commands.md
       - Coming from XPPAUT: manual/xppaut.md
   - Python:

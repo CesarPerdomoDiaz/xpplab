@@ -15,6 +15,8 @@ static const char *tool_names[AN_COUNT] = {
     "Correlation", "Statistics",     "Phase response", "H function",
     "Fit to data"};
 
+static bool ani_load(App *a, const char *path, bool quiet);
+
 const char *app_analysis_name(int tool) {
   return tool >= 0 && tool < AN_COUNT ? tool_names[tool] : "";
 }
@@ -53,7 +55,122 @@ void app_analysis_reset(App *a) {
              a->vars[0]);
   if (a->nvars > 0) snprintf(n->fit_vars, sizeof n->fit_vars, "%s", a->vars[0]);
   snprintf(n->fit_cols, sizeof n->fit_cols, "2");
+
+  /* The other per-model tools: boundary conditions, the 3D view and an
+     animation that comes with the model (lorenz.ode, lorenz.ani). */
+  a->nbcs = a->eng ? a->eng->api.xppe_bvp_count() : 0;
+  app_view3d_reset(a);
+  memset(&a->ani, 0, sizeof a->ani);
+  a->ani.speed = 60;
+  a->ani.loop = true;
+  {
+    char ani[1100];
+    const char *dot = strrchr(a->model_path, '.');
+    size_t stem = dot ? (size_t)(dot - a->model_path) : strlen(a->model_path);
+    FILE *f;
+    snprintf(ani, sizeof ani, "%.*s.ani", (int)stem, a->model_path);
+    if ((f = fopen(ani, "r")) != NULL) {
+      fclose(f);
+      /* Quietly: some .ani files belong to another model (lorenz.ani is
+         for lorenz2.ode). */
+      if (ani_load(a, ani, true))
+        app_log(a, "This model comes with an animation: press Animate, or "
+                   "open View > Animator.");
+    }
+  }
 }
+
+/* ---- Boundary-value problems, the 3D view, the animator ---------------- */
+
+bool app_bvp(App *a) {
+  xpp_engine_api *x;
+  int i;
+  char buf[256];
+  size_t len = 0;
+  if (!a->model_ok) return false;
+  x = &a->eng->api;
+  if (a->nbcs <= 0) {
+    app_log(a, "This model has no boundary conditions. Add bndry statements, "
+               "e.g. 'bndry x-1' (at the start) or 'bndry y'-2' (a primed "
+               "name means the value at the end).");
+    return false;
+  }
+  if (x->xppe_bvp(0, 0.0, 0.0) != XPPE_OK) {
+    app_log(a, "error: %s", x->xppe_error());
+    app_status(a, "Boundary-value problem: %s", x->xppe_error());
+    return false;
+  }
+  app_refresh_values(a);
+  app_fetch_current(a);
+  for (i = 0; i < a->nvars && len < sizeof buf - 40; i++)
+    len += (size_t)snprintf(buf + len, sizeof buf - len, " %s=%.6g",
+                            a->vars[i], a->ic[i]);
+  app_log(a, "Solved the boundary-value problem by shooting. Initial "
+             "values:%s", buf);
+  app_status(a, "Boundary-value problem solved");
+  return true;
+}
+
+void app_view3d_reset(App *a) {
+  static const char *keys[6] = {"XMIN", "XMAX", "YMIN", "YMAX", "ZMIN", "ZMAX"};
+  View3D *v = &a->v3;
+  double xp = 1, yp = 2, zp = 3, axes = 0, th = 45, ph = 45;
+  int i;
+  memset(v, 0, sizeof *v);
+  v->zoom = 1;
+  v->auto_box = true;
+  if (!a->eng || a->ncols < 2) return;
+  a->eng->api.xppe_get("XP", &xp);
+  a->eng->api.xppe_get("YP", &yp);
+  a->eng->api.xppe_get("ZP", &zp);
+  a->eng->api.xppe_get("AXES", &axes);
+  a->eng->api.xppe_get("VIEW_THETA", &th);
+  a->eng->api.xppe_get("VIEW_PHI", &ph);
+  /* XP, YP and ZP number the columns from 0 for time, as App.cols does. */
+  v->x = (int)xp < a->ncols ? (int)xp : 1;
+  v->y = (int)yp < a->ncols ? (int)yp : (a->ncols > 2 ? 2 : 1);
+  v->z = zp >= 1 && (int)zp < a->ncols && zp != xp ? (int)zp
+                                                    : (a->ncols > 3 ? 3 : 0);
+  v->theta = (float)th;
+  v->phi = (float)ph;
+  if (axes == 5) {
+    for (i = 0; i < 6; i++) a->eng->api.xppe_get(keys[i], &v->box[i]);
+    v->auto_box = !(v->box[0] < v->box[1] && v->box[2] < v->box[3] &&
+                    v->box[4] < v->box[5]);
+    a->show_view3d = true; /* the model asks for a 3D plot */
+    v->front = 3;          /* once the windows exist */
+  }
+}
+
+static bool ani_load(App *a, const char *path, bool quiet) {
+  xpp_engine_api *x;
+  AniUI *v = &a->ani;
+  int n;
+  if (!a->model_ok) return false;
+  x = &a->eng->api;
+  n = x->xppe_ani_load(path);
+  if (n < 0) {
+    if (!quiet) {
+      app_log(a, "error: %s", x->xppe_error());
+      app_log(a, "%s", x->xppe_log());
+    }
+    v->loaded = false;
+    return false;
+  }
+  snprintf(v->path, sizeof v->path, "%s", path);
+  v->loaded = true;
+  v->ncommands = n;
+  x->xppe_ani_window(&v->xlo, &v->ylo, &v->xhi, &v->yhi);
+  v->row = 0;
+  v->last_row = -1;
+  v->ncomets = 0;
+  v->playing = false;
+  if (v->speed <= 0) v->speed = 60;
+  if (!quiet) app_log(a, "Loaded the animation %s (%d commands).", path, n);
+  return true;
+}
+
+bool app_ani_load(App *a, const char *path) { return ani_load(a, path, false); }
 
 /* ---- Helpers -------------------------------------------------------------- */
 

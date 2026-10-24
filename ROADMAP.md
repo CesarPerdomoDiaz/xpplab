@@ -109,11 +109,18 @@ Done:
 - [x] Classic XPP hotkeys
 - [x] Export: PNG (as shown) and SVG (vector) figures; CSV data
 
+- [x] Animator (`.ani` files), evaluated by XPPAUT's own animator code;
+      comets, text, permanent and transient objects
+- [x] 3D view with XPPAUT's theta/phi rotation and the model's 3D options
+- [x] Boundary value problems (Bndryval, shooting) and Range (Initial conds
+      > Range: parameters or initial values, "use old ICs", max/min and
+      Liapunov modes), checked against XPPAUT's batch range
+- [x] Curve fitting, spectra and histograms, correlations, Liapunov
+      exponents, adjoints, phase response curves, H functions
+
 To do:
-- [ ] Animator (`.ani` files) and Kinescope
-- [ ] 3D plots (3D params)
-- [ ] Boundary value problems (Bndryval) and ranges (Initial conds > Range)
-- [ ] Curve fitting, spectra and histograms, Lyapunov exponents
+- [ ] Kinescope; two-parameter ranges; nullclines and grab points in
+      animations
 - [ ] Text, Make window, Graphic stuff (labels, arrows, several plots)
 - [ ] Command palette; MATLAB `.mat` export; PDF figures
 

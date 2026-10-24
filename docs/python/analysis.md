@@ -120,3 +120,48 @@ vary. They start from their current values, end at the fitted ones, and
 are returned as a dict. The model's initial conditions apply at the first
 data time, and XPPAUT integrates from each data time to the next with the
 current method, so the data need not be evenly spaced.
+
+## Range: many runs over a parameter
+
+```python
+runs = m.sweep("iapp", np.linspace(0, 0.2, 21))              # 21 Trajectories
+peaks = m.sweep("iapp", np.linspace(0, 0.2, 21),
+                measure=lambda s: s["V"].max())              # an array
+lyap = m.sweep("r", np.linspace(20, 30, 31), measure=lambda s: m.lyapunov(),
+               continue_runs=True)                           # chaos onset
+```
+
+`sweep` is XPPAUT's *Initial conds > Range*. The name can be a parameter or
+a variable (its initial value). With `continue_runs=True` each run starts
+where the last ended ("Use old ICs" = No), so a branch is followed as the
+parameter moves. Each run equals XPPAUT's batch range digit for digit.
+`m.ic_last()` alone is XPPAUT's *Initial conds > Last*.
+
+## Boundary-value problems
+
+```python
+m = xs.load("cable.ode")    # v'' = v, with bndry v-1 and bndry v'
+sol = m.bvp()               # shooting from the initial values as a guess
+m.get("VX")                 # the initial slope that solves it
+```
+
+For models with `bndry` statements, `bvp()` runs XPPAUT's shooting method
+over [T0, T0 + total]. On success the initial conditions hold the solution's
+and the solution is returned.
+
+## Animations and 3D
+
+```python
+m = xs.load("pend.ode")
+m.run(total=20)
+ani = m.animation("pend.ani")   # parsed and evaluated by XPPAUT
+ani.frame(100)                  # the shapes at row 100: lines, ellipses, ...
+ani.plot(100)                   # one frame with matplotlib
+ani.save_gif("pend.gif")        # an animated GIF (needs Pillow)
+
+xs.load("lorenz.ode").run().plot3d("X", "Y", "Z")
+```
+
+Each shape has its coordinates in the animation's window
+(`ani.window`, 0..1 unless the file says `dimension`) and a matplotlib
+colour.

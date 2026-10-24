@@ -92,6 +92,26 @@ class AutoPointInfo(ctypes.Structure):
     ]
 
 
+class AniItem(ctypes.Structure):
+    """One shape of an animation frame (xppe_ani_item in xppe.h)."""
+    _fields_ = [
+        ("shape", ctypes.c_int),
+        ("command", ctypes.c_int),
+        ("filled", ctypes.c_int),
+        ("x1", ctypes.c_double),
+        ("y1", ctypes.c_double),
+        ("x2", ctypes.c_double),
+        ("y2", ctypes.c_double),
+        ("color", ctypes.c_int),
+        ("level", ctypes.c_double),
+        ("thickness", ctypes.c_int),
+        ("trail", ctypes.c_int),
+        ("font_size", ctypes.c_int),
+        ("serif", ctypes.c_int),
+        ("text", ctypes.c_char * 128),
+    ]
+
+
 def _library_name() -> str:
     if sys.platform == "win32":
         return "libxppe.dll"
@@ -173,6 +193,13 @@ _SIGNATURES = {
     "xppe_result_name": ([ctypes.c_int], ctypes.c_char_p),
     "xppe_result_column": ([ctypes.c_int, ctypes.POINTER(ctypes.c_double),
                             ctypes.c_int], ctypes.c_int),
+    "xppe_ic_last": ([], ctypes.c_int),
+    "xppe_bvp_count": ([], ctypes.c_int),
+    "xppe_bvp": ([ctypes.c_int, ctypes.c_double, ctypes.c_double], ctypes.c_int),
+    "xppe_ani_load": ([ctypes.c_char_p], ctypes.c_int),
+    "xppe_ani_window": ([ctypes.POINTER(ctypes.c_double)] * 4, ctypes.c_int),
+    "xppe_ani_frame": ([ctypes.c_int], ctypes.c_int),
+    "xppe_ani_get": ([ctypes.c_int, ctypes.POINTER(AniItem)], ctypes.c_int),
     "xppe_nullcline": ([ctypes.c_int, ctypes.c_int, ctypes.c_int,
                         ctypes.c_double, ctypes.c_double, ctypes.c_double,
                         ctypes.c_double, ctypes.c_int,

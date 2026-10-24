@@ -134,11 +134,39 @@ foreach ($who in @("$env:COMPUTERNAME\$UserName", "BUILTIN\Administrators", "NT 
 }
 Set-Acl -Path $AgentHome -AclObject $acl
 
+# Run again over an installed agent, first let it finish its step and stop:
+# its process holds the app folder, and it must not run half-old, half-new
+# code. (A STOP file makes it idle at its next pass rather than in the middle
+# of a Claude run or a push.)
+$wasRunning = $false
+$existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+if ($existing -and $existing.State -eq "Running") {
+    $wasRunning = $true
+    $stop = Join-Path $AgentHome "STOP"
+    $madeStop = -not (Test-Path $stop)
+    if ($madeStop) { New-Item -ItemType File $stop | Out-Null }
+    Say "Waiting for the running agent to finish its current step (at most 70 minutes)"
+    $log = Join-Path $AgentHome "agent.log"
+    $deadline = (Get-Date).AddMinutes(70)
+    do {
+        Start-Sleep -Seconds 15
+        $last = if (Test-Path $log) { Get-Content $log -Tail 1 } else { "" }
+    } until ($last -match "exists: doing nothing" -or (Get-Date) -gt $deadline)
+    Stop-ScheduledTask -TaskName $TaskName
+    Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
+        Where-Object { $_.CommandLine -match "xppagent" -and $_.CommandLine -match [regex]::Escape($AgentHome) } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+    if ($madeStop) { Remove-Item $stop }
+}
+
+# Replace the code inside the app folder, not the folder itself.
 $app = Join-Path $AgentHome "app"
-if (Test-Path $app) { Remove-Item -Recurse -Force $app }
 New-Item -ItemType Directory -Force $app | Out-Null
-Copy-Item -Recurse (Join-Path $source "xppagent") $app
-Copy-Item -Recurse (Join-Path $source "prompts") $app
+foreach ($part in @("xppagent", "prompts")) {
+    $target = Join-Path $app $part
+    if (Test-Path $target) { Remove-Item -Recurse -Force $target }
+    Copy-Item -Recurse (Join-Path $source $part) $app
+}
 Get-ChildItem -Recurse -Directory -Filter "__pycache__" $app | Remove-Item -Recurse -Force
 
 $config = Join-Path $AgentHome "config.toml"
@@ -190,6 +218,11 @@ Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger `
     -Settings $settings -User $cred.UserName `
     -Password $cred.GetNetworkCredential().Password -RunLevel Limited -Force | Out-Null
 
+if ($wasRunning) {
+    Start-ScheduledTask -TaskName $TaskName
+    Say "Updated, and the agent is running again."
+    return
+}
 Say "Installed. Next steps (agent/README.md has the details):"
 Write-Host "  1. Install Claude Code for ${UserName}: runas /user:$UserName powershell"
 Write-Host "     then, in that window: irm https://claude.ai/install.ps1 | iex"

@@ -23,6 +23,7 @@ worth reporting to Bard Ermentrout.
 | `form_ode.c` `compile_em()` | The name taken from an `init` statement goes into `char name[10]`, one byte short for a name of 10 characters, which XPPAUT allows. The terminating zero lands in the next buffer, `tmp`, and `convert(name,tmp)` then copies the name onto itself without end. **Optimised builds overrun the stack and crash; unoptimised ones carry on but silently drop the initial values after that name on the line** (found with ModelDB model 112079, `init ... inhibitedA=1.0, D=0.1, ...`) | Make `name` and `tmp` as long as a line | Models with 10-character names in `init` run, with every initial value set. Nothing else changes |
 | `cv2.c` `end_cv()` | With `meth=cvode`, `integrate()` stops at once when `dt` is below `dtmin` and calls `end_cv()`, which frees CVODE's state. On a first run nothing was allocated yet, so **`N_VFree(NULL)` crashes**; `end_cv()` also left its pointers set, so a second call would free them twice (found with ModelDB model 136097, `dt=0.00001`, `dtmin=0.0001`) | Free only what is allocated, and clear the pointers | These models stop with "Integration not completed", as XPPAUT intends, instead of crashing. Nothing else changes |
 | `extra.c` `add_export_list()` | When the library named by an `export` statement cannot be loaded, `my_fun()` leaves the output array alone, and `do_in_out()` copies it into the exported variables at every step. The array comes from `malloc()`, so **those variables take whatever the heap held**: usually zero, but not always (found when `efmx.ode`, `getfrefm.ode`, `koho.ode`, `tstdll.ode` and others came out different from run to run in a checkout without their `.so` files) | `calloc` the array | Exported outputs of a missing library are always zero, the value they had in the recorded outputs |
+| `volterra2.c` `volterra()`, `init_sums()`, `volt_step()` | `allocate_volterra()` allocates the history `Memory[]` only when the model has integrals (`NKernel > 0`), but the Volterra method reads and writes it for every model. So **choosing `meth=volterra` for a model without integrals crashes XPPAUT** on the first step, on every platform (found with XPP Studio's parity check, `tests/parity.py`, on `lecar.ode`; unmodified XPPAUT crashes the same way in batch mode) | Without integrals, keep no history | Such models run: the method is then the implicit trapezoidal rule (on `lecar.ode` within 5e-4 of RK4 at dt = 0.05, and 4 times closer at dt = 0.025). Models with integrals are unchanged |
 
 ### How `mlvolt.ode` came to give different results from run to run
 
@@ -63,6 +64,15 @@ swallows the line after it. In ModelDB model 185334 that line is an
 equation, so XPPAUT finds 8 equations for 9 boundary conditions and stops.
 XPP Studio keeps this behaviour, since changing the continuation rule could
 change how other files parse; see [ModelDB models](development/modeldb.md).
+
+### The Volterra history has room for 50 variables
+
+`parserslow2.c` defines `double *Memory[MAXKER]` (50 entries), while
+`volterra2.c` declares it `extern double *Memory[MAXODE]` and fills one
+entry for every variable, fixed variable and Markov variable. A model with
+integrals and more than 50 of those together would write past the array.
+No example comes near that; it was found while fixing the crash above and
+has not been seen to happen.
 
 ### Compiler warnings that may be real bugs
 

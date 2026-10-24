@@ -33,8 +33,16 @@ static const char *usage =
     "  auto set DS=0.01 ...     AUTO numerics (ds, dsmin, dsmax, nmax, npr,\n"
     "                           parmin, parmax, ntst)\n"
     "  auto reset               clear the bifurcation diagram\n"
-    "  sweep PAR FROM TO N [VAR] run N times over PAR; with VAR, plot its\n"
-    "                           max and min (a brute-force diagram)\n"
+    "  range NAME FROM TO N [VAR|lyap] [continue]\n"
+    "                           XPPAUT's Range: N runs over a parameter or\n"
+    "                           initial value; with VAR plot its max and min\n"
+    "                           (a brute-force diagram), with lyap the\n"
+    "                           Liapunov exponent; continue starts each run\n"
+    "                           where the last ended (also: sweep)\n"
+    "  bvp                      solve the boundary-value problem (bndry)\n"
+    "  ani FILE.ani             open an XPPAUT animation of the run;\n"
+    "                           ani play, ani stop, ani row N\n"
+    "  view3d X Y Z             show three columns in the 3-D view\n"
     "Analysis of the last run (XPPAUT's Numerics > stocHastic, Averaging):\n"
     "  spectrum COL [COL2] [psd|cross|coherence] [N]\n"
     "                           spectral density, windows of N points\n"
@@ -53,8 +61,8 @@ static const char *usage =
     "  export FILE.svg [WHICH]  save a figure (time, phase, auto, auto2);\n"
     "                           .png saves it as it looks on screen\n"
     "  show WINDOW              bring a window forward: time, phase, auto,\n"
-    "                           editor, data, analysis, help, console,\n"
-    "                           workspace\n"
+    "                           editor, data, analysis, 3d, animator, help,\n"
+    "                           console, workspace\n"
     "  help [TOPIC]             open the manual (topics: tutorial, auto,\n"
     "                           analysis, odefile, numerics, commands, xppaut)\n";
 
@@ -394,20 +402,71 @@ void app_command(App *a, const char *line_in) {
              !strcmp(cmd, "mean") || !strcmp(cmd, "prc") ||
              !strcmp(cmd, "hfun") || !strcmp(cmd, "fitdata")) {
     cmd_analysis(a, cmd, rest);
-  } else if (!strcmp(cmd, "sweep")) {
-    /* sweep PAR FROM TO STEPS [VAR]: max/min of VAR, or keep the runs */
+  } else if (!strcmp(cmd, "bvp")) {
+    app_bvp(a);
+  } else if (!strcmp(cmd, "ani")) {
+    char *p = skip_space(rest);
+    if (!strncmp(p, "play", 4) || !strncmp(p, "row ", 4) ||
+        !strncmp(p, "stop", 4)) {
+      /* ani play | ani stop | ani row N: drive the animator from scripts */
+      a->ani.playing = p[0] == 'p';
+      if (p[0] == 'r') a->ani.row = atoi(p + 4);
+      a->show_ani = true;
+      snprintf(a->focus, sizeof a->focus, "animator");
+    } else if (!*p && a->ani.loaded) {
+      a->show_ani = true;
+      snprintf(a->focus, sizeof a->focus, "animator");
+    } else if (!*p) {
+      app_log(a, "Write: ani FILE.ani (the file's path, or its name next to "
+                 "the model)");
+    } else if (app_ani_load(a, p)) {
+      a->show_ani = true;
+      snprintf(a->focus, sizeof a->focus, "animator");
+    }
+  } else if (!strcmp(cmd, "view3d")) {
+    char *w[3];
+    int k, c;
+    for (k = 0; k < 3; k++) w[k] = next_word(&rest);
+    for (k = 0; k < 3 && w[k]; k++) {
+      if ((c = col_index(a, w[k])) < 0) break;
+      if (k == 0) a->v3.x = c;
+      if (k == 1) a->v3.y = c;
+      if (k == 2) a->v3.z = c;
+    }
+    a->show_view3d = true;
+    snprintf(a->focus, sizeof a->focus, "3d");
+  } else if (!strcmp(cmd, "sweep") || !strcmp(cmd, "range")) {
+    /* range NAME FROM TO [STEPS] [VAR | lyap] [continue]: NAME is a
+       parameter or a variable (its initial value); with VAR the max/min of
+       VAR, with lyap the Liapunov exponent, otherwise keep the runs. */
     char *par = next_word(&rest), *from = next_word(&rest), *to = next_word(&rest);
-    char *steps = next_word(&rest), *var = next_word(&rest);
-    int p = par ? app_find_par(a, par) : -1;
-    if (p < 0 || !from || !to) {
-      app_log(a, "Write: sweep PAR FROM TO [STEPS] [VAR]   (no VAR keeps the runs)");
+    char *w;
+    int p = par ? app_find_par(a, par) : -1, ic = -1;
+    if (p < 0 && par) ic = app_find_var(a, par);
+    if ((p < 0 && ic < 0) || !from || !to) {
+      app_log(a, "Write: range NAME FROM TO [STEPS] [VAR | lyap] [continue]   "
+                 "(NAME: a parameter or initial value; no VAR keeps the runs)");
     } else {
-      a->sw.par = p;
+      a->sw.over_ic = p < 0;
+      a->sw.par = p >= 0 ? p : ic;
       a->sw.from = atof(from);
       a->sw.to = atof(to);
-      a->sw.steps = steps ? atoi(steps) : 20;
-      a->sw.overlay = var == NULL;
-      if (var) a->sw.var = app_find_var(a, var) >= 0 ? app_find_var(a, var) : 0;
+      a->sw.steps = 20;
+      a->sw.mode = SWEEP_OVERLAY;
+      a->sw.continue_runs = false;
+      while ((w = next_word(&rest))) {
+        if (is_number(w))
+          a->sw.steps = atoi(w);
+        else if (!strcmp(w, "continue"))
+          a->sw.continue_runs = true;
+        else if (!strcmp(w, "lyap") || !strcmp(w, "liapunov"))
+          a->sw.mode = SWEEP_LYAPUNOV;
+        else if (app_find_var(a, w) >= 0) {
+          a->sw.mode = SWEEP_MAXMIN;
+          a->sw.var = app_find_var(a, w);
+        } else
+          app_log(a, "note: ignored '%s'", w);
+      }
       app_sweep(a);
     }
   } else if (!strcmp(cmd, "open")) {

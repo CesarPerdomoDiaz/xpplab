@@ -64,16 +64,23 @@ typedef struct {
   int nmax, npr, ntst;
 } AutoUI;
 
+/* XPPAUT's Initial conds > Range (the Range tab). */
+enum { SWEEP_OVERLAY, SWEEP_MAXMIN, SWEEP_LYAPUNOV };
+
 typedef struct {
-  int par;             /* parameter swept */
+  int par;             /* what is varied: a parameter index, or with   */
+  bool over_ic;        /* over_ic, an initial-value (variable) index   */
   double from, to;
   int steps;
+  int mode;            /* SWEEP_* */
+  bool continue_runs;  /* start each run where the last ended ("Use old
+                          ICs" = No) */
   int var;             /* variable measured (max/min mode) */
   double transient;    /* fraction of each run ignored before measuring */
-  bool overlay;        /* keep each run's trajectory instead of measuring */
-  int n;               /* results of the last max/min sweep */
+  bool overlay;        /* mode == SWEEP_OVERLAY (kept for the plots) */
+  int n;               /* results of the last measuring sweep */
   double *x, *ymax, *ymin;
-  bool reveal;         /* bring the Sweep tab forward next frame */
+  bool reveal;         /* bring the Range tab forward next frame */
 } SweepUI;
 
 /* The Analysis window: XPPAUT's Numerics > stocHastic and Averaging tools,
@@ -117,6 +124,41 @@ typedef struct {
   char summary[256];   /* scalar results, shown above the plot */
   double period;
 } AnalysisUI;
+
+/* The 3D view: three columns of the run, rotated with the mouse. The
+   model's @ zplot=, axes=3d, theta=, phi= and xmin= ... zmax= set it up as
+   in XPPAUT. */
+typedef struct {
+  int x, y, z;          /* columns (indices into App.cols) */
+  float theta, phi;     /* view angles in degrees, as XPPAUT's */
+  float zoom;
+  bool auto_box;        /* the box from the data, else box[] */
+  double box[6];        /* xmin xmax ymin ymax zmin zmax */
+  int front;            /* bring the view forward this many frames from now */
+} View3D;
+
+/* The animator: an XPPAUT .ani file played over the run (XPPAUT's
+   Viewer). XPPAUT evaluates the frames; comet trails are kept here. */
+#define APP_MAX_COMETS 32
+#define APP_COMET_POINTS 512
+typedef struct {
+  int command, n;
+  float x[APP_COMET_POINTS], y[APP_COMET_POINTS];
+  unsigned col[APP_COMET_POINTS];
+} CometTrail;
+
+typedef struct {
+  char path[1024];
+  bool loaded;
+  int ncommands;
+  double xlo, ylo, xhi, yhi;
+  int row, last_row;
+  bool playing, loop;
+  float speed;          /* rows of the run per second */
+  double acc;
+  CometTrail comet[APP_MAX_COMETS];
+  int ncomets;
+} AniUI;
 
 typedef struct App {
   /* engine */
@@ -166,6 +208,9 @@ typedef struct App {
   AutoUI au;
   SweepUI sw;
   AnalysisUI an;
+  View3D v3;
+  AniUI ani;
+  int nbcs;          /* the model's boundary conditions (bndry) */
 
   /* console */
   char *log;
@@ -177,7 +222,7 @@ typedef struct App {
   /* interface */
   bool show_browser, show_workspace, show_editor, show_time, show_phase,
       show_auto, show_console, show_help, show_data, show_demo, show_array,
-      show_analysis;
+      show_analysis, show_view3d, show_ani;
   int array_first, array_last; /* columns shown in the array plot */
   bool reset_layout;
   bool dark;
@@ -241,6 +286,11 @@ void app_analysis_reset(App *a); /* a model was loaded: defaults, no result */
 void app_analysis_free(App *a);
 bool app_analysis_run(App *a);   /* run a->an.tool on the last run */
 const char *app_analysis_name(int tool);
+/* Boundary-value problem (XPPAUT's Bndryval), the 3D view's setup from the
+   model, and the animator. */
+bool app_bvp(App *a);
+void app_view3d_reset(App *a);
+bool app_ani_load(App *a, const char *path);
 
 /* AUTO */
 bool app_auto_equilibria(App *a);

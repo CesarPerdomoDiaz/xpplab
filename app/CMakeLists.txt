@@ -99,6 +99,8 @@ set(APP_SOURCES
   src/ui_browser.c
   src/ui_data.c
   src/ui_analysis.c
+  src/ui_view3d.c
+  src/ui_animator.c
   src/export.c
   ${GEN}/font_roboto.c
   ${GEN}/font_cousine.c

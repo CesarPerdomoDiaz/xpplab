@@ -33,7 +33,8 @@ extern int N_plist, *plotlist, Nintern_set;
 extern double DELTA_T, TEND, T0, TRANS, BOUND, DELAY, TOLER, ATOLER, HMIN,
     HMAX, NEWT_ERR, EVEC_ERR, POIPLN;
 extern double MY_XLO, MY_XHI, MY_YLO, MY_YHI;
-extern int IXPLT, IYPLT;
+extern int IXPLT, IYPLT, IZPLT, AXES;
+extern double THETA0, PHI0, x_3d[2], y_3d[2], z_3d[2];
 extern char uvar_names[MAXODE][12];
 extern char upar_names[MAXPAR][11];
 extern double last_ic[MAXODE];
@@ -295,6 +296,15 @@ static const option_ref option_table[] = {
     {"XLO", &MY_XLO, NULL},     {"XHI", &MY_XHI, NULL},
     {"YLO", &MY_YLO, NULL},     {"YHI", &MY_YHI, NULL},
     {"XP", NULL, &IXPLT},       {"YP", NULL, &IYPLT},
+    /* The 3D view (@ zp=, axes=3d, phi=, theta=, xmin=, ..., zmax=).
+       AXES is 5 for a 3D plot. */
+    {"ZP", NULL, &IZPLT},       {"AXES", NULL, &AXES},
+    {"THETA", &THETA0, NULL},   {"PHI", &PHI0, NULL},
+    /* the same, never shadowed by a parameter called phi or theta */
+    {"VIEW_THETA", &THETA0, NULL}, {"VIEW_PHI", &PHI0, NULL},
+    {"XMIN", &x_3d[0], NULL},   {"XMAX", &x_3d[1], NULL},
+    {"YMIN", &y_3d[0], NULL},   {"YMAX", &y_3d[1], NULL},
+    {"ZMIN", &z_3d[0], NULL},   {"ZMAX", &z_3d[1], NULL},
 };
 
 int xppe_get(const char *name, double *value) {
@@ -405,6 +415,22 @@ int xppe_column(int col, double *out, int n) {
   for (i = 0; i < n; i++)
     out[i] = (double)my_browser.data[j][my_browser.istart + i];
   return n;
+}
+
+/* Initial conds > Last: the end of the last run, in double precision,
+   becomes the initial condition. */
+int xppe_ic_last(void) {
+  extern double MyData[];
+  extern int INFLAG;
+  void get_ic(int it, double *x);
+  int rc;
+  if ((rc = xppe_require_model()) != XPPE_OK) return rc;
+  if (INFLAG == 0) {
+    xppe_set_error("No prior solution", NULL);
+    return XPPE_ERR_STATE;
+  }
+  get_ic(0, MyData);
+  return XPPE_OK;
 }
 
 /* ---- Equilibria ------------------------------------------------------------ */

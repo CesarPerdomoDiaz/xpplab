@@ -12,10 +12,11 @@ library. No Fortran or C compiler and no X11 server are needed.
 
 from ._engine import EngineError, find_engine_library
 from .analysis import Table
+from .animation import Animation
 from .auto import Diagram, Point
 from .model import METHODS, Equilibrium, Model, Trajectory, load
 
-__all__ = ["Model", "Trajectory", "Equilibrium", "Diagram", "Point", "Table",
+__all__ = ["Model", "Trajectory", "Equilibrium", "Diagram", "Point", "Table", "Animation",
            "EngineError", "METHODS", "load", "find_engine_library",
            "__version__"]
 

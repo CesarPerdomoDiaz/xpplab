@@ -50,6 +50,25 @@ static void menu_run(App *a) {
     a->show_auto = true;
     igSetWindowFocus_Str(WIN_AUTO);
   }
+  if (igMenuItem_Bool("Boundary-value problem", NULL, false, ok && a->nbcs > 0))
+    app_command(a, "bvp");
+  if (igIsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+    igSetTooltip(a->nbcs > 0 ? "Solve the model's boundary conditions by "
+                               "shooting (XPPAUT's Bndryval)."
+                             : "The model has no boundary conditions (bndry "
+                               "statements).");
+  if (igMenuItem_Bool("Range...", NULL, false, ok)) {
+    a->sw.reveal = true;
+    a->show_workspace = true;
+  }
+  if (igMenuItem_Bool("Animator...", NULL, false, ok)) {
+    a->show_ani = true;
+    igSetWindowFocus_Str(WIN_ANI);
+  }
+  if (igMenuItem_Bool("3D view", NULL, false, ok && a->ncols > 3)) {
+    a->show_view3d = true;
+    igSetWindowFocus_Str(WIN_VIEW3D);
+  }
   if (igBeginMenu("Analyse the run", ok)) {
     int t;
     for (t = 0; t < AN_COUNT; t++)
@@ -73,6 +92,8 @@ static void menu_view(App *a) {
   igMenuItem_BoolPtr(WIN_DATA, NULL, &a->show_data, true);
   igMenuItem_BoolPtr(WIN_ARRAY, NULL, &a->show_array, true);
   igMenuItem_BoolPtr(WIN_ANALYSIS, NULL, &a->show_analysis, true);
+  igMenuItem_BoolPtr(WIN_VIEW3D, NULL, &a->show_view3d, true);
+  igMenuItem_BoolPtr(WIN_ANI, NULL, &a->show_ani, true);
   igMenuItem_BoolPtr(WIN_HELP, "F1", &a->show_help, true);
   igSeparator();
   if (igMenuItem_Bool("Reset window layout", NULL, false, true))
@@ -196,6 +217,18 @@ void ui_toolbar(App *a, float height) {
            ok)) {
     a->show_analysis = true;
     igSetWindowFocus_Str(WIN_ANALYSIS);
+  }
+  if (ok && a->nbcs > 0 &&
+      tool("Solve BVP",
+           "Solve the boundary-value problem: shoot from the initial values "
+           "until the model's bndry conditions hold (XPPAUT's Bndryval).",
+           true))
+    app_command(a, "bvp");
+  if (ok && a->ani.loaded &&
+      tool("Animate", "Play the model's animation (.ani file) over the run.",
+           true)) {
+    a->show_ani = true;
+    igSetWindowFocus_Str(WIN_ANI);
   }
   igTextDisabled("|");
   igSameLine(0, 6);

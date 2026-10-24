@@ -46,6 +46,7 @@ Everything around the engine is new:
 | Follow a bifurcation | AUTO window, nested dialogs, Grab with the mouse | One panel: a table of special points and the continuations that make sense from each |
 | Get a phase response curve | Find the period, integrate exactly one cycle, then *Averaging > New adjoint* | Press *Compute*: the cycle, its period and the adjoint are found for you |
 | Look at spectra and statistics | One *stocHastic* dialog at a time; the result replaces your data | An Analysis window with every tool beside its plot; your run stays as it was |
+| Watch a model move | The Viewer, if your X server cooperates | The Animator plays the model's `.ani` file; the 3D view turns with the mouse |
 | Make a figure for a paper | PostScript, then replot elsewhere | PNG as shown, or a vector SVG, in one click |
 | Automate an analysis | Batch mode only (no AUTO) | A command window, and Python with AUTO included |
 | Learn it | A book and old web pages | A built-in manual with live examples, and tooltips everywhere |
@@ -97,6 +98,14 @@ the mathematics. XPP Studio removes that first wall:
   <tr>
     <td align="center"><sub>Analysis: phase response curves, spectra, histograms, Liapunov exponents, curve fitting</sub></td>
     <td align="center"><sub>The same tools from Python: <code>m.phase_response()</code>, <code>m.spectrum("V")</code></sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/view3d.png" alt="The Lorenz attractor in the 3D view"></td>
+    <td><img src="docs/images/animator.png" alt="The double pendulum in the Animator"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The 3D view: drag to turn; models' own 3D settings are honoured</sub></td>
+    <td align="center"><sub>The Animator plays XPPAUT's <code>.ani</code> files</sub></td>
   </tr>
 </table>
 

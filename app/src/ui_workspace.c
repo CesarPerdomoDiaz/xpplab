@@ -221,13 +221,34 @@ static void sets_tab(App *a) {
 
 static void sweep_tab(App *a) {
   SweepUI *s = &a->sw;
-  bool mm = !s->overlay;
-  TextWrapped("Run the model once for each value of a parameter, as "
-              "XPPAUT's Initial conds > Range does.");
+  char label[APP_NAME_LEN + 16];
+  int i;
+  TextWrapped("Run the model once for each value of a parameter or initial "
+              "value, as XPPAUT's Initial conds > Range does.");
+  snprintf(label, sizeof label, "%s%s",
+           s->over_ic ? (s->par < a->nvars ? a->vars[s->par] : "")
+                      : (s->par < a->npars ? a->pars[s->par] : ""),
+           s->over_ic ? " (initial)" : "");
   igSetNextItemWidth(140);
-  if (Combo("Parameter", &s->par, a->pars, a->npars) && s->par >= 0) {
-    s->from = a->par[s->par].lo;
-    s->to = a->par[s->par].hi;
+  if (igBeginCombo("Range over", label, 0)) {
+    for (i = 0; i < a->npars; i++)
+      if (igSelectable_Bool(a->pars[i], !s->over_ic && s->par == i, 0, V2(0, 0))) {
+        s->over_ic = false;
+        s->par = i;
+        s->from = a->par[i].lo;
+        s->to = a->par[i].hi;
+      }
+    igSeparator();
+    for (i = 0; i < a->nvars; i++) {
+      snprintf(label, sizeof label, "%s (initial)", a->vars[i]);
+      if (igSelectable_Bool(label, s->over_ic && s->par == i, 0, V2(0, 0))) {
+        s->over_ic = true;
+        s->par = i;
+        s->from = a->ic[i] - 1;
+        s->to = a->ic[i] + 1;
+      }
+    }
+    igEndCombo();
   }
   igSetNextItemWidth(110);
   igInputDouble("From", &s->from, 0, 0, "%.6g", 0);
@@ -237,12 +258,21 @@ static void sweep_tab(App *a) {
   igInputInt("Steps", &s->steps, 1, 10, 0);
   if (s->steps < 2) s->steps = 2;
   if (s->steps > 1000) s->steps = 1000;
-  if (igRadioButton_Bool("Keep each trajectory", s->overlay)) s->overlay = true;
+  igCheckbox("Start each run where the last ended", &s->continue_runs);
+  Tooltip("XPPAUT's \"Use old ICs\" = No: follow an attractor as the value "
+          "changes, instead of starting every run from the initial values.");
+  if (igRadioButton_Bool("Keep each trajectory", s->mode == SWEEP_OVERLAY))
+    s->mode = SWEEP_OVERLAY;
   Tooltip("Overlay the runs on the plots (at most 16).");
-  if (igRadioButton_Bool("Max / min of a variable", mm)) s->overlay = false;
+  if (igRadioButton_Bool("Max / min of a variable", s->mode == SWEEP_MAXMIN))
+    s->mode = SWEEP_MAXMIN;
   Tooltip("Record the largest and smallest value after a transient: a "
           "brute-force bifurcation diagram. Compare it with AUTO's.");
-  if (!s->overlay) {
+  if (igRadioButton_Bool("Liapunov exponent", s->mode == SWEEP_LYAPUNOV))
+    s->mode = SWEEP_LYAPUNOV;
+  Tooltip("The largest Liapunov exponent of each run: above zero means chaos "
+          "(XPPAUT's Liapunov with a range).");
+  if (s->mode == SWEEP_MAXMIN) {
     int pct = (int)(s->transient * 100 + 0.5);
     igSetNextItemWidth(110);
     Combo("Variable", &s->var, a->vars, a->nvars);
@@ -251,15 +281,26 @@ static void sweep_tab(App *a) {
     HelpMarker("The part of each run to ignore, so that transients do not "
                "count.");
   }
-  if (ButtonW("Run sweep", -1)) app_sweep(a);
-  if (!s->overlay && s->n > 0 &&
+  if (ButtonW("Run range", -1)) app_sweep(a);
+  if (s->mode != SWEEP_OVERLAY && s->n > 0 &&
       ImPlot_BeginPlot("##sweep", V2(-1, -1), ImPlotFlags_NoTitle | ImPlotFlags_NoLegend)) {
-    ImPlot_SetupAxes(a->pars[s->par], a->vars[s->var], ImPlotAxisFlags_AutoFit,
-                     ImPlotAxisFlags_AutoFit);
-    ImPlot_PlotScatter_doublePtrdoublePtr("max", s->x, s->ymax, s->n,
-                                          SpecMarker(HEX(0x1f77b4), ImPlotMarker_Circle, 2.5f));
-    ImPlot_PlotScatter_doublePtrdoublePtr("min", s->x, s->ymin, s->n,
-                                          SpecMarker(HEX(0xd62728), ImPlotMarker_Circle, 2.5f));
+    const char *xl = s->over_ic ? a->vars[s->par] : a->pars[s->par];
+    if (s->mode == SWEEP_LYAPUNOV) {
+      double zero = 0;
+      ImPlot_SetupAxes(xl, "Liapunov exponent", ImPlotAxisFlags_AutoFit,
+                       ImPlotAxisFlags_AutoFit);
+      ImPlot_PlotInfLines_doublePtr("##zero", &zero, 1,
+                                    Spec(V4(0.5f, 0.5f, 0.5f, 0.6f), 1.0f));
+      ImPlot_PlotLine_doublePtrdoublePtr("lyap", s->x, s->ymax, s->n,
+                                         SpecMarker(HEX(0xd62728), ImPlotMarker_Circle, 2.5f));
+    } else {
+      ImPlot_SetupAxes(xl, a->vars[s->var], ImPlotAxisFlags_AutoFit,
+                       ImPlotAxisFlags_AutoFit);
+      ImPlot_PlotScatter_doublePtrdoublePtr("max", s->x, s->ymax, s->n,
+                                            SpecMarker(HEX(0x1f77b4), ImPlotMarker_Circle, 2.5f));
+      ImPlot_PlotScatter_doublePtrdoublePtr("min", s->x, s->ymin, s->n,
+                                            SpecMarker(HEX(0xd62728), ImPlotMarker_Circle, 2.5f));
+    }
     ImPlot_EndPlot();
   }
 }
@@ -291,7 +332,7 @@ void ui_workspace(App *a) {
       sets_tab(a);
       igEndTabItem();
     }
-    if (igBeginTabItem("Sweep", NULL, a->sw.reveal ? ImGuiTabItemFlags_SetSelected : 0)) {
+    if (igBeginTabItem("Range", NULL, a->sw.reveal ? ImGuiTabItemFlags_SetSelected : 0)) {
       sweep_tab(a);
       igEndTabItem();
     }

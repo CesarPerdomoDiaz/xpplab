@@ -50,12 +50,14 @@ set (Workspace > Sets), then [follow the steady states in iapp](cmd:auto steady 
 
 ## Check the diagram with simulations
 
-**Workspace > Sweep** runs the model once for each value of a parameter
-and records the maximum and minimum of a variable after a transient. When
-the parameter and the plotted variable match the Bifurcation window's, the
-results appear as grey dots on AUTO's diagram. They should sit on the stable
-branches: the solid red lines and the solid green ones. Where the system is
-bistable, different initial values land on different branches.
+**Workspace > Range** (XPPAUT's *Initial conds > Range*) runs the model
+once for each value of a parameter, and in *Max / min* mode records the
+maximum and minimum of a variable after a transient. When the parameter and
+the plotted variable match the Bifurcation window's, the results appear as
+grey dots on AUTO's diagram. They should sit on the stable branches: the
+solid red lines and the solid green ones. Where the system is bistable,
+different initial values land on different branches; tick *Start each run
+where the last ended* to follow one branch as the parameter moves.
 
 ## The numerical settings
 

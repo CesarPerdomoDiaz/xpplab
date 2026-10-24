@@ -161,13 +161,31 @@ add_custom_command(TARGET xppstudio POST_BUILD
           ${PROJECT_SOURCE_DIR}/engine/xppaut/ode ${APP_DATA_DIR}/examples)
 
 # Install a self-contained folder (or bundle) and package it with CPack.
+# Every package carries the licences: XPP Studio's, and the notices and
+# texts for the parts by others (THIRD-PARTY-NOTICES.md).
+set(XPPS_LICENCE_FILES ${PROJECT_SOURCE_DIR}/LICENSE
+    ${PROJECT_SOURCE_DIR}/THIRD-PARTY-NOTICES.md)
 if(APPLE)
   install(TARGETS xppstudio BUNDLE DESTINATION . COMPONENT app)
+  # In the disk image beside the app, and inside the app itself.
+  install(FILES ${XPPS_LICENCE_FILES} DESTINATION . COMPONENT app)
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/licenses DESTINATION . COMPONENT app)
+  install(FILES ${XPPS_LICENCE_FILES}
+          DESTINATION xppstudio.app/Contents/Resources COMPONENT app)
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/licenses
+          DESTINATION xppstudio.app/Contents/Resources COMPONENT app)
   # Copy SDL3 into the bundle and point the executable at it, then sign the
   # result ad hoc (Apple Silicon refuses to run modified unsigned code).
+  # First drop the build leftovers among XPPAUT's examples (see below).
   install(CODE [[
     include(BundleUtilities)
     set(app "${CMAKE_INSTALL_PREFIX}/xppstudio.app")
+    file(GLOB junk "${app}/Contents/Resources/examples/*~"
+         "${app}/Contents/Resources/examples/*.o" "${app}/Contents/Resources/examples/*.so"
+         "${app}/Contents/Resources/examples/*.bak" "${app}/Contents/Resources/examples/a.out")
+    if(junk)
+      file(REMOVE ${junk})
+    endif()
     fixup_bundle("${app}" "" "")
     execute_process(COMMAND codesign --force --deep --sign - "${app}")
   ]] COMPONENT app)
@@ -183,10 +201,15 @@ else()
     install(IMPORTED_RUNTIME_ARTIFACTS SDL3::SDL3 LIBRARY DESTINATION .
             COMPONENT app)
   endif()
+  # XPPAUT's examples, without the build leftovers in its tree (backups,
+  # object files, a compiled a.out); the tree itself stays as upstream has it.
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/ DESTINATION examples
-          COMPONENT app)
-  install(FILES ${PROJECT_SOURCE_DIR}/LICENSE ${PROJECT_SOURCE_DIR}/README.md
+          COMPONENT app
+          PATTERN "*~" EXCLUDE PATTERN "*.o" EXCLUDE PATTERN "*.so" EXCLUDE
+          PATTERN "*.bak" EXCLUDE PATTERN "a.out" EXCLUDE)
+  install(FILES ${XPPS_LICENCE_FILES} ${PROJECT_SOURCE_DIR}/README.md
           DESTINATION . COMPONENT app)
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/licenses DESTINATION . COMPONENT app)
 endif()
 if(MINGW)
   # Copy the DLLs the packaged binaries need (e.g. SDL3's own dependencies

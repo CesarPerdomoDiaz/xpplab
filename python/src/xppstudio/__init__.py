@@ -20,4 +20,4 @@ __all__ = ["Model", "Trajectory", "Equilibrium", "Diagram", "Point", "Table", "A
            "EngineError", "METHODS", "load", "find_engine_library",
            "__version__"]
 
-__version__ = "0.1.0.dev0"
+__version__ = "0.1.0"

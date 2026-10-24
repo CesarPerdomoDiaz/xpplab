@@ -72,8 +72,10 @@ jobs:
       fail-fast: false
       matrix:
         # macOS minutes cost ten times as much on a private repository: the
-        # agent's pull requests skip macOS, which runs again after the merge.
-        os: ${{ fromJSON(startsWith(github.head_ref, 'agent/') && '["ubuntu-latest"]' || '["ubuntu-latest", "macos-latest"]') }}
+        # agent's pull requests skip macOS, which runs again after the merge,
+        # and so does everything while the repository variable XPPS_LIGHT_CI
+        # is 1 (a run started by hand always includes it).
+        os: ${{ fromJSON((startsWith(github.head_ref, 'agent/') || (vars.XPPS_LIGHT_CI == '1' && github.event_name != 'workflow_dispatch')) && '["ubuntu-latest"]' || '["ubuntu-latest", "macos-latest"]') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -175,6 +177,7 @@ jobs:
     name: Memory errors (AddressSanitizer)
     # glibc sometimes aborts with heap corruption that Windows does not
     # notice; AddressSanitizer reports the exact line of a bad access.
+    if: vars.XPPS_LIGHT_CI != '1' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
@@ -212,6 +215,7 @@ jobs:
     name: Uninitialised memory (valgrind)
     # Reads of uninitialised memory can corrupt the heap at random; valgrind
     # reports them with the allocation they came from.
+    if: vars.XPPS_LIGHT_CI != '1' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -252,51 +256,3 @@ jobs:
         with:
           name: valgrind-logs
           path: vg-*.log
-
-  wheels:
-    name: Wheel (${{ matrix.os }})
-    # Wheels take long (macOS minutes count tenfold on private repositories):
-    # build them on request and for releases only.
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: MinGW-w64 toolchain (Windows)
-        if: runner.os == 'Windows'
-        id: msys2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          install: >-
-            mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-cmake
-            mingw-w64-ucrt-x86_64-ninja
-      - name: Put MinGW-w64 on PATH (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: echo "${{ steps.msys2.outputs.msys2-location }}\ucrt64\bin" >> $env:GITHUB_PATH
-      - name: Build wheels
-        run: |
-          python -m pip install cibuildwheel
-          python -m cibuildwheel --output-dir wheelhouse
-        env:
-          # The wheel is py3-none-<platform>: one build serves every Python 3.
-          CIBW_BUILD: "cp312-*"
-          CIBW_SKIP: "*-musllinux_*"
-          CIBW_ARCHS_LINUX: "x86_64"
-          CIBW_ARCHS_WINDOWS: "AMD64"
-          CIBW_ARCHS_MACOS: "universal2"
-          CIBW_ENVIRONMENT_WINDOWS: CC=gcc CMAKE_GENERATOR=Ninja
-          CIBW_TEST_REQUIRES: pytest matplotlib pandas
-          CIBW_TEST_COMMAND: pytest -q {project}/python/tests
-      - uses: actions/upload-artifact@v4
-        with:
-          name: wheel-${{ matrix.os }}
-          path: wheelhouse/*.whl

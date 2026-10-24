@@ -123,15 +123,16 @@ int xppe_ani_frame(int row) {
       continue;
     }
     if (type > COMET) continue; /* nullclines and grab points: not drawn */
+    memset(it, 0, sizeof *it);
     if (type == LINE || type == RLINE || type == RECT || type == FRECT ||
         type == CIRC || type == FCIRC || type == ELLIP || type == FELLIP ||
-        type == COMET)
+        type == COMET) {
       eval_ani_color(j);
+      colour(j, it); /* text has no colour of its own: see SETTEXT */
+    }
     if (my_ani[j].flag == TRANSIENT) eval_ani_com(j);
-    memset(it, 0, sizeof *it);
     it->command = j;
     it->thickness = my_ani[j].zthick;
-    colour(j, it);
     it->x1 = my_ani[j].zx1;
     it->y1 = my_ani[j].zy1;
     switch (type) {

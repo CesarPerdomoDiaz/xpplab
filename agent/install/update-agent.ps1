@@ -25,8 +25,18 @@ $source = Split-Path -Parent $PSScriptRoot          # ...\agent
 $checkout = Split-Path -Parent $source
 if (-not $NoPull) {
     Say "Pulling $checkout"
-    git -C $checkout pull --ff-only
-    if ($LASTEXITCODE -ne 0) { throw "git pull failed; nothing was changed." }
+    # Over SSH there is no signed-in GitHub account: borrow the agent's own
+    # token from its secrets, for this one command only.
+    $secrets = Join-Path $AgentHome "secrets.env"
+    $token = Get-Content $secrets -ErrorAction SilentlyContinue |
+        Where-Object { $_ -match '^\s*GH_TOKEN\s*=' } |
+        ForEach-Object { ($_ -split '=', 2)[1].Trim() } | Select-Object -First 1
+    $saved = $env:GH_TOKEN
+    if ($token) { $env:GH_TOKEN = $token }
+    git -C $checkout -c credential.helper= -c "credential.helper=!gh auth git-credential" pull --ff-only
+    $code = $LASTEXITCODE
+    $env:GH_TOKEN = $saved
+    if ($code -ne 0) { throw "git pull failed; nothing was changed." }
 }
 
 $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue

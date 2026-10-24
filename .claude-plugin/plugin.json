@@ -1,0 +1,13 @@
+{
+  "name": "xppstudio",
+  "displayName": "XPP Studio",
+  "description": "Simulate ODE models and compute bifurcation diagrams with XPPAUT and AUTO: the xppstudio MCP server and a skill that teaches the workflow.",
+  "author": {
+    "name": "César Eduardo Perdomo Díaz"
+  },
+  "homepage": "https://github.com/CesarPerdomoDiaz/xppstudio",
+  "repository": "https://github.com/CesarPerdomoDiaz/xppstudio",
+  "license": "GPL-2.0-or-later",
+  "icon": "./app/resources/icon.png",
+  "keywords": ["xppaut", "auto", "bifurcation", "continuation", "ode", "dynamical-systems", "neuroscience"]
+}

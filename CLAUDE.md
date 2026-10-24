@@ -10,7 +10,10 @@ app. Read README.md for the overview and ROADMAP.md for what is planned.
 - `engine/platform/` null Xlib, Windows compatibility, the embedding layer.
 - `engine/api/` the C API (`xppe.h`); one file per area (`xppe_data.c`
   analysis, `xppe_bvp.c`, `xppe_ani.c`, `xppe_auto.c`, ...).
-- `python/` the `xppstudio` package (ctypes) and its tests.
+- `python/` the `xppstudio` package (ctypes) and its tests;
+  `python/src/xppstudio/mcp/` is the MCP server for coding agents.
+- `skills/`, `.claude-plugin/`, `.mcp.json` the Claude Code plugin (skill
+  plus MCP server); `AGENTS.md` the same guidance for other agents.
 - `app/` the desktop app: SDL3 + Dear ImGui + ImPlot through cimgui, in C.
 - `docs/` MkDocs site; `docs/manual/*.md` is also built into the app's help.
 - `tests/` golden tests (`golden.py`), API and AUTO checks, sanitizer tools.

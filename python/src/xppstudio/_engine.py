@@ -14,6 +14,7 @@ import shutil
 import sys
 import tempfile
 import threading
+from contextlib import contextmanager
 from pathlib import Path
 
 __all__ = ["Engine", "EngineError", "find_engine_library"]
@@ -254,8 +255,24 @@ class Engine:
             raise EngineError("engine library has an incompatible API version")
         self.cwd: Path | None = None
         self._closed = False
+        self._batch = 0
 
     # -- plumbing ---------------------------------------------------------
+
+    @contextmanager
+    def batch(self):
+        """Hold the engine for many calls in a row (reading a diagram point by
+        point): one change of directory instead of two per call."""
+        with _process_lock:
+            old = os.getcwd()
+            if self.cwd is not None:
+                os.chdir(self.cwd)
+            self._batch += 1
+            try:
+                yield self
+            finally:
+                self._batch -= 1
+                os.chdir(old)
 
     def call(self, name: str, *args, check: bool = True):
         """Call an xppe_* function inside the model's working directory and
@@ -264,13 +281,16 @@ class Engine:
             raise EngineError("this model has been closed")
         fn = getattr(self._lib, name)
         with _process_lock:
-            old = os.getcwd()
-            if self.cwd is not None:
-                os.chdir(self.cwd)
-            try:
+            if self._batch:
                 rc = fn(*args)
-            finally:
-                os.chdir(old)
+            else:
+                old = os.getcwd()
+                if self.cwd is not None:
+                    os.chdir(self.cwd)
+                try:
+                    rc = fn(*args)
+                finally:
+                    os.chdir(old)
         if check and isinstance(rc, int) and rc < 0:
             raise EngineError(_text(self._lib.xppe_error()) or name + " failed",
                               rc, self.log)

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "xppstudio": {
+      "command": "python",
+      "args": ["-m", "xppstudio.mcp"]
+    }
+  }
+}

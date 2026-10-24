@@ -344,25 +344,27 @@ class Auto:
             return list(buf[:count])
 
         pts = []
-        for i in range(start, n):
-            eng.call("xppe_auto_point", i, ctypes.byref(info))
-            var = self._model.variables
-            pars = dict(zip(slots, data(i, E.AUTO_PARAMS, npar)))
-            ev = (np.array(data(i, E.AUTO_EIG_RE, nvar))
-                  + 1j * np.array(data(i, E.AUTO_EIG_IM, nvar)))
-            p2 = slots[info.par2_slot] if 0 <= info.par2_slot < npar else None
-            pts.append(Point(
-                index=i, branch=info.branch, point=info.point,
-                type_code=info.type, type=info.type_name.decode(),
-                label=info.label, stable=bool(info.stable),
-                periodic=bool(info.periodic),
-                two_parameter=bool(info.two_parameter),
-                parameter=slots[info.par1_slot], value=info.par1,
-                parameter2=p2, value2=info.par2 if p2 else None,
-                norm=info.norm, period=info.period, parameters=pars,
-                u0=dict(zip(var, data(i, E.AUTO_U0, nvar))),
-                umax=dict(zip(var, data(i, E.AUTO_UMAX, nvar))),
-                umin=dict(zip(var, data(i, E.AUTO_UMIN, nvar))),
-                umean=dict(zip(var, data(i, E.AUTO_UMEAN, nvar))),
-                multipliers=ev))
+        # One change of directory for the whole diagram, not two per call.
+        with eng.batch():
+            for i in range(start, n):
+                eng.call("xppe_auto_point", i, ctypes.byref(info))
+                var = self._model.variables
+                pars = dict(zip(slots, data(i, E.AUTO_PARAMS, npar)))
+                ev = (np.array(data(i, E.AUTO_EIG_RE, nvar))
+                      + 1j * np.array(data(i, E.AUTO_EIG_IM, nvar)))
+                p2 = slots[info.par2_slot] if 0 <= info.par2_slot < npar else None
+                pts.append(Point(
+                    index=i, branch=info.branch, point=info.point,
+                    type_code=info.type, type=info.type_name.decode(),
+                    label=info.label, stable=bool(info.stable),
+                    periodic=bool(info.periodic),
+                    two_parameter=bool(info.two_parameter),
+                    parameter=slots[info.par1_slot], value=info.par1,
+                    parameter2=p2, value2=info.par2 if p2 else None,
+                    norm=info.norm, period=info.period, parameters=pars,
+                    u0=dict(zip(var, data(i, E.AUTO_U0, nvar))),
+                    umax=dict(zip(var, data(i, E.AUTO_UMAX, nvar))),
+                    umin=dict(zip(var, data(i, E.AUTO_UMIN, nvar))),
+                    umean=dict(zip(var, data(i, E.AUTO_UMEAN, nvar))),
+                    multipliers=ev))
         return Diagram(pts, self._model.variables)

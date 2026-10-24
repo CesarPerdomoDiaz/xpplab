@@ -204,4 +204,12 @@ if(SKBUILD)
   install(TARGETS xppe
     RUNTIME DESTINATION xppstudio/_lib COMPONENT python
     LIBRARY DESTINATION xppstudio/_lib COMPONENT python)
+  # The MCP server (xppstudio.mcp) offers agents the example models and the
+  # manual's pages on the .ode format and AUTO.
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/
+    DESTINATION xppstudio/examples COMPONENT python
+    FILES_MATCHING PATTERN "*.ode" PATTERN "*.ani" PATTERN "*.tab" PATTERN "*.dat")
+  install(FILES ${PROJECT_SOURCE_DIR}/docs/manual/odefile.md
+                ${PROJECT_SOURCE_DIR}/docs/manual/auto.md
+    DESTINATION xppstudio/_docs COMPONENT python)
 endif()

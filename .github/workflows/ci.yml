@@ -90,7 +90,9 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install libx11 ninja pkg-config sdl3
       - name: Python packages
-        run: python -m pip install numpy pytest matplotlib pandas
+        # mcp: the MCP server's tests (python/tests/test_mcp.py), which are
+        # skipped on Windows, where MSYS2 has no package for it.
+        run: python -m pip install numpy pytest matplotlib pandas mcp
       - name: Build
         run: |
           cmake -S . -B build -G Ninja
@@ -246,9 +248,10 @@ jobs:
              "$GITHUB_WORKSPACE/build/cli/xppaut-headless" mlvolt.ode -silent -outfile out.dat \
              </dev/null >/dev/null) || true
       - name: Python tests under valgrind
+        # The MCP layer is pure Python over the calls tested here already.
         run: |
           PYTHONMALLOC=malloc PYTHONPATH=python/src $VG --log-file=vg-python.%p.log \
-            python -m pytest -q python/tests || true
+            python -m pytest -q python/tests --ignore=python/tests/test_mcp.py || true
       - name: Errors in XPP Studio code
         run: python tests/valgrind_report.py vg-*.log
       - uses: actions/upload-artifact@v4

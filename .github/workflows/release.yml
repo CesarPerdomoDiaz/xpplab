@@ -177,7 +177,7 @@ jobs:
           CIBW_ARCHS_WINDOWS: "AMD64"
           CIBW_ARCHS_MACOS: "universal2"
           CIBW_ENVIRONMENT_WINDOWS: CC=gcc CMAKE_GENERATOR=Ninja
-          CIBW_TEST_REQUIRES: pytest matplotlib pandas
+          CIBW_TEST_REQUIRES: pytest matplotlib pandas mcp
           CIBW_TEST_COMMAND: pytest -q {project}/python/tests
       - uses: actions/upload-artifact@v4
         with:

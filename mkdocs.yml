@@ -70,6 +70,7 @@ nav:
       - Bifurcations with AUTO: python/auto.md
       - Data analysis: python/analysis.md
       - API reference: python/reference.md
+  - Coding agents: agents.md
   - Reference:
       - The .ode file format: manual/odefile.md
       - Numerical methods: manual/numerics.md

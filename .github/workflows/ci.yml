@@ -2,9 +2,12 @@ name: CI
 
 on:
   push:
-    branches: ["**"] # not for tags: releases have their own workflow
+    # Not for tags (releases have their own workflow), nor for the maintainer
+    # agent's branches: their pull requests run CI, and once is enough.
+    branches: ["**", "!agent/**"]
     paths-ignore: ["docs/**", "**.md"]
   pull_request:
+    paths-ignore: ["docs/**", "**.md"]
   workflow_dispatch:
 
 # A newer push cancels the run still going for the same branch.
@@ -68,7 +71,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # macOS minutes cost ten times as much on a private repository: the
+        # agent's pull requests skip macOS, which runs again after the merge.
+        os: ${{ fromJSON(startsWith(github.head_ref, 'agent/') && '["ubuntu-latest"]' || '["ubuntu-latest", "macos-latest"]') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -110,6 +115,11 @@ jobs:
           --reference build-reference/xppaut-reference
       - name: Python tests
         run: PYTHONPATH=python/src python -m pytest -q python/tests
+      - name: Maintainer agent tests
+        if: runner.os == 'Linux'
+        run: |
+          git config --global user.name ci && git config --global user.email ci@example.invalid
+          python -m pytest -q agent/tests
       - name: Desktop app starts and renders (macOS)
         if: runner.os == 'macOS'
         run: |

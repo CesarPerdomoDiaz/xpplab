@@ -175,6 +175,8 @@ Windows, why `delmmult` networks coupled to the wrong variable, and why
 - **For XPPAUT users:** [Coming from XPPAUT](docs/manual/xppaut.md).
 - **Python:** the [Python guide](docs/python/quickstart.md).
 - **How it works:** [architecture](docs/development/architecture.md).
+- **Maintenance:** issues labelled `agent` are worked on by the
+  [maintainer agent](agent/README.md), which opens pull requests for review.
 
 ## Building from source
 

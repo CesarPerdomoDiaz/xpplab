@@ -265,7 +265,11 @@ jobs:
           body_path: notes.md
           # GitHub's list of the changes since the last release follows the notes.
           generate_release_notes: true
-          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
+          # A full release, never a pre-release: releases/latest, which the
+          # README's and the install guide's download links use, skips
+          # pre-releases.
+          prerelease: false
+          make_latest: true
           files: |
             dist/XPPStudio-*
             dist/*.whl

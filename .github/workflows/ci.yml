@@ -140,7 +140,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build libx11-dev libxext-dev libxrandr-dev             libxcursor-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libwayland-dev             wayland-protocols libegl1-mesa-dev libgl1-mesa-dev libdbus-1-dev xvfb
       - run: |
-          cmake -S . -B build -G Ninja -DXPPS_BUILD_TESTS=OFF -DXPPS_FETCH_SDL3=ON
+          cmake -S . -B build -G Ninja -DXPPS_BUILD_TESTS=OFF -DXPPS_FETCH_SDL3=ON \
+                -DCMAKE_BUILD_TYPE=RelWithDebInfo
           cmake --build build --target xppstudio
       - name: The app starts under a virtual display and renders
         run: |
@@ -148,6 +149,17 @@ jobs:
           xvfb-run -a ./xppstudio examples/lecar.ode --cmd "auto steady iapp" --screenshot shot.bmp --frames 10 || true
           cat shot.bmp.err 2>/dev/null || true
           test -s shot.bmp
+      - name: If the app crashed, show where (gdb, valgrind)
+        if: failure()
+        run: |
+          sudo apt-get install -y gdb valgrind
+          cd build/app
+          xvfb-run -a gdb -batch -ex run -ex bt --args ./xppstudio examples/lecar.ode \
+            --cmd "auto steady iapp" --screenshot "$PWD/dbg.bmp" --frames 10 || true
+          xvfb-run -a valgrind --track-origins=yes --fullpath-after= --num-callers=30 \
+            --log-file="$GITHUB_WORKSPACE/vg-app.log" ./xppstudio examples/lecar.ode \
+            --cmd "auto steady iapp" --screenshot "$PWD/vg.bmp" --frames 4 || true
+          python3 "$GITHUB_WORKSPACE/tests/valgrind_report.py" "$GITHUB_WORKSPACE/vg-app.log"
 
   asan:
     name: Memory errors (AddressSanitizer)
@@ -174,14 +186,58 @@ jobs:
           cp -r engine/xppaut/ode engine/xppaut/tstauto "$d/"
           bad=0
           for m in "$d"/ode/*.ode "$d"/tstauto/*.ode; do
-            (cd "$(dirname "$m")" && timeout 300 "$GITHUB_WORKSPACE/build/cli/xppaut-headless" \
+            dir=$(dirname "$m")
+            rc=0
+            (cd "$dir" && timeout 300 "$GITHUB_WORKSPACE/build/cli/xppaut-headless" \
                "$(basename "$m")" -silent -outfile out.dat \
-               </dev/null >/dev/null 2>err.txt)
-            if grep -q AddressSanitizer "$(dirname "$m")/err.txt"; then
-              echo "::error::${m#$d/}"; cat "$(dirname "$m")/err.txt"; bad=1
+               </dev/null >out.txt 2>err.txt) || rc=$?
+            if [ $rc -ge 124 ] || grep -q AddressSanitizer "$dir/err.txt"; then
+              echo "::error::${m#$d/} (exit code $rc)"
+              tail -n 60 "$dir/err.txt"; tail -n 5 "$dir/out.txt"; bad=1
             fi
           done
           exit $bad
+
+  valgrind:
+    name: Uninitialised memory (valgrind)
+    # Reads of uninitialised memory can corrupt the heap at random; valgrind
+    # reports them with the allocation they came from.
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      VG: valgrind --error-exitcode=0 --track-origins=yes --fullpath-after= --num-callers=30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build valgrind
+      - run: python -m pip install numpy pytest matplotlib pandas
+      - name: Build with debug information
+        run: |
+          cmake -S . -B build -G Ninja -DXPPS_BUILD_APP=OFF -DCMAKE_C_FLAGS=-g
+          cmake --build build
+      - name: Engine API and AUTO under valgrind
+        run: |
+          d=$(mktemp -d)
+          cp -r engine/xppaut/ode engine/xppaut/tstauto "$d/"
+          for m in ode/lecar ode/lorenz ode/fhn tstauto/bob; do
+            (cd "$d/$(dirname $m)" && $VG --log-file="$GITHUB_WORKSPACE/vg-$(basename $m).log" \
+               "$GITHUB_WORKSPACE/build/tests/api_smoke" "$(basename $m).ode" >/dev/null) || true
+          done
+          (cd "$d/ode" && $VG --log-file="$GITHUB_WORKSPACE/vg-auto.log" \
+             "$GITHUB_WORKSPACE/build/tests/auto_smoke" lecar.ode iapp hopf diagram.txt >/dev/null) || true
+      - name: Python tests under valgrind
+        run: |
+          PYTHONMALLOC=malloc PYTHONPATH=python/src $VG --log-file=vg-python.%p.log \
+            python -m pytest -q python/tests || true
+      - name: Errors in XPP Studio code
+        run: python tests/valgrind_report.py vg-*.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: valgrind-logs
+          path: vg-*.log
 
   wheels:
     name: Wheel (${{ matrix.os }})

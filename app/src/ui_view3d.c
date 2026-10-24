@@ -66,7 +66,9 @@ static void draw_curve(ImDrawList *dl, const Projection *p, const Trajectory *t,
                        const View3D *v, ImU32 col, float width) {
   ImVec2_c last = {0, 0};
   int i;
-  if (v->x >= t->ncols || v->y >= t->ncols || v->z >= t->ncols) return;
+  if (v->x < 0 || v->y < 0 || v->z < 0 || v->x >= t->ncols || v->y >= t->ncols ||
+      v->z >= t->ncols)
+    return;
   for (i = 0; i < t->nrows; i++) {
     double q[3] = {t->cols[v->x][i], t->cols[v->y][i], t->cols[v->z][i]};
     ImVec2_c s = project(p, q);

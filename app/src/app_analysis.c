@@ -111,6 +111,24 @@ bool app_bvp(App *a) {
   return true;
 }
 
+/* A plot option from the model's @ lines. xppe_get() looks among the
+   variables and parameters first, so an option a model also uses as a name
+   cannot be read that way (lor2.ode has variables xp, yp and zp, and "XP"
+   gave the initial value of xp, -8): the default stays. */
+static void get_option(App *a, const char *name, double *value) {
+  int i;
+  for (i = 0; i < a->nvars; i++)
+    if (SDL_strcasecmp(a->vars[i], name) == 0) return;
+  for (i = 0; i < a->npars; i++)
+    if (SDL_strcasecmp(a->pars[i], name) == 0) return;
+  a->eng->api.xppe_get(name, value);
+}
+
+/* A column for the 3D view: the one asked for if it exists, else fallback. */
+static int column_or(const App *a, double asked, int fallback) {
+  return asked >= 0 && asked < a->ncols ? (int)asked : fallback;
+}
+
 void app_view3d_reset(App *a) {
   static const char *keys[6] = {"XMIN", "XMAX", "YMIN", "YMAX", "ZMIN", "ZMAX"};
   View3D *v = &a->v3;
@@ -120,21 +138,21 @@ void app_view3d_reset(App *a) {
   v->zoom = 1;
   v->auto_box = true;
   if (!a->eng || a->ncols < 2) return;
-  a->eng->api.xppe_get("XP", &xp);
-  a->eng->api.xppe_get("YP", &yp);
-  a->eng->api.xppe_get("ZP", &zp);
-  a->eng->api.xppe_get("AXES", &axes);
-  a->eng->api.xppe_get("VIEW_THETA", &th);
-  a->eng->api.xppe_get("VIEW_PHI", &ph);
+  get_option(a, "XP", &xp);
+  get_option(a, "YP", &yp);
+  get_option(a, "ZP", &zp);
+  get_option(a, "AXES", &axes);
+  get_option(a, "VIEW_THETA", &th);
+  get_option(a, "VIEW_PHI", &ph);
   /* XP, YP and ZP number the columns from 0 for time, as App.cols does. */
-  v->x = (int)xp < a->ncols ? (int)xp : 1;
-  v->y = (int)yp < a->ncols ? (int)yp : (a->ncols > 2 ? 2 : 1);
-  v->z = zp >= 1 && (int)zp < a->ncols && zp != xp ? (int)zp
-                                                    : (a->ncols > 3 ? 3 : 0);
+  v->x = column_or(a, xp, 1);
+  v->y = column_or(a, yp, a->ncols > 2 ? 2 : 1);
+  v->z = zp >= 1 && zp != xp ? column_or(a, zp, a->ncols > 3 ? 3 : 0)
+                             : (a->ncols > 3 ? 3 : 0);
   v->theta = (float)th;
   v->phi = (float)ph;
   if (axes == 5) {
-    for (i = 0; i < 6; i++) a->eng->api.xppe_get(keys[i], &v->box[i]);
+    for (i = 0; i < 6; i++) get_option(a, keys[i], &v->box[i]);
     v->auto_box = !(v->box[0] < v->box[1] && v->box[2] < v->box[3] &&
                     v->box[4] < v->box[5]);
     a->show_view3d = true; /* the model asks for a 3D plot */

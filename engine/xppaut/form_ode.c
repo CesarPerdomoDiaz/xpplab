@@ -1768,7 +1768,11 @@ void compile_em() /* Now we try to keep track of markov, fixed, etc as
  char vnames[MAXODE1][MAXVNAM],fnames[MAXODE1][MAXVNAM],anames[MAXODE1][MAXVNAM];
  char mnames[MAXODE1][MAXVNAM];
  double z,xlo,xhi;
- char tmp[50],big[MAXEXPLEN],formula[MAXEXPLEN],*my_string,*junk,*ptr,name[10];
+ /* XPP Studio fix: name was name[10], one byte short for a name of
+    NAMLEN=10 characters in an init statement. Its terminating zero landed
+    in tmp, and convert(name,tmp) then copied the name onto itself without
+    end and overran the stack. Both now hold anything a line can. */
+ char tmp[MAXEXPLEN],big[MAXEXPLEN],formula[MAXEXPLEN],*my_string,*junk,*ptr,name[MAXEXPLEN];
  int nmark=0,nfix=0,naux=0,nvar=0,nn,alt,in,i,ntab=0,nufun=0;
  int in1,in2,iflag;
  int fon;

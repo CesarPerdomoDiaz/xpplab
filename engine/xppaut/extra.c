@@ -228,7 +228,10 @@ void add_export_list(char *in,char *out)
   i=get_export_count(out);
   in_out.out=(int *)malloc((i+1)*sizeof(int));
   in_out.outtype=(int *)malloc((i+1)*sizeof(int));
-  in_out.vout=(double *)malloc((i+1)*sizeof(double));
+  /* XPP Studio fix: calloc, not malloc. When the library cannot be loaded,
+     my_fun() leaves vout alone and do_in_out() copies it into the exported
+     variables at every step: they took whatever the heap held. */
+  in_out.vout=(double *)calloc(i+1,sizeof(double));
   in_out.nout=i;
   /* plintf(" in %d out %d \n",in_out.nin,in_out.nout); */
 

@@ -61,5 +61,7 @@ location for each model, which gives every model independent globals.
 - `tests/auto_check.py`: a headless AUTO run (Morris-Lecar: steady states,
   then periodic orbits from a Hopf point) against a recorded diagram.
 - `python/tests`: the Python package.
+- `tests/modeldb_check.py`: the XPPAUT models published on ModelDB, against
+  unmodified XPPAUT, on request (see [ModelDB models](modeldb.md)).
 - CI also starts the desktop app, loads a model, runs AUTO and takes a
   screenshot.

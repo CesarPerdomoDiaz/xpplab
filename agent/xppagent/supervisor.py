@@ -317,12 +317,19 @@ class Supervisor:
 
     # -- the loop --------------------------------------------------------------
 
-    def run(self) -> None:
+    def run(self, sleep=time.sleep, passes: int | None = None) -> None:
+        """Pass after pass, for ever (or `passes` times, for tests). Setting up
+        is retried too: after a reboot the network may not be up yet."""
         log.info("XPP Studio maintainer agent started for %s", self.cfg.slug)
-        self.setup()
+        ready = False
         failures = 0
-        while True:
+        while passes is None or passes > 0:
+            if passes is not None:
+                passes -= 1
             try:
+                if not ready:
+                    self.setup()
+                    ready = True
                 did = self.tick()
                 failures = 0
             except Exception:  # a bad hour on GitHub must not end the agent
@@ -330,7 +337,7 @@ class Supervisor:
                 log.exception("the loop failed (%d in a row)", failures)
                 did = False
             pause = 5 if did else self.cfg.poll_seconds * min(failures + 1, 10)
-            time.sleep(pause)
+            sleep(pause)
 
     def status(self) -> str:
         lines = [f"repository {self.cfg.slug}, home {self.cfg.home}",

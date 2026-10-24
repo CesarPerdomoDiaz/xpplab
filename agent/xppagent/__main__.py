@@ -33,6 +33,27 @@ def _logging(cfg, verbose: bool) -> None:
                         format="%(asctime)s %(levelname)s %(message)s", handlers=handlers)
 
 
+def single_instance(path: Path):
+    """Lock `path` for as long as the process lives. Returns the open file
+    (keep it), or None when another agent already holds the lock: the
+    scheduled task starts the agent every few minutes, and only the first
+    one may run."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    f = open(path, "a+")
+    try:
+        if sys.platform == "win32":
+            import msvcrt
+            f.seek(0)
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        f.close()
+        return None
+    return f
+
+
 def _run(args: list[str], **kw) -> tuple[int, str]:
     try:
         r = subprocess.run(args, capture_output=True, text=True, encoding="utf-8",
@@ -146,6 +167,10 @@ def main(argv=None) -> int:
         print(sup.status())
         if sup.waiting:
             print("waiting:", sup.waiting)
+        return 0
+    lock = single_instance(cfg.home / "agent.lock")
+    if lock is None:
+        print("another agent is already running; nothing to do")
         return 0
     sup.run()
     return 0

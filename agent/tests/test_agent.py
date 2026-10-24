@@ -491,3 +491,31 @@ def test_a_merge_that_closes_the_issue_counts_as_a_merge(world):
     assert t.stage == "merged" and t.merge_sha == "abc123"
     assert "agent" not in w.gh.label_names(n)
     assert any("merged" in e for _, e in w.sup.state.events[-2:])
+
+
+def test_setting_up_is_retried_until_github_answers(world):
+    w = world
+    calls = {"n": 0}
+    real = w.gh.login
+
+    def flaky():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            from xppagent.gh import GitHubError
+            raise GitHubError("network is not up yet")
+        return real()
+    w.gh.login = flaky
+    n = w.gh.new_issue("Add a hello file")
+    w.sup.run(sleep=lambda s: None, passes=2)    # the first pass fails, the second works
+    assert calls["n"] == 2 and w.task(n).stage == "planned"
+
+
+def test_only_one_agent_runs_at_a_time(tmp_path):
+    from xppagent.__main__ import single_instance
+    first = single_instance(tmp_path / "agent.lock")
+    assert first is not None
+    assert single_instance(tmp_path / "agent.lock") is None
+    first.close()
+    again = single_instance(tmp_path / "agent.lock")
+    assert again is not None
+    again.close()

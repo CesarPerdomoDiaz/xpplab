@@ -169,7 +169,13 @@ CLAUDE_CODE_OAUTH_TOKEN=
 Say "Registering the scheduled task '$TaskName'"
 $action = New-ScheduledTaskAction -Execute $Python `
     -Argument "-m xppagent run --config `"$config`"" -WorkingDirectory $app
-$trigger = New-ScheduledTaskTrigger -AtStartup
+# At boot, and every 5 minutes for ever: "restart on failure" only covers a
+# task that fails to start, not a program that dies later. A copy started
+# while the agent runs is dropped (IgnoreNew), and the agent's own lock file
+# stops any second copy.
+$trigger = @((New-ScheduledTaskTrigger -AtStartup),
+             (New-ScheduledTaskTrigger -Once -At (Get-Date).Date `
+                 -RepetitionInterval (New-TimeSpan -Minutes 5)))
 $settings = New-ScheduledTaskSettingsSet -RestartCount 999 `
     -RestartInterval (New-TimeSpan -Minutes 5) -ExecutionTimeLimit ([TimeSpan]::Zero) `
     -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `

@@ -12,6 +12,10 @@ worth reporting to Bard Ermentrout.
 | `gogoauto.c` `go_go_auto()` | `findlb()` steps backwards through `fort.3` with relative `fseek()`. That works only when lines end in one byte. On Windows, text mode (CRLF) lands on the wrong record, so **restarting AUTO from any labelled point read garbage** (a singular matrix and exit, or a crash) | Open `fort.3` in binary mode | Windows: continuation from labelled points works. POSIX: none |
 | `auto_nox.c` `close_auto()` | `fort.8` is never closed before it is renamed to `model.s`. POSIX renames the open file and leaves its tail unflushed; Windows cannot rename it at all, so the `.s` restart file was missing | Close `fort.8` first | `.s` files are complete on every platform |
 | `auto_nox.c` `renamef()` | On Windows `rename()` fails when the target exists | Remove the target first (Windows only) | Repeated AUTO runs update `.b`/`.d`/`.s` |
+| `extra.c` `add_export_list()` | `malloc(strlen(s))` then `strcpy()`: one byte too few for the terminating zero, so **every model with an `export` statement corrupts the heap**. On Linux, glibc aborts (`buffer overflow detected` in fortified builds, `free(): invalid pointer` or a crash later); Windows does not notice (found with AddressSanitizer) | `malloc(strlen(s)+1)` | Models with `export` (the `efm` family, `koho`, `minode`, `tstdll`) run on Linux. Output unchanged on Windows |
+| `simplenet.c` `evaluate_network()` | The delayed networks `delmmult` and `delsparse` pass `get_delay()` an index into `variables[]`, where `t` is entry 0, but `get_delay()` expects the 0-based ODE index (the parser's `delay()` passes `variable-1`). So **each term used the delayed value of the next variable, `u[j+1]`, instead of `u[j]`**, and the last one read past the delay buffer (found with AddressSanitizer on `tstdel.ode`) | Subtract 1 | Changes results for models that couple through `delmmult` or `delsparse`: they now compute what XPPAUT's documentation says. The examples set the coupling to 0, so their output is unchanged |
+| `form_ode.c` `read_a_line()` | When a model file ends without `done`, the last `fgets()` reads nothing and the line buffer is used as it was: uninitialised, or in practice often still holding the previous line, **which is then parsed a second time**. When it came out empty, the code read `s[-1]`, the byte before the buffer, and could overwrite it (found with AddressSanitizer and Valgrind on `hedge.ode` and `osc.ode`) | Treat end of file as an empty line; check the line is not empty before looking at its last character | All example models give the same output. Broken models can report a different error: `hedge.ode` (`x'=` with nothing on the right) used to fail with a spurious "duplicate" from re-reading `y'=eps*x`, and now reports the empty right-hand side |
+| `autlib1.c` `fnhbae()` | The eigenvalue array has `ndim` entries, `eig()` fills the first `ndm`, and `send_eigen()` reads all `ndim`, so XPPAUT's copy of the eigenvalues ends in uninitialised values (found with Valgrind) | `calloc` the array | None: XPPAUT uses only the first `NODE` eigenvalues, for stability |
 
 ## Behaviour that changes only when embedded
 
@@ -25,6 +29,8 @@ Standalone builds behave exactly like XPPAUT.
 - `exit()` returns to the API call instead of ending the process. In
   XPPAUT itself, an AUTO failure such as the singular matrix in `ge()`
   closes the whole program.
+- The `@ logfile=...` option is ignored: the log goes to the API
+  (`xppe_log()`, the app's Command Window) instead of a file.
 
 ## Open
 
@@ -44,8 +50,8 @@ at the very first output step and is large (v1 = -0.00018 in most runs,
 - **Fixed-size arrays:** `-fsanitize=bounds-strict` finds no out-of-bounds
   index in the Volterra code path.
 
-Next step: run it under Valgrind on Linux CI, which can see heap overreads
-and uses of uninitialised values that these probes miss.
+Next step: check it against the CI Valgrind job, which now runs on every
+push and reports uses of uninitialised values with their origin.
 
 ### Compiler warnings that may be real bugs
 

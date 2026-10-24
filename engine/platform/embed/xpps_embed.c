@@ -61,11 +61,18 @@ void xpps_guard_set(jmp_buf *jb) { guard = jb; }
 
 int xpps_guard_code(void) { return guard_code; }
 
+extern FILE *logfile; /* XPPAUT's console stream (main.c) */
+
+/* tmpfile() streams cannot be truncated portably, so each call gets a new
+   one. XPPAUT keeps the stream in its global logfile, which must follow:
+   left pointing at the closed stream, every later message wrote into
+   freed memory and corrupted the heap. */
 void xpps_capture_reset(void) {
-  /* tmpfile() streams cannot be truncated portably, so start a new one. */
   if (capture) {
+    int was_log = logfile == capture;
     fclose(capture);
     capture = NULL;
+    if (was_log) logfile = xpps_log_stream();
   }
 }
 

@@ -227,6 +227,10 @@ jobs:
           done
           (cd "$d/ode" && $VG --log-file="$GITHUB_WORKSPACE/vg-auto.log" \
              "$GITHUB_WORKSPACE/build/tests/auto_smoke" lecar.ode iapp hopf diagram.txt >/dev/null) || true
+          # mlvolt.ode gives a different trajectory about 1 run in 20.
+          (cd "$d/ode" && timeout 1200 $VG --log-file="$GITHUB_WORKSPACE/vg-mlvolt.log" \
+             "$GITHUB_WORKSPACE/build/cli/xppaut-headless" mlvolt.ode -silent -outfile out.dat \
+             </dev/null >/dev/null) || true
       - name: Python tests under valgrind
         run: |
           PYTHONMALLOC=malloc PYTHONPATH=python/src $VG --log-file=vg-python.%p.log \

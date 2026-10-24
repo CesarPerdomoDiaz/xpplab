@@ -309,6 +309,7 @@ static void shortcuts(App *a) {
       ui_dialog_save_as(a);
   }
   if (chord(ImGuiMod_Ctrl | ImGuiKey_N)) app_new_model(a);
+  if (chord(ImGuiMod_Ctrl | ImGuiKey_Q)) a->quit = true;
   if (chord(ImGuiKey_F5)) app_run(a);
   if (chord(ImGuiKey_F1)) {
     a->show_help = true;

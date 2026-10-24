@@ -214,8 +214,10 @@ void add_export_list(char *in,char *out)
   int l1=strlen(in);
   int l2=strlen(out);
   int i;
-  in_out.lin=(char *)malloc(l1);
-  in_out.lout=(char *)malloc(l2);
+  /* XPP Studio fix: +1 for the terminating zero, which strcpy() wrote past
+     the end of each block and corrupted the heap. */
+  in_out.lin=(char *)malloc(l1+1);
+  in_out.lout=(char *)malloc(l2+1);
   strcpy(in_out.lin,in);
   strcpy(in_out.lout,out);
   i=get_export_count(in);

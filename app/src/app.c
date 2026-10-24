@@ -186,6 +186,7 @@ void app_init(App *a, const char *base_dir, bool ephemeral) {
 void app_shutdown(App *a) {
   if (!a->ephemeral) app_save_settings(a);
   free_model_cache(a);
+  app_analysis_free(a);
   if (a->eng) xpp_instance_close(a->eng);
   a->eng = NULL;
   free(a->editor);
@@ -405,6 +406,7 @@ static bool load_engine(App *a) {
   }
   a->sw.steps = 40;
   a->sw.transient = 0.5;
+  app_analysis_reset(a);
   return true;
 }
 
@@ -613,6 +615,15 @@ static void fetch_run(App *a, Trajectory *t) {
     x->xppe_column(a->time_missing ? j - 1 : j, t->cols[j], rows);
   }
 }
+
+void app_fetch_current(App *a) {
+  free_traj(&a->traj);
+  fetch_run(a, &a->traj);
+  snprintf(a->traj.label, sizeof a->traj.label, "run %d", a->nfrozen + 1);
+  a->have_traj = a->traj.nrows > 0;
+}
+
+void app_free_trajectory(Trajectory *t) { free_traj(t); }
 
 bool app_run(App *a) {
   int rows;

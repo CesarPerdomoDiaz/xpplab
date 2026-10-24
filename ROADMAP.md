@@ -98,11 +98,14 @@ The order is chosen so something useful ships early:
 - [x] Query and set variables, parameters, initial conditions, numerical
       options and auxiliaries
 - [x] Integrate, returning the trajectory as arrays: all methods, named sets
-- [ ] Ranges, parameter sweeps, `.set` files
+- [x] Parameter sweeps and `.set` files; [ ] XPPAUT's own Range dialog
 - [x] Equilibria with eigenvalues and stability, nullclines, vector field
-- [ ] Stable/unstable manifolds
-- [ ] Poincaré sections, Lyapunov exponents, FFT and spectra, curve fitting,
-      averaging and adjoints (PRC)
+- [x] Stable/unstable manifolds of saddles
+- [x] Data analysis: Fourier series, spectral densities, histograms,
+      correlations, Liapunov exponents, curve fitting, adjoints, phase
+      response curves and H functions (checked against XPPAUT's batch
+      post-processing and against known answers)
+- [x] Poincaré sections (as numerical options)
 - [ ] Boundary value problems (shooting)
 - [x] **Headless AUTO:** equilibria, periodic orbits, two-parameter curves,
       branch switching. Branches and labelled special points (HB, LP, PD,

@@ -7,6 +7,7 @@
 | F5 | Integrate (run) |
 | Ctrl+Enter | Apply the edited model |
 | Ctrl+O, Ctrl+S, Ctrl+N | Open, save, new model |
+| Ctrl+Q | Quit (⌘ instead of Ctrl on a Mac) |
 | F1 | Help |
 
 ## XPPAUT's two-key commands
@@ -49,6 +50,15 @@ commands. `help` lists them all.
 | `auto set ds=0.01 nmax=300` | AUTO numerics. |
 | `auto reset` | Clear the diagram. |
 | `sweep I 0 1.6 50 V` | Run 50 times with I from 0 to 1.6 and plot the max and min of V (XPPAUT's Range). Leave out `V` to keep each trajectory instead. |
+| `spectrum V 1024` | Power spectral density of V in windows of 1024 points. `spectrum V W coherence` compares two columns (`psd`, `cross`, `coherence`). |
+| `fourier V`, `power V` | Fourier series of V over the run: cos and sin, or amplitude and phase. |
+| `hist V 50 -1 1` | Histogram of V in 50 bins from -1 to 1 (leave out the range to take it from the data). |
+| `hist2d V W 20` | Two-dimensional histogram of V and W. |
+| `xcorr V W 100` | Cross-correlation of V and W over about 100 lags; `xcorr V` is the autocorrelation. |
+| `mean V` | Mean and standard deviation of V, and the run's largest Liapunov exponent. |
+| `prc` | Phase response curves of the limit cycle (`prc 500` settles for 500 time units first). |
+| `hfun V'-V; 0` | H function for weak coupling, one formula per variable; primed names are the other cell. |
+| `fitdata v.dat V 2 gca,gk` | Fit gca and gk so that V matches column 2 of v.dat. |
 | `open file.ode`, `new`, `save` | Model files. |
 | `export run.csv` | Save the last run as CSV. |
 | `export fig.svg phase` | Save a figure (`time`, `phase`, `auto`, `auto2`) as SVG; `.png` saves it as shown. |

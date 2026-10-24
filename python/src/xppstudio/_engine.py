@@ -18,7 +18,7 @@ from pathlib import Path
 
 __all__ = ["Engine", "EngineError", "find_engine_library"]
 
-API_VERSION = 1
+API_VERSION = 2
 
 OK = 0
 ERR_STATE = -1
@@ -146,6 +146,33 @@ _SIGNATURES = {
                   ctypes.POINTER(ctypes.c_double)], ctypes.c_int),
     "xppe_manifold_count": ([], ctypes.c_int),
     "xppe_manifold": ([ctypes.c_int, ctypes.POINTER(ctypes.c_int)], ctypes.c_int),
+    "xppe_fourier": ([ctypes.c_char_p], ctypes.c_int),
+    "xppe_power": ([ctypes.c_char_p], ctypes.c_int),
+    "xppe_spectrum": ([ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p,
+                       ctypes.c_int, ctypes.c_int], ctypes.c_int),
+    "xppe_histogram": ([ctypes.c_char_p, ctypes.c_int, ctypes.c_double,
+                        ctypes.c_double, ctypes.c_char_p], ctypes.c_int),
+    "xppe_histogram2d": ([ctypes.c_char_p, ctypes.c_int, ctypes.c_double,
+                          ctypes.c_double, ctypes.c_char_p, ctypes.c_int,
+                          ctypes.c_double, ctypes.c_double], ctypes.c_int),
+    "xppe_autocorrelation": ([ctypes.c_char_p, ctypes.c_int, ctypes.c_double,
+                              ctypes.c_double], ctypes.c_int),
+    "xppe_correlation": ([ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int,
+                          ctypes.c_int], ctypes.c_int),
+    "xppe_mean": ([ctypes.c_char_p, ctypes.POINTER(ctypes.c_double),
+                   ctypes.POINTER(ctypes.c_double)], ctypes.c_int),
+    "xppe_lyapunov": ([ctypes.POINTER(ctypes.c_double)], ctypes.c_int),
+    "xppe_adjoint": ([ctypes.c_int, ctypes.c_double], ctypes.c_int),
+    "xppe_hfunction": ([ctypes.c_int, ctypes.POINTER(ctypes.c_char_p)],
+                       ctypes.c_int),
+    "xppe_fit": ([ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_char_p,
+                  ctypes.c_char_p, ctypes.c_char_p, ctypes.c_double,
+                  ctypes.c_double, ctypes.c_int], ctypes.c_int),
+    "xppe_result_rows": ([], ctypes.c_int),
+    "xppe_result_count": ([], ctypes.c_int),
+    "xppe_result_name": ([ctypes.c_int], ctypes.c_char_p),
+    "xppe_result_column": ([ctypes.c_int, ctypes.POINTER(ctypes.c_double),
+                            ctypes.c_int], ctypes.c_int),
     "xppe_nullcline": ([ctypes.c_int, ctypes.c_int, ctypes.c_int,
                         ctypes.c_double, ctypes.c_double, ctypes.c_double,
                         ctypes.c_double, ctypes.c_int,

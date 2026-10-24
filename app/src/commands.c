@@ -35,14 +35,28 @@ static const char *usage =
     "  auto reset               clear the bifurcation diagram\n"
     "  sweep PAR FROM TO N [VAR] run N times over PAR; with VAR, plot its\n"
     "                           max and min (a brute-force diagram)\n"
+    "Analysis of the last run (XPPAUT's Numerics > stocHastic, Averaging):\n"
+    "  spectrum COL [COL2] [psd|cross|coherence] [N]\n"
+    "                           spectral density, windows of N points\n"
+    "  fourier COL | power COL  Fourier series: cos/sin, amplitude/phase\n"
+    "  hist COL [BINS] [LO HI]  histogram of a column\n"
+    "  hist2d X Y [BINS]        two-dimensional histogram\n"
+    "  xcorr COL [COL2] [LAGS]  auto- or cross-correlation\n"
+    "  mean COL                 mean, deviation, Liapunov exponent\n"
+    "  prc                      phase response curves of the limit cycle\n"
+    "  hfun F1; F2; ...         H function: one coupling per variable,\n"
+    "                           primed names are the other cell (V'-V)\n"
+    "  fitdata FILE VARS COLS PARS\n"
+    "                           fit parameters to data (comma lists)\n"
     "  open FILE | new | save   models\n"
     "  export FILE.csv          save the last run as CSV\n"
     "  export FILE.svg [WHICH]  save a figure (time, phase, auto, auto2);\n"
     "                           .png saves it as it looks on screen\n"
     "  show WINDOW              bring a window forward: time, phase, auto,\n"
-    "                           editor, data, help, console, workspace\n"
+    "                           editor, data, analysis, help, console,\n"
+    "                           workspace\n"
     "  help [TOPIC]             open the manual (topics: tutorial, auto,\n"
-    "                           odefile, numerics, commands, xppaut)\n";
+    "                           analysis, odefile, numerics, commands, xppaut)\n";
 
 static char *skip_space(char *s) {
   while (*s && isspace((unsigned char)*s)) s++;
@@ -57,6 +71,117 @@ static char *next_word(char **s) {
   if (*e) *e++ = '\0';
   *s = e;
   return w;
+}
+
+static int col_index(App *a, const char *name) {
+  int j;
+  for (j = 0; j < a->ncols; j++)
+    if (SDL_strcasecmp(a->cols[j], name) == 0) return j;
+  app_log(a, "error: no column '%s'; type 'whos' for the names", name);
+  return -1;
+}
+
+static bool is_number(const char *s) {
+  char *end;
+  if (!s) return false;
+  strtod(s, &end);
+  return end != s && *end == '\0';
+}
+
+/* spectrum, fourier, power, hist, hist2d, xcorr, mean, prc, hfun, fitdata */
+static void cmd_analysis(App *a, const char *cmd, char *rest) {
+  AnalysisUI *n = &a->an;
+  char *w = NULL;
+  if (!a->model_ok) {
+    app_log(a, "error: open a model first");
+    return;
+  }
+  if (!strcmp(cmd, "prc")) {
+    n->tool = AN_PRC;
+    if ((w = next_word(&rest)) && is_number(w)) n->transient = atof(w);
+  } else if (!strcmp(cmd, "hfun")) {
+    int i = 0;
+    char *f;
+    n->tool = AN_HFUNCTION;
+    for (f = strtok(rest, ";"); f && i < a->nvars; f = strtok(NULL, ";"), i++)
+      snprintf(n->coupling[i], sizeof n->coupling[i], "%s", skip_space(f));
+    if (i > 0 && i < a->nvars)
+      app_log(a, "note: %d of %d coupling formulas given; the rest are kept",
+              i, a->nvars);
+  } else if (!strcmp(cmd, "fitdata")) {
+    char *file = next_word(&rest), *vars = next_word(&rest),
+         *cols = next_word(&rest), *pars = next_word(&rest);
+    if (!pars) {
+      app_log(a, "Write: fitdata FILE VARS COLS PARS, e.g. fitdata v.dat V 2 "
+                 "gca,gk");
+      return;
+    }
+    n->tool = AN_FIT;
+    snprintf(n->fit_file, sizeof n->fit_file, "%s", file);
+    snprintf(n->fit_vars, sizeof n->fit_vars, "%s", vars);
+    snprintf(n->fit_cols, sizeof n->fit_cols, "%s", cols);
+    snprintf(n->fit_pars, sizeof n->fit_pars, "%s", pars);
+  } else {
+    int c;
+    if (!(w = next_word(&rest))) {
+      app_log(a, "error: give a column, e.g. %s V", cmd);
+      return;
+    }
+    if ((c = col_index(a, w)) < 0) return;
+    n->col = c;
+    n->col2 = c;
+    if (!strcmp(cmd, "spectrum") || !strcmp(cmd, "psd")) {
+      n->tool = AN_SPECTRUM;
+      n->spec_kind = 0;
+      while ((w = next_word(&rest))) {
+        if (!strcmp(w, "psd")) n->spec_kind = 0;
+        else if (!strcmp(w, "cross")) n->spec_kind = 1;
+        else if (!strcmp(w, "coherence")) n->spec_kind = 2;
+        else if (is_number(w)) n->spec_len = atoi(w);
+        else if ((c = col_index(a, w)) >= 0) {
+          n->col2 = c;
+          if (n->spec_kind == 0) n->spec_kind = 1;
+        } else
+          return;
+      }
+    } else if (!strcmp(cmd, "fourier") || !strcmp(cmd, "fft") ||
+               !strcmp(cmd, "power")) {
+      n->tool = AN_FOURIER;
+      n->polar = !strcmp(cmd, "power");
+    } else if (!strcmp(cmd, "hist")) {
+      char *lo, *hi;
+      n->tool = AN_HISTOGRAM;
+      if ((w = next_word(&rest))) n->bins = atoi(w);
+      lo = next_word(&rest);
+      hi = next_word(&rest);
+      n->auto_range = !(lo && hi);
+      if (lo && hi) {
+        n->lo = atof(lo);
+        n->hi = atof(hi);
+      }
+    } else if (!strcmp(cmd, "hist2d")) {
+      n->tool = AN_HISTOGRAM2D;
+      if (!(w = next_word(&rest)) || (c = col_index(a, w)) < 0) {
+        app_log(a, "error: write hist2d X Y [BINS]");
+        return;
+      }
+      n->col2 = c;
+      if ((w = next_word(&rest))) n->bins = n->bins2 = atoi(w);
+      n->auto_range = true;
+    } else if (!strcmp(cmd, "xcorr")) {
+      n->tool = AN_CORRELATION;
+      while ((w = next_word(&rest))) {
+        if (is_number(w)) n->lags = atoi(w);
+        else if ((c = col_index(a, w)) >= 0) n->col2 = c;
+        else return;
+      }
+    } else {
+      n->tool = AN_STATISTICS;
+    }
+  }
+  a->show_analysis = true;
+  snprintf(a->focus, sizeof a->focus, "analysis");
+  app_analysis_run(a);
 }
 
 static void cmd_set(App *a, char *rest) {
@@ -262,6 +387,13 @@ void app_command(App *a, const char *line_in) {
     if (!a->nsets) app_log(a, "No parameter sets in this model.");
   } else if (!strcmp(cmd, "auto")) {
     cmd_auto(a, rest);
+  } else if (!strcmp(cmd, "spectrum") || !strcmp(cmd, "psd") ||
+             !strcmp(cmd, "fourier") || !strcmp(cmd, "fft") ||
+             !strcmp(cmd, "power") || !strcmp(cmd, "hist") ||
+             !strcmp(cmd, "hist2d") || !strcmp(cmd, "xcorr") ||
+             !strcmp(cmd, "mean") || !strcmp(cmd, "prc") ||
+             !strcmp(cmd, "hfun") || !strcmp(cmd, "fitdata")) {
+    cmd_analysis(a, cmd, rest);
   } else if (!strcmp(cmd, "sweep")) {
     /* sweep PAR FROM TO STEPS [VAR]: max/min of VAR, or keep the runs */
     char *par = next_word(&rest), *from = next_word(&rest), *to = next_word(&rest);

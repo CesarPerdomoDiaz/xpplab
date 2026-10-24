@@ -19,6 +19,7 @@
 #define WIN_HELP "Help"
 #define WIN_DATA "Data"
 #define WIN_ARRAY "Array Plot"
+#define WIN_ANALYSIS "Analysis"
 
 /* The shortcut modifier as shown in menus. ImGui maps its Ctrl shortcuts
    to the Command key on macOS. */
@@ -86,6 +87,7 @@ void ui_auto(App *a);
 void ui_console(App *a);
 void ui_help(App *a);
 void ui_data(App *a);
+void ui_analysis(App *a);
 
 /* Native file dialogs (results arrive on a later frame). */
 void ui_dialog_open(App *a);

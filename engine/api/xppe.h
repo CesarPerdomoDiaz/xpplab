@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 1
+#define XPPE_API_VERSION 2
 
 enum {
   XPPE_OK = 0,
@@ -109,6 +109,83 @@ XPPE_API int xppe_nullcline(int which, int ix, int iy, double xlo, double xhi,
    as the current run; *type is +1 for unstable, -1 for stable. */
 XPPE_API int xppe_manifold_count(void);
 XPPE_API int xppe_manifold(int k, int *type);
+
+/* ---- Data analysis --------------------------------------------------------
+ *
+ * XPPAUT's Numerics > stocHastic tools and Numerics > Averaging, applied
+ * to the current run by XPPAUT's own routines. Columns are named as in the
+ * data browser: "T", a variable or an auxiliary (names ignore case).
+ *
+ * The tools that produce a table leave it in the result table, read with
+ * xppe_result_rows(), xppe_result_count(), xppe_result_name() and
+ * xppe_result_column(). The run itself is not changed.
+ */
+
+/* Fourier series of a column over the run: freq, cos, sin (Fourier). */
+XPPE_API int xppe_fourier(const char *column);
+/* The same as amplitude and phase: freq, amplitude, phase (Power). The log
+   reports a0 and the L2 norm. */
+XPPE_API int xppe_power(const char *column);
+/* Spectral density by Welch's method, windows of window_length points with
+   50% overlap (Spec.dns): type 0 power spectral density of column, 1 cross
+   spectrum and 2 coherence of column and column2. window: 0 square,
+   1 Parzen, 2 Hamming, 3 Bartlett, 4 Hann. Result: freq, then power,
+   cross or coherence. */
+XPPE_API int xppe_spectrum(int type, const char *column, const char *column2,
+                           int window_length, int window);
+/* Histogram of a column in nbins bins from lo to hi, counting only the
+   points where condition (an expression; "" for all) is nonzero: bin,
+   count (Histogram). */
+XPPE_API int xppe_histogram(const char *column, int nbins, double lo,
+                            double hi, const char *condition);
+/* Two-dimensional histogram of columns x and y: x, y, count (2D-hist). */
+XPPE_API int xppe_histogram2d(const char *x, int nx, double xlo, double xhi,
+                              const char *y, int ny, double ylo, double yhi);
+/* Histogram of all pairwise differences of a column: difference, count
+   (stAutocor). */
+XPPE_API int xppe_autocorrelation(const char *column, int nbins, double lo,
+                                  double hi);
+/* Cross-correlation of two columns (the same column twice gives the
+   autocorrelation) over about nbins lags, computed directly or (use_fft)
+   by FFT: lag, correlation (Xcorrel). */
+XPPE_API int xppe_correlation(const char *column, const char *column2,
+                              int nbins, int use_fft);
+/* Mean and standard deviation of a column (Mean). */
+XPPE_API int xppe_mean(const char *column, double *mean, double *sd);
+/* The largest Liapunov exponent along the current run (Liapunov). */
+XPPE_API int xppe_lyapunov(double *exponent);
+
+/* The adjoint of the linearised equations along the current run, which
+   must be exactly one period of a stable limit cycle (Averaging > New
+   adjoint). Its column for a variable is the infinitesimal phase response
+   curve to perturbations of that variable. Result: T, then one column per
+   ODE variable. max_iterations and tolerance replace XPPAUT's defaults (20
+   and 1e-3) when positive. */
+XPPE_API int xppe_adjoint(int max_iterations, double tolerance);
+/* The averaged interaction function H(phi) for weak coupling, after
+   xppe_adjoint() on the same run (Averaging > Make H). coupling gives one
+   formula per ODE variable, n of them; primed names such as V' stand for
+   the other oscillator's variables. Result: phi, H, and for three or more
+   columns also Hodd and Heven. */
+XPPE_API int xppe_hfunction(int n, const char *const *coupling);
+
+/* Least-squares fit of parameters and initial conditions to data with
+   XPPAUT's Levenberg-Marquardt (stocHastic > fIt data). file holds npts
+   rows of ncols numbers, time first. variables names the ODE variables to
+   fit and columns their columns in the file (from 2), both comma-separated;
+   parameters lists the parameters and initial conditions to vary.
+   tolerance, epsilon and max_iterations replace XPPAUT's defaults (1e-3,
+   1e-5, 20) when positive. On success the model holds the fitted values. */
+XPPE_API int xppe_fit(const char *file, int npts, int ncols,
+                      const char *variables, const char *columns,
+                      const char *parameters, double tolerance,
+                      double epsilon, int max_iterations);
+
+/* The table left by the last analysis. */
+XPPE_API int xppe_result_rows(void);
+XPPE_API int xppe_result_count(void);
+XPPE_API const char *xppe_result_name(int col);
+XPPE_API int xppe_result_column(int col, double *out, int n);
 
 /* ---- AUTO continuation ----------------------------------------------------
  *

@@ -44,6 +44,8 @@ Everything around the engine is new:
 | Fix a typo in a model | "Illegal syntax", and XPPAUT exits | The editor points at the line and explains |
 | Read a model file | Plain text, any editor | Syntax colouring that knows your parameters and variables |
 | Follow a bifurcation | AUTO window, nested dialogs, Grab with the mouse | One panel: a table of special points and the continuations that make sense from each |
+| Get a phase response curve | Find the period, integrate exactly one cycle, then *Averaging > New adjoint* | Press *Compute*: the cycle, its period and the adjoint are found for you |
+| Look at spectra and statistics | One *stocHastic* dialog at a time; the result replaces your data | An Analysis window with every tool beside its plot; your run stays as it was |
 | Make a figure for a paper | PostScript, then replot elsewhere | PNG as shown, or a vector SVG, in one click |
 | Automate an analysis | Batch mode only (no AUTO) | A command window, and Python with AUTO included |
 | Learn it | A book and old web pages | A built-in manual with live examples, and tooltips everywhere |
@@ -88,6 +90,14 @@ the mathematics. XPP Studio removes that first wall:
     <td align="center"><sub>The editor colours your parameters and variables</sub></td>
     <td align="center"><sub>The built-in manual and tutorial</sub></td>
   </tr>
+  <tr>
+    <td><img src="docs/images/analysis.png" alt="The Analysis window showing the phase response curve of the Morris-Lecar model"></td>
+    <td><img src="docs/images/python-analysis.png" alt="Type I and type II phase response curves and a power spectrum from Python"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Analysis: phase response curves, spectra, histograms, Liapunov exponents, curve fitting</sub></td>
+    <td align="center"><sub>The same tools from Python: <code>m.phase_response()</code>, <code>m.spectrum("V")</code></sub></td>
+  </tr>
 </table>
 
 ## Get it
@@ -118,6 +128,11 @@ m.apply_set("hopf")
 d = m.auto.equilibria("iapp")        # AUTO: steady states vs. iapp
 orbits = m.auto.continue_from(d.first("HB"), "periodic")
 m.auto.diagram.plot("V")             # matplotlib, in XPPAUT's colours
+
+m.parameters["iapp"] = 0.26
+prc = m.phase_response()             # one period, the adjoint: the PRC
+m.run(total=2000)
+m.spectrum("V").plot()               # power spectral density of the run
 ```
 
 The wheel includes the compiled engine, so nothing is compiled on your

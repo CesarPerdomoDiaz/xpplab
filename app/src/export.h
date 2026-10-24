@@ -25,6 +25,8 @@ const char *figure_name(FigureKind kind);
 void export_png(FigureKind kind, const char *path);
 /* Called by the main loop after rendering, before presenting. */
 void export_process_pending(App *a, void *sdl_renderer, float fb_scale);
+/* Write an SDL_Surface as a PNG file. */
+bool export_surface_png(void *sdl_surface, const char *path);
 
 bool export_svg(App *a, FigureKind kind, const char *path);
 

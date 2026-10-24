@@ -62,6 +62,16 @@ void export_process_pending(App *a, void *renderer, float scale) {
   SDL_DestroySurface(rgb);
 }
 
+bool export_surface_png(void *surface, const char *path) {
+  SDL_Surface *rgb = SDL_ConvertSurface((SDL_Surface *)surface,
+                                        SDL_PIXELFORMAT_RGB24);
+  bool ok;
+  if (!rgb) return false;
+  ok = stbi_write_png(path, rgb->w, rgb->h, 3, rgb->pixels, rgb->pitch) != 0;
+  SDL_DestroySurface(rgb);
+  return ok;
+}
+
 /* ---- SVG ------------------------------------------------------------------ */
 
 enum { W = 800, H = 560, ML = 84, MR = 28, MT = 28, MB = 64 };

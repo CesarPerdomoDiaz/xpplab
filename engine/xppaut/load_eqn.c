@@ -2290,7 +2290,10 @@ if(msc("SLO2",s1)){
     return;
    }
    
- if(msc("HISTLO",s1)){
+ /* XPP Studio fix: msc() matches prefixes, so HISTLO also caught HISTLO2
+    (and HISTHI, HISTBINS, HISTCOL, SPECCOL their "2" variants): those
+    options could never be set. */
+ if(msc("HISTLO",s1)&&!msc("HISTLO2",s1)){
      if ((notAlreadySet.HISTLO||force) || ((mask!=NULL)&&(mask->HISTLO==1)))
      {
     	hist_inf.xlo=atof(s2);
@@ -2299,7 +2302,7 @@ if(msc("SLO2",s1)){
     return;
   }
 
- if(msc("HISTHI",s1)){
+ if(msc("HISTHI",s1)&&!msc("HISTHI2",s1)){
      if ((notAlreadySet.HISTHI||force) || ((mask!=NULL)&&(mask->HISTHI==1)))
      {
     	hist_inf.xhi=atof(s2);
@@ -2308,7 +2311,7 @@ if(msc("SLO2",s1)){
     return;
   }
 
- if(msc("HISTBINS",s1)){
+ if(msc("HISTBINS",s1)&&!msc("HISTBINS2",s1)){
      if ((notAlreadySet.HISTBINS||force) || ((mask!=NULL)&&(mask->HISTBINS==1)))
      {
     	hist_inf.nbins=atoi(s2);
@@ -2317,7 +2320,7 @@ if(msc("SLO2",s1)){
     return;
   }
 
- if(msc("HISTCOL",s1)){
+ if(msc("HISTCOL",s1)&&!msc("HISTCOL2",s1)){
      if ((notAlreadySet.HISTCOL||force) || ((mask!=NULL)&&(mask->HISTCOL==1)))
      {
        find_variable(s2,&i);
@@ -2365,7 +2368,7 @@ if(msc("SLO2",s1)){
   }
 
 
- if(msc("SPECCOL",s1)){
+ if(msc("SPECCOL",s1)&&!msc("SPECCOL2",s1)){
      if ((notAlreadySet.SPECCOL||force) || ((mask!=NULL)&&(mask->SPECCOL==1)))
      {
        find_variable(s2,&i);

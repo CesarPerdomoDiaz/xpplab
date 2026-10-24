@@ -6,15 +6,16 @@
     d = m.auto.equilibria("iapp")
     d.special()
 
-The numerics are XPPAUT 8.0's own code, unchanged, compiled into a native
+The numerics are XPPAUT 8.0's own code, compiled into a native
 library. No Fortran or C compiler and no X11 server are needed.
 """
 
 from ._engine import EngineError, find_engine_library
+from .analysis import Table
 from .auto import Diagram, Point
 from .model import METHODS, Equilibrium, Model, Trajectory, load
 
-__all__ = ["Model", "Trajectory", "Equilibrium", "Diagram", "Point",
+__all__ = ["Model", "Trajectory", "Equilibrium", "Diagram", "Point", "Table",
            "EngineError", "METHODS", "load", "find_engine_library",
            "__version__"]
 

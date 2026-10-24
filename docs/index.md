@@ -10,6 +10,10 @@ compiler.
 
 ![The Morris-Lecar model in the desktop app: as the current iapp rises and falls, the slider, the nullclines, the trajectory and the time series all follow at once](images/demo.gif)
 
+**[Download and install it](install.md)**: a zip for Windows, a disk image
+for macOS, a tarball for Linux, and a wheel for Python. Nothing else is
+needed.
+
 ## Two ways to use it
 
 **The desktop app** is a workbench in the spirit of MATLAB. It has

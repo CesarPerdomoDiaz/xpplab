@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: >-
+  If you use XPP Studio in your work, please cite it as below, and cite
+  XPPAUT itself, whose methods it runs (the reference below).
+type: software
+title: XPP Studio
+abstract: >-
+  XPPAUT 8.0's simulation and AUTO bifurcation engine, with the same
+  numbers as XPPAUT, as a desktop app for Windows, macOS and Linux and as a
+  Python package.
+authors:
+  - given-names: César Eduardo
+    family-names: Perdomo Díaz
+version: 0.1.0
+license: GPL-2.0-or-later
+repository-code: "https://github.com/CesarPerdomoDiaz/xppstudio"
+url: "https://cesarperdomodiaz.github.io/xppstudio/"
+keywords:
+  - XPPAUT
+  - AUTO
+  - bifurcation analysis
+  - dynamical systems
+  - ordinary differential equations
+  - computational neuroscience
+references:
+  - type: book
+    title: >-
+      Simulating, Analyzing, and Animating Dynamical Systems: A Guide to
+      XPPAUT for Researchers and Students
+    authors:
+      - given-names: Bard
+        family-names: Ermentrout
+    publisher:
+      name: SIAM
+    year: 2002

@@ -1,5 +1,6 @@
 site_name: XPP Studio
 site_description: XPPAUT's engine with a modern interface and a Python package
+site_url: https://cesarperdomodiaz.github.io/xppstudio/
 repo_url: https://github.com/CesarPerdomoDiaz/xppstudio
 edit_uri: edit/main/docs/
 docs_dir: docs
@@ -53,6 +54,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Install: install.md
   - Desktop app:
       - Getting started: manual/welcome.md
       - "Tutorial: your first model": manual/tutorial.md

@@ -17,6 +17,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -30,10 +31,12 @@ UPSTREAM = ROOT / "engine" / "xppaut"
 GOLDEN = ROOT / "tests" / "golden"
 TIMEOUT = 60
 
-# Models whose output differs from run to run even in unmodified XPPAUT.
-# They are reported but do not fail the suite. See docs/upstream-issues.md.
-KNOWN_NONDETERMINISTIC = {
-    "ode/mlvolt": "Volterra solver; about 1 run in 20 diverges at step 1",
+# Models whose output differs from run to run in unmodified XPPAUT (fixed
+# in XPP Studio; see docs/upstream-issues.md). In compare mode a mismatch
+# with the reference is reported but does not fail the suite.
+REFERENCE_NONDETERMINISTIC = {
+    "ode/mlvolt": "unmodified XPPAUT reads int[.5] with stray digits about "
+                  "1 run in 30",
 }
 SAMPLE_ROWS = 200
 SAMPLE_CELLS = 4000  # wide models get fewer sampled rows
@@ -116,6 +119,12 @@ def models():
             yield d, m
 
 
+def uses_export(model):
+    """Does the model link external C code with an export statement?"""
+    text = model.read_text(errors="replace")
+    return re.search(r"^\s*export\s*\{", text, re.I | re.M) is not None
+
+
 def compare_executables(exe, reference, rtol, only):
     """Run every example with both executables and compare the outputs.
     Each executable gets its own copy of the model directories so that
@@ -132,14 +141,21 @@ def compare_executables(exe, reference, rtol, only):
                 continue
             a, ra = run_model(exe, tmp / "ours" / d, tmp / "ours" / d / model.name)
             b, rb = run_model(reference, tmp / "ref" / d, tmp / "ref" / d / model.name)
+            if (b["status"] == "exit" and a["status"] != "exit"
+                    and uses_export(model)):
+                # Unmodified XPPAUT overflows the heap on export lists.
+                print(f"fixed     {key}: unmodified XPPAUT crashed "
+                      f"(export bug, see docs/upstream-issues.md)")
+                same += 1
+                continue
             if a["status"] != b["status"]:
                 problem = f"status {a['status']} != reference {b['status']}"
             elif ra is None:
                 problem = None
             else:
                 problem = compare(rb, ra, rtol)
-            if problem and key in KNOWN_NONDETERMINISTIC:
-                print(f"flaky     {key}: {KNOWN_NONDETERMINISTIC[key]}")
+            if problem and key in REFERENCE_NONDETERMINISTIC:
+                print(f"flaky     {key}: {REFERENCE_NONDETERMINISTIC[key]}")
             elif problem:
                 failures.append(f"{key}: {problem}")
                 print(f"FAIL      {key}: {problem}")
@@ -217,9 +233,7 @@ def main():
             else:
                 got = [rows[i] for i in ref_info["sample_index"]]
                 problem = compare(ref_info["sample"], got, args.rtol)
-            if problem and key in KNOWN_NONDETERMINISTIC:
-                print(f"flaky     {key}: {KNOWN_NONDETERMINISTIC[key]}")
-            elif problem:
+            if problem:
                 failures.append(f"{key}: {problem}")
                 print(f"FAIL      {key}: {problem}")
             else:

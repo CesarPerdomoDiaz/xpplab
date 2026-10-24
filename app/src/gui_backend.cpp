@@ -20,8 +20,17 @@ extern "C" void gui_backend_new_frame(void) {
   ImGui_ImplSDL3_NewFrame();
 }
 
+// ImGui draws in points. The backend scales its clip rectangles to pixels
+// but passes the vertices on unscaled, expecting SDL's render scale to do
+// that (as in Dear ImGui's SDL3 example). Without it a Retina window, 2
+// pixels per point, got the interface in its top-left quarter, clipped in
+// the wrong places. The scale is reset so that pixel reads (screenshots,
+// figure export) stay in pixels.
 extern "C" void gui_backend_render(SDL_Renderer *renderer) {
+  ImGuiIO &io = ImGui::GetIO();
+  SDL_SetRenderScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
   ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
+  SDL_SetRenderScale(renderer, 1.0f, 1.0f);
 }
 
 extern "C" void gui_backend_shutdown(void) {

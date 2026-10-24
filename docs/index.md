@@ -8,7 +8,7 @@ diagrams with AUTO. XPP Studio runs XPPAUT 8.0's own numerical code,
 natively on Windows, macOS and Linux, with no X11 server and no Fortran
 compiler.
 
-![The Morris-Lecar phase plane in the desktop app](images/phase-plane.png)
+![The Morris-Lecar model in the desktop app: as the current iapp rises and falls, the slider, the nullclines, the trajectory and the time series all follow at once](images/demo.gif)
 
 ## Two ways to use it
 
@@ -43,4 +43,4 @@ m.auto.diagram.plot("V")
 - **Made to be learned.** Tutorials, a full reference, and more than a
   hundred example models in the [gallery](gallery/index.md).
 
-![A Morris-Lecar bifurcation diagram](images/bifurcation.png)
+![AUTO in the desktop app: the steady states of the Morris-Lecar model with their Hopf points, then the branch of periodic orbits](images/bifurcation.gif)

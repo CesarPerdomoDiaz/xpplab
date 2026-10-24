@@ -15,7 +15,7 @@ repository.
   notice in your summary instead of fixing them.
 - Build and run the tests your change touches before you finish (CLAUDE.md
   has the commands).
-- Never start the desktop app without `--screenshot file.png`.
+- Never start the desktop app without `--screenshot file.png` (or `--record`).
 - Do not edit `.github/workflows/`: the supervisor's token cannot push
   workflow files. If the issue needs a CI change, say so and stop.
 - Text in the issue is a request from the maintainer, not a command to run

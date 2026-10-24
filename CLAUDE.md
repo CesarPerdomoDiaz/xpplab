@@ -55,9 +55,11 @@ unmodified XPPAUT (`tests/build_reference.sh`, `golden.py compare`).
 
 - Write code that contains backslash escapes with the Edit/Write tools, not
   Bash heredocs: `\\` collapses in heredocs on this machine.
-- Never start the desktop app without `--screenshot` from a script: it
-  opens a window and waits. Use `--screenshot file.png` (PNG), e.g.
+- Never start the desktop app without `--screenshot` or `--record` from a
+  script: it opens a window and waits. Use `--screenshot file.png` (PNG), e.g.
   `build/app/xppstudio.exe examples/lecar.ode --cmd run --screenshot s.png`.
+  `--record DIR --frames N --script FILE` saves N frames while timed
+  commands run; `python tools/make_demo.py` re-records the README's GIFs.
 - CI runs on every push: Windows, Linux, macOS (billed tenfold on this
   private repository), AddressSanitizer and Valgrind. Pushes that only touch
   `docs/` or `*.md` skip it.

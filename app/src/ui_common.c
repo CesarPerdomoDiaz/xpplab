@@ -340,18 +340,25 @@ static void shortcuts(App *a) {
 
 /* ---- Layout ------------------------------------------------------------------------ */
 
-static void default_layout(ImGuiID dock, ImVec2_c size) {
-  ImGuiID left, rest, left_top, left_bottom, right, center, bottom;
+static void default_layout(App *a, ImGuiID dock, ImVec2_c size) {
+  ImGuiID left, rest, left_top, left_bottom, right, center, bottom, beside;
   igDockBuilderRemoveNode(dock);
   igDockBuilderAddNode(dock, ImGuiDockNodeFlags_DockSpace);
   igDockBuilderSetNodeSize(dock, size);
   igDockBuilderSplitNode(dock, ImGuiDir_Left, 0.22f, &left, &rest);
   igDockBuilderSplitNode(left, ImGuiDir_Up, 0.38f, &left_top, &left_bottom);
-  igDockBuilderSplitNode(rest, ImGuiDir_Right, 0.27f, &right, &center);
+  /* With the manual closed, its column goes to the plots. */
+  if (a->show_help)
+    igDockBuilderSplitNode(rest, ImGuiDir_Right, 0.27f, &right, &center);
+  else
+    right = center = rest;
   igDockBuilderSplitNode(center, ImGuiDir_Down, 0.27f, &bottom, &center);
+  beside = center;
+  if (a->layout == 1)
+    igDockBuilderSplitNode(center, ImGuiDir_Right, 0.5f, &beside, &center);
   igDockBuilderDockWindow(WIN_BROWSER, left_top);
   igDockBuilderDockWindow(WIN_WORKSPACE, left_bottom);
-  igDockBuilderDockWindow(WIN_TIME, center);
+  igDockBuilderDockWindow(WIN_TIME, beside);
   igDockBuilderDockWindow(WIN_PHASE, center);
   igDockBuilderDockWindow(WIN_AUTO, center);
   igDockBuilderDockWindow(WIN_ARRAY, center);
@@ -398,7 +405,7 @@ void ui_draw(App *a) {
   igPopStyleVar(1);
   dock = igGetID_Str("XPPStudioDock");
   if (a->reset_layout) {
-    default_layout(dock, V2(vp->WorkSize.x, vp->WorkSize.y - toolbar_h - status_h));
+    default_layout(a, dock, V2(vp->WorkSize.x, vp->WorkSize.y - toolbar_h - status_h));
     a->reset_layout = false;
   }
   igDockSpace(dock, V2(0, 0), 0, NULL);

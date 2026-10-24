@@ -22,7 +22,7 @@ static void parameters_tab(App *a) {
                       0, NULL, NULL);
   if (!igBeginTable("params", 3, tf, V2(0, 0), 0)) return;
   igTableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 80, 0);
-  igTableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 95, 0);
+  igTableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 76, 0);
   igTableSetupColumn("Slider", ImGuiTableColumnFlags_WidthStretch, 0, 0);
   igTableHeadersRow();
   for (i = 0; i < a->npars; i++) {

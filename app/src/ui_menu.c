@@ -98,6 +98,10 @@ static void menu_view(App *a) {
   igSeparator();
   if (igMenuItem_Bool("Reset window layout", NULL, false, true))
     a->reset_layout = true;
+  if (igMenuItem_Bool("Phase plane beside time series", NULL, a->layout == 1, true)) {
+    a->layout = !a->layout;
+    a->reset_layout = true;
+  }
   if (igMenuItem_BoolPtr("Dark theme", NULL, &a->dark, true)) ui_apply_theme(a);
   if (igBeginMenu("Text size", true)) {
     static const float sizes[] = {0.85f, 1.0f, 1.15f, 1.3f, 1.5f, 1.75f, 2.0f};

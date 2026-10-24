@@ -14,7 +14,7 @@ app. Read README.md for the overview and ROADMAP.md for what is planned.
 - `app/` the desktop app: SDL3 + Dear ImGui + ImPlot through cimgui, in C.
 - `docs/` MkDocs site; `docs/manual/*.md` is also built into the app's help.
 - `tests/` golden tests (`golden.py`), API and AUTO checks, sanitizer tools.
-- `agent/` the maintainer agent that runs on the lab workstation.
+- `agent/` the maintainer agent (see `agent/README.md`).
 
 ## Build and test
 

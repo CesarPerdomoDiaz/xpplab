@@ -2,9 +2,12 @@
 
 XPP Studio is XPPAUT with a new interface. The parts that compute (the
 `.ode` parser, the fifteen integrators, the equilibrium solver, nullclines,
-AUTO) are XPPAUT 8.0's own C code, unchanged. The test suite checks that
-every example model shipped with XPPAUT gives bit-for-bit the same output
-as unmodified XPPAUT in batch mode.
+AUTO) are XPPAUT 8.0's own C code. The test suite checks that every
+example model shipped with XPPAUT gives bit-for-bit the same output as
+unmodified XPPAUT in batch mode. The only changes fix genuine bugs, such as
+memory errors; each is listed in the
+[upstream issues](https://github.com/CesarPerdomoDiaz/xppstudio/blob/main/docs/upstream-issues.md)
+page.
 
 ## What stays the same
 

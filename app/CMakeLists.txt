@@ -49,6 +49,8 @@ endif()
 set(GEN ${CMAKE_CURRENT_BINARY_DIR}/generated)
 file(MAKE_DIRECTORY ${GEN})
 function(embed_file input symbol output)
+  # Re-run CMake when the file changes, so an edited page reaches the app.
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${input})
   file(READ ${input} hex HEX)
   string(LENGTH "${hex}" hexlen)
   math(EXPR len "${hexlen} / 2")

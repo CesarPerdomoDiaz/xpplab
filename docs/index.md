@@ -4,7 +4,7 @@
 
 Simulate differential equations, maps, delay and stochastic equations.
 Explore phase planes with nullclines and flow. Compute bifurcation
-diagrams with AUTO. XPP Studio runs XPPAUT 8.0's numerical code unchanged,
+diagrams with AUTO. XPP Studio runs XPPAUT 8.0's own numerical code,
 natively on Windows, macOS and Linux, with no X11 server and no Fortran
 compiler.
 

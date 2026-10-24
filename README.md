@@ -29,7 +29,7 @@
 
 ## If you know XPPAUT, you already know XPP Studio
 
-XPP Studio runs **XPPAUT 8.0's own numerical code**, unchanged: the same
+XPP Studio runs **XPPAUT 8.0's own numerical code**: the same
 `.ode` files, the same fifteen integrators, the same AUTO with its HB, LP,
 BP, PD and TR labels in the same colours. Even the two-key commands still
 work: `I G` integrates, `N N` draws nullclines, `S G` finds an equilibrium.
@@ -129,10 +129,13 @@ and checks the output **bit for bit** against unmodified XPPAUT 8.0. On
 Linux and macOS, CI builds the original XPPAUT with X11 and compares the
 two side by side.
 
-The few changes to XPPAUT's code fix genuine bugs. Each is commented in the
-source and listed in [docs/upstream-issues.md](docs/upstream-issues.md).
-One of them is why continuing AUTO from a labelled point never worked on
-Windows.
+CI also runs every model under AddressSanitizer and Valgrind. The few
+changes to XPPAUT's code fix the genuine bugs found that way and while
+porting it. Each is commented in the source and listed in
+[docs/upstream-issues.md](docs/upstream-issues.md). They explain, among
+other things, why continuing AUTO from a labelled point never worked on
+Windows, why `delmmult` networks coupled to the wrong variable, and why
+`mlvolt.ode` now and then gave a different answer.
 
 ## Documentation
 

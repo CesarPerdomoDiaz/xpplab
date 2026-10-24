@@ -3,8 +3,8 @@
 XPP Studio is a workbench for dynamical systems: you write the equations,
 then simulate them, explore their phase plane and compute bifurcation
 diagrams with AUTO. Under the hood it runs **XPPAUT 8.0**, the program by
-Bard Ermentrout that a generation of scientists has used, with its
-numerical code unchanged. Any XPPAUT `.ode` file works here as it is.
+Bard Ermentrout that a generation of scientists has used, with its own
+numerical code. Any XPPAUT `.ode` file works here as it is.
 
 ## A first look in one minute
 

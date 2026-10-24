@@ -530,7 +530,9 @@ SECURITY_HEADERS = {
                                "script-src 'self'; connect-src 'self'; frame-ancestors 'none'; "
                                "base-uri 'none'; form-action 'self'",
     "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "no-referrer",
+    # Not no-referrer: with it, browsers send "Origin: null" on the page's own
+    # form posts, which the same-site check below must refuse.
+    "Referrer-Policy": "same-origin",
     "X-Frame-Options": "DENY",
     "Cache-Control": "no-store",
 }

@@ -292,3 +292,17 @@ def test_a_line_still_being_written_is_read_next_time(tmp_path):
 def test_finished_ci_is_not_fetched_again(site):
     site.dash.refresh_github()
     assert ("jobs", "abc") not in site.api.calls       # completed on the first refresh
+
+
+def test_the_login_form_works_as_a_browser_sends_it(site):
+    """A browser posts the form with the page's own Origin (and, under a
+    no-referrer policy, with "Origin: null", which must stay refused)."""
+    status, headers, _ = site.request("GET", "/login")
+    assert headers["Referrer-Policy"] == "same-origin"
+    here = f"http://127.0.0.1:{site.port}"
+    status, headers, _ = site.request("POST", "/login", {"password": "correct horse battery"},
+                                      form=True, headers={"Origin": here})
+    assert status == 303 and headers["Location"] == "/" and "xpps=" in headers["Set-Cookie"]
+    status, _, _ = site.request("POST", "/login", {"password": "correct horse battery"},
+                                form=True, headers={"Origin": "null"})
+    assert status == 403

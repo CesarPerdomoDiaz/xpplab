@@ -97,6 +97,26 @@ if (-not $user) {
     Say "The account $UserName exists"
 }
 
+# A scheduled task that runs whether anyone is signed in or not logs its
+# account on "as a batch job". Registering the task from a script does not
+# grant that right (the Task Scheduler window does), and without it the task
+# never starts (error 0x80070569). On Windows Server only administrators have
+# it by default.
+$sid = (New-Object Security.Principal.NTAccount($UserName)).Translate(
+    [Security.Principal.SecurityIdentifier]).Value
+$inf = Join-Path $env:TEMP "xpps-rights.inf"
+secedit /export /cfg $inf /areas USER_RIGHTS | Out-Null
+$line = Get-Content $inf | Where-Object { $_ -match '^SeBatchLogonRight\s*=' }
+if ($line -notmatch [regex]::Escape("*$sid")) {
+    Say "Letting $UserName run as a scheduled task (Log on as a batch job)"
+    $members = if ($line) { ($line -split '=', 2)[1].Trim() + ",*$sid" } else { "*$sid" }
+    $policy = "[Unicode]`r`nUnicode=yes`r`n[Version]`r`nsignature=`"`$CHICAGO`$`"`r`nRevision=1`r`n" +
+              "[Privilege Rights]`r`nSeBatchLogonRight = $members`r`n"
+    [IO.File]::WriteAllText($inf, $policy, [Text.Encoding]::Unicode)
+    secedit /configure /db (Join-Path $env:TEMP "xpps-rights.sdb") /cfg $inf /areas USER_RIGHTS /quiet | Out-Null
+}
+Remove-Item $inf, (Join-Path $env:TEMP "xpps-rights.sdb") -ErrorAction SilentlyContinue
+
 # -- the home folder -----------------------------------------------------------
 Say "Preparing $AgentHome"
 New-Item -ItemType Directory -Force $AgentHome | Out-Null

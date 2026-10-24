@@ -397,3 +397,16 @@ def test_labelling_again_after_a_closed_pr_starts_over(world):
     assert again is not first and again.attempt == 2
     assert again.branch == "agent/1-add-a-hello-file-2"
     assert again.pr and again.pr != first.pr and again.stage == "pr"
+
+
+def test_a_pull_request_closed_before_the_owners_turn_ends_the_task(world):
+    w = world
+    n = w.gh.new_issue("Add a hello file")
+    w.claude.on("implement", hello)
+    ticks(w, 2)
+    t = w.task(n)
+    assert t.stage == "pr"
+    w.gh.prs[t.pr]["state"] = "CLOSED"            # e.g. GitHub, after a base rewrite
+    w.sup.tick()
+    assert t.stage == "closed" and "review" not in w.claude.kinds()
+    assert any("closed without merging" in b for b in w.gh.said(n))

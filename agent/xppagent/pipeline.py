@@ -251,8 +251,34 @@ class Pipeline:
         self.state.event(f"#{task.issue} needed no change")
         return True
 
+    def _finished(self, task: Task, pr: dict | None = None) -> bool:
+        """The pull request was merged or closed (by the owner, or by GitHub
+        when its base was rewritten): move the task on and say so. Checked
+        in every stage that has a pull request, not only the owner's."""
+        pr = pr if pr is not None else self.gh.pr(task.pr)
+        if pr.get("mergedAt"):
+            task.stage = "merged"
+            task.merged_at = time.time()
+            task.merge_sha = (pr.get("mergeCommit") or {}).get("oid", "")
+            self.gh.labels(task.issue, remove=[self.cfg.label, self.cfg.label_working])
+            self.repo.remove(task.branch)
+            self.state.event(f"#{task.issue} PR #{task.pr} merged")
+            return True
+        if pr.get("state") == "CLOSED":
+            task.stage = "closed"
+            self.gh.labels(task.issue, remove=[self.cfg.label, self.cfg.label_working])
+            self.gh.comment(task.issue, f"🤖 #{task.pr} was closed without merging, so "
+                                        f"I stopped. Add the `{self.cfg.label}` label "
+                                        "again to have me start over.")
+            self.repo.remove(task.branch)
+            self.state.event(f"#{task.issue} PR #{task.pr} closed without merging")
+            return True
+        return False
+
     def _pr(self, task: Task) -> bool:
         """A second agent reviews; findings go back to the implementer."""
+        if self._finished(task):
+            return True
         path = self._path(task)
         info = self._issue_text(task)
         res = self._ask(prompt("review", base=self.cfg.base, diff=self.repo.diff(path),
@@ -292,6 +318,8 @@ class Pipeline:
 
     def _ci(self, task: Task) -> bool:
         """Wait for CI; feed the first failure back; ask for review when green."""
+        if self._finished(task):
+            return True
         checks = self.gh.checks(task.pr)
         buckets = {c.get("bucket") for c in checks}
         waited = (time.time() - task.waiting_since) / 60
@@ -332,22 +360,7 @@ class Pipeline:
     def _owner(self, task: Task) -> bool:
         """The owner's turn: merge, close, or comment (which the agent answers)."""
         pr = self.gh.pr(task.pr)
-        if pr.get("mergedAt"):
-            task.stage = "merged"
-            task.merged_at = time.time()
-            task.merge_sha = (pr.get("mergeCommit") or {}).get("oid", "")
-            self.gh.labels(task.issue, remove=[self.cfg.label, self.cfg.label_working])
-            self.repo.remove(task.branch)
-            self.state.event(f"#{task.issue} PR #{task.pr} merged")
-            return True
-        if pr.get("state") == "CLOSED":
-            task.stage = "closed"
-            self.gh.labels(task.issue, remove=[self.cfg.label, self.cfg.label_working])
-            self.gh.comment(task.issue, f"🤖 #{task.pr} was closed without merging, so "
-                                        f"I stopped. Add the `{self.cfg.label}` label "
-                                        "again to have me start over.")
-            self.repo.remove(task.branch)
-            self.state.event(f"#{task.issue} PR #{task.pr} closed without merging")
+        if self._finished(task, pr):
             return True
         news = self._new_owner_comments(task, [task.pr, task.issue], reviews=True)
         conflicting = pr.get("mergeable") == "CONFLICTING"

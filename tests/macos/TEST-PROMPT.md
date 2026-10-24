@@ -31,8 +31,8 @@ brew install cmake ninja pkg-config sdl3 libx11 gh python
 
 ## 1. The release, as a user gets it
 
-1. Download the preview into a new folder:
-   `gh release download preview-0.1.0 --repo CesarPerdomoDiaz/xppstudio --pattern '*.dmg' --dir ~/xpps-test`.
+1. Download the newest release's disk image into a new folder:
+   `gh release download --repo CesarPerdomoDiaz/xppstudio --pattern 'XPPStudio-macOS.dmg' --dir ~/xpps-test`.
 2. Ask the tester to double-click the `.dmg`, drag the app to *Applications*, and
    open it by double-clicking, as a user would. Note exactly what macOS
    shows and what they had to do (`TESTING.md` describes *Open Anyway* and

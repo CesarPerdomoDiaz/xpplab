@@ -60,7 +60,7 @@ Everything around the engine is new:
 | You want to... | Classic XPPAUT | XPP Studio |
 |---|---|---|
 | Install it on Windows | Install an X server (Xming), Cygwin DLLs, batch files | Unzip and double-click |
-| Run it on a Mac | XQuartz, then Gatekeeper workarounds in the terminal | A native app for Apple Silicon and Intel *(preview)* |
+| Run it on a Mac | XQuartz, then Gatekeeper workarounds in the terminal | A native app for Apple Silicon and Intel |
 | Change a parameter | Open the Parameters window, type, re-run | Drag its slider; the solution updates live |
 | Fix a typo in a model | "Illegal syntax", and XPPAUT exits | The editor points at the line and explains |
 | Read a model file | Plain text, any editor | Syntax colouring that knows your parameters and variables |

@@ -78,6 +78,20 @@ class Repo:
         git("add", "-A", cwd=path)
         git("commit", "-m", message, cwd=path)
 
+    @staticmethod
+    def has_ref(path: Path, ref: str) -> bool:
+        return bool(git("rev-parse", "--verify", "--quiet", ref, cwd=path, check=False).strip())
+
+    def fork_point(self, path: Path) -> str:
+        return git("merge-base", f"origin/{self.base}", "HEAD", cwd=path).strip()
+
+    @staticmethod
+    def squash(path: Path, onto: str, message: str) -> None:
+        """The commits after `onto` become one, with the same result."""
+        git("reset", "--soft", onto, cwd=path)
+        if git("diff", "--cached", "--name-only", cwd=path).strip():
+            git("commit", "-m", message, cwd=path)
+
     def ahead(self, path: Path) -> int:
         """Commits on the branch that are not on origin/base."""
         git("fetch", "origin", self.base, cwd=path, check=False)

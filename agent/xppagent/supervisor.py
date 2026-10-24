@@ -35,6 +35,15 @@ def _read(path: Path, limit: int = 30000) -> str:
         return "(not found)"
 
 
+def secret_files(cfg: Config) -> list[Path]:
+    """What no Claude run may read: the agent's secrets, and the sign-ins
+    of Claude Code and gh, wherever they keep them."""
+    home = Path.home()
+    appdata = Path(os.environ.get("APPDATA", home / "AppData" / "Roaming"))
+    return [cfg.secrets_file, home / ".claude" / ".credentials.json",
+            appdata / "GitHub CLI" / "hosts.yml", home / ".config" / "gh" / "hosts.yml"]
+
+
 def load_secrets(path: Path) -> None:
     """KEY=VALUE lines into the environment (GH_TOKEN, CLAUDE_CODE_OAUTH_TOKEN)."""
     if not path.exists():
@@ -92,7 +101,8 @@ class Supervisor:
         self.gh = gh or GitHub(cfg.slug, dry_run=cfg.dry_run)
         self.claude = claude or Claude(cfg.claude, model=cfg.model, minutes=cfg.run_minutes,
                                        max_turns=cfg.max_turns,
-                                       system=PROMPTS / "system.md", log_dir=cfg.runs_dir)
+                                       system=PROMPTS / "system.md", log_dir=cfg.runs_dir,
+                                       deny_read=secret_files(cfg))
         self.repo = repo or Repo(f"https://github.com/{cfg.slug}.git", cfg.clone, cfg.work,
                                  cfg.base, dry_run=cfg.dry_run)
         self.budget = Budget(cfg, self.state, clock)
@@ -102,7 +112,8 @@ class Supervisor:
             cfg, gh or GitHub(cfg.slug, dry_run=cfg.dry_run),
             # (without system.md, whose closing status block would be posted)
             claude or Claude(cfg.claude, model=cfg.model, minutes=20, max_turns=60,
-                             log_dir=cfg.runs_dir, current="explaining.json"),
+                             log_dir=cfg.runs_dir, current="explaining.json",
+                             deny_read=secret_files(cfg)),
             self.repo.url, clock)
         self.pipeline = Pipeline(cfg, self.gh, self.repo, self.claude, self.state,
                                  self.budget)

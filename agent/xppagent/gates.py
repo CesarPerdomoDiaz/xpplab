@@ -17,6 +17,40 @@ class GateResult:
     summary: str = ""         # one line per command, for the pull request
 
 
+def token_lines(cwd: Path, base: str, pushed: list[str]) -> tuple[str, str]:
+    """Added lines that hold a token, shown redacted: those in the change as
+    it stands, and those only in its history (committed, then removed),
+    counting only commits not on `pushed`. Nothing of the kind may be
+    pushed, whatever a run was asked to do: a run with a shell can read the
+    agent's own secrets."""
+    from .gh import redact
+
+    def git(*args):
+        return subprocess.run(["git", *args], cwd=str(cwd), capture_output=True, text=True,
+                              encoding="utf-8", errors="replace").stdout
+
+    def added(diff):
+        found, name = [], ""
+        for line in diff.splitlines():
+            if line.startswith("+++ "):
+                name = line[6:] if line.startswith("+++ b/") else line[4:]
+            elif line.startswith("+") and redact(line) != line:
+                found.append(f"{name}: {redact(line[1:]).strip()[:200]}")
+        return found
+    fork = git("merge-base", f"origin/{base}", "HEAD").strip() or f"origin/{base}"
+    tree = added(git("diff", "--unified=0", "--no-color", fork))   # with uncommitted work
+    for name in git("ls-files", "--others", "--exclude-standard").splitlines():
+        try:
+            text = (Path(cwd) / name).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        tree += [f"{name}: {redact(line).strip()[:200]}" for line in text.splitlines()
+                 if redact(line) != line]
+    history = added(git("log", "-p", "--unified=0", "--no-color", "--format=", "HEAD",
+                        "--not", *pushed))
+    return "\n".join(dict.fromkeys(tree)), "\n".join(dict.fromkeys(history))
+
+
 def run_gates(commands: list[str], cwd: Path, shell: list[str], path_prefix: list[str],
               timeout_minutes: int = 60, tail: int = 150) -> GateResult:
     env = {k: v for k, v in os.environ.items()

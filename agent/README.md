@@ -55,6 +55,11 @@ matter. The one exception is an explanation: that run cannot change
 anything, and it reads the whole thread, told that only your words are
 instructions.
 
+No Claude run may read the secrets file, or the sign-ins of Claude Code
+and gh. Nothing that looks like a token is ever pushed or posted: the
+supervisor checks every change, including its unpushed commits, and every
+comment, before they leave the workstation.
+
 ## How it stays within your Max subscription
 
 Claude Code runs under your Max subscription, which has usage limits per

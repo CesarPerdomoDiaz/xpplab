@@ -16,7 +16,7 @@ import time
 import uuid
 from pathlib import Path
 
-from .gates import run_gates
+from .gates import GateResult, run_gates, token_lines
 from .gh import MARK, Comment, is_question
 from .git import Repo, slug
 from .state import State, Task
@@ -122,6 +122,11 @@ class Pipeline:
         tries = 0
         while True:
             g = run_gates(self.cfg.gates, path, self.cfg.shell, self.cfg.path_prefix)
+            leak = self._tokens(task, path) if g.ok else ""
+            if leak:
+                g = GateResult(False, "the token check", "These added lines hold what "
+                               "looks like a token (shown redacted). Remove them: no token "
+                               f"or secret may be committed.\n\n{leak}", g.summary)
             if g.ok:
                 return True, g.summary
             tries += 1
@@ -132,6 +137,22 @@ class Pipeline:
                 return False, g.summary
             self._fix(task, path, f"The supervisor's check `{g.command}` failed.",
                       f"```\n{g.output}\n```", tag=f"{task.issue}-gates")
+
+    def _tokens(self, task: Task, path: Path) -> str:
+        """Lines with a token in what is about to be pushed (see token_lines).
+        One that was committed and then removed is still in the history: the
+        commits not pushed yet are then squashed into one."""
+        pushed = f"origin/{task.branch}"
+        on_origin = self.repo.has_ref(path, pushed)
+        refs = [f"origin/{self.cfg.base}"] + ([pushed] if on_origin else [])
+        tree, history = token_lines(path, self.cfg.base, refs)
+        if history and not tree:
+            onto = pushed if on_origin else self.repo.fork_point(path)
+            self.repo.squash(path, onto, f"Work on #{task.issue}: {task.title}")
+            tree, history = token_lines(path, self.cfg.base, refs)
+            self.state.event(f"#{task.issue}: a token was committed and removed; "
+                             "the unpushed commits were squashed")
+        return tree or history
 
     def _push(self, task: Task, path: Path) -> None:
         self.repo.push(path, task.branch)
@@ -339,6 +360,19 @@ class Pipeline:
         failed = [c for c in checks if c.get("bucket") in ("fail", "cancel")]
         path = self._path(task)
         if failed:
+            # CI that could not start (no Actions minutes left) is nothing a
+            # Claude run can fix: the checks here passed, so it is the owner's.
+            why = self.gh.ci_not_started(task.branch, self.repo.head(path))
+            if why:
+                self.gh.pr_ready(task.pr)
+                self.gh.comment(task.pr, f"@{self.cfg.owner} this is ready for your review. "
+                                         f"CI could not run on GitHub ({why}), but the "
+                                         "checks passed here and so did an agent review. "
+                                         "Comment here with any changes you want.")
+                task.stage = "owner"
+                self.state.event(f"#{task.issue} PR #{task.pr} ready for review "
+                                 "(CI could not run)")
+                return True
             if task.bump("ci") > self.cfg.ci_rounds:
                 self._block(task, "CI still fails after "
                                   f"{self.cfg.ci_rounds} attempts: "

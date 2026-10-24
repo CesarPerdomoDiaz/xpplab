@@ -259,6 +259,26 @@ class GitHub:
         tail = out.splitlines()[-lines:]
         return f"Workflow: {failed[0]['name']}\n" + "\n".join(tail)
 
+    def ci_not_started(self, branch: str, sha: str) -> str:
+        """Why CI failed without running, if it did: GitHub fails every job
+        at once, with no steps, when the account's Actions minutes or
+        spending limit are used up. Empty when a job really ran and failed."""
+        why = ""
+        for run in self.runs_for_commit(sha, branch):
+            if run.get("conclusion") != "failure":
+                continue
+            jobs = (self._api(f"actions/runs/{run['databaseId']}/jobs") or {})
+            for job in (jobs.get("jobs") if isinstance(jobs, dict) else None) or []:
+                if job.get("conclusion") != "failure":
+                    continue
+                if job.get("steps"):
+                    return ""                 # it ran: a real failure
+                notes = self._api(f"check-runs/{job['id']}/annotations") or []
+                why = next((n.get("message", "") for n in notes
+                            if n.get("annotation_level") == "failure"), "") or why \
+                    or "its jobs did not start"
+        return why.strip()[:300]
+
     def runs_for_commit(self, sha: str, branch: str) -> list[dict]:
         runs = self._json("run", "list", "--repo", self.slug, "--branch", branch,
                           "--json", "databaseId,headSha,conclusion,status,name",

@@ -172,6 +172,11 @@ class FakeGitHub:
     def runs_for_commit(self, sha, branch):
         return list(self.runs)
 
+    ci_blocked = ""   # set by a test: CI fails without running (no minutes)
+
+    def ci_not_started(self, branch, sha):
+        return self.ci_blocked
+
 
 class FakeClaude:
     """Answers each run by its tag's last part (plan, implement, review,

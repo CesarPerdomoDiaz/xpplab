@@ -59,6 +59,16 @@ class Result:
 SECRET_VARS = ("GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN")
 
 
+def read_rule(path) -> str:
+    """A Claude Code rule that denies reading one file, by absolute path:
+    C:\\xpps-agent\\secrets.env -> Read(//c/xpps-agent/secrets.env). (Tried
+    on Windows: //C:/... does not match.)"""
+    p = Path(path).absolute().as_posix()
+    if len(p) > 2 and p[1] == ":":
+        p = p[0].lower() + p[2:]
+    return f"Read(//{p.lstrip('/')})"
+
+
 def _env() -> dict:
     return {k: v for k, v in os.environ.items()
             if k not in _PARENT_VARS and k not in SECRET_VARS}
@@ -118,7 +128,8 @@ class Claude:
 
     def __init__(self, command: str | list, *, model: str = "", minutes: float = 60,
                  max_turns: int = 250, system: Path | None = None,
-                 log_dir: Path | None = None, current: str = "current.json"):
+                 log_dir: Path | None = None, current: str = "current.json",
+                 deny_read: list | None = None):
         # A full path: on Windows, Popen does not search PATH for claude.exe
         # the way a shell does, and an npm claude.cmd would mangle arguments.
         # (A list is a command with arguments of its own, for tests.)
@@ -130,6 +141,9 @@ class Claude:
         self.system = system          # a file appended to Claude Code's system prompt
         self.log_dir = log_dir
         self.current = current        # names the run in progress (one per runner)
+        # Files no run may read (the secrets): Read rules also cover Grep and
+        # Glob, and hold with --dangerously-skip-permissions too.
+        self.deny = [read_rule(p) for p in deny_read or []]
 
     def run(self, prompt: str, cwd: Path, *, session: str = "", resume: bool = False,
             read_only: bool = False, model: str = "", tag: str = "run") -> Result:
@@ -142,13 +156,17 @@ class Claude:
         if read_only:
             # Planning and reviewing: read the code and the history, change
             # nothing. (Plan mode would wait for an approval nobody gives.)
+            # Not `git diff`: given a path outside the repository it prints
+            # any file. `git log -p` and `git show` show the history.
             args += ["--allowedTools", "Read", "Glob", "Grep", "Bash(git log:*)",
-                     "Bash(git diff:*)", "Bash(git show:*)", "Bash(git blame:*)",
-                     "--disallowedTools", "Edit", "Write", "NotebookEdit"]
+                     "Bash(git show:*)", "Bash(git blame:*)",
+                     "--disallowedTools", "Edit", "Write", "NotebookEdit", *self.deny]
         else:
             # The agent runs as its own Windows user in its own worktree; the
             # supervisor, not the model, pushes and talks to GitHub.
             args += ["--dangerously-skip-permissions"]
+            if self.deny:
+                args += ["--disallowedTools", *self.deny]
         # The agent commits under its own GitHub account; Claude Code's own
         # co-author line would add a third name to its work. (Both setting
         # names: includeCoAuthoredBy, and attribution in newer versions.)

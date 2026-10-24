@@ -171,6 +171,23 @@ def test_ci_failure_is_fixed(world):
     assert t.stage == "owner"
 
 
+def test_ci_that_could_not_start_goes_to_the_owner(world):
+    w = world
+    n = w.gh.new_issue("Add a hello file")
+    w.claude.on("implement", hello)
+    w.claude.on("review", lambda p, cwd: approve())
+    ticks(w, 3)
+    t = w.task(n)
+    assert t.stage == "ci"
+    w.gh.prs[t.pr]["checks"] = [{"name": "linux", "bucket": "fail"}]
+    w.gh.ci_blocked = "The job was not started because your spending limit needs to be increased."
+    w.sup.tick()
+    assert t.stage == "owner" and not w.gh.prs[t.pr]["isDraft"]
+    assert "fix" not in w.claude.kinds() and "ci-fix" not in w.claude.kinds()
+    said = w.gh.said(t.pr)[-1]
+    assert "CI could not run on GitHub (The job was not started" in said and f"@{OWNER}" in said
+
+
 def test_owner_comments_are_answered_with_a_new_push(world):
     w = world
     n = w.gh.new_issue("Add a hello file")
@@ -707,3 +724,42 @@ def test_no_token_reaches_github(monkeypatch):
             f"github_pat_{'9' * 30}. ghp_short stays, as does ghost_writer.")
     assert redact(text) == ("Here: [redacted], and [redacted], and a stray [redacted]. "
                             "ghp_short stays, as does ghost_writer.")
+
+
+def test_no_run_may_read_the_secrets(tmp_path):
+    import sys
+    runs = tmp_path / "runs"
+    secrets = tmp_path / "home" / "secrets.env"
+    c = Claude([sys.executable, str(FAKE)], log_dir=runs, minutes=1, deny_read=[secrets])
+    c.run("plan it", tmp_path, read_only=True, tag="6-plan")
+    c.run("build it", tmp_path, tag="6-implement")
+    rule = "Read(//" + secrets.absolute().as_posix().replace(":", "", 1).lstrip("/")
+    rule = rule[:7] + rule[7].lower() + rule[8:] if rule[8] == "/" else rule
+    for kind in ("plan", "implement"):
+        (log,) = runs.glob(f"*-6-{kind}-*.json")
+        args = json.loads(log.read_text(encoding="utf-8"))["args"]
+        assert any(a.startswith("Read(//") and a.endswith("/home/secrets.env)") for a in args)
+        assert "--disallowedTools" in args
+        assert not any("git diff" in a for a in args)   # it prints files outside the repo
+
+
+def test_a_token_in_the_change_is_never_pushed(world):
+    w = world
+    token = "ghp_" + "Zx9" * 12
+
+    def leaky(prompt, cwd):
+        write(cwd, "hello.txt", "hello\n")
+        write(cwd, "settings.ini", f"token = {token}\n")
+        return done()
+    w.claude.on("implement", leaky)
+    w.claude.on("gates", lambda p, cwd: ((Path(cwd) / "settings.ini").unlink(), done())[1])
+    n = w.gh.new_issue("Add a hello file")
+    w.sup.tick()
+    w.sup.tick()
+    fix = [c for c in w.claude.calls if c["kind"] == "gates"][0]
+    assert "the token check" in fix["prompt"] and "settings.ini: token = [redacted]" in fix["prompt"]
+    assert token not in fix["prompt"]
+    t = w.task(n)
+    assert t.stage == "pr"
+    pushed = sh("git", "log", "-p", t.branch, cwd=w.origin)
+    assert token not in pushed and "hello" in pushed

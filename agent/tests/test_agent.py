@@ -410,3 +410,46 @@ def test_a_pull_request_closed_before_the_owners_turn_ends_the_task(world):
     w.sup.tick()
     assert t.stage == "closed" and "review" not in w.claude.kinds()
     assert any("closed without merging" in b for b in w.gh.said(n))
+
+
+def test_the_owners_turn_reads_reviews_only_from_the_pull_request(world):
+    w = world
+    n = w.gh.new_issue("Add a hello file")
+    w.claude.on("implement", hello)
+    w.claude.on("review", lambda p, cwd: approve())
+    ticks(w, 4)
+    t = w.task(n)
+    assert t.stage == "owner"
+    ticks(w, 6)                                    # waiting passes raise nothing
+    assert t.stage == "owner" and "errors" not in t.rounds
+    from xppagent.gh import Comment
+    w.gh.prs[t.pr]["reviews"] = [Comment("r1", OWNER, "(review: commented) Shorter title, please.", "now")]
+    w.claude.on("owner", lambda p, cwd: (write(cwd, "hello.txt", "hello\n"), done())[1])
+    w.sup.tick()
+    owner = [c for c in w.claude.calls if c["kind"] == "owner"]
+    assert owner and "Shorter title" in owner[0]["prompt"]
+
+
+def test_labelling_a_failed_task_again_carries_on_where_it_stopped(world):
+    w = world
+    n = w.gh.new_issue("Add a hello file")
+    w.claude.on("implement", hello)
+    w.claude.on("review", lambda p, cwd: approve())
+    ticks(w, 4)
+    t = w.task(n)
+    pr = t.pr
+    assert t.stage == "owner"
+    from xppagent.gh import GitHubError
+    broken = w.gh.pr
+
+    def fail(n):
+        raise GitHubError("GitHub is down")
+    w.gh.pr = fail
+    ticks(w, 5)
+    assert t.stage == "failed" and "agent" not in w.gh.label_names(n)
+    assert any("carry on" in b for b in w.gh.said(n))
+    w.gh.pr = broken
+    w.gh.labels(n, add=["agent"])
+    w.sup.tick()
+    assert w.task(n) is t and t.stage == "owner" and t.pr == pr
+    assert "agent:working" in w.gh.label_names(n) and "errors" not in t.rounds

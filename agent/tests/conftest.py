@@ -74,7 +74,10 @@ class FakeGitHub:
         return list(self.comments_.get(n, []))
 
     def review_comments(self, n):
-        return []
+        if n not in self.prs:  # as GitHub: an issue has no reviews
+            from xppagent.gh import GitHubError
+            raise GitHubError(f"gh api repos/x/y/pulls/{n}/reviews: Not Found (HTTP 404)")
+        return list(self.prs[n].get("reviews", []))
 
     def comment(self, n, body):
         self.comments_.setdefault(n, []).append(

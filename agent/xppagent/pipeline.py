@@ -137,9 +137,14 @@ class Pipeline:
 
     def _new_owner_comments(self, task: Task, numbers: list[int],
                             reviews: bool = False) -> list[Comment]:
+        """New comments by the owner on these issues and pull requests, and
+        with `reviews` the reviews of the task's pull request (an issue has
+        none: GitHub answers 404)."""
         found = []
         for n in numbers:
-            items = self.gh.comments(n) + (self.gh.review_comments(n) if reviews else [])
+            items = self.gh.comments(n)
+            if reviews and n == task.pr:
+                items += self.gh.review_comments(n)
             for c in items:
                 if c.mine or c.id in task.seen_comments:
                     continue

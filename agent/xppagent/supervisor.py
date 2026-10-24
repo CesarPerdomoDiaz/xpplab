@@ -169,6 +169,14 @@ class Supervisor:
                 log.info("#%s was labelled by %s, not the owner: ignored", n, who)
                 self.state.ignored[str(n)] = issue.get("updatedAt")
                 continue
+            if task and task.stage == "failed" and task.failed_at:
+                # It failed part-way: carry on in the same stage, with the same
+                # branch and pull request (a closed one ends it there).
+                task.stage, task.failed_at, task.note = task.failed_at, "", ""
+                task.rounds.pop("errors", None)
+                self.gh.labels(n, add=[self.cfg.label_working])
+                self.state.event(f"#{n} labelled again: carrying on at {task.stage}")
+                continue
             new = self.state.add(Task(n, issue["title"]))
             if task:  # worked on before: start over on a branch of its own
                 new.attempt = task.attempt + 1
@@ -238,8 +246,10 @@ class Supervisor:
             self.state.event(f"#{task.issue} failed: {str(e)[:200]}")
             self.gh.comment(task.issue, f"🤖 I keep failing on this ({task.stage}) and have "
                                         f"stopped:\n\n```\n{str(e)[:1500]}\n```\n\n"
-                                        f"Add the `{self.cfg.label}` label again to retry.")
+                                        f"Add the `{self.cfg.label}` label again to have me "
+                                        "carry on from there.")
             self.gh.labels(task.issue, remove=[self.cfg.label, self.cfg.label_working])
+            task.failed_at = task.stage
             task.stage = "failed"
 
     # -- scheduled work and the log --------------------------------------------

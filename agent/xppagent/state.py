@@ -28,6 +28,7 @@ class Task:
     question: str = ""
     plan: str = ""
     before_block: str = ""       # the stage to return to when unblocked
+    failed_at: str = ""          # the stage it failed in, to carry on from
     waiting_since: float = 0.0   # when the wait for CI began
     merged_at: float = 0.0
     merge_sha: str = ""

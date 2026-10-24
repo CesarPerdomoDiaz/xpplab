@@ -1,0 +1,42 @@
+name: ModelDB models
+
+# Runs the XPPAUT models published on ModelDB through XPP Studio and through
+# unmodified XPPAUT 8.0 (see docs/development/modeldb.md). On request only:
+# it downloads about 200 MB from modeldb.science and takes a while.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  modeldb:
+    name: ModelDB (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the reference build needs the import commit
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: System packages
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev ninja-build pkg-config
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DXPPS_BUILD_APP=OFF
+          cmake --build build --target xppaut-headless
+      - name: Build unmodified XPPAUT 8.0 with X11
+        run: sh tests/build_reference.sh build-reference
+      - name: Fetch the models listed in tests/modeldb/manifest.json
+        run: python -I tools/fetch_modeldb.py
+      - name: Compare
+        run: >-
+          python -I tests/modeldb_check.py
+          --exe build/cli/xppaut-headless
+          --reference build-reference/xppaut-reference
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: modeldb-results
+          path: build-modeldb/results.json

@@ -256,6 +256,65 @@ logs and restarts then need no Remote Desktop:
 ssh you@<workstation> "powershell -File C:\src\xppstudio\agent\install\update-agent.ps1"
 ```
 
+## The dashboard
+
+`python -m xppagent web` serves "mission control", a web page for
+supervising the bot from any of your devices. It shows:
+
+- **Right now:** the Claude run in progress, step by step (the files it
+  reads and edits, the commands it runs, the errors it hits) as they
+  happen, and otherwise what the bot is waiting for.
+- **Needs you:**
+  - pull requests ready to merge, with their summary, CI checks and the
+    agent review;
+  - the bot's questions;
+  - its proposals.
+
+  Each one can be handled with a single click: merge, ask for changes,
+  answer, close, approve or decline.
+- **Work:** the pipeline with a count at each stage, and a card for each
+  task.
+- **Recent Claude runs:** each can be opened, to see what it did.
+- **The roadmap**, from `ROADMAP.md`; **what happened**; **open pull
+  requests**; **Ask the bot**, which opens an issue for it; and **Pause**.
+
+It listens on 127.0.0.1 only. `tailscale serve` makes it reachable over
+HTTPS from your own devices on Tailscale, and nothing else can reach it.
+A password guards it on top. It runs as its own Windows account,
+`xpps-web`, which may read the agent's state and logs but not the agent's
+secrets. It acts on GitHub with **your own** token, kept where neither
+the agent's account nor its Claude runs can read it, so merges and
+comments from the dashboard are yours.
+
+### Installing it on the workstation
+
+1. **Turn on HTTPS for your tailnet:** in the Tailscale admin console, under
+   DNS, turn on MagicDNS and HTTPS Certificates.
+2. **Make your own token:** on github.com, as yourself, go to Settings,
+   Developer settings, Fine-grained tokens:
+   - Repository access: only `CesarPerdomoDiaz/xppstudio`.
+   - Permissions: Contents read and write (for merging); Issues read and
+     write; Pull requests read and write; Commit statuses read; Actions
+     read.
+   - Expiration: up to a year.
+3. **Install it.** In an elevated PowerShell:
+   ```powershell
+   cd C:\src\xppstudio
+   git pull
+   powershell -ExecutionPolicy Bypass -File agent\install\install-web.ps1
+   ```
+   It creates the `xpps-web` account (type a password for it twice), asks
+   you to choose the dashboard's password, and registers the task. It
+   then prints the page's address, `https://<workstation>.<your
+   tailnet>.ts.net`.
+4. **Add the token.** Put your token in `C:\xpps-web\secrets.env` as
+   `GH_TOKEN=...`, then start the task with
+   `Start-ScheduledTask -TaskName "XPP Studio dashboard"`.
+
+To try it elsewhere, read-only and without a password:
+`XPPS_DASHBOARD_TOKEN=... python -m xppagent web --config my.toml --read-only --no-login`,
+then open http://127.0.0.1:8765.
+
 ## Trying it on another computer
 
 ```powershell

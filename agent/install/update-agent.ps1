@@ -58,6 +58,10 @@ if ($wasRunning) {
     if ($made) { Remove-Item $stop }
 }
 
+# The dashboard runs the same code: stop it too while the code is replaced.
+$web = Get-ScheduledTask -TaskName "XPP Studio dashboard" -ErrorAction SilentlyContinue
+if ($web) { Stop-ScheduledTask -TaskName $web.TaskName }
+
 Say "Copying the new code to $AgentHome\app"
 $app = Join-Path $AgentHome "app"
 foreach ($part in @("xppagent", "prompts")) {
@@ -68,4 +72,5 @@ foreach ($part in @("xppagent", "prompts")) {
 Get-ChildItem -Recurse -Directory -Filter "__pycache__" $app | Remove-Item -Recurse -Force
 
 Start-ScheduledTask -TaskName $TaskName
+if ($web) { Start-ScheduledTask -TaskName $web.TaskName; Say "Restarted the dashboard" }
 Say "Updated and started. The log: Get-Content $AgentHome\agent.log -Tail 20 -Wait"

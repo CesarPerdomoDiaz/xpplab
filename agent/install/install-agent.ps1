@@ -24,7 +24,8 @@ param(
     [string]$UserName = "xpps-agent",
     [string]$Python = "",
     [string]$Msys = "C:\msys64",
-    [string]$TaskName = "XPP Studio maintainer agent"
+    [string]$TaskName = "XPP Studio maintainer agent",
+    [string]$WebUser = "xpps-web"          # the dashboard's account, if installed
 )
 $ErrorActionPreference = "Stop"
 
@@ -98,40 +99,25 @@ if (-not $user) {
     Say "The account $UserName exists"
 }
 
-# A scheduled task that runs whether anyone is signed in or not logs its
-# account on "as a batch job". Registering the task from a script does not
-# grant that right (the Task Scheduler window does), and without it the task
-# never starts (error 0x80070569). On Windows Server only administrators have
-# it by default.
-$sid = (New-Object Security.Principal.NTAccount($UserName)).Translate(
-    [Security.Principal.SecurityIdentifier]).Value
-$inf = Join-Path $env:TEMP "xpps-rights.inf"
-secedit /export /cfg $inf /areas USER_RIGHTS | Out-Null
-$line = Get-Content $inf | Where-Object { $_ -match '^SeBatchLogonRight\s*=' }
-# The policy may name the account by its SID (*S-1-5-...) or, when it was
-# added by hand in secpol.msc, by its name.
-$granted = $line -match [regex]::Escape("*$sid") -or
-           $line -match ("(=|,)\s*" + [regex]::Escape($UserName) + "\s*(,|$)")
-if (-not $granted) {
-    Say "Letting $UserName run as a scheduled task (Log on as a batch job)"
-    $members = if ($line) { ($line -split '=', 2)[1].Trim() + ",*$sid" } else { "*$sid" }
-    $policy = "[Unicode]`r`nUnicode=yes`r`n[Version]`r`nsignature=`"`$CHICAGO`$`"`r`nRevision=1`r`n" +
-              "[Privilege Rights]`r`nSeBatchLogonRight = $members`r`n"
-    [IO.File]::WriteAllText($inf, $policy, [Text.Encoding]::Unicode)
-    secedit /configure /db (Join-Path $env:TEMP "xpps-rights.sdb") /cfg $inf /areas USER_RIGHTS /quiet | Out-Null
-}
-Remove-Item $inf, (Join-Path $env:TEMP "xpps-rights.sdb") -ErrorAction SilentlyContinue
+. (Join-Path $PSScriptRoot "batch-logon.ps1")
+Grant-BatchLogon $UserName
 
 # -- the home folder -----------------------------------------------------------
 Say "Preparing $AgentHome"
 New-Item -ItemType Directory -Force $AgentHome | Out-Null
-# Only the agent, administrators and SYSTEM may read it: secrets.env lives here.
+# The agent, administrators and SYSTEM own it. The dashboard's account, if
+# there is one, may read it (state, status, run logs), but not secrets.env,
+# which gets an ACL of its own below.
 $acl = New-Object System.Security.AccessControl.DirectorySecurity
 $acl.SetAccessRuleProtection($true, $false)
 foreach ($who in @("$env:COMPUTERNAME\$UserName", "BUILTIN\Administrators", "NT AUTHORITY\SYSTEM")) {
     $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
         $who, "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
     $acl.AddAccessRule($rule)
+}
+if (Get-LocalUser -Name $WebUser -ErrorAction SilentlyContinue) {
+    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
+        "$env:COMPUTERNAME\$WebUser", "ReadAndExecute", "ContainerInherit,ObjectInherit", "None", "Allow")))
 }
 Set-Acl -Path $AgentHome -AclObject $acl
 
@@ -197,6 +183,14 @@ CLAUDE_CODE_OAUTH_TOKEN=
 } else {
     Write-Host "  kept $secrets"
 }
+# The secrets: the agent, administrators and SYSTEM only, never the dashboard.
+$sacl = New-Object System.Security.AccessControl.FileSecurity
+$sacl.SetAccessRuleProtection($true, $false)
+foreach ($who in @("$env:COMPUTERNAME\$UserName", "BUILTIN\Administrators", "NT AUTHORITY\SYSTEM")) {
+    $sacl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
+        $who, "FullControl", "Allow")))
+}
+Set-Acl -Path $secrets -AclObject $sacl
 
 # -- the scheduled task ---------------------------------------------------------
 Say "Registering the scheduled task '$TaskName'"

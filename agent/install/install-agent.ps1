@@ -45,7 +45,7 @@ if (-not (Test-Path (Join-Path $source "xppagent\supervisor.py"))) {
 Say "Checking prerequisites"
 $script:missing = 0
 if (-not $Python) {
-    foreach ($candidate in @("py -3.13", "py -3.12", "py -3.11")) {
+    foreach ($candidate in @("py -3.15", "py -3.14", "py -3.13", "py -3.12", "py -3.11")) {
         $parts = $candidate.Split(" ")
         try {
             $exe = & $parts[0] $parts[1] -c "import sys; print(sys.executable)" 2>$null
@@ -54,9 +54,9 @@ if (-not $Python) {
     }
 }
 if (-not $Python -or -not (Test-Path $Python)) {
-    Problem "Python 3.11 or newer for all users: winget install -e --id Python.Python.3.12 --scope machine"
+    Problem "Python 3.11 or newer for all users: winget install -e --id Python.Python.3.14 --scope machine"
 } elseif ($Python -like "$env:USERPROFILE*") {
-    Problem "Python is installed for your account only ($Python); the agent's account cannot use it. Install it for all users: winget install -e --id Python.Python.3.12 --scope machine"
+    Problem "Python is installed for your account only ($Python); the agent's account cannot use it. Install it for all users: winget install -e --id Python.Python.3.14 --scope machine"
 } else {
     Write-Host "  Python: $Python"
 }

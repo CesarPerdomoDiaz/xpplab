@@ -118,7 +118,7 @@ In an elevated PowerShell:
 ```powershell
 winget install -e --id Git.Git --scope machine
 winget install -e --id GitHub.cli --scope machine
-winget install -e --id Python.Python.3.12 --scope machine
+winget install -e --id Python.Python.3.14 --scope machine
 winget install -e --id MSYS2.MSYS2
 ```
 

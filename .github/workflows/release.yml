@@ -52,7 +52,7 @@ jobs:
           cd build && cpack
       - name: Check the packaged app (architectures, libraries, signature, start-up)
         run: |
-          hdiutil attach build/XPPStudio-*.dmg -mountpoint /tmp/xpps -nobrowse -readonly
+          yes | hdiutil attach build/XPPStudio-*.dmg -mountpoint /tmp/xpps -nobrowse -readonly
           bundle=$(ls -d /tmp/xpps/*.app | head -1)
           exe="$bundle/Contents/MacOS/$(defaults read "$bundle/Contents/Info" CFBundleExecutable)"
           echo "bundle: $bundle"

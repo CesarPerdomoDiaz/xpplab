@@ -45,6 +45,10 @@ if(WIN32)
   set(CPACK_GENERATOR ZIP)
 elseif(APPLE)
   set(CPACK_GENERATOR DragNDrop)
+  set(CPACK_DMG_VOLUME_NAME "XPP Studio")
+  # The GPL needs no click-through agreement; without this, opening the
+  # .dmg shows the licence and asks the user to accept it.
+  set(CPACK_DMG_SLA_USE_RESOURCE_FILE_LICENSE OFF)
 else()
   set(CPACK_GENERATOR TGZ)
 endif()

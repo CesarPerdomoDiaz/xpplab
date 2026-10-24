@@ -12,8 +12,21 @@ unzip it anywhere (your Desktop is fine), and run `xppstudio.exe`. Windows
 may warn about an unrecognised app the first time. Choose
 *More info > Run anyway*. The preview is not signed yet.
 
-**macOS and Linux:** see "Building from source" in the README. Native
-macOS downloads come later.
+**macOS** (11 Big Sur or later, Apple Silicon or Intel): download
+`XPPStudio-<version>-Darwin.dmg` from the same page, open it and drag the
+app to *Applications*. The preview is not notarized by Apple yet, so the
+first time macOS refuses to open it:
+
+- **macOS 15 Sequoia and later:** try to open the app once and dismiss the
+  warning, then open *System Settings > Privacy & Security*, scroll down to
+  the message about the app, and click *Open Anyway*.
+- **macOS 14 and earlier:** Control-click (or right-click) the app in
+  *Applications*, choose *Open*, then *Open* again.
+
+After that it opens normally. Mac-specific things worth checking are at
+the end of the list below.
+
+**Linux:** see "Building from source" in the README.
 
 ## Fifteen minutes of things to try
 
@@ -32,6 +45,10 @@ macOS downloads come later.
    tools (Inkscape, Illustrator, PowerPoint, LaTeX)?
 7. **Muscle memory.** If you know XPPAUT's keys, try `I G`, `N N`, `S G`
    and `D D`.
+8. **On a Mac:** open an `.ode` file from Finder (double-click it, or
+   *Open With*), or drop it on the Dock icon; try ⌘O, ⌘S and ⌘Q; pinch and scroll in the plots with the
+   trackpad; switch between light and dark appearance; check that text and
+   lines are sharp on a Retina screen.
 
 If you teach with XPPAUT, we would especially like to know whether a first
 lab session would go more smoothly with XPP Studio, and what is still

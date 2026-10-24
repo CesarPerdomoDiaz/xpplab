@@ -100,7 +100,9 @@ The order is chosen so something useful ships early:
 - [x] Query and set variables, parameters, initial conditions, numerical
       options and auxiliaries
 - [x] Integrate, returning the trajectory as arrays: all methods, named sets
-- [x] Parameter sweeps and `.set` files; [ ] XPPAUT's own Range dialog
+- [x] Parameter sweeps and `.set` files; Range (as `Model.sweep` in Python and
+      the `range` command in the app, built from repeated runs, there is no
+      single `xppe_` call for it)
 - [x] Equilibria with eigenvalues and stability, nullclines, vector field
 - [x] Stable/unstable manifolds of saddles
 - [x] Data analysis: Fourier series, spectral densities, histograms,
@@ -108,13 +110,15 @@ The order is chosen so something useful ships early:
       response curves and H functions (checked against XPPAUT's batch
       post-processing and against known answers)
 - [x] Poincaré sections (as numerical options)
-- [ ] Boundary value problems (shooting)
+- [x] Boundary value problems (shooting): `xppe_bvp`
 - [x] **Headless AUTO:** equilibria, periodic orbits, two-parameter curves,
       branch switching. Branches and labelled special points (HB, LP, PD,
       TR, BP, UZ) are returned as data
-- [ ] AUTO: BVPs and homoclinics (reachable through the menu keys; untested)
+- [ ] AUTO: BVPs and homoclinics (can be started with `start="bvp"`,
+      `"homoclinic"` or `"heteroclinic"`, but no test covers them)
 - [x] Shared library build with an exported, versioned C API
-- [ ] `xpp` command-line tool built on the API
+- [ ] `xpp` command-line tool built on the API (today only `xppaut-headless`
+      exists: XPPAUT's own `main` linked to the engine, not a new tool)
 
 ### M2 Python package `xpplab`
 - [x] `ctypes` bindings to the shared library (no Python C-API dependency)
@@ -122,11 +126,13 @@ The order is chosen so something useful ships early:
       DataFrames, `m.equilibrium()`, `m.auto.equilibria()`, `m.auto.continue_from()`
 - [x] Bifurcation diagrams in matplotlib: stable branches solid, unstable
       dashed, special points labelled
-- [ ] Jupyter: rich repr and interactive parameter sliders
+- [x] Jupyter: interactive parameter sliders (`Model.interact`)
+- [ ] Jupyter: rich repr (`_repr_html_`; only plain `__repr__` exists)
 - [x] Wheels: py3-none wheels via scikit-build-core (Windows wheel built and
       tested locally); cibuildwheel for all platforms in CI
 - [ ] Publish on PyPI
-- [ ] Documentation site with tutorials and a gallery
+- [x] Documentation site with a tutorial and a gallery (`mkdocs.yml`; built by
+      the docs workflow; field tutorials are in M5)
 
 ### M3 Desktop app, shell: done
 - [x] SDL3 + Dear ImGui (docking) + ImPlot, driven from C
@@ -182,7 +188,8 @@ To do:
 - [x] Universal macOS app (Apple Silicon and Intel, macOS 11+), checked
       from the mounted `.dmg` in CI; on the preview release
 - [ ] macOS notarization and Windows code signing (need developer accounts)
-- [ ] Windows installer with `.ode` file association; Linux AppImage
+- [ ] Windows installer with `.ode` file association; Linux AppImage (CPack
+      makes only the zip, `.dmg` and tarball; no installer or AppImage yet)
 - [ ] Publish on GitHub and PyPI
 - [ ] Contact Bard Ermentrout; announce on the xppaut-l list, comp-neuro
       and SIAM DS

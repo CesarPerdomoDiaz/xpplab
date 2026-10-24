@@ -474,3 +474,20 @@ def test_a_comment_that_needs_no_change_gets_an_answer_and_no_push(world):
     assert t.stage == "owner"
     assert sh("git", "rev-parse", t.branch, cwd=w.origin) == before   # nothing pushed
     assert any("The issue asked for it." in b for b in w.gh.said(t.pr))
+
+
+def test_a_merge_that_closes_the_issue_counts_as_a_merge(world):
+    w = world
+    n = w.gh.new_issue("Add a hello file")
+    w.claude.on("implement", hello)
+    w.claude.on("review", lambda p, cwd: approve())
+    ticks(w, 4)
+    t = w.task(n)
+    assert t.stage == "owner"
+    # GitHub closes the issue in the same moment ("Closes #1").
+    w.gh.prs[t.pr].update(state="MERGED", mergedAt="now", mergeCommit={"oid": "abc123"})
+    w.gh.issues_[n]["state"] = "CLOSED"
+    w.sup.tick()
+    assert t.stage == "merged" and t.merge_sha == "abc123"
+    assert "agent" not in w.gh.label_names(n)
+    assert any("merged" in e for _, e in w.sup.state.events[-2:])

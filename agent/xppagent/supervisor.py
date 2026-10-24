@@ -188,6 +188,10 @@ class Supervisor:
             info = self.gh.issue(task.issue)
             if info.get("state") == "CLOSED" or not any(
                     l["name"] == self.cfg.label for l in info.get("labels", [])):
+                # Merging a pull request that says "Closes #n" closes the issue
+                # too: that is a merge (watched afterwards), not a stop.
+                if task.pr and self.pipeline._finished(task):
+                    continue
                 task.stage = "closed"
                 self.gh.labels(task.issue, remove=[self.cfg.label_working,
                                                    self.cfg.label_blocked])

@@ -1,156 +1,393 @@
 # XPP Studio for macOS: the plan
 
-**Goal:** a native Mac app that researchers download, drag to
-Applications and double-click. It should run on Apple Silicon and Intel
-alike, be signed and notarized, and need no XQuartz, no Homebrew and no
-Terminal. It should look and behave like a Mac app while keeping XPPAUT's
-workflow.
+**Goal:** a student downloads XPP Studio, drags it to *Applications* and
+double-clicks it. It opens without a warning on Apple Silicon and Intel
+Macs, fits a 13-inch laptop screen and behaves like other Mac apps. No
+XQuartz, no Homebrew, no Terminal.
 
-This replaces today's route to XPPAUT on a Mac: install XQuartz, download a
-command-line binary, `chmod` it, then allow it in *Privacy & Security*.
+Today's route to XPPAUT on a Mac is to install XQuartz, download a
+command-line binary, `chmod` it, allow it in *Privacy & Security*, and then
+work in an X11 interface. Most students who struggle with XPPAUT on a Mac
+struggle with that, not with the mathematics.
 
-## Where things stand
+## The first try on a real Mac (24 October 2026)
 
-The code is already portable:
+The maintainer opened the preview `.dmg` on a MacBook Air. Two things went wrong.
+
+**macOS refused to open the app.** This was expected. The preview is signed
+ad hoc and not notarized, so Gatekeeper blocks it until the user allows it
+in *System Settings > Privacy & Security*. Only a Developer ID signature
+and notarization remove the warning (step 2 below).
+
+**Once forced open, the interface was broken.** The code draws the whole
+interface twice as large on every Retina screen:
+
+- On a Retina Mac a window of 1470 × 956 points has 2940 × 1912 pixels, and
+  `SDL_GetWindowDisplayScale()` returns 2.
+- `main.c` used that value as the interface scale: every ImGui size and the
+  font were multiplied by 2.
+- ImGui's SDL3 backend uses the same `SDL_GetWindowDisplayScale()` on macOS
+  as the framebuffer scale (pixels per point), so the drawing is already
+  sharp at 2 pixels per point without any help.
+- The two together make everything twice the intended size: text 30 points
+  high instead of 15. The six panels of the default layout get the room
+  they would have in a 735 × 478 window. The toolbar is cut off and the
+  plots and lists have almost no space.
+
+CI did not catch it. GitHub's macOS runner has a 1024 × 768 screen at 1×,
+so its screenshots are 1024 × 642 pixels and the display scale is 1. At 1×
+the two readings agree.
+
+**The fix** (branch `macos-plan`): the interface scale is now the display
+scale divided by the pixel density, `interface_scale()` in `main.c`. That
+is SDL's display content scale, the value Dear ImGui's own SDL3 examples
+use. On a Retina Mac at default settings it is 1. On Windows the pixel
+density is 1, so nothing changes there: screenshots before and after the
+fix on a Windows laptop at 125% are pixel-identical. At start-up the app
+also prints one line to stderr with the window size in points and pixels,
+the display scale, the pixel density, the interface scale and the renderer
+(Metal on a Mac), so a run from Terminal shows the numbers.
+
+**Not yet confirmed on a Mac.** The fix comes from reading the code. An
+interface drawn at twice its size is cramped but still visible. If the
+window was black or empty, there is a second problem; the tester's screenshot
+and Terminal output will tell (see the questions at the end).
+
+## What already works
 
 - **The engine needs no X server.** XPPAUT's X11 calls go to a null
   implementation.
-- **The app uses SDL3**, which draws through Metal on macOS and uses the
-  native file dialogs (NSOpenPanel and NSSavePanel).
-- **The Mac build is set up:**
-  - a `.app` bundle with its icon (`icon.icns`), and the engine and examples
-    in `Contents/Resources`, where SDL looks for them;
-  - SDL3 copied into the bundle with `fixup_bundle`, then an ad-hoc
-    signature;
-  - a `.dmg` built by CPack.
-- **CI has a macOS job (Apple Silicon).** It builds everything, builds
-  unmodified XPPAUT 8.0 with X11 from Homebrew, checks that every example
-  model gives the same output with both, runs the Python tests, starts
-  the app to take a screenshot, and builds the `.dmg`. It passes.
-
-## Phase 1: build and pass the tests on macOS — done
-
-On GitHub's Apple Silicon runner (macOS 26, Apple Clang):
-
-- **Everything compiles**: the engine, the command-line program, the app
-  and the tests. Clang is stricter than GCC about implicit declarations in
-  the 1990s C; the flags for that were already set.
-- **All 197 example models give the same output as unmodified XPPAUT 8.0**,
-  built on the same Mac with X11. Apple Clang fuses multiply-adds by
-  default; the build turns that off (`-ffp-contract=off`) so the numbers
-  match.
-- **The engine API tests pass**, as does the AUTO test, which compares the
-  Morris-Lecar diagram with one recorded on Windows. Off Windows that test
-  compares the steady states and the first lap of periodic orbits: Apple's
-  maths library differs from Windows' in the last bits, and over AUTO's
-  later laps around the closed branch those differences grow.
-- **All 26 Python tests pass.** They load private engine copies with
-  `dlopen` from `$TMPDIR` and run AUTO in per-model work folders.
-- **The app starts, loads a model, draws its nullclines**, and saves a
-  screenshot. CPack builds the `.dmg`.
+- **The app uses SDL3**, which draws with Metal and opens the native file
+  panels (NSOpenPanel, NSSavePanel).
+- **CI's macOS job** (Apple Silicon, macOS 26) builds everything and builds
+  unmodified XPPAUT 8.0 with X11 from Homebrew. It checks that all 197
+  example models give the same output with both. It runs the engine and
+  Python tests, starts the app for a screenshot, and builds the `.dmg`.
+  Apple Clang fuses multiply-adds by default; the build turns that off
+  (`-ffp-contract=off`) so the numbers match.
+- **The release workflow** builds a universal app (arm64 and x86_64,
+  macOS 11 or later). SDL3 is compiled from source because Homebrew's is
+  single-architecture. It mounts the `.dmg` and checks the architectures,
+  that nothing links outside the bundle, the signature, and that the app
+  starts and runs AUTO. That build is on the preview release.
+- **`Info.plist`** declares the `.ode` document type (UTI
+  `org.xppstudio.ode`), marks the app as Retina-capable and sets the
+  minimum system version to 11.0.
+- **⌘ shortcuts:** ImGui maps its Ctrl shortcuts to ⌘ on macOS (⌘O, ⌘S,
+  ⌘N, ⌘Q), and SDL adds the standard application menu (About, Hide, Quit)
+  and the Window menu.
 
 ![XPP Studio on macOS](../images/macos-first-run.png)
 
-*The first run on a Mac: the CI screenshot from GitHub's Apple Silicon
-runner, in the system's light appearance.*
+*The CI screenshot from GitHub's Apple Silicon runner: a 1× screen, so it
+cannot show Retina problems.*
 
-## Phase 2: a real Mac app
+## The work, in order of impact for students
 
-Already in the code:
+Costs are given in three currencies: money, working time and CI minutes.
+macOS runners bill tenfold on this private repository, and GitHub rounds
+each job up to a whole minute. Timings measured on 24 October 2026:
 
-- **Universal binary** (arm64 and x86_64). The release workflow sets
-  `CMAKE_OSX_ARCHITECTURES` and compiles SDL3 from source
-  (`XPPS_FETCH_SDL3`), because Homebrew's SDL3 is built for one
-  architecture only. The release workflow then mounts the `.dmg` and
-  checks it: the app, SDL and the engine are each `x86_64 arm64` with a
-  minimum of macOS 11.0, nothing links to Homebrew or the build machine,
-  the signature verifies, and the app starts from the image and runs AUTO.
-  This build is attached to the preview release.
-- **Deployment target macOS 11**, the first version for Apple Silicon
-  (`LSMinimumSystemVersion` in `Info.plist`).
-- **Open `.ode` files from Finder.** `Info.plist` declares the `.ode`
-  document type and its UTI, so double-clicking a model or dropping it on
-  the Dock icon opens it. SDL delivers both as drop events, which the app
-  handles. *Needs a person to try it.*
-- **⌘ shortcuts.** ImGui swaps Ctrl and ⌘ on macOS, and the menus show ⌘O,
-  ⌘S, ⌘N and ⌘Q. SDL also gives the app the standard application menu
-  (About, Hide, Quit) and Window menu.
-- **The system's light or dark appearance** is followed on first launch
-  (`SDL_GetSystemTheme`), as the screenshot above shows.
+| Run | Wall-clock | Billed minutes |
+|---|---|---|
+| CI, macOS job | 2 min 37 s | 30 |
+| CI, whole run (Windows ×2, four Linux jobs, macOS ×10) | 9 min | about 67 |
+| Release, macOS job | 3 min 13 s | 40 |
+| Release, whole run | 6 min 30 s | about 61 |
 
-Still to do:
+So each push that touches code costs about 67 billed minutes, nearly half
+of it macOS; GitHub Free includes 2,000 a month. On a public repository
+standard runners are free, which ends this cost.
 
-- ⌘W (close the focused window) and ⌘, (settings).
-- Trackpad pinch and two-finger scroll in the plots.
-- **Retina:** the app renders at full pixel density. Check on a Retina
-  screen that fonts and plot lines are crisp.
-- **Optional:** put File, Run and View in the Mac menu bar as well as in
-  the window, with a small Objective-C file.
+### 1. Draw at the right size on Retina — fix written
 
-**Done when:** a Mac user can install from the `.dmg` and use the app
-without reading anything Mac-specific.
+The fix described above. What is left is to run it on a real Mac.
 
-## Phase 3: signing, notarization, distribution
+- **Cost:** nothing more to write. One CI run when the branch is pushed
+  (about 67 billed minutes, 30 of them macOS); a tester downloads the `.dmg`
+  from the run's artifacts, or builds from source as in the README.
 
-Without this, macOS blocks the app on first launch. With it, the app opens
-like any other.
+### 2. Open without a warning: Developer ID and notarization
 
-1. Join the Apple Developer Program ($99 per year) and create a
-   *Developer ID Application* certificate.
-2. Sign with the hardened runtime:
-   `codesign --options runtime --timestamp --entitlements xppstudio.entitlements --sign "Developer ID Application: ..."`.
-   The private engine copies keep their signature when copied, so
-   library validation should accept them. If not, the entitlement
-   `com.apple.security.cs.disable-library-validation` is the fallback.
-3. Notarize and staple: `xcrun notarytool submit XPPStudio.dmg --wait`,
-   then `xcrun stapler staple XPPStudio.dmg`.
-4. Do all of this in the release workflow, with the certificate and a
-   notarytool API key stored as repository secrets.
-5. Once the project is public, add a Homebrew cask, so that
-   `brew install --cask xppstudio` works.
+This is the biggest obstacle in a classroom. On macOS 15 and later the way
+past the warning is hidden in *System Settings*, and a lab handout that
+says "ignore the security warning" is a poor start.
 
-Until there is a developer account, preview builds are signed ad hoc.
-The first time, testers must allow the app: on macOS 15 and later with
-*Open Anyway* in *System Settings > Privacy & Security*, on earlier
-versions with Control-click > *Open*. TESTING.md explains both.
+1. **Join the Apple Developer Program:** US$99 (99 €) a year. Enrolment as
+   an individual takes a day or two, and users then see the member's legal name
+   as the developer. An organization account shows the organization's
+   name but needs a D-U-N-S number. Apple's fee waiver for educational
+   institutions and nonprofits is for organizations that distribute free
+   apps through the App Store, and not for individuals. It is worth asking
+   UC3M whether it already has an account it could sign with.
+2. **Create a *Developer ID Application* certificate** and export it as a
+   `.p12` file. Create an App Store Connect API key for notarization.
+3. **Store as repository secrets:** the certificate (base64) and its
+   password, and the API key, key ID and issuer ID.
+4. **In the release workflow:**
+   - import the certificate into a temporary keychain;
+   - sign from the inside out (`libxppe.dylib`, SDL, then the app; not
+     `--deep`) with `--options runtime --timestamp` and an entitlements
+     file;
+   - sign the `.dmg`, run `xcrun notarytool submit --wait`, then
+     `xcrun stapler staple`;
+   - check the result with `spctl --assess -vv`.
+5. **Entitlements:** `com.apple.security.cs.disable-library-validation`.
+   XPPAUT's `export` statement loads a library the user compiled
+   (`dlopen` in `extra.c`). Under the hardened runtime, macOS refuses
+   libraries that are not signed by the same team, and a student's own
+   library never is. The app's private engine copies would pass: they are
+   byte-for-byte copies of the signed library.
+6. **Optional saving:** do the signing and notarization on a Linux runner
+   with `rcodesign` (apple-codesign), which implements both. Apple's
+   notarization queue (usually a few minutes, sometimes much longer) is
+   then billed at 1× instead of 10×.
 
-Small things to tidy in the bundle:
+Fix the bundle at the same time: name it `XPP Studio.app` rather than
+`xppstudio.app`, and ship SDL once (it is in both `Contents/MacOS` and
+`Contents/Frameworks`, 3 MB of a 10 MB download).
 
-- SDL is in the bundle twice (`Contents/MacOS` and `Contents/Frameworks`),
-  about 3 MB of the 10 MB download. The post-build copy is only needed in
-  the build tree.
-- The bundle is named `xppstudio.app`; `XPP Studio.app` would read better
-  in *Applications*.
+- **Cost:** US$99 a year, plus about a day of work. Expect a few release
+  runs to get it right, each 40 billed minutes plus the notarization wait
+  if it runs on macOS. Only releases pay this, not every push.
+- Until then, TESTING.md's instructions stay.
 
-## Phase 4: Python on the Mac
+### 3. Fit a 13-inch laptop
 
-The `xppstudio` package builds a universal2 wheel with cibuildwheel; this
-is already configured. Then:
+Most students will have a 13-inch MacBook Air: 1470 × 956 points (M2 and
+later) or 1440 × 900 (M1), minus the menu bar and the title bar. At the
+right scale the default layout fits, but only just. Even at 1024 points
+wide, the CI screenshot shows the toolbar cut off at the right.
 
-- test it on Apple Silicon and on Intel;
-- publish it with the first release, so that `pip install xppstudio` works
-  on any Mac with AUTO included.
+- Toolbar: move what does not fit into a » menu instead of cutting it off.
+- When the window is narrower than about 1300 points, start with the
+  Help panel closed (F1 opens it) and give the plots its column.
+- This helps Windows laptops at 150% too.
+- **Cost:** half a day to a day. Testable on Windows with `--size`; no
+  macOS minutes.
 
-## Phase 5: a test round with Mac users
+### 4. Things a Mac user notices in the first minutes
 
-The download is ready: `XPPStudio-0.1.0-Darwin.dmg` on the preview
-release.
+- **Follow the system appearance while running.** Today the app reads the
+  light or dark appearance only on the first launch. `app_save_settings()`
+  writes `dark=` on every quit, and after that the system setting is
+  ignored. Many Macs switch automatically at sunset. Add
+  *View > Appearance: System, Light, Dark* (default *System*) and handle
+  `SDL_EVENT_SYSTEM_THEME_CHANGED`.
+- **Ask before quitting with unsaved changes.** *Quit* in the Mac menu
+  (⌘Q) reaches the app as `SDL_EVENT_QUIT` and the app quits at once, so
+  an edited model is lost. SDL cancels the system's own termination and
+  leaves the decision to the app, so the app can ask first. The same
+  applies when the window is closed on Windows and Linux.
+- **Never write into the app.** Examples open from inside the bundle
+  (`Contents/Resources/examples`), and *Save* writes back there:
+  - in *Applications* that modifies a signed app, which macOS may then
+    report as damaged;
+  - run from the `.dmg` or from *Downloads* (App Translocation), the save
+    fails.
 
-- Aim for testers on Apple Silicon (M1 to M4) and on Intel Macs, ideally
-  covering a few macOS versions. CI runs only on Apple Silicon, so an Intel
-  Mac is the one thing no automated check has covered.
-- Give them the checklist in TESTING.md, which includes these Mac checks:
-  - the first-launch dialog;
-  - Retina rendering;
-  - trackpad zoom and pan in plots;
-  - ⌘ shortcuts;
-  - opening `.ode` files from Finder;
-  - light and dark appearance.
-- Collect results with the issue templates.
+  Saving an edited example should ask where to put the copy, defaulting to
+  a folder in *Documents*.
+- **Standard shortcuts:** ⌘W closes the focused panel, and ⌘, opens
+  settings. SDL's application menu already shows a greyed-out
+  *Preferences…* item that does nothing. Menus say "Cmd+O"; the Mac
+  convention is "⌘O", but neither Roboto nor Cousine has the ⌘ glyph, so
+  one must be merged into the font atlas from a symbol font.
+- **Cost:** one to two days in all. Everything except the ⌘ glyph can be
+  tested on Windows and Linux.
+
+### 5. Trackpad gestures in plots
+
+ImPlot zooms on scroll. On a trackpad, the two-finger scroll is how Mac
+users move content, and it arrives as many small scroll events, so today a
+two-finger swipe zooms in jerks. Mac users expect:
+
+- two-finger scroll to pan the plot;
+- pinch to zoom around the pointer, using SDL 3.4's
+  `SDL_EVENT_PINCH_BEGIN/UPDATE/END`;
+- a mouse wheel to zoom, as now.
+
+SDL does not say whether a scroll came from a trackpad or a wheel, so the
+honest design is a setting, *Scroll pans plots (trackpad)*, on by default
+on macOS. The 3D view gets the same treatment: drag rotates, pinch zooms.
+
+- **Cost:** one to two days, and someone has to tune it on a real
+  trackpad. CI can only check that it builds.
+
+### 6. The Mac menu bar
+
+Mac users look for menus at the top of the screen. Today XPP Studio's
+menus are inside the window, and the system menu bar has only SDL's
+application and Window menus.
+
+- **A small Objective-C file** (`app/src/mac_menu.m`, a few hundred lines)
+  builds File, Edit, Run, View, Window and Help in the system menu bar.
+  Each item sends a command-window command (`run`, `eq`, `nullclines`, ...)
+  through a queue the frame loop empties, so the menus need no new logic.
+- **Hide the in-window menu bar** when the system one exists. That gives
+  the plots about 25 points of height on a laptop.
+- **Standard items:**
+  - *About XPP Studio*, with the version and engine credits;
+  - *Settings…* ⌘,: theme, text size and XPPAUT keys, now under View;
+  - *Quit* ⌘Q, which asks about unsaved changes;
+  - an Edit menu whose Cut, Copy, Paste and Select All reach ImGui's text
+    fields. Menu key equivalents catch ⌘C and ⌘V before SDL sees them, so
+    this needs care.
+- ***File > Open Recent*** goes through `NSDocumentController`, so recent
+  models also appear in the Dock icon's menu, and the Help menu gets
+  macOS's search field.
+- **Cost:** two to three days. Each try needs a Mac: CI can only build it
+  and check that the app still starts.
+
+### 7. Remember the window and the session
+
+Today the window opens maximized every time, and `layout.ini` keeps only
+the panels.
+
+- Save the window's position, size and full-screen state, and reopen the
+  last model, the way MATLAB does. Keep these in `settings.ini` on all
+  platforms. Check that the saved position is still on a connected
+  display. macOS's own state restoration (`NSWindowRestoration`) is not
+  needed for this.
+- **Cost:** half a day. Testable on Windows.
+
+### 8. Finder: declared, not yet tried
+
+`Info.plist` declares the `.ode` type, so double-clicking a model, *Open
+With* and dropping it on the Dock icon should all work: SDL delivers them
+as drop events. No person has tried it yet. Things to check:
+
+- whether macOS registers the type after the first launch from
+  *Applications*;
+- that a double-click with the app closed opens that model. On a first
+  start the app opens `lecar.ode` and then the dropped file, which loads
+  the engine twice. That is harmless but slow; skip the example when a
+  file arrives in the first frames.
+- that Quick Look shows `.ode` files as text: the type conforms to
+  `public.plain-text`.
+- **Cost:** an hour of code, plus a tester.
+
+### 9. Distribution: Homebrew and Python
+
+- **Homebrew cask.** `brew install --cask xppstudio` is how many Mac users
+  and lab administrators install apps.
+  - Requirements: a public repository (the download URL must be
+    reachable) and a notarized app. Homebrew stopped supporting casks
+    that fail Gatekeeper on 1 September 2026.
+  - Start with a tap: a repository `homebrew-xppstudio` holding
+    `Casks/xppstudio.rb` with the version, URL and SHA-256. The release
+    workflow updates it on a Linux runner.
+  - Move to homebrew/cask once the project meets its notability rules.
+  - **Cost:** an hour, after step 2. No macOS minutes.
+- **The Python wheel is a separate route.** `pip install xppstudio` gives
+  the engine, AUTO and the Python API for scripts and Jupyter, not the
+  desktop app. The macOS wheel is universal2, built by cibuildwheel, which
+  is already configured to run on tags and by hand. It needs no
+  notarization: pip downloads are not quarantined, and the engine library
+  carries the ad-hoc signature that Apple's linker adds, which Apple
+  Silicon accepts.
+  - Publish it to PyPI with the first public release, after a test on an
+    Intel Mac.
+  - Later, conda-forge, for courses that use Anaconda.
+  - **Cost:** one macOS wheel job per release.
+- **Not the Mac App Store.** Its sandbox forbids loading user-compiled
+  libraries (`export`). Developer ID and notarization give the same smooth
+  install without that limit.
+- **Updates, later:** an opt-in check of GitHub's releases at start-up, or
+  Sparkle.
+
+## Testing without a Mac at hand
+
+What CI on macOS can do:
+
+- build;
+- run the goldens and the tests;
+- start the app and take a screenshot at 1×.
+
+What it cannot show:
+
+- Retina;
+- the trackpad;
+- Finder;
+- the menu bar;
+- Gatekeeper.
+
+The plan:
+
+1. **Catch Retina-type bugs on Linux, cheaply.** Weston's headless
+   compositor gives a window whose pixel density is 2, with sizes in points
+   as on a Retina Mac:
+   `weston --backend=headless --width=1470 --height=956 --scale=2`. A
+   screenshot under it in the Linux app job would have caught this bug.
+   The check is the interface scale in the app's stderr line, and the
+   screenshot's size against the window's.
+   - **Cost:** an hour or two to set up, about a Linux minute per push.
+2. **Try a 2× screen on the macOS runner, once, by hand.** List the
+   virtual display's modes (`displayplacer list`) and switch to a HiDPI
+   one. If one exists, the macOS job takes a second screenshot at 2×.
+   - **Cost:** the experiment is about 5 minutes (50 billed). Afterwards,
+     about one more minute (10 billed) per push.
+3. **Make CI's screenshots easy to read.** Save them as PNG and keep the
+   app's scale line in the log.
+4. **Spend fewer macOS minutes.**
+   - A push to a branch that has an open pull request runs CI twice
+     (`push` and `pull_request` are different concurrency groups). Limit
+     `push` to `main` and let pull requests cover branches. That saves 30
+     billed macOS minutes per push to a PR branch.
+   - Run the macOS job only when `engine/`, `app/`, `cli/`, `tests/`, a
+     CMake file or the workflow changes.
+5. **A person with a Mac.** The maintainer's MacBook Air is the test machine.
+   `tests/macos/TEST-PROMPT.md` in the repository is a
+   prompt for Claude Code on the Mac. It checks the download and the first
+   run, takes screenshots at full Retina resolution, builds from source,
+   and reports on a `macos-report` branch without running CI. The checklist
+   below is for testers who do it by hand.
+
+### Mac tester checklist
+
+1. **The Mac:** Apple menu > *About This Mac* gives the chip (M1 to M4, or
+   Intel) and the macOS version. Is a second screen attached?
+2. **Install:** open the `.dmg`, drag the app to *Applications* and open it
+   from there. What does macOS say? Take a screenshot (⇧⌘4, then Space,
+   then click the window).
+3. **The window:** it fills the screen. Text is about the size of Finder's
+   and looks sharp, and the toolbar is not cut off. Take a screenshot.
+4. **Run from Terminal**
+   (`/Applications/xppstudio.app/Contents/MacOS/xppstudio`) and copy what
+   it prints. The line starting `XPP Studio: window` gives the scale.
+5. ⌘O shows the standard Mac open panel; open an `.ode` model.
+6. Double-click an `.ode` file in Finder, then drop one on the Dock icon.
+7. In the phase plane, scroll with two fingers and pinch; if you have a
+   mouse, use its wheel. Say what happened.
+8. While the app runs, switch *System Settings > Appearance* between Light
+   and Dark.
+9. Edit the model, press ⌘S, then ⌘Q.
+10. Open the app again: is the window where you left it?
+11. With a second screen, drag the window across. Text should keep its size
+    and stay sharp.
+12. Report with the *Feedback* or *Bug report* issue template, with the
+    screenshots and the Terminal output.
+
+## Summary
+
+| Step | For students | Work | Money | Billed CI minutes |
+|---|---|---|---|---|
+| 1. Retina scale | the app is usable at all | done; needs a Mac to confirm | – | one CI run, about 67 (30 macOS) |
+| 2. Developer ID, notarization | opens without a warning | about 1 day | US$99 a year | a few release runs of 40+; then per release |
+| 3. Fit a 13-inch screen | nothing cut off | 0.5–1 day | – | Windows and Linux only |
+| 4. Appearance, quit prompt, save copies, ⌘W ⌘, | no lost work, looks right | 1–2 days | – | Windows and Linux mostly |
+| 5. Trackpad | plots move as expected | 1–2 days | – | needs a tester |
+| 6. Mac menu bar | menus where Mac users look | 2–3 days | – | needs a tester |
+| 7. Window restoration | picks up where it left | 0.5 day | – | Windows |
+| 8. Finder | double-click a model | 1 hour | – | needs a tester |
+| 9. Homebrew, PyPI | one-line installs | 1 hour each | – | Linux; one wheel job per release |
+| CI: Linux 2× screenshot | stops this bug class | 1–2 hours | – | about 1 Linux minute per push |
 
 ## What is needed from people
 
-- **One or two Mac testers.** CI can build, run the tests and take a
-  screenshot, but only a person can judge whether the app feels right on a
-  Mac.
-- **A decision on the Apple Developer account** for notarized downloads.
+- **A Mac:** a run of the fixed build, a screenshot and the Terminal
+  output.
+- **A decision on the Apple Developer account** (step 2), and whether to
+  ask UC3M first.
+- **One or two more Mac testers**, ideally one with an Intel Mac. CI runs
+  only on Apple Silicon, so no automated check covers Intel.

@@ -37,8 +37,13 @@ classifiers = [
 [project.optional-dependencies]
 plot = ["matplotlib>=3.5"]
 pandas = ["pandas>=1.3"]
-all = ["matplotlib>=3.5", "pandas>=1.3"]
+# The MCP server for coding agents: python -m xppstudio.mcp (docs/agents.md).
+mcp = ["mcp>=1.25", "matplotlib>=3.5"]
+all = ["matplotlib>=3.5", "pandas>=1.3", "mcp>=1.25; python_version >= '3.10'"]
 test = ["pytest>=7", "matplotlib>=3.5", "pandas>=1.3"]
+
+[project.scripts]
+xppstudio-mcp = "xppstudio.mcp:main"
 
 [project.urls]
 Homepage = "https://github.com/CesarPerdomoDiaz/xppstudio"

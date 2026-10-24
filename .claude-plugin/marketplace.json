@@ -1,0 +1,14 @@
+{
+  "name": "xppstudio",
+  "description": "XPP Studio for Claude Code",
+  "owner": {
+    "name": "César Eduardo Perdomo Díaz"
+  },
+  "plugins": [
+    {
+      "name": "xppstudio",
+      "source": "./",
+      "description": "Simulation and AUTO bifurcation analysis of .ode models: the xppstudio MCP server and its skill. Needs pip install \"xppstudio[mcp]\"."
+    }
+  ]
+}

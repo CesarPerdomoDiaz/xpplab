@@ -155,6 +155,29 @@ The wheel includes the compiled engine, so nothing is compiled on your
 machine and AUTO works out of the box. Install it with the `pip` line under
 [Download](#download), then see the [Python guide](docs/python/quickstart.md).
 
+## Use it with a coding agent
+
+XPP Studio includes an MCP server, so coding agents such as Claude Code,
+Codex and Claude Desktop can use it: the agent writes the `.ode` file, has
+it checked (errors come with line numbers), simulates it, runs AUTO from the
+rest state to the limit cycles, and looks at the figures. Every result
+includes the Python code that reproduces it.
+
+```bash
+pip install ".[mcp]"       # in a clone; from the next release, the Python line above with [mcp]
+claude mcp add xppstudio -- python -m xppstudio.mcp
+```
+
+For Claude Code there is also a plugin, which adds a skill that teaches the
+workflow and AUTO's pitfalls:
+
+```
+/plugin install xppstudio --marketplace CesarPerdomoDiaz/xppstudio
+```
+
+Codex and Claude Desktop setup, the list of tools and an example session
+are in [docs/agents.md](docs/agents.md).
+
 ## Same numbers as XPPAUT
 
 The test suite runs every example model that ships with XPPAUT (197 files)
@@ -185,6 +208,7 @@ The manual, the Python guide and the developer notes are online at
   [commands and keyboard shortcuts](docs/manual/commands.md).
 - **For XPPAUT users:** [Coming from XPPAUT](docs/manual/xppaut.md).
 - **Python:** the [Python guide](docs/python/quickstart.md).
+- **Coding agents:** the [MCP server and Claude Code plugin](docs/agents.md).
 - **How it works:** [architecture](docs/development/architecture.md).
 - **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md). Some issues are
   worked on by the project's [maintainer agent](agent/README.md), which

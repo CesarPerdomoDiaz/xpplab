@@ -70,3 +70,59 @@ commands. `help` lists them all.
 | `show phase`, `hide help` | Bring a window forward, or close it: `time`, `phase`, `auto`, `editor`, `data`, `analysis`, `3d`, `animator`, `help`, `console`, `workspace`, `models`. |
 | `layout side`, `layout tabs` | Put the phase plane beside the time series (also in **View**), or all plots back in tabs. |
 | `help auto` | Open a manual page. |
+
+## Command-line options
+
+The desktop app takes a model file and these options:
+
+```
+xppstudio [model.ode] [options]
+```
+
+With no model, it opens `lecar.ode` from its examples the first time it
+starts.
+
+| Option | Action |
+|---|---|
+| `--cmd "command"` | Run a command-window command after start-up. Repeat it to run several (up to 32), in order. |
+| `--then "command"` | Run a command a few frames later, once the windows have been drawn, for example to export a figure. Repeatable, up to 32. |
+| `--screenshot file.png` | Draw a number of frames, save the window to the file and exit. A name ending in `.png` gives a PNG; any other name gives a BMP. |
+| `--frames N` | How many frames `--screenshot` draws before it saves (default 12), or how many frames `--record` saves. |
+| `--size WxH` | Window size in pixels (default `1500x920`). |
+| `--reset-layout` | Put the windows back in their default places instead of the saved layout. |
+| `--record DIR` | Save `--frames` frames as `DIR/frame_00000.png`, `DIR/frame_00001.png`, ... and exit. |
+| `--fps N` | Frames a second of a recording (default 20). Time in the app runs at this rate however long each frame takes to save, so animations stay smooth. |
+| `--script FILE` | Run commands at given frames of a recording. Each line is `FRAME command`; lines starting with `#` are comments. |
+| `--at FRAME "command"` | Run one command at a given frame of a recording. Repeatable. |
+
+Frames for `--at` and `--script` count from the first saved frame, which is
+frame 0. A command written `@command` runs without being echoed in the
+command window. Screenshots and recordings always start from the default
+layout and do not save it. If one fails, the error is written to a file
+named after it with `.err` added, for example `s.png.err` or `frames.err`.
+The folder for `--record` must already exist.
+
+Take a screenshot of the phase plane after a run:
+
+```
+xppstudio lecar.ode --cmd run --cmd "show phase" --screenshot s.png
+```
+
+Record five seconds at 20 frames a second. The script `demo.txt`:
+
+```
+# frame command
+0 set iapp=0.1
+10 run
+40 show phase
+60 @nullclines
+```
+
+and the command:
+
+```
+xppstudio lecar.ode --record frames --fps 20 --frames 100 --script demo.txt
+```
+
+The frames in `frames/` can be turned into a video or an animated GIF with
+any tool; `tools/make_demo.py` does this for the README.

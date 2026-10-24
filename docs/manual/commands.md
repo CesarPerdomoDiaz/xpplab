@@ -100,7 +100,8 @@ frame 0. A command written `@command` runs without being echoed in the
 command window. Screenshots and recordings always start from the default
 layout and do not save it. If one fails, the error is written to a file
 named after it with `.err` added, for example `s.png.err` or `frames.err`.
-The folder for `--record` must already exist.
+The app then exits with status 1; a run that works exits with 0, so scripts
+and CI can tell the two apart. The folder for `--record` must already exist.
 
 Take a screenshot of the phase plane after a run:
 

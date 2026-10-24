@@ -70,13 +70,16 @@ static void apply_scale(App *a, float dpi) {
 }
 
 /* Report a start-up failure. A Windows GUI program has no console, so in
-   scripted runs (--screenshot) the message also goes to <screenshot>.err. */
+   scripted runs (--screenshot, --record) the message also goes to <file>.err and the
+   program exits with status 1. */
 static const char *err_file;
+static int failed; /* a scripted run reported an error: exit non-zero */
 
 static void fail(const char *what) {
   fprintf(stderr, "%s: %s\n", what, SDL_GetError());
   if (err_file) {
     char path[1100];
+    failed = 1;
     FILE *f;
     snprintf(path, sizeof path, "%s.err", err_file);
     f = fopen(path, "w");
@@ -384,5 +387,5 @@ int main(int argc, char **argv) {
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
   SDL_Quit();
-  return 0;
+  return failed ? 1 : 0;
 }

@@ -33,3 +33,13 @@ if(Python3_FOUND)
             ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode iapp hopf
             ${CMAKE_CURRENT_SOURCE_DIR}/golden/auto/lecar_hopf_iapp.txt)
 endif()
+
+if(Python3_FOUND AND TARGET xppstudio)
+  # A scripted --screenshot or --record run exits non-zero and writes
+  # <file>.err when it fails, and exits 0 when it works.
+  add_test(NAME app_exit_status
+    COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/app_check.py
+            $<TARGET_FILE:xppstudio> ${PROJECT_SOURCE_DIR}/examples/lecar.ode)
+  set_tests_properties(app_exit_status PROPERTIES TIMEOUT 120
+                        SKIP_RETURN_CODE 77)
+endif()

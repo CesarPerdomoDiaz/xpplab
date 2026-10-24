@@ -6,6 +6,8 @@ code, AUTO included, kept bit-for-bit identical. Around it we build what
 XPPAUT never had: a one-command install on Windows, macOS and Linux, a
 Python API, and a modern desktop app with real documentation.
 
+Where it is going, in a page: [docs/vision.md](docs/vision.md).
+
 ## Strategy: one engine, three front ends
 
 ```
@@ -145,3 +147,20 @@ To do:
 - [ ] Contact Bard Ermentrout; announce on the xppaut-l list, comp-neuro
       and SIAM DS
 - [ ] Journal of Open Source Software paper
+
+### M7 Beyond XPPAUT: analysis and control
+- [ ] Linearise a model at an equilibrium with chosen inputs (the A and B
+      matrices), in Python and in the app
+- [ ] Eigenvalues in the complex plane, with a controllability check
+- [ ] Pole placement: drag an eigenvalue, get the feedback gain, simulate the
+      closed loop (generated as an `.ode` model)
+- [ ] Root locus over a gain or a parameter
+- [ ] Optimal control (LQR)
+- [ ] Floquet multipliers shown on the bifurcation diagram
+- [ ] Sensitivity of trajectories to parameters
+- [ ] Isochrons and phase reduction
+- [ ] Codimension-two bifurcations through AUTO, explained in the manual
+
+### M8 Working with coding agents
+- [ ] An MCP server and a Claude Code skill (`python -m xppstudio.mcp`)
+- [ ] A coding agent drives the running app while the researcher watches

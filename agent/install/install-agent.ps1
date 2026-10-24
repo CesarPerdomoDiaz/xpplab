@@ -107,7 +107,11 @@ $sid = (New-Object Security.Principal.NTAccount($UserName)).Translate(
 $inf = Join-Path $env:TEMP "xpps-rights.inf"
 secedit /export /cfg $inf /areas USER_RIGHTS | Out-Null
 $line = Get-Content $inf | Where-Object { $_ -match '^SeBatchLogonRight\s*=' }
-if ($line -notmatch [regex]::Escape("*$sid")) {
+# The policy may name the account by its SID (*S-1-5-...) or, when it was
+# added by hand in secpol.msc, by its name.
+$granted = $line -match [regex]::Escape("*$sid") -or
+           $line -match ("(=|,)\s*" + [regex]::Escape($UserName) + "\s*(,|$)")
+if (-not $granted) {
     Say "Letting $UserName run as a scheduled task (Log on as a batch job)"
     $members = if ($line) { ($line -split '=', 2)[1].Trim() + ",*$sid" } else { "*$sid" }
     $policy = "[Unicode]`r`nUnicode=yes`r`n[Version]`r`nsignature=`"`$CHICAGO`$`"`r`nRevision=1`r`n" +

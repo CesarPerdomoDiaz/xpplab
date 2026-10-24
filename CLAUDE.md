@@ -60,6 +60,11 @@ unmodified XPPAUT (`tests/build_reference.sh`, `golden.py compare`).
   `build/app/xppstudio.exe examples/lecar.ode --cmd run --screenshot s.png`.
   `--record DIR --frames N --script FILE` saves N frames while timed
   commands run; `python tools/make_demo.py` re-records the README's GIFs.
+- On a Mac over SSH, start the app through LaunchServices so it can open a
+  window (someone must be logged in at the Mac):
+  `open -W -n --stderr ~/err.txt build/app/xppstudio.app --args "$PWD/engine/xppaut/ode/lecar.ode" --screenshot "$HOME/shot.png"`.
+  Paths must be absolute; stderr has the line with the window size and
+  scales.
 - CI runs on every push: Windows, Linux, macOS (billed tenfold on this
   private repository), AddressSanitizer and Valgrind. Pushes that only touch
   `docs/` or `*.md` skip it.

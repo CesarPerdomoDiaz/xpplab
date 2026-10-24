@@ -1,32 +1,25 @@
-# Testing the XPP Studio preview
+# Testing XPP Studio
 
-Thank you for trying XPP Studio! This is an early preview. The most useful
-thing you can do is use it the way you normally use XPPAUT, then tell us
-what worked, what broke and what confused you.
+Thank you for trying XPP Studio! It is young, and the most useful thing you
+can do is use it the way you normally use XPPAUT, then tell us what worked,
+what broke and what confused you.
 
 ## Install
 
-**Windows:** download `XPPStudio-<version>-Windows.zip` from the
-[Releases page](https://github.com/CesarPerdomoDiaz/xppstudio/releases),
-unzip it anywhere (your Desktop is fine), and run `xppstudio.exe`. Windows
-may warn about an unrecognised app the first time. Choose
-*More info > Run anyway*. The preview is not signed yet.
+Download the file for your system from the
+[newest release](https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest):
 
-**macOS** (11 Big Sur or later, Apple Silicon or Intel): download
-`XPPStudio-<version>-Darwin.dmg` from the same page, open it and drag the
-app to *Applications*. The preview is not notarized by Apple yet, so the
-first time macOS refuses to open it:
+- **Windows:** `XPPStudio-Windows-x64.zip`. Unzip it anywhere and run
+  `xppstudio.exe`.
+- **macOS** (11 or later, Apple silicon or Intel): `XPPStudio-macOS.dmg`.
+  Open it and drag the app to *Applications*.
+- **Linux** (x86-64): `XPPStudio-Linux-x86_64.tar.gz`. Unpack it and run
+  `xppstudio`.
 
-- **macOS 15 Sequoia and later:** try to open the app once and dismiss the
-  warning, then open *System Settings > Privacy & Security*, scroll down to
-  the message about the app, and click *Open Anyway*.
-- **macOS 14 and earlier:** Control-click (or right-click) the app in
-  *Applications*, choose *Open*, then *Open* again.
-
-After that it opens normally. Mac-specific things worth checking are at
-the end of the list below.
-
-**Linux:** see "Building from source" in the README.
+The apps are not yet signed with a paid certificate, so the first time
+Windows or macOS asks you to confirm that you want to open them. The
+[install guide](docs/install.md) shows how on each system. Mac-specific
+things worth checking are at the end of the list below.
 
 ## Fifteen minutes of things to try
 
@@ -67,14 +60,14 @@ and pick:
 The *Command Window* shows what the program did. Copying its last lines
 into the report helps a lot.
 
-## Known gaps in this preview
+## Known gaps
 
 These parts of XPPAUT are not in the new interface yet: two-parameter
 ranges, the Kinescope (saving frames), labels and arrows on plots, and
 several plots in one window. AUTO's homoclinic and boundary-value
 continuations are reachable but untested. See [ROADMAP.md](ROADMAP.md).
 
-New since the first preview, and worth a try: the **Analysis** window
+Worth a try: the **Analysis** window
 (spectra, histograms, phase response curves, fitting), **Range** in the
 Workspace, **boundary-value problems** (*Run > Boundary-value problem*),
 the **3D View** and the **Animator** (open `doubpend.ode`, run it, press

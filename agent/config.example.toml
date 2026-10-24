@@ -11,6 +11,10 @@ base = "main"
 home = "C:/xpps-agent"            # its clone, worktrees, state and logs
 max_open = 3                      # tasks in progress at once, pull requests included
 poll_seconds = 60
+# The name and address of the agent's commits: those of its own GitHub
+# account, so its work shows under it (see README.md).
+git_name = "XPP Studio agent"
+git_email = "agent@xppstudio.invalid"   # e.g. "123456+limit-cyclist@users.noreply.github.com"
 
 [claude]
 claude = "claude"                 # or the full path to claude.exe

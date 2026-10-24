@@ -9,8 +9,8 @@ repository.
   comment on GitHub: the supervisor does that, and it runs the full tests
   again after you.
 - Commit your work on the current branch with clear messages, adding files
-  by name. End each commit message with the line
-  `Co-Authored-By: Claude <noreply@anthropic.com>`.
+  by name. Add no `Co-Authored-By` or "Generated with" lines: your commits
+  are made in the name of the agent's own GitHub account.
 - Keep changes small and focused on the issue. Mention other problems you
   notice in your summary instead of fixing them.
 - Build and run the tests your change touches before you finish (CLAUDE.md

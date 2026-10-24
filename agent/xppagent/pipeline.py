@@ -108,8 +108,7 @@ class Pipeline:
 
     def _commit_leftovers(self, task: Task, path: Path) -> None:
         if self.repo.dirty(path):
-            self.repo.commit_all(path, f"Work on #{task.issue}: {task.title}\n\n"
-                                       "Co-Authored-By: Claude <noreply@anthropic.com>")
+            self.repo.commit_all(path, f"Work on #{task.issue}: {task.title}")
 
     def _fix(self, task: Task, path: Path, what: str, details: str, tag: str):
         res = self._ask(prompt("fix", what=what, details=details), path, task=task,

@@ -71,11 +71,40 @@ or two.
   "Require a pull request before merging"). Nothing then reaches `main`
   without a pull request.
 
-For the strongest separation, give the agent its own GitHub account (a
-"machine user"): invite it to the repository with Write access and use its
-token. Its comments and pull requests then show as its own, and with a
-ruleset that requires one approval, nothing it opens can be merged until
-you approve it. In `config.toml`, `owner` stays your account.
+## The agent's own GitHub account
+
+The agent works best under a GitHub account of its own, a "machine user".
+GitHub allows each person one free machine account besides their own. Its
+commits, comments and pull requests then show under its name and picture,
+and it appears in the repository's collaborators and contributors next to
+you. When you merge its work, the history shows you and the bot. It also
+keeps your own token off the workstation.
+
+1. **Create the account.** Sign out of GitHub, or use a private browser
+   window, and sign up with the bot's name as the username (for example
+   `limit-cyclist`). Use an email address of your own with a `+` tag, such
+   as `you+bot@gmail.com`; Gmail delivers it to you. Give it a display name
+   and a bio saying what it is: "XPP Studio's maintainer agent (Claude Code).
+   Works on issues labelled agent; César merges."
+2. **Keep its email private.** In the bot's Settings > Emails, tick "Keep my
+   email addresses private". Its commits then use the address
+   `ID+NAME@users.noreply.github.com` shown there.
+3. **Invite it.** As yourself, in the repository's Settings > Collaborators,
+   add the bot with the Write role. As the bot, accept the invitation (from
+   its email, or on the repository's page).
+4. **Make its token.** As the bot, go to Settings > Developer settings >
+   Personal access tokens > Tokens (classic), and generate a token with only
+   the `repo` scope. A fine-grained token cannot reach a repository owned by
+   another person. Because the account can reach nothing else, `repo`
+   covers only this repository. Leave `workflow` unticked, so the agent
+   cannot change CI. Set an expiry date and a reminder to renew it.
+5. **Tell the agent.** Put the token in `secrets.env` as `GH_TOKEN`, and set
+   the bot's name and noreply address in `config.toml` (`git_name`,
+   `git_email`). `owner` stays your account: the agent still takes work
+   only from you.
+
+With a ruleset on `main` that requires one approving review, nothing the
+bot opens can be merged until you approve it.
 
 ## Installing it on the workstation
 
@@ -150,8 +179,10 @@ installed for your own account, or using
 with the account that has the Max subscription. It then prints a token
 that lasts a year. You can reuse a token you made on another computer.
 
-**GitHub:** on github.com, go to Settings, Developer settings, Personal
-access tokens, Fine-grained tokens, and choose "Generate new token":
+**GitHub:** the bot's classic token (see "The agent's own GitHub account"
+above). Without a bot account, make a token of your own instead: on
+github.com, go to Settings, Developer settings, Personal access tokens,
+Fine-grained tokens, and choose "Generate new token":
 
 - Repository access: only `CesarPerdomoDiaz/xppstudio`.
 - Permissions: Contents read and write; Issues read and write; Pull

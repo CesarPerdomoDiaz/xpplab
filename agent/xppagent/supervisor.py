@@ -3,6 +3,7 @@ scheduled maintenance issues, post a daily log, and pace the Claude runs so
 that a Max subscription shared with its owner is never used up."""
 from __future__ import annotations
 
+import json
 import logging
 import os
 import time
@@ -125,16 +126,40 @@ class Supervisor:
         """Do what can be done now; returns whether anything happened."""
         if self.cfg.stop_file.exists():
             log.info("%s exists: doing nothing", self.cfg.stop_file)
+            self.write_status("stopped by the STOP file")
             return False
         if self._paused():
+            self.write_status(f"paused by the {self.cfg.label_paused} label")
             return False
         self.repo.ensure()
         self.intake()
         self.schedule()
+        self.write_status("working")
         did = self.work()
         self.daily_log()
         self.save()
+        self.write_status(self.waiting or "idle")
         return did
+
+    def write_status(self, doing: str) -> None:
+        """status.json: what the agent is doing, for the dashboard. Written
+        on every pass, so its age also says whether the agent is alive."""
+        if self.cfg.dry_run:
+            return
+        status = {"time": self.clock(), "pid": os.getpid(), "doing": doing,
+                  "me": self.me, "owner": self.cfg.owner, "slug": self.cfg.slug,
+                  "log_issue": self.log_issue, "poll_seconds": self.cfg.poll_seconds,
+                  "runs_used": self.budget.used(), "runs_per_window": self.cfg.runs_per_window,
+                  "window_hours": self.cfg.window_hours,
+                  "paused_until": self.state.paused_until,
+                  "quiet_hours": self.cfg.quiet_hours}
+        path = self.cfg.home / "status.json"
+        try:
+            tmp = path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(status), encoding="utf-8")
+            os.replace(tmp, path)
+        except OSError as e:
+            log.warning("could not write %s: %s", path, e)
 
     def _paused(self) -> bool:
         n = self._log_issue()

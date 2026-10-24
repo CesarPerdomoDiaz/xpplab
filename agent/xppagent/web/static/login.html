@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Limit Cyclist mission control</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/login.js" defer></script>
+</head>
+<body>
+<div class="login">
+  <div class="card">
+    <img class="avatar" src="https://github.com/limit-cyclist.png?size=144" alt="">
+    <h1 class="title">Mission control</h1>
+    <p class="muted small tagline">The Limit Cyclist, XPP Studio's maintainer agent</p>
+    <form method="post" action="/login">
+      <input type="password" name="password" placeholder="Password" autocomplete="current-password" autofocus required>
+      <p class="error hidden" id="error"></p>
+      <button class="primary" type="submit">Log in</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

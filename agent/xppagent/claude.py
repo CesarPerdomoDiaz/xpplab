@@ -1,6 +1,7 @@
 """Running Claude Code unattended (claude -p) and reading its answer."""
 from __future__ import annotations
 
+import collections
 import json
 import os
 import re
@@ -8,6 +9,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import threading
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -62,6 +64,16 @@ def _env() -> dict:
             if k not in _PARENT_VARS and k not in SECRET_VARS}
 
 
+def _feed(proc: subprocess.Popen, prompt: str) -> None:
+    """Write the prompt to the run's stdin, from a thread of its own, so that
+    a long prompt cannot block reading its output."""
+    try:
+        proc.stdin.write(prompt)
+        proc.stdin.close()
+    except (BrokenPipeError, OSError, ValueError):
+        pass
+
+
 def _kill_tree(proc: subprocess.Popen) -> None:
     if sys.platform == "win32":
         subprocess.run(["taskkill", "/T", "/F", "/PID", str(proc.pid)],
@@ -102,12 +114,16 @@ def _retry_time(text: str, now: float | None = None) -> float:
 class Claude:
     """claude -p in a working directory, with a session that can be resumed."""
 
-    def __init__(self, command: str, *, model: str = "", minutes: int = 60,
+    KEEP_RUNS = 400               # run logs kept in log_dir (two files each)
+
+    def __init__(self, command: str | list, *, model: str = "", minutes: float = 60,
                  max_turns: int = 250, system: Path | None = None,
                  log_dir: Path | None = None):
         # A full path: on Windows, Popen does not search PATH for claude.exe
         # the way a shell does, and an npm claude.cmd would mangle arguments.
-        self.command = shutil.which(command) or command
+        # (A list is a command with arguments of its own, for tests.)
+        self.command = ([shutil.which(command) or command] if isinstance(command, str)
+                        else list(command))
         self.model = model
         self.minutes = minutes
         self.max_turns = max_turns
@@ -117,8 +133,10 @@ class Claude:
     def run(self, prompt: str, cwd: Path, *, session: str = "", resume: bool = False,
             read_only: bool = False, model: str = "", tag: str = "run") -> Result:
         # The prompt goes in on stdin: a diff can be longer than Windows
-        # allows on a command line.
-        args = [self.command, "-p", "--output-format", "json",
+        # allows on a command line. Events stream out one JSON object a line
+        # (stream-json), into runs/<run>.jsonl as they come, which is what
+        # the dashboard shows live; the last one is the result.
+        args = [*self.command, "-p", "--output-format", "stream-json", "--verbose",
                 "--max-turns", str(self.max_turns), "--strict-mcp-config"]
         if read_only:
             # Planning and reviewing: read the code and the history, change
@@ -150,18 +168,54 @@ class Claude:
         if sys.platform != "win32":
             kwargs["start_new_session"] = True
         start = time.time()
+        name = time.strftime("%Y%m%d-%H%M%S") + f"-{tag}-{uuid.uuid4().hex[:6]}"
+        live = None
+        if self.log_dir:
+            self.log_dir.mkdir(parents=True, exist_ok=True)
+            live = open(self.log_dir / f"{name}.jsonl", "w", encoding="utf-8")
+            self._current({"tag": tag, "started": start, "file": f"{name}.jsonl",
+                           "cwd": str(cwd), "read_only": read_only})
         proc = subprocess.Popen(args, **kwargs)
+        timed_out: list = []
+        errors: list = []
+        threading.Thread(target=_feed, args=(proc, prompt), daemon=True).start()
+        reader = threading.Thread(target=lambda: errors.append(proc.stderr.read()),
+                                  daemon=True)
+        reader.start()
+        timer = threading.Timer(self.minutes * 60,
+                                lambda: (timed_out.append(True), _kill_tree(proc)))
+        timer.daemon = True
+        timer.start()
+        last = collections.deque(maxlen=20)   # the result is the last line
         try:
-            out, err = proc.communicate(prompt, timeout=self.minutes * 60)
-        except subprocess.TimeoutExpired:
-            _kill_tree(proc)
-            out, err = proc.communicate()
-            res = Result(False, f"stopped after {self.minutes} minutes", session,
-                         timed_out=True)
-            self._log(tag, args, out, err, start)
-            return res
-        self._log(tag, args, out, err, start)
+            for line in proc.stdout:
+                last.append(line)
+                if live:
+                    live.write(line)
+                    live.flush()
+        finally:
+            timer.cancel()
+            proc.wait()
+            reader.join(10)
+            if live:
+                live.close()
+                self._current(None)
+        out, err = "".join(last), "".join(errors)
+        self._log(name, args, out, err, start)
+        if timed_out:
+            return Result(False, f"stopped after {self.minutes:g} minutes", session,
+                          timed_out=True)
         return self._parse(out, err, session)
+
+    def _current(self, info: dict | None) -> None:
+        """runs/current.json names the run in progress, for the dashboard."""
+        path = self.log_dir / "current.json"
+        if info is None:
+            path.unlink(missing_ok=True)
+            return
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(info), encoding="utf-8")
+        os.replace(tmp, path)
 
     def _parse(self, out: str, err: str, session: str) -> Result:
         try:
@@ -176,13 +230,18 @@ class Claude:
         return Result(ok, text, sid, limited, signed_out,
                       _retry_time(text) if limited else 0.0, raw=data)
 
-    def _log(self, tag, args, out, err, start) -> None:
+    def _log(self, name, args, out, err, start) -> None:
+        """runs/<run>.json: how the run was made and how it ended (the events
+        themselves are in runs/<run>.jsonl). Old runs are pruned."""
         if not self.log_dir:
             return
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        name = time.strftime("%Y%m%d-%H%M%S") + f"-{tag}-{uuid.uuid4().hex[:6]}.json"
         shown = [a if len(a) < 400 else a[:400] + "..." for a in args]
-        (self.log_dir / name).write_text(json.dumps({
-            "args": shown, "seconds": round(time.time() - start, 1),
-            "stdout": out[-200000:], "stderr": err[-20000:]}, indent=1),
-            encoding="utf-8")
+        (self.log_dir / f"{name}.json").write_text(json.dumps({
+            "args": shown, "started": start, "seconds": round(time.time() - start, 1),
+            "events": f"{name}.jsonl", "stdout": out[-200000:], "stderr": err[-20000:]},
+            indent=1), encoding="utf-8")
+        logs = sorted(self.log_dir.glob("2*.json"))
+        for old in logs[:-self.KEEP_RUNS]:
+            old.unlink(missing_ok=True)
+            old.with_suffix(".jsonl").unlink(missing_ok=True)

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Limit Cyclist mission control</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="who">
+    <img class="avatar" id="avatar" alt="">
+    <div>
+      <h1 id="bot-name">The Limit Cyclist</h1>
+      <div class="sub" id="repo">XPP Studio's maintainer agent</div>
+    </div>
+  </div>
+  <span class="pill" id="status"><span class="dot"></span><span id="status-text">Connecting…</span></span>
+  <div class="spacer"></div>
+  <div class="budget" title="Claude runs the bot may make in each window, so that your Max subscription is never used up">
+    <span id="budget-text">Claude runs</span>
+    <div class="bar"><span id="budget-bar"></span></div>
+  </div>
+  <button id="pause">Pause</button>
+  <form method="post" action="/logout"><button class="link" type="submit">Log out</button></form>
+</header>
+<div class="banner hidden" id="banner"></div>
+
+<main class="grid">
+  <div class="col">
+    <section class="card" id="inbox-card">
+      <h2>Needs you <span class="count hidden" id="inbox-count"></span></h2>
+      <div id="inbox"></div>
+    </section>
+
+    <section class="card">
+      <div class="now-head">
+        <h2>Right now</h2>
+        <span class="small muted" id="now-meta"></span>
+      </div>
+      <div id="now-text" class="small"></div>
+      <ul class="feed" id="feed"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Work</h2>
+      <div class="strip" id="strip"></div>
+      <div class="board" id="board"></div>
+    </section>
+
+    <section class="card">
+      <h2>Recent Claude runs</h2>
+      <table>
+        <thead><tr><th>When</th><th>Task</th><th>Step</th><th>Took</th><th>Result</th></tr></thead>
+        <tbody id="runs"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <aside class="col">
+    <section class="card">
+      <h2>Ask the bot</h2>
+      <form id="ask" class="stack">
+        <input type="text" name="title" maxlength="200" placeholder="What should it do? (a short title)" required>
+        <textarea name="body" placeholder="Details: what you want, where to look, what done means."></textarea>
+        <div class="row between">
+          <label class="check"><input type="checkbox" name="priority"> Do this first</label>
+          <button class="primary" type="submit">Give it to the bot</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Roadmap</h2>
+      <div id="roadmap"></div>
+    </section>
+
+    <section class="card">
+      <h2>What happened</h2>
+      <ul class="plain" id="events"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Open pull requests</h2>
+      <ul class="plain" id="prs"></ul>
+    </section>
+  </aside>
+</main>
+<footer id="footer"></footer>
+
+<dialog id="run-dialog">
+  <div class="head"><h2 id="run-title">Run</h2><button class="link" id="run-close">Close</button></div>
+  <div class="body"><ul class="feed" id="run-feed"></ul></div>
+</dialog>
+<div id="toast"></div>
+</body>
+</html>

@@ -519,3 +519,33 @@ def test_only_one_agent_runs_at_a_time(tmp_path):
     again = single_instance(tmp_path / "agent.lock")
     assert again is not None
     again.close()
+
+
+FAKE = AGENT / "tests" / "fake_claude.py"
+
+
+def test_the_claude_runner_streams_its_events(tmp_path, monkeypatch):
+    import json
+    import sys
+    runs = tmp_path / "runs"
+    monkeypatch.setenv("FAKE_RUNS", str(runs))
+    c = Claude([sys.executable, str(FAKE)], log_dir=runs, minutes=1)
+    r = c.run("hello", tmp_path, tag="6-plan")
+    assert r.ok and r.session == "s-fake"
+    assert "current: yes" in r.text                     # current.json during the run
+    assert not (runs / "current.json").exists()          # and gone after it
+    (live,) = runs.glob("*-6-plan-*.jsonl")
+    kinds = [json.loads(line)["type"] for line in live.read_text(encoding="utf-8").splitlines()]
+    assert kinds == ["system", "assistant", "user", "result"]
+    summary = json.loads(live.with_suffix(".json").read_text(encoding="utf-8"))
+    assert summary["events"] == live.name and summary["seconds"] >= 0
+
+
+def test_a_run_that_takes_too_long_is_stopped(tmp_path, monkeypatch):
+    import sys
+    monkeypatch.setenv("FAKE_SLEEP", "60")
+    c = Claude([sys.executable, str(FAKE)], log_dir=tmp_path / "runs", minutes=0.03)
+    began = time.time()
+    r = c.run("hello", tmp_path, tag="6-implement")
+    assert r.timed_out and not r.ok and time.time() - began < 30
+    assert not (tmp_path / "runs" / "current.json").exists()

@@ -141,17 +141,82 @@ def doctor(cfg, live: bool) -> int:
     return 1 if bad else 0
 
 
+def web(cfg, a) -> int:
+    """The dashboard. It takes the owner's GitHub token and its password
+    hash from its own secrets file (never the agent's)."""
+    from .web.github import GitHubAPI
+    from .web.server import Dashboard, Sessions, read_secrets, serve
+    secrets_file = Path(a.secrets) if a.secrets else None
+    found = read_secrets(secrets_file)
+    token = found.get("GH_TOKEN") or os.environ.get("XPPS_DASHBOARD_TOKEN", "")
+    password = found.get("DASHBOARD_PASSWORD") or os.environ.get("XPPS_DASHBOARD_PASSWORD")
+    if not password and not a.no_login:
+        print("No DASHBOARD_PASSWORD in the secrets file: make one with "
+              "`python -m xppagent web-password`.")
+        return 2
+    if a.no_login and a.host not in ("127.0.0.1", "localhost"):
+        print("--no-login is only allowed on 127.0.0.1.")
+        return 2
+    log_file = (secrets_file.parent if secrets_file else cfg.home) / "dashboard.log"
+    handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
+    try:
+        handlers.append(logging.handlers.RotatingFileHandler(
+            log_file, maxBytes=2_000_000, backupCount=3, encoding="utf-8"))
+    except OSError:
+        pass
+    logging.basicConfig(level=logging.DEBUG if a.verbose else logging.INFO,
+                        format="%(asctime)s %(levelname)s %(message)s", handlers=handlers)
+    gh = GitHubAPI(cfg.slug, token) if token else None
+    dashboard = Dashboard(cfg, gh, read_only=a.read_only)
+    sessions = Sessions(None if a.no_login else password)
+    httpd = serve(dashboard, sessions, a.host, a.port)
+    logging.getLogger("xppagent.web").info(
+        "dashboard on http://%s:%s for %s%s", a.host, a.port, cfg.slug,
+        " (read-only)" if dashboard.read_only else "")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    return 0
+
+
+def web_password() -> int:
+    """Print a DASHBOARD_PASSWORD line for the dashboard's secrets file."""
+    import getpass
+    from .web.server import hash_password
+    first = getpass.getpass("Dashboard password: ")
+    if len(first) < 10:
+        print("Use at least 10 characters.")
+        return 2
+    if getpass.getpass("Again: ") != first:
+        print("The two do not match.")
+        return 2
+    print("DASHBOARD_PASSWORD=" + hash_password(first))
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="xppagent", description=__doc__)
-    p.add_argument("command", choices=("run", "once", "status", "doctor"))
+    p.add_argument("command", choices=("run", "once", "status", "doctor", "web", "web-password"))
     p.add_argument("--config", help="the TOML settings file")
     p.add_argument("--dry-run", action="store_true",
                    help="read GitHub and work locally, but write nothing to GitHub "
                         "and keep no state")
     p.add_argument("--live", action="store_true", help="doctor: also make one Claude run")
+    p.add_argument("--secrets", help="web: the dashboard's own secrets file "
+                                     "(GH_TOKEN, DASHBOARD_PASSWORD)")
+    p.add_argument("--host", default="127.0.0.1", help="web: the address to listen on")
+    p.add_argument("--port", type=int, default=8765, help="web: the port")
+    p.add_argument("--read-only", action="store_true", help="web: show, but act on nothing")
+    p.add_argument("--no-login", action="store_true",
+                   help="web: no password (local development, 127.0.0.1 only)")
     p.add_argument("-v", "--verbose", action="store_true")
     a = p.parse_args(argv)
+    if a.command == "web-password":
+        return web_password()
     cfg = load(a.config)
+    if a.command == "web":
+        return web(cfg, a)
     cfg.dry_run = cfg.dry_run or a.dry_run
     load_secrets(cfg.secrets_file)
     if a.command == "doctor":

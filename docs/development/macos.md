@@ -12,46 +12,65 @@ struggle with that, not with the mathematics.
 
 ## The first try on a real Mac (24 October 2026)
 
-The maintainer opened the preview `.dmg` on a MacBook Air. Two things went wrong.
+The maintainer installed the preview `.dmg` on a MacBook Air (Apple M2), dragging
+the app to *Applications*. Two things went wrong.
 
-**macOS refused to open the app.** This was expected. The preview is signed
-ad hoc and not notarized, so Gatekeeper blocks it until the user allows it
-in *System Settings > Privacy & Security*. Only a Developer ID signature
-and notarization remove the warning (step 2 below).
+**macOS refused to open the app.** It said Apple could not verify that the
+app was free of malware. This was expected: the preview is signed ad hoc
+and not notarized. It opened after *Open Anyway* in *System Settings
+> Privacy & Security*. Only a Developer ID signature and notarization
+remove the warning (step 2 below).
 
-**Once forced open, the interface was broken.** The code draws the whole
-interface twice as large on every Retina screen:
+**Once open, the interface was unusable.** The window filled the screen,
+but the interface took only its top-left quarter. Most of it was missing:
+the toolbar buttons had no labels and the panels were empty, with only a
+few tab names showing. The rest of the window was the dark background.
+Starting the app with `SDL_RENDER_DRIVER=opengl` instead of Metal changed
+nothing, so the renderer was not the cause. There were two bugs, both
+about Retina's 2 pixels per point:
 
-- On a Retina Mac a window of 1470 × 956 points has 2940 × 1912 pixels, and
-  `SDL_GetWindowDisplayScale()` returns 2.
-- `main.c` used that value as the interface scale: every ImGui size and the
-  font were multiplied by 2.
-- ImGui's SDL3 backend uses the same `SDL_GetWindowDisplayScale()` on macOS
-  as the framebuffer scale (pixels per point), so the drawing is already
-  sharp at 2 pixels per point without any help.
-- The two together make everything twice the intended size: text 30 points
-  high instead of 15. The six panels of the default layout get the room
-  they would have in a 735 × 478 window. The toolbar is cut off and the
-  plots and lists have almost no space.
+1. **The drawing used 1 pixel per point.** ImGui's SDL renderer backend
+   scales its clip rectangles from points to pixels by the framebuffer
+   scale, but passes the vertices on unscaled. It expects the application
+   to set SDL's render scale, as Dear ImGui's own SDL3 example does with
+   `SDL_SetRenderScale()`; the app never did. On a Retina screen the shapes
+   therefore landed in the top-left quarter of the window, while each
+   clip rectangle sat at twice its position, so most of the contents were
+   clipped away.
+2. **Everything was twice the intended size.** `SDL_GetWindowDisplayScale()`
+   returns 2 on a Retina Mac, and `main.c` used it as the interface scale,
+   multiplying every ImGui size and the font by 2. The pixel density is
+   already handled by ImGui's backend, which uses the same value as the
+   framebuffer scale. Text came out 30 points high instead of 15, and the
+   panels got the room they would have in a 735 × 478 window. Bug 1 halved
+   it all again, which is why the text in the top-left quarter looked
+   normal-sized.
 
-CI did not catch it. GitHub's macOS runner has a 1024 × 768 screen at 1×,
-so its screenshots are 1024 × 642 pixels and the display scale is 1. At 1×
-the two readings agree.
+CI did not catch either. GitHub's macOS runner has a 1024 × 768 screen at
+1×, so its screenshots are 1024 × 642 pixels: the framebuffer scale and the
+display scale are both 1, and both bugs vanish. So does Windows, where
+window sizes are in pixels.
 
-**The fix** (branch `macos-plan`): the interface scale is now the display
-scale divided by the pixel density, `interface_scale()` in `main.c`. That
-is SDL's display content scale, the value Dear ImGui's own SDL3 examples
-use. On a Retina Mac at default settings it is 1. On Windows the pixel
-density is 1, so nothing changes there: screenshots before and after the
-fix on a Windows laptop at 125% are pixel-identical. At start-up the app
-also prints one line to stderr with the window size in points and pixels,
-the display scale, the pixel density, the interface scale and the renderer
-(Metal on a Mac), so a run from Terminal shows the numbers.
+**The fixes** (branch `macos-plan`):
 
-**Not yet confirmed on a Mac.** The fix comes from reading the code. An
-interface drawn at twice its size is cramped but still visible. If the
-window was black or empty, there is a second problem; the tester's screenshot
-and Terminal output will tell (see the questions at the end).
+- `gui_backend_render()` sets SDL's render scale to ImGui's framebuffer
+  scale while ImGui draws, then resets it to 1, so screenshots and figure
+  export still read pixels.
+- The interface scale is the display scale divided by the pixel density
+  (`interface_scale()` in `main.c`). That is SDL's display content scale,
+  the value Dear ImGui's SDL3 examples use. It is 1 on a Retina Mac at
+  default settings.
+
+On Windows both changes leave everything as it was: on a laptop at 125%,
+the app window (phase plane and AUTO) and an exported figure are
+pixel-identical before and after. At start-up the app also prints one line
+to stderr with the window size in points and pixels, the display scale,
+the pixel density, the interface scale and the renderer, so a run from
+Terminal shows the numbers. On that Windows laptop it reads: display scale
+1.25, pixel density 1.00, interface scale 1.25, renderer direct3d11.
+
+**Still to confirm on the Mac** with the `.dmg` that CI builds from this
+branch.
 
 ## What already works
 
@@ -99,9 +118,9 @@ So each push that touches code costs about 67 billed minutes, nearly half
 of it macOS; GitHub Free includes 2,000 a month. On a public repository
 standard runners are free, which ends this cost.
 
-### 1. Draw at the right size on Retina — fix written
+### 1. Draw correctly on Retina — fixes written
 
-The fix described above. What is left is to run it on a real Mac.
+The two fixes described above. What is left is to run them on a real Mac.
 
 - **Cost:** nothing more to write. One CI run when the branch is pushed
   (about 67 billed minutes, 30 of them macOS); a tester downloads the `.dmg`
@@ -113,13 +132,13 @@ This is the biggest obstacle in a classroom. On macOS 15 and later the way
 past the warning is hidden in *System Settings*, and a lab handout that
 says "ignore the security warning" is a poor start.
 
-1. **Join the Apple Developer Program:** US$99 (99 €) a year. Enrolment as
-   an individual takes a day or two, and users then see the member's legal name
-   as the developer. An organization account shows the organization's
-   name but needs a D-U-N-S number. Apple's fee waiver for educational
-   institutions and nonprofits is for organizations that distribute free
-   apps through the App Store, and not for individuals. It is worth asking
-   UC3M whether it already has an account it could sign with.
+1. **Join the Apple Developer Program:** US$99 (99 €) a year.
+   Enrolment as an individual takes a day or two, and
+   users then see the member's legal name as the developer. An organization
+   account shows the organization's name but needs a D-U-N-S number.
+   Apple's fee waiver for educational institutions and nonprofits is for
+   organizations that distribute free apps through the App Store, not for
+   individuals.
 2. **Create a *Developer ID Application* certificate** and export it as a
    `.p12` file. Create an App Store Connect API key for notarization.
 3. **Store as repository secrets:** the certificate (base64) and its
@@ -318,7 +337,7 @@ The plan:
    compositor gives a window whose pixel density is 2, with sizes in points
    as on a Retina Mac:
    `weston --backend=headless --width=1470 --height=956 --scale=2`. A
-   screenshot under it in the Linux app job would have caught this bug.
+   screenshot under it in the Linux app job would have caught both bugs.
    The check is the interface scale in the app's stderr line, and the
    screenshot's size against the window's.
    - **Cost:** an hour or two to set up, about a Linux minute per push.
@@ -372,7 +391,7 @@ The plan:
 
 | Step | For students | Work | Money | Billed CI minutes |
 |---|---|---|---|---|
-| 1. Retina scale | the app is usable at all | done; needs a Mac to confirm | – | one CI run, about 67 (30 macOS) |
+| 1. Retina drawing and scale | the app is usable at all | done; needs a Mac to confirm | – | one CI run, about 67 (30 macOS) |
 | 2. Developer ID, notarization | opens without a warning | about 1 day | US$99 a year | a few release runs of 40+; then per release |
 | 3. Fit a 13-inch screen | nothing cut off | 0.5–1 day | – | Windows and Linux only |
 | 4. Appearance, quit prompt, save copies, ⌘W ⌘, | no lost work, looks right | 1–2 days | – | Windows and Linux mostly |
@@ -387,7 +406,7 @@ The plan:
 
 - **A Mac:** a run of the fixed build, a screenshot and the Terminal
   output.
-- **A decision on the Apple Developer account** (step 2), and whether to
-  ask UC3M first.
+- **An Apple Developer account** (step 2), and then the certificate
+  and API key as repository secrets.
 - **One or two more Mac testers**, ideally one with an Intel Mac. CI runs
   only on Apple Silicon, so no automated check covers Intel.

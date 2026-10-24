@@ -29,7 +29,7 @@ static void menu_file(App *a) {
   if (igMenuItem_Bool("Export data as CSV...", NULL, false, a->have_traj))
     ui_dialog_export_csv(a);
   igSeparator();
-  if (igMenuItem_Bool("Quit", "F Q", false, true)) a->quit = true;
+  if (igMenuItem_Bool("Quit", MOD "Q  /  F Q", false, true)) a->quit = true;
 }
 
 static void menu_run(App *a) {

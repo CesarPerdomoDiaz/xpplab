@@ -1129,9 +1129,11 @@ void set_option(s1,s2,force,mask)
    return;
  }
  if(msc("LOGFILE",s1)){
-   if (OVERRIDE_LOGFILE==0) /*Will be 1 if -logfile was specified on the command line.*/
+   /* XPP Studio: when embedded, logfile is the stream the library captures
+      the log from; closing it would leave a dangling pointer. */
+   if (OVERRIDE_LOGFILE==0 && !xpps_embedded) /*Will be 1 if -logfile was specified on the command line.*/
    {
-      if (logfile != NULL)       
+      if (logfile != NULL)
       { 		         
      	  fclose(logfile);       
       } 		         

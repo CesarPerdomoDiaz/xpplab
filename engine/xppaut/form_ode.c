@@ -2637,7 +2637,9 @@ void read_a_line(fp,s)
 
   while(ok){
     ok=0;
-    fgets(temp,MAXEXPLEN,fp);
+    /* XPP Studio fix: at the end of a file without "done", fgets() reads
+       nothing and temp was used uninitialised. */
+    if(fgets(temp,MAXEXPLEN,fp)==NULL)temp[0]=0;
 
      nn=strlen(temp)+1;
      if((save_eqn[NLINES]=(char *)malloc(nn))==NULL)exit(0);
@@ -2670,7 +2672,9 @@ void read_a_line(fp,s)
     }
   */
       
-  if(s[n-1]=='\n'||s[n-1]=='\r')s[n-1]=' ';
+  /* XPP Studio fix: n is 0 at the end of a file without "done"; s[n-1]
+     was then the byte before the buffer. */
+  if(n>0&&(s[n-1]=='\n'||s[n-1]=='\r'))s[n-1]=' ';
   s[n]=' ';
   s[n+1]=0;
   

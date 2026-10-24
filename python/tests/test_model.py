@@ -97,7 +97,8 @@ def test_bad_model_raises_with_message():
     with pytest.raises(xs.EngineError) as err:
         xs.load(ODE / "hedge.ode")
     assert err.value.kind == "load"
-    assert "duplicate" in str(err.value)
+    # hedge.ode is "x'=" with nothing on the right, then "y'=eps*x".
+    assert "compiling X'" in str(err.value)
 
 
 def test_from_text():

@@ -50,10 +50,32 @@ jobs:
                 "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64" -DXPPS_FETCH_SDL3=ON
           cmake --build build
           cd build && cpack
+      - name: Check the packaged app (architectures, libraries, signature, start-up)
+        run: |
+          hdiutil attach build/XPPStudio-*.dmg -mountpoint /tmp/xpps -nobrowse -readonly
+          bundle=$(ls -d /tmp/xpps/*.app | head -1)
+          exe="$bundle/Contents/MacOS/$(defaults read "$bundle/Contents/Info" CFBundleExecutable)"
+          echo "bundle: $bundle"
+          lipo -archs "$exe"
+          vtool -show-build "$exe" | grep -E "platform|minos" || true
+          echo "libraries:" && otool -L "$exe"
+          find "$bundle/Contents" -name "*.dylib" -exec sh -c 'echo "$1: $(lipo -archs "$1")"; otool -L "$1" | tail -n +2' _ {} \;
+          codesign --verify --deep --strict --verbose=2 "$bundle"
+          # Nothing may come from Homebrew or the build machine.
+          if otool -L "$exe" $(find "$bundle/Contents" -name "*.dylib") | grep -E "/opt/homebrew|/usr/local|/Users/"; then
+            echo "::error::the app links to libraries outside the bundle"; exit 1
+          fi
+          "$exe" "$PWD/engine/xppaut/ode/lecar.ode" --cmd "auto steady iapp" \
+            --screenshot "$PWD/macos-release.bmp" --frames 10 || true
+          cat macos-release.bmp.err 2>/dev/null || true
+          test -s macos-release.bmp
+          hdiutil detach /tmp/xpps
       - uses: actions/upload-artifact@v4
         with:
           name: app-macos
-          path: build/XPPStudio-*.dmg
+          path: |
+            build/XPPStudio-*.dmg
+            macos-release.bmp
 
   linux:
     runs-on: ubuntu-latest
@@ -85,5 +107,5 @@ jobs:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
+          files: dist/XPPStudio-*
           generate_release_notes: true

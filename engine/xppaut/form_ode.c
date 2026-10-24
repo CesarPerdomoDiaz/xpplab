@@ -1117,6 +1117,11 @@ void find_ker(string,alt)   /* this extracts the integral operators from the str
 	inum++;
 	i++;
       }
+      /* XPP Studio fix: terminate the number. atof() read on into
+	 uninitialised stack, so the kernel exponent mu sometimes picked up
+	 stray digits (int[.5] became .57...): mlvolt.ode differed from run
+	 to run. */
+      num[inum]=0;
       mu=atof(num);
       fflag=1;
       *alt=1;
@@ -1368,6 +1373,9 @@ int nnn;
  char big[MAXEXPLEN],old[MAXEXPLEN],new[MAXEXPLEN];
  char *my_string;
  int is_array=0;
+ /* XPP Studio fix: after a line with no statements, v was tested below
+    (the Markov clean-up) without having been set. */
+ memset(&v,0,sizeof v);
  if(nnn==0){init_varinfo();}
  while(notdone){
    nstrings=0;

@@ -18,7 +18,11 @@ git -C "$root" archive "$first" engine/xppaut | tar -x -C "$src" --strip-compone
 
 objs=$(sed -n '/^OBJECTS = /,/^$/p' "$src/Makefile" | grep -o '[a-z0-9_-]*\.o')
 
-cflags="-std=gnu99 -O2 -w -fcommon -ffp-contract=off -DNOERRNO -DNON_UNIX_STDIO \
+# No _FORTIFY_SOURCE, which Ubuntu's GCC turns on by default: XPPAUT writes
+# one byte past a buffer for every model with an export statement (see
+# docs/upstream-issues.md), and the checks would abort those runs.
+cflags="-std=gnu99 -O2 -w -fcommon -ffp-contract=off -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 \
+ -DNOERRNO -DNON_UNIX_STDIO \
  -DAUTO -DCVODE_YES -DHAVEDLL -DMYSTR1=8.0 -DMYSTR2=1 $(pkg-config --cflags x11)"
 # Newer GCC and Clang reject XPPAUT's pre-C99 code unless told otherwise.
 if $cc --version 2>/dev/null | grep -qi clang; then

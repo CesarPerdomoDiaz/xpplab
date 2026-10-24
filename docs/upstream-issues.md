@@ -15,7 +15,21 @@ worth reporting to Bard Ermentrout.
 | `extra.c` `add_export_list()` | `malloc(strlen(s))` then `strcpy()`: one byte too few for the terminating zero, so **every model with an `export` statement corrupts the heap**. On Linux, glibc aborts (`buffer overflow detected` in fortified builds, `free(): invalid pointer` or a crash later); Windows does not notice (found with AddressSanitizer) | `malloc(strlen(s)+1)` | Models with `export` (the `efm` family, `koho`, `minode`, `tstdll`) run on Linux. Output unchanged on Windows |
 | `simplenet.c` `evaluate_network()` | The delayed networks `delmmult` and `delsparse` pass `get_delay()` an index into `variables[]`, where `t` is entry 0, but `get_delay()` expects the 0-based ODE index (the parser's `delay()` passes `variable-1`). So **each term used the delayed value of the next variable, `u[j+1]`, instead of `u[j]`**, and the last one read past the delay buffer (found with AddressSanitizer on `tstdel.ode`) | Subtract 1 | Changes results for models that couple through `delmmult` or `delsparse`: they now compute what XPPAUT's documentation says. The examples set the coupling to 0, so their output is unchanged |
 | `form_ode.c` `read_a_line()` | When a model file ends without `done`, the last `fgets()` reads nothing and the line buffer is used as it was: uninitialised, or in practice often still holding the previous line, **which is then parsed a second time**. When it came out empty, the code read `s[-1]`, the byte before the buffer, and could overwrite it (found with AddressSanitizer and Valgrind on `hedge.ode` and `osc.ode`) | Treat end of file as an empty line; check the line is not empty before looking at its last character | All example models give the same output. Broken models can report a different error: `hedge.ode` (`x'=` with nothing on the right) used to fail with a spurious "duplicate" from re-reading `y'=eps*x`, and now reports the empty right-hand side |
+| `form_ode.c` `find_ker()` | The exponent of a singular Volterra kernel, `int[mu]{...}`, is copied into a buffer without a terminating zero and read with `atof()`, which runs on into uninitialised stack. **Now and then mu picks up stray digits** (found with Valgrind; see `mlvolt.ode` below) | Terminate the buffer | Models with `int[mu]` give the same result on every run, the one they gave most of the time |
+| `form_ode.c` `do_new_parser()` | After a line with no statements, the Markov clean-up tests `v`, which was never set (found with Valgrind) | Zero `v` first | None |
 | `autlib1.c` `fnhbae()` | The eigenvalue array has `ndim` entries, `eig()` fills the first `ndm`, and `send_eigen()` reads all `ndim`, so XPPAUT's copy of the eigenvalues ends in uninitialised values (found with Valgrind) | `calloc` the array | None: XPPAUT uses only the first `NODE` eigenvalues, for stability |
+
+### How `mlvolt.ode` came to give different results from run to run
+
+In unmodified XPPAUT, a few runs in a hundred of `ode/mlvolt.ode` give a
+trajectory that is wrong from the first output step. The cause is the
+`find_ker()` bug above: the kernel `int[.5]{...}` has a singular exponent
+μ = 0.5, read with `atof()` from a buffer that was never terminated. When
+the stack byte after the `5` happened to be a digit, μ became `.57...`
+instead. Filling the stack with zeros or a fixed pattern always gave the
+usual result, which is why that probe found nothing. Valgrind named the
+line. With the fix, 150 runs in a row are identical; without it, 4 of 150
+differed, each one differently.
 
 ## Behaviour that changes only when embedded
 
@@ -33,25 +47,6 @@ Standalone builds behave exactly like XPPAUT.
   (`xppe_log()`, the app's Command Window) instead of a file.
 
 ## Open
-
-### `ode/mlvolt.ode` gives different results from run to run
-
-About 1 run in 20 produces a different trajectory. The difference appears
-at the very first output step and is large (v1 = -0.00018 in most runs,
--0.02 or -0.2 in the others), so it is not round-off. Ruled out so far:
-
-- **Stack:** forcing automatic variables to zero or to a pattern
-  (`-ftrivial-auto-var-init`) still gives the usual result.
-- **Heap:** filling every `malloc` block with a fixed byte (0, 85, 127,
-  170, 255) still gives the usual result, and occasional outliers still
-  appear.
-- **Volterra history buffer:** zeroing `Memory[]` (`calloc`) does not remove
-  the outliers.
-- **Fixed-size arrays:** `-fsanitize=bounds-strict` finds no out-of-bounds
-  index in the Volterra code path.
-
-Next step: check it against the CI Valgrind job, which now runs on every
-push and reports uses of uninitialised values with their origin.
 
 ### Compiler warnings that may be real bugs
 

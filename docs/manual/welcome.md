@@ -43,7 +43,10 @@ original arrangement back, use **View > Reset window layout**.
   spreadsheets, MATLAB or Python.
 - **Models**: **File > Save** (Ctrl+S) writes the `.ode` file. Parameters
   you changed in the Workspace are not written into the file; put values you
-  want to keep in the file, or in a named `set`.
+  want to keep in the file, or in a named `set`. The examples that come with
+  XPP Studio stay as they are: when you save an edited example, your version
+  goes to a copy in the folder *XPP Studio* in your *Documents*, and you go
+  on working with the copy.
 
 ## Where to go next
 

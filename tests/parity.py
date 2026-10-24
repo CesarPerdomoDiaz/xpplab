@@ -140,14 +140,25 @@ METHODS = ["rungekutta", "discrete", "euler", "modeuler", "adams", "gear",
 MIN_ROWS = {"discrete": 25, "ymp": 150}
 
 
-def cases(fx):
+def app_examples(app):
+    """The examples that come with the app: in the bundle on macOS, next to
+    the program elsewhere."""
+    if sys.platform == "darwin":
+        return app.resolve().parents[1] / "Resources" / "examples"
+    return app.resolve().parent / "examples"
+
+
+def cases(fx, shipped):
     c = []
 
+    # documents: the app's Documents folder is out/documents
+    # (XPPSTUDIO_DOCUMENTS); unchanged: files whose bytes must not change.
     def add(name, what, model, cmds=(), then=(), expect=(), files=None,
-            frames=12, allow_errors=False):
+            frames=12, allow_errors=False, documents=False, unchanged=()):
         c.append(dict(name=name, what=what, model=str(model), cmds=list(cmds),
                       then=list(then), expect=list(expect), files=files or {},
-                      frames=frames, allow_errors=allow_errors))
+                      frames=frames, allow_errors=allow_errors,
+                      documents=documents, unchanged=[Path(u) for u in unchanged]))
 
     # Opening models and running them
     add("open_run", "open a model, run, export CSV", "lecar.ode",
@@ -168,6 +179,25 @@ def cases(fx):
         expect=[r"iapp = 0\.3\b", r"total = 40", r"Output columns", r"hopf",
                 r"Applied set hopf"])
     add("new_model", "new model", "lecar.ode", ["new"])
+    # Saving an example that comes with the app writes a copy in Documents
+    # and leaves the app alone; the next time the copy gets a new name.
+    copies = "documents/XPP Studio/"
+    add("save_example", "save an example of the app: a copy in Documents",
+        shipped / "lecar.ode", ["save", "save"], documents=True,
+        expect=[r"your version of lecar\.ode is a copy in .*XPP Studio.lecar\.ode"],
+        files={copies + "lecar.ode": lambda p: None if "params iapp" in p.read_text()
+               else "not the model's text"},
+        unchanged=[shipped / "lecar.ode"])
+    add("save_example_again", "save it again: the earlier copy is kept",
+        shipped / "lecar.ode", ["save"], documents=True,
+        expect=[r"is a copy in .*XPP Studio.lecar 2\.ode"],
+        files={copies + "lecar.ode": lambda p: None, copies + "lecar 2.ode": lambda p: None},
+        unchanged=[shipped / "lecar.ode"])
+    add("save_example_ani", "the copy of an example takes its animation along",
+        shipped / "doubpend.ode", ["save"], documents=True,
+        files={copies + "doubpend.ode": lambda p: None,
+               copies + "doubpend.ani": lambda p: None},
+        unchanged=[shipped / "doubpend.ode", shipped / "doubpend.ani"])
     add("save", "save a model, and a copy elsewhere", fx / "tosave.ode",
         ["save", "save {out}/saved_copy.ode"], expect=[r"Saved .*tosave\.ode"],
         files={"saved_copy.ode": lambda p: None if "params iapp" in p.read_text()
@@ -288,8 +318,16 @@ def run_case(app, out, case, timeout):
     name = case["name"]
     shot, log = out / (name + ".png"), out / (name + ".log")
     for p in [shot, log] + [out / f for f in case["files"]]:
-        if p.exists():
+        if p.exists() and not case["documents"]:
             p.unlink()
+    # A file rewritten with the same text has still been written: compare
+    # the time it was last written too.
+    def state(u):
+        return u.read_bytes(), u.stat().st_mtime_ns
+    before = {u: state(u) for u in case["unchanged"] if u.exists()}
+    env = dict(os.environ)
+    if case["documents"]:
+        env["XPPSTUDIO_DOCUMENTS"] = str(out / "documents")
     model = case["model"]
     if not os.path.isabs(model):
         model = str(EXAMPLES / model)
@@ -303,7 +341,7 @@ def run_case(app, out, case, timeout):
     problems, info = [], {}
     try:
         r = subprocess.run(args, capture_output=True, text=True, timeout=timeout,
-                           errors="replace")
+                           errors="replace", env=env)
         code, err = r.returncode, r.stderr
     except subprocess.TimeoutExpired as e:
         code, err = "timeout", (e.stderr or b"").decode(errors="replace") \
@@ -312,6 +350,9 @@ def run_case(app, out, case, timeout):
     dt = time.time() - t0
     if code not in (0, "timeout"):
         problems.append("exit code %s" % code)
+    for u in case["unchanged"]:
+        if not u.exists() or state(u) != before.get(u):
+            problems.append("%s was written" % u.name)
     m = LINE.search(err or "")
     if m:
         info["window"] = "%sx%s" % m.group(1, 2)
@@ -399,7 +440,10 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     fx, cc_note = prepare(out)
     results = []
-    for case in cases(fx):
+    docs = out / "documents"
+    if docs.exists():
+        shutil.rmtree(docs)
+    for case in cases(fx, app_examples(a.app)):
         if a.only and case["name"] not in a.only:
             continue
         r = run_case(a.app.resolve(), out, case, a.timeout)

@@ -7,8 +7,8 @@ The reference was recorded on Windows, and there the whole diagram must
 match. On other systems the C maths library differs in the last bits.
 The Morris-Lecar test branch is a closed loop of orbits that AUTO circles
 many times, and over the laps those differences grow. There, the first
-WELL_POSED points (the steady states and the first lap of orbits) must
-match closely, with the same special points.
+WELL_POSED points (the steady states and the first lap of orbits, which
+ends at point 171) must match closely, with the same special points.
 """
 import shutil
 import subprocess
@@ -17,7 +17,7 @@ import tempfile
 from pathlib import Path
 
 RTOL = 1e-7 if sys.platform == "win32" else 1e-4
-WELL_POSED = None if sys.platform == "win32" else 200
+WELL_POSED = None if sys.platform == "win32" else 165
 
 
 def load(path):

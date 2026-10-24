@@ -118,7 +118,7 @@ class Claude:
 
     def __init__(self, command: str | list, *, model: str = "", minutes: float = 60,
                  max_turns: int = 250, system: Path | None = None,
-                 log_dir: Path | None = None):
+                 log_dir: Path | None = None, current: str = "current.json"):
         # A full path: on Windows, Popen does not search PATH for claude.exe
         # the way a shell does, and an npm claude.cmd would mangle arguments.
         # (A list is a command with arguments of its own, for tests.)
@@ -129,6 +129,7 @@ class Claude:
         self.max_turns = max_turns
         self.system = system          # a file appended to Claude Code's system prompt
         self.log_dir = log_dir
+        self.current = current        # names the run in progress (one per runner)
 
     def run(self, prompt: str, cwd: Path, *, session: str = "", resume: bool = False,
             read_only: bool = False, model: str = "", tag: str = "run") -> Result:
@@ -209,7 +210,7 @@ class Claude:
 
     def _current(self, info: dict | None) -> None:
         """runs/current.json names the run in progress, for the dashboard."""
-        path = self.log_dir / "current.json"
+        path = self.log_dir / self.current
         if info is None:
             path.unlink(missing_ok=True)
             return

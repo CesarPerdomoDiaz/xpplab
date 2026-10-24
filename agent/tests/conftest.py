@@ -5,6 +5,7 @@ from __future__ import annotations
 import itertools
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -122,6 +123,25 @@ class FakeGitHub:
 
     def milestones(self):
         return list(self.milestone_titles)
+
+    # what the explainer reads
+    def recent_comments(self, since):
+        now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        return [{"id": c.id, "author": c.author, "body": c.body, "created": now, "number": n,
+                 "url": f"https://github.com/o/r/issues/{n}#issuecomment-{c.id}"}
+                for n, items in self.comments_.items() for c in items]
+
+    def thread(self, n):
+        if n in self.prs:
+            p = self.prs[n]
+            return {"number": n, "title": p["title"], "body": p["body"], "author": self.me,
+                    "state": "open", "pr": True}
+        i = self.issues_[n]
+        return {"number": n, "title": i["title"], "body": i["body"],
+                "author": i["author"]["login"], "state": i["state"].lower(), "pr": False}
+
+    def pr_diff(self, n):
+        return "diff --git a/hello.txt b/hello.txt\n+hello\n"
 
     def pr_for_branch(self, branch):
         for p in self.prs.values():

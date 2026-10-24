@@ -17,7 +17,7 @@ import uuid
 from pathlib import Path
 
 from .gates import run_gates
-from .gh import MARK, Comment
+from .gh import MARK, Comment, is_question
 from .git import Repo, slug
 from .state import State, Task
 
@@ -84,8 +84,9 @@ class Pipeline:
         comments need not be passed on again later as new feedback."""
         issue = self.gh.issue(task.issue)
         # Only the owner's comments: anyone else's could steer the agent.
+        # (His /explain questions are answered apart, and are not work.)
         comments = [c for c in self.gh.comments(task.issue)
-                    if not c.mine and c.author == self.cfg.owner]
+                    if not c.mine and c.author == self.cfg.owner and not is_question(c.body)]
         if handled:
             task.seen_comments += [c.id for c in comments if c.id not in task.seen_comments]
         quoted = "".join("\n" + _quote(c) for c in comments)
@@ -149,7 +150,7 @@ class Pipeline:
                 if c.mine or c.id in task.seen_comments:
                     continue
                 task.seen_comments.append(c.id)
-                if c.author == self.cfg.owner:
+                if c.author == self.cfg.owner and not is_question(c.body):
                     found.append(c)
         return found
 

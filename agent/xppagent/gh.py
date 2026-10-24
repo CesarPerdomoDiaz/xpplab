@@ -7,11 +7,38 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 import subprocess
 from dataclasses import dataclass
 
 MARK = "<!-- xpps-agent -->"
+EXPLAIN = re.compile(r"\s*/explain\b", re.I)
+# GitHub and Anthropic token shapes
+TOKEN = re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}"
+                   r"|sk-ant-[A-Za-z0-9_-]{20,})")
 log = logging.getLogger("xppagent.gh")
+
+
+def redact(text: str) -> str:
+    """No token reaches GitHub, whatever a run wrote (a hostile issue could
+    ask a run to quote one): neither the agent's own nor anything shaped
+    like one."""
+    for key in ("GH_TOKEN", "GITHUB_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN", "ANTHROPIC_API_KEY"):
+        value = os.environ.get(key, "")
+        if len(value) >= 12:
+            text = text.replace(value, "[redacted]")
+    return TOKEN.sub("[redacted]", text)
+
+
+def is_question(body: str) -> bool:
+    """A `/explain` comment asks for an explanation: it is neither an answer
+    to the agent nor a change request."""
+    return bool(EXPLAIN.match(body or ""))
+
+
+def question_text(body: str) -> str:
+    return EXPLAIN.sub("", body or "", count=1).strip()
 
 
 class GitHubError(RuntimeError):
@@ -100,7 +127,7 @@ class GitHub:
 
     def comment(self, number: int, body: str) -> None:
         self._gh("issue", "comment", str(number), "--repo", self.slug, "--body",
-                 f"{body}\n\n{MARK}", write=True)
+                 f"{redact(body)}\n\n{MARK}", write=True)
 
     def labels(self, number: int, add: list[str] = (), remove: list[str] = ()) -> None:
         args = ["issue", "edit", str(number), "--repo", self.slug]
@@ -137,8 +164,8 @@ class GitHub:
 
     def create_issue(self, title: str, body: str, labels: list[str] = (),
                      milestone: str = "") -> int:
-        args = ["issue", "create", "--repo", self.slug, "--title", title,
-                "--body", f"{body}\n\n{MARK}"]
+        args = ["issue", "create", "--repo", self.slug, "--title", redact(title),
+                "--body", f"{redact(body)}\n\n{MARK}"]
         for l in labels:
             args += ["--label", l]
         if milestone:
@@ -164,6 +191,31 @@ class GitHub:
     def milestones(self) -> list[str]:
         return [m["title"] for m in self._api("milestones?state=open&per_page=100") or []]
 
+    # -- what the explainer reads ------------------------------------------------
+
+    def recent_comments(self, since: str) -> list[dict]:
+        """Comments on every issue and pull request, changed since `since`
+        (ISO 8601), oldest first."""
+        out = []
+        for c in self._api(f"issues/comments?since={since}&sort=created&direction=asc"
+                           "&per_page=100") or []:
+            out.append({"id": str(c["id"]), "author": c["user"]["login"],
+                        "body": c.get("body") or "", "created": c["created_at"],
+                        "number": int(c["issue_url"].rstrip("/").split("/")[-1]),
+                        "url": c.get("html_url", "")})
+        return out
+
+    def thread(self, number: int) -> dict:
+        """An issue or a pull request: title, body, author, and whether it is
+        a pull request."""
+        i = self._json("api", f"repos/{self.slug}/issues/{number}") or {}
+        return {"number": number, "title": i.get("title", ""), "body": i.get("body") or "",
+                "author": (i.get("user") or {}).get("login", ""), "state": i.get("state", ""),
+                "pr": "pull_request" in i}
+
+    def pr_diff(self, number: int) -> str:
+        return self._gh("pr", "diff", str(number), "--repo", self.slug, check=False)
+
     # -- pull requests ---------------------------------------------------------
 
     def pr_for_branch(self, branch: str) -> int:
@@ -173,8 +225,8 @@ class GitHub:
 
     def create_pr(self, branch: str, base: str, title: str, body: str) -> int:
         out = self._gh("pr", "create", "--repo", self.slug, "--head", branch,
-                       "--base", base, "--draft", "--title", title,
-                       "--body", f"{body}\n\n{MARK}", write=True)
+                       "--base", base, "--draft", "--title", redact(title),
+                       "--body", f"{redact(body)}\n\n{MARK}", write=True)
         return int(out.strip().rstrip("/").split("/")[-1])
 
     def pr(self, number: int) -> dict:

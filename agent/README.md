@@ -34,6 +34,14 @@ do. It follows the design of Bart van der Lint's agents
   the next run reads the reason. At most five wait for you at once. A big
   feature is proposed as a design note (`docs/design/<name>.md`) first.
   `python -m xppagent propose --dry-run` shows what it would propose.
+- **Explanations:** comment `/explain` on any issue or pull request,
+  with a question after it or nothing for a short brief (the problem, the
+  plan, the risks, and whether to accept it). A read-only run reads the
+  thread and the code, and the agent answers in a comment within minutes.
+  It works on a thread of its own, so a long task does not hold it up;
+  quiet hours do not apply, and at most 10 answers are given per usage
+  window (`explain_per_window`). The dashboard's **Explain…** buttons
+  post the comment for you.
 - **The daily log:** every morning it comments on the issue "Maintainer
   agent log" with what it did, what is in progress, and how many Claude
   runs it used.
@@ -43,7 +51,9 @@ do. It follows the design of Bart van der Lint's agents
 
 Only your comments reach Claude. Comments by other people (testers, for
 instance) are not shown to it; quote them in a comment of yours if they
-matter.
+matter. The one exception is an explanation: that run cannot change
+anything, and it reads the whole thread, told that only your words are
+instructions.
 
 ## How it stays within your Max subscription
 
@@ -277,10 +287,14 @@ supervising the bot from any of your devices. It shows:
   - pull requests ready to merge, with their summary, CI checks and the
     agent review;
   - the bot's questions;
-  - its proposals.
+  - its proposals;
+  - issues opened by other people, which the bot leaves alone until you
+    approve them.
 
   Each one can be handled with a single click: merge, ask for changes,
-  answer, close, approve or decline.
+  answer, close, approve or decline. Each one, and each task on the
+  board, also has **Explain…**: ask the bot what it is about (or leave
+  the question empty for a short brief), and its answer appears there.
 - **Work:** the pipeline with a count at each stage, and a card for each
   task.
 - **Recent Claude runs:** each can be opened, to see what it did.

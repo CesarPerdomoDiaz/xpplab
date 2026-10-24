@@ -60,7 +60,11 @@ class Config:
     propose_every_hours: float = 168.0   # and also once a day when it has no work
     proposals_per_run: int = 3
     max_open_proposals: int = 5
-    max_open: int = 3                 # tasks in progress at once (PRs included)
+    # explanations: the owner comments `/explain` on an issue or pull request
+    explain_model: str = ""           # e.g. a faster model, for quicker answers
+    explain_per_window: int = 10      # answers per usage window, besides the runs above
+    explain_poll_seconds: int = 20
+    max_open: int = 3                # tasks in progress at once (PRs included)
     # the agent's commits
     git_name: str = "XPP Studio agent"
     git_email: str = "agent@xppstudio.invalid"
@@ -86,6 +90,10 @@ class Config:
     @property
     def runs_dir(self) -> Path:
         return self.home / "runs"
+
+    @property
+    def explain_file(self) -> Path:
+        return self.home / "explain.json"
 
     @property
     def stop_file(self) -> Path:

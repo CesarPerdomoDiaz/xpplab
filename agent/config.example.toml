@@ -56,6 +56,12 @@ propose_every_hours = 168         # weekly, and once a day while it has no work
 proposals_per_run = 3
 max_open_proposals = 5            # no more than this many wait for you at once
 
+[explanations]
+# `/explain` on an issue or pull request (or Explain... in the dashboard):
+# a read-only run answers, beside the main loop, even in quiet hours.
+explain_model = ""                # e.g. "sonnet" for quicker answers
+explain_per_window = 10           # answers per usage window
+
 [log]
 log_issue_title = "Maintainer agent log"
 log_hour = 7                      # local time of the daily summary

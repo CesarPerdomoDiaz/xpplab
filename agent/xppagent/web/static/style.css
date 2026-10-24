@@ -243,3 +243,14 @@ footer { text-align: center; color: var(--muted); font-size: 12px; padding: 0 0 
   .who .sub { display: none; }
   .feed li { grid-template-columns: 60px minmax(0, 1fr); }
 }
+
+/* explanations: the owner asks the bot about an issue or a pull request */
+.item.issue { border-left: 4px solid var(--blue); }
+.explained { margin: 10px 0 0; padding: 8px 12px; border-radius: 8px; background: var(--blue-soft); }
+.item details.explained { margin: 10px 0 0; }
+details.explained summary { color: var(--blue); }
+p.explained { font-size: 13px; }
+p.explained.notok { background: var(--red-soft); }
+button.link { padding: 0; border: 0; background: none; color: var(--blue); font-size: inherit; }
+button.link:hover { text-decoration: underline; }
+.ticket .explained { font-size: 12.5px; padding: 6px 8px; }

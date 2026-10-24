@@ -39,7 +39,11 @@ class FakeAPI:
                     {"number": 9, "title": "Add a pole-placement tool", "url": "https://github.com/o/r/issues/9",
                      "createdAt": "2026-10-24T17:00:00Z", "updatedAt": "2026-10-24T19:00:00Z",
                      "body": "Why: control design.\n<!-- xpps-agent -->", "author": {"login": "limit-cyclist"},
-                     "labels": {"nodes": [{"name": "agent:proposal"}]}, "milestone": {"title": "M7"}}]},
+                     "labels": {"nodes": [{"name": "agent:proposal"}]}, "milestone": {"title": "M7"}},
+                    {"number": 11, "title": "Plots freeze on resize", "url": "https://github.com/o/r/issues/11",
+                     "createdAt": "2026-10-24T16:00:00Z", "updatedAt": "2026-10-24T19:00:00Z",
+                     "body": "Resizing hangs it.", "author": {"login": "alice"},
+                     "labels": {"nodes": []}, "milestone": None}]},
                 "pullRequests": {"nodes": [
                     {"number": 7, "title": "App: exit non-zero", "url": "https://github.com/o/r/pull/7",
                      "isDraft": False, "createdAt": "2026-10-24T19:00:00Z",
@@ -67,6 +71,7 @@ class FakeAPI:
 
     def comment(self, number, body):
         self.calls.append(("comment", number, body))
+        return {"id": 555}
 
     def add_labels(self, number, labels):
         self.calls.append(("label", number, tuple(labels)))
@@ -306,3 +311,36 @@ def test_the_login_form_works_as_a_browser_sends_it(site):
     status, _, _ = site.request("POST", "/login", {"password": "correct horse battery"},
                                 form=True, headers={"Origin": "null"})
     assert status == 403
+
+
+def test_asking_the_bot_to_explain(site):
+    cookie = site.login()
+    page = site.request("GET", "/api/overview", cookie=cookie)[2]
+    others = [i for i in page["inbox"] if i["kind"] == "issue"]
+    assert [i["issue"] for i in others] == [11]        # not the owner's, the bot's or the log
+    assert others[0]["author"] == "alice" and others[0]["explain"] is None
+    status, _, out = site.request("POST", "/api/action",
+                                  {"action": "explain", "number": 11, "question": "Is it real?"},
+                                  cookie=cookie, headers={"X-CSRF": page["csrf"]})
+    assert status == 200 and "few minutes" in out["message"]
+    assert site.api.calls == [("comment", 11, "/explain Is it real?")]
+    page = site.request("GET", "/api/overview", cookie=cookie)[2]
+    sent = [i for i in page["inbox"] if i["issue"] == 11][0]["explain"]
+    assert sent["status"] == "sent" and sent["question"] == "Is it real?"
+
+    # the agent picks it up, then answers; a brief on the pull request too
+    (site.home / "explain.json").write_text(json.dumps({"items": [
+        {"comment": "555", "issue": 11, "question": "Is it real?", "asked": "2026-10-24T19:00:00Z",
+         "status": "answered", "answer": "Yes: the handler redraws twice.", "answered": 1},
+        {"comment": "556", "issue": 7, "question": "", "asked": "2026-10-24T19:01:00Z",
+         "status": "working", "answer": ""}]}), encoding="utf-8")
+    (site.home / "runs" / "explaining.json").write_text(json.dumps(
+        {"tag": "7-explain", "file": "20261024-190100-7-explain-abcdef.jsonl"}), encoding="utf-8")
+    page = site.request("GET", "/api/overview", cookie=cookie)[2]
+    by = {(i["kind"], i["issue"]): i for i in page["inbox"]}
+    assert by[("issue", 11)]["explain"]["answer"] == "Yes: the handler redraws twice."
+    assert by[("review", 6)]["explain"]["status"] == "working"   # asked on the PR, #7
+    assert page["agent"]["explaining"]["issue"] == 7
+    status, _, _ = site.request("POST", "/api/action", {"action": "explain", "number": 11},
+                                cookie=cookie, headers={"X-CSRF": page["csrf"]})
+    assert status == 200 and site.api.calls[-1] == ("comment", 11, "/explain")

@@ -16,13 +16,14 @@ const STAGE_NAME = Object.fromEntries(STAGES.concat([
 const KIND_NAME = {
   plan: "Planning", implement: "Building", review: "Reviewing", gates: "Fixing the checks",
   "review-fix": "Fixing review findings", fix: "Fixing", "ci-fix": "Fixing CI", owner: "Answering you",
-  answer: "Using your answer", propose: "Proposing work",
+  answer: "Using your answer", propose: "Proposing work", explain: "Explaining",
 };
 
 let page = null;          // the last overview
 let live = { file: null, after: 0, timer: null };
-const drafts = new Map(); // text typed in the inbox survives redraws
+const drafts = new Map(); // text typed in the page survives redraws
 const opened = new Map(); // and so does which sections are open (key -> bool)
+const replies = new Set(); // and which reply boxes are open
 
 // -- small helpers -------------------------------------------------------------
 
@@ -135,6 +136,10 @@ function drawTop(p) {
   } else if (/limit|budget|quiet|signed out/i.test(a.doing || "")) {
     kind = "waiting"; text = `Waiting: ${a.doing}`;
   }
+  if (a.alive && a.explaining) {
+    if (kind === "idle") { kind = "working"; text = `Explaining #${a.explaining.issue}`; }
+    else text += ` · explaining #${a.explaining.issue}`;
+  }
   status.className = `pill ${kind}`;
   $("status-text").textContent = text;
   const used = a.runs_used ?? 0, max = a.runs_per_window || 1;
@@ -160,11 +165,36 @@ function checksHtml(checks) {
   }).join("");
 }
 
+// What the bot said, or is saying, about issue or pull request n, and a box
+// to ask it something. `where` keeps the ids apart: the inbox and the board
+// may both show the same issue.
+function explainHtml(n, ex, where) {
+  const id = `x${where}${n}`;
+  let shown = "";
+  if (ex) {
+    const asked = ex.question ? `You asked: “${esc(ex.question.length > 160 ? ex.question.slice(0, 160) + "…" : ex.question)}”`
+      : "You asked for a short brief";
+    if (ex.status === "answered") {
+      shown = `<details open data-key="${id}-answer" class="explained"><summary>The bot explains · ${asked}</summary>
+        <div class="md">${md(ex.answer)}</div></details>`;
+    } else if (ex.status === "failed") {
+      shown = `<p class="explained notok">${asked}. The bot could not answer: ${esc(ex.note)}</p>`;
+    } else {
+      const doing = {
+        sent: "Sent; the bot picks it up within a minute", asked: "The bot has it and starts soon",
+        working: "The bot is reading the code to answer", waiting: `Waiting: ${esc(ex.note)}`,
+      }[ex.status] || esc(ex.status);
+      shown = `<p class="explained muted">${asked} ${ago(ex.asked)}. ${doing}…</p>`;
+    }
+  }
+  return `${shown}<div class="reply" id="reply-${id}">
+      <textarea data-key="${id}" placeholder="What should the bot explain? Leave it empty for a short brief: the problem, the plan, the risks, and whether to accept it."></textarea>
+      <div class="row"><button class="primary" data-explain="${n}" data-key="${id}">Ask the bot</button></div>
+    </div>`;
+}
+
 function drawInbox(p) {
   const box = $("inbox");
-  // keep what was typed, and where the cursor was
-  box.querySelectorAll("textarea[data-key]").forEach((t) => drafts.set(t.dataset.key, t.value));
-  const focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.key : null;
   const items = p.inbox;
   $("inbox-count").textContent = items.length;
   $("inbox-count").classList.toggle("hidden", !items.length);
@@ -186,6 +216,7 @@ function drawInbox(p) {
         <div class="row">
           <button class="good" data-merge="${it.pr}" ${ready ? "" : "disabled"}>Merge</button>
           <button data-open="r${it.pr}">Ask for changes…</button>
+          <button data-open="xi${it.pr}">Explain…</button>
           <a class="button" href="${esc(it.url)}/files" target="_blank" rel="noopener">See the diff</a>
           <button class="danger" data-close="${it.pr}">Close without merging</button>
         </div>
@@ -193,6 +224,7 @@ function drawInbox(p) {
           <textarea data-key="r${it.pr}" placeholder="What should the bot change? It reads this and pushes an update."></textarea>
           <div class="row"><button class="primary" data-send="${it.pr}" data-key="r${it.pr}">Send to the bot</button></div>
         </div>
+        ${explainHtml(it.pr, it.explain, "i")}
       </div>`;
     }
     if (it.kind === "question") {
@@ -202,8 +234,23 @@ function drawInbox(p) {
         <div class="md">${md(it.question)}</div>
         <div class="reply open">
           <textarea data-key="q${it.issue}" placeholder="Your answer. The bot carries on as soon as it reads it."></textarea>
-          <div class="row"><button class="primary" data-send="${it.issue}" data-key="q${it.issue}">Answer</button></div>
+          <div class="row"><button class="primary" data-send="${it.issue}" data-key="q${it.issue}">Answer</button>
+            <button data-open="xi${it.issue}">Explain first…</button></div>
         </div>
+        ${explainHtml(it.issue, it.explain, "i")}
+      </div>`;
+    }
+    if (it.kind === "issue") {
+      return `<div class="item issue">
+        <h3><a href="${esc(it.url)}" target="_blank" rel="noopener">#${it.issue}</a> ${esc(it.title)}</h3>
+        <div class="meta">Opened by ${esc(it.author || "someone")} ${ago(it.created)}. The bot leaves it alone until you approve it.</div>
+        <details data-key="issue-${it.issue}"><summary>What they wrote</summary><div class="md">${md(it.body)}</div></details>
+        <div class="row">
+          <button data-open="xi${it.issue}">Explain…</button>
+          <button class="good" data-approve="${it.issue}">Approve: let the bot fix it</button>
+          <button class="danger" data-close-issue="${it.issue}">Close</button>
+        </div>
+        ${explainHtml(it.issue, it.explain, "i")}
       </div>`;
     }
     return `<div class="item proposal">
@@ -212,17 +259,12 @@ function drawInbox(p) {
       <details open data-key="proposal-${it.issue}"><summary>Its proposal</summary><div class="md">${md(it.body)}</div></details>
       <div class="row">
         <button class="good" data-approve="${it.issue}">Approve: do it</button>
+        <button data-open="xi${it.issue}">Explain…</button>
         <button class="danger" data-decline="${it.issue}">Decline</button>
       </div>
+      ${explainHtml(it.issue, it.explain, "i")}
     </div>`;
   }).join("");
-  box.querySelectorAll("textarea[data-key]").forEach((t) => {
-    if (drafts.has(t.dataset.key)) {
-      t.value = drafts.get(t.dataset.key);
-      if (t.value) t.closest(".reply").classList.add("open");
-    }
-    if (t.dataset.key === focused) t.focus();
-  });
 }
 
 function drawBoard(p) {
@@ -245,7 +287,9 @@ function drawBoard(p) {
     const pr = t.pr ? ` · <a href="https://github.com/${p.repo}/pull/${t.pr}" target="_blank" rel="noopener">PR #${t.pr}</a>` : "";
     const since = t.stage === "ci" && t.waiting_since ? t.waiting_since : t.updated;
     return `<div class="ticket"><a href="${issue}" target="_blank" rel="noopener"><b>#${t.issue}</b></a> ${esc(t.title)}
-      <div class="age">${STAGE_NAME[t.stage] || t.stage}${pr} · ${ago(since)}</div></div>`;
+      <div class="age">${STAGE_NAME[t.stage] || t.stage}${pr} · ${ago(since)} ·
+        <button class="link" data-open="xt${t.issue}">explain</button></div>
+      ${explainHtml(t.issue, t.explain, "t")}</div>`;
   }
 }
 
@@ -292,7 +336,8 @@ function feedItem(e) {
 }
 
 async function followLive() {
-  const c = page && page.agent.current;
+  // the main loop's run, or else an explanation being written
+  const c = page && (page.agent.current || page.agent.explaining);
   const feed = $("feed");
   if (!c) {
     if (live.file) { live = { file: null, after: 0, timer: live.timer }; }
@@ -346,19 +391,28 @@ document.addEventListener("click", async (ev) => {
     await act("merge", { pr: +d.merge }, b);
   } else if (d.open) {
     const r = $(`reply-${d.open}`);
-    r.classList.toggle("open");
-    if (r.classList.contains("open")) r.querySelector("textarea").focus();
+    if (r.classList.toggle("open")) { replies.add(d.open); r.querySelector("textarea").focus(); }
+    else replies.delete(d.open);
   } else if (d.send) {
     const box = document.querySelector(`textarea[data-key="${d.key}"]`);
     const body = box.value.trim();
     if (!body) return toast("Write something first.", true);
-    if (await act("comment", { number: +d.send, body }, b)) { box.value = ""; drafts.delete(d.key); }
+    if (await act("comment", { number: +d.send, body }, b)) { box.value = ""; drafts.delete(d.key); replies.delete(d.key); }
+  } else if (d.explain) {
+    // an empty question asks for a short brief
+    const box = document.querySelector(`textarea[data-key="${d.key}"]`);
+    if (await act("explain", { number: +d.explain, question: box.value.trim() }, b)) {
+      box.value = ""; drafts.delete(d.key); replies.delete(d.key);
+      box.closest(".reply").classList.remove("open");
+    }
   } else if (d.close && confirm(`Close #${d.close} without merging? The bot stops working on it.`)) {
     await act("close", { number: +d.close }, b);
+  } else if (d.closeIssue && confirm(`Close issue #${d.closeIssue}?`)) {
+    await act("close", { number: +d.closeIssue }, b);
   } else if (d.approve) {
     await act("approve", { issue: +d.approve }, b);
   } else if (d.decline) {
-    const reason = prompt("Why not? (optional; the bot learns from it)") ;
+    const reason = prompt("Why not? (optional; the bot learns from it)");
     if (reason !== null) await act("decline", { issue: +d.decline, reason }, b);
   } else if (b.id === "pause") {
     await act(page.agent.paused ? "resume" : "pause", {}, b);
@@ -389,15 +443,36 @@ function restoreOpen() {
   });
 }
 
+// Redraws replace the HTML: keep what was typed, which reply boxes were open,
+// and where the cursor was.
+function keepTyping() {
+  document.querySelectorAll("textarea[data-key]").forEach((t) => drafts.set(t.dataset.key, t.value));
+  const a = document.activeElement;
+  return a && a.tagName === "TEXTAREA" && a.dataset.key ? a.dataset.key : null;
+}
+
+function restoreTyping(focused) {
+  replies.forEach((id) => { const r = $(`reply-${id}`); if (r) r.classList.add("open"); });
+  document.querySelectorAll("textarea[data-key]").forEach((t) => {
+    if (drafts.has(t.dataset.key)) {
+      t.value = drafts.get(t.dataset.key);
+      if (t.value) t.closest(".reply").classList.add("open");
+    }
+    if (t.dataset.key === focused) t.focus();
+  });
+}
+
 async function refresh() {
   try {
     page = await api("/api/overview");
+    const focused = keepTyping();
     drawTop(page);
     drawInbox(page);
     drawBoard(page);
     drawRuns(page);
     drawSide(page);
     restoreOpen();
+    restoreTyping(focused);
   } catch (e) {
     $("status").className = "pill down";
     $("status-text").textContent = `Dashboard error: ${e.message}`;

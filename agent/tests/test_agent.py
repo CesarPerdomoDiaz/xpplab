@@ -1,6 +1,7 @@
 """The agent's loop, end to end, against fakes and a real git origin."""
 from __future__ import annotations
 
+import json
 import time
 from pathlib import Path
 
@@ -627,3 +628,82 @@ def test_when_proposals_are_due(world):
     assert not w.sup.propose_due()                                   # busy: wait for the week
     w.sup.state.jobs_last["propose"] -= 7 * 86400
     assert w.sup.propose_due()
+
+
+def test_the_owner_asks_and_the_bot_explains(world):
+    w = world
+    n = w.gh.new_issue("Plots freeze on resize", "Resizing the window hangs it.",
+                       labels=(), by="alice")
+    w.gh.say(n, "/explain Is this a real bug, and what would you change?")
+    w.claude.on("explain", lambda p, cwd: "It is real: the resize handler redraws twice.")
+    assert w.sup.explainer.tick()
+    said = w.gh.said(n)[-1]
+    assert said.startswith("### 🤖 Explanation")
+    assert "> Is this a real bug, and what would you change?" in said
+    assert "redraws twice" in said
+    call = [c for c in w.claude.calls if c["kind"] == "explain"][0]
+    assert call["read_only"] and call["cwd"] == w.cfg.home / "explain"
+    assert "Resizing the window hangs it." in call["prompt"]
+    assert "Someone other than the maintainer opened it" in call["prompt"]
+    assert "Is this a real bug" in call["prompt"]
+    item = json.loads(w.cfg.explain_file.read_text(encoding="utf-8"))["items"][0]
+    assert item["status"] == "answered" and item["issue"] == n and "redraws" in item["answer"]
+    assert not w.sup.explainer.tick()                               # answered once
+    assert len(w.gh.said(n)) == 2
+    assert w.task(n) is None                                         # and it is not work
+
+
+def test_a_brief_on_a_pull_request_is_not_a_change_request(world):
+    w = world
+    n = w.gh.new_issue("Add a hello file")
+    w.claude.on("implement", hello)
+    w.claude.on("review", lambda p, cwd: approve())
+    ticks(w, 4)
+    t = w.task(n)
+    assert t.stage == "owner"
+    sh("git", "update-ref", f"refs/pull/{t.pr}/head", f"refs/heads/{t.branch}", cwd=w.origin)
+    w.gh.say(t.pr, "/explain")
+    w.sup.tick()
+    assert t.stage == "owner" and "owner" not in w.claude.kinds()  # the pipeline leaves it
+    w.claude.on("explain", lambda p, cwd: "It adds hello.txt; nothing else changes.")
+    assert w.sup.explainer.tick()
+    call = [c for c in w.claude.calls if c["kind"] == "explain"][0]
+    assert "short brief" in call["prompt"] and "diff --git a/hello.txt" in call["prompt"]
+    assert "waiting for the maintainer's review" in call["prompt"]
+    head = sh("git", "rev-parse", "HEAD", cwd=w.cfg.home / "explain").strip()
+    assert head == sh("git", "rev-parse", t.branch, cwd=w.origin).strip()
+    assert "_A short brief, as asked._" in w.gh.said(t.pr)[-1]
+    w.sup.tick()                                                     # still not work
+    assert t.stage == "owner" and "owner" not in w.claude.kinds()
+
+
+def test_explanations_keep_to_their_budget_and_give_up_in_the_end(world):
+    w = world
+    w.cfg.explain_per_window = 1
+    a = w.gh.new_issue("One", labels=())
+    b = w.gh.new_issue("Two", labels=())
+    w.gh.say(a, "/explain")
+    w.gh.say(b, "/EXPLAIN why?")
+    w.claude.on("explain", lambda p, cwd: Result(False, "the run broke", ""))
+    assert w.sup.explainer.tick()                                    # tries #a: fails
+    assert not w.sup.explainer.tick()                                # the budget is used
+    items = json.loads(w.cfg.explain_file.read_text(encoding="utf-8"))["items"]
+    assert [i["status"] for i in items] == ["waiting", "waiting"]
+    assert "the 1 answers allowed per 5 hours are used" in items[1]["note"]
+    w.cfg.explain_per_window = 10
+    assert w.sup.explainer.tick() and w.sup.explainer.tick()        # #a tried 3 times
+    assert "I could not answer this question (the run broke)" in w.gh.said(a)[-1]
+    w.claude.on("explain", lambda p, cwd: "Because.")
+    assert w.sup.explainer.tick()
+    assert w.gh.said(b)[-1].endswith("Because.\n\n" + MARK)
+
+
+def test_no_token_reaches_github(monkeypatch):
+    from xppagent.gh import redact
+    mine = "ghp_" + "A1b2" * 9
+    monkeypatch.setenv("GH_TOKEN", mine)
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "sk-ant-oat01-" + "x" * 40)
+    text = (f"Here: {mine}, and sk-ant-oat01-{'x' * 40}, and a stray "
+            f"github_pat_{'9' * 30}. ghp_short stays, as does ghost_writer.")
+    assert redact(text) == ("Here: [redacted], and [redacted], and a stray [redacted]. "
+                            "ghp_short stays, as does ghost_writer.")

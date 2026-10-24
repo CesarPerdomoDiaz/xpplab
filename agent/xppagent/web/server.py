@@ -218,6 +218,7 @@ class Dashboard:
         self._github_error = ""
         self._comments: dict = {}     # pr -> (updatedAt, comments)
         self._jobs: dict = {}         # commit sha -> its CI jobs
+        self._asked: dict = {}        # number -> a question sent, until the agent has it
         self._wake = threading.Event()
 
     # files of the agent's home
@@ -232,8 +233,28 @@ class Dashboard:
         state = self._json(home / "state.json", {}) or {}
         status = self._json(home / "status.json", {}) or {}
         current = self._json(self.cfg.runs_dir / "current.json")
+        explain = self._json(self.cfg.explain_file, {}) or {}
+        explaining = self._json(self.cfg.runs_dir / "explaining.json")
         return {"state": state, "status": status, "current": current,
+                "explain": explain.get("items") or [], "explaining": explaining,
                 "stop": (home / "STOP").exists()}
+
+    def explanations(self, items: list[dict]) -> dict:
+        """The newest question about each issue or pull request: the agent's
+        record of it, or the one just sent from here that it has not read yet."""
+        out = {}
+        for it in items:                       # oldest first: the newest wins
+            out[it.get("issue")] = {k: it.get(k) for k in (
+                "question", "asked", "status", "answer", "note", "answered", "url")}
+        with self._lock:
+            known = {it.get("comment") for it in items}
+            for n, sent in list(self._asked.items()):
+                if sent["comment"] in known or self.clock() - sent["time"] > 3600:
+                    del self._asked[n]
+                else:
+                    out[n] = {"question": sent["question"], "asked": sent["time"],
+                              "status": "sent"}
+        return out
 
     def recent_runs(self, n: int = 25) -> list[dict]:
         out = []
@@ -321,6 +342,10 @@ class Dashboard:
                                                  "waiting_since", "merged_at")}
                          | {"plan": _short(t.get("plan"), 1500)})
         tasks.sort(key=lambda t: -(t.get("updated") or 0))
+        explained = self.explanations(files["explain"])
+        for t in tasks:
+            t["explain"] = explained.get(t["issue"])
+        bot = status.get("me") or ""
 
         inbox = []
         for t in tasks:
@@ -332,17 +357,28 @@ class Dashboard:
                               "additions": p["additions"], "deletions": p["deletions"],
                               "files": p["changedFiles"], "checks": self._checks(p),
                               "review": self._agent_review(p["number"]),
-                              "updated": p["updatedAt"]})
+                              "updated": p["updatedAt"], "explain": explained.get(p["number"])})
             elif t["stage"] == "blocked":
                 inbox.append({"kind": "question", "issue": t["issue"], "title": t["title"],
                               "question": t.get("question") or "",
-                              "url": f"https://github.com/{self.cfg.slug}/issues/{t['issue']}"})
+                              "url": f"https://github.com/{self.cfg.slug}/issues/{t['issue']}",
+                              "explain": explained.get(t["issue"])})
         for i in issues:
             names = {l["name"] for l in i["labels"]["nodes"]}
             if "agent:proposal" in names and self.cfg.label not in names:
                 inbox.append({"kind": "proposal", "issue": i["number"], "title": i["title"],
                               "url": i["url"], "body": _short(i.get("body", "").replace(MARK, ""), 2500),
-                              "milestone": (i.get("milestone") or {}).get("title")})
+                              "milestone": (i.get("milestone") or {}).get("title"),
+                              "explain": explained.get(i["number"])})
+            elif (not names & {self.cfg.label, self.cfg.label_proposal}
+                  and (i.get("author") or {}).get("login") not in (self.cfg.owner, bot)
+                  and i["number"] != log_issue):
+                # someone else's issue: the bot takes it only once approved
+                inbox.append({"kind": "issue", "issue": i["number"], "title": i["title"],
+                              "url": i["url"], "author": (i.get("author") or {}).get("login"),
+                              "body": _short(i.get("body", ""), 2500),
+                              "created": i.get("createdAt"),
+                              "explain": explained.get(i["number"])})
 
         return {
             "generated": now, "repo": self.cfg.slug, "owner": self.cfg.owner,
@@ -355,7 +391,10 @@ class Dashboard:
                       "runs_per_window": status.get("runs_per_window") or self.cfg.runs_per_window,
                       "window_hours": status.get("window_hours") or self.cfg.window_hours,
                       "current": current | run_info(Path(current["file"]).stem)
-                      if current and current.get("file") else None},
+                      if current and current.get("file") else None,
+                      "explaining": files["explaining"]
+                      | run_info(Path(files["explaining"]["file"]).stem)
+                      if (files["explaining"] or {}).get("file") else None},
             "tasks": tasks,
             "inbox": inbox,
             "issues": [{"number": i["number"], "title": i["title"], "url": i["url"],
@@ -455,6 +494,17 @@ class Dashboard:
             n = number("issue")
             gh.add_labels(n, [self.cfg.label])
             result = {"message": f"Approved #{n}: the bot will plan it"}
+        elif action == "explain":
+            n = number("number")
+            question = str(data.get("question") or "").strip()
+            if len(question) > 4000:
+                raise ValueError("question is too long")
+            out = gh.comment(n, "/explain" + (f" {question}" if question else "")) or {}
+            with self._lock:
+                self._asked[n] = {"question": question, "time": self.clock(),
+                                  "comment": str(out.get("id", ""))}
+            result = {"message": f"Asked the bot about #{n}: its answer appears here "
+                                 "in a few minutes"}
         elif action == "decline":
             n = number("issue")
             if data.get("reason"):

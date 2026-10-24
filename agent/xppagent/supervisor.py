@@ -11,6 +11,7 @@ from pathlib import Path
 
 from .claude import Claude
 from .config import Config
+from .explain import Explainer
 from .gh import MARK, GitHub, GitHubError
 from .git import GitError, Repo, git
 from .pipeline import PROMPTS, Pipeline, Wait, prompt
@@ -95,6 +96,14 @@ class Supervisor:
         self.repo = repo or Repo(f"https://github.com/{cfg.slug}.git", cfg.clone, cfg.work,
                                  cfg.base, dry_run=cfg.dry_run)
         self.budget = Budget(cfg, self.state, clock)
+        # /explain questions are answered beside the main loop, by a runner
+        # of their own (its run in progress is named in runs/explaining.json)
+        self.explainer = Explainer(
+            cfg, gh or GitHub(cfg.slug, dry_run=cfg.dry_run),
+            # (without system.md, whose closing status block would be posted)
+            claude or Claude(cfg.claude, model=cfg.model, minutes=20, max_turns=60,
+                             log_dir=cfg.runs_dir, current="explaining.json"),
+            self.repo.url, clock)
         self.pipeline = Pipeline(cfg, self.gh, self.repo, self.claude, self.state,
                                  self.budget)
         self.me = ""              # the token's login
@@ -441,6 +450,8 @@ class Supervisor:
         """Pass after pass, for ever (or `passes` times, for tests). Setting up
         is retried too: after a reboot the network may not be up yet."""
         log.info("XPP Studio maintainer agent started for %s", self.cfg.slug)
+        if passes is None and self.cfg.explain_per_window > 0:
+            self.explainer.start()
         ready = False
         failures = 0
         while passes is None or passes > 0:

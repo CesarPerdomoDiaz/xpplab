@@ -76,6 +76,48 @@ typedef struct {
   bool reveal;         /* bring the Sweep tab forward next frame */
 } SweepUI;
 
+/* The Analysis window: XPPAUT's Numerics > stocHastic and Averaging tools,
+   applied to the last run (app_analysis.c). */
+enum {
+  AN_SPECTRUM,    /* power spectral density, cross spectrum, coherence */
+  AN_FOURIER,     /* Fourier series, as cos/sin or amplitude/phase */
+  AN_HISTOGRAM,
+  AN_HISTOGRAM2D,
+  AN_CORRELATION, /* auto- and cross-correlation */
+  AN_STATISTICS,  /* mean, standard deviation, Liapunov exponent */
+  AN_PRC,         /* one period, adjoint: phase response curves */
+  AN_HFUNCTION,   /* weak-coupling interaction function */
+  AN_FIT,         /* fit parameters to data */
+  AN_COUNT
+};
+
+typedef struct {
+  int tool;
+  int col, col2;       /* columns analysed (indices into App.cols) */
+  int spec_kind;       /* 0 PSD, 1 cross spectrum, 2 coherence */
+  int spec_len, spec_window;
+  bool polar;          /* Fourier as amplitude and phase */
+  int bins, bins2;
+  bool auto_range;     /* histogram ranges from the data */
+  double lo, hi, lo2, hi2;
+  char condition[128]; /* count only where this is nonzero */
+  int lags;
+  bool use_fft;
+  double transient;    /* phase response: time to settle onto the cycle */
+  char (*coupling)[128]; /* H function: one formula per variable */
+  char fit_file[1024];
+  char fit_vars[128], fit_cols[64], fit_pars[256];
+  bool log_y;
+  int show_col;        /* result column on the vertical axis */
+  bool refit;          /* frame the next drawn result */
+  /* the last result */
+  Trajectory res;
+  bool have;
+  int res_tool;
+  char summary[256];   /* scalar results, shown above the plot */
+  double period;
+} AnalysisUI;
+
 typedef struct App {
   /* engine */
   char engine_path[1024];
@@ -123,6 +165,7 @@ typedef struct App {
   PhasePlane pp;
   AutoUI au;
   SweepUI sw;
+  AnalysisUI an;
 
   /* console */
   char *log;
@@ -133,7 +176,8 @@ typedef struct App {
 
   /* interface */
   bool show_browser, show_workspace, show_editor, show_time, show_phase,
-      show_auto, show_console, show_help, show_data, show_demo, show_array;
+      show_auto, show_console, show_help, show_data, show_demo, show_array,
+      show_analysis;
   int array_first, array_last; /* columns shown in the array plot */
   bool reset_layout;
   bool dark;
@@ -187,6 +231,16 @@ bool app_nullclines(App *a, double xlo, double xhi, double ylo, double yhi);
 /* XPPAUT's Initial conds > Range: run once per value of a parameter, and
    either keep each trajectory or record the max and min of a variable. */
 bool app_sweep(App *a);
+
+/* The engine's current run replaces a->traj (after an analysis changed it). */
+void app_fetch_current(App *a);
+void app_free_trajectory(Trajectory *t);
+
+/* Analysis (app_analysis.c) */
+void app_analysis_reset(App *a); /* a model was loaded: defaults, no result */
+void app_analysis_free(App *a);
+bool app_analysis_run(App *a);   /* run a->an.tool on the last run */
+const char *app_analysis_name(int tool);
 
 /* AUTO */
 bool app_auto_equilibria(App *a);

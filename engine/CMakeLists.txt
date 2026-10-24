@@ -118,6 +118,7 @@ add_library(xppengine_obj OBJECT
   api/xppe.c
   api/xppe_auto.c
   api/xppe_analysis.c
+  api/xppe_data.c
   $<$<BOOL:${WIN32}>:platform/compat/dlfcn_win.c>
 )
 

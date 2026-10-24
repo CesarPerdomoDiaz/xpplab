@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 
 from . import _engine as E
+from .analysis import AnalysisMixin
 
 __all__ = ["Model", "Trajectory", "Equilibrium", "load", "METHODS"]
 
@@ -84,7 +85,7 @@ class _NamedValues(MutableMapping):
         return "{" + items + "}"
 
 
-class Model:
+class Model(AnalysisMixin):
     """An XPPAUT model loaded from an .ode file.
 
     ```python

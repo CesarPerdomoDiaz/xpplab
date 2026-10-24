@@ -85,6 +85,7 @@ embed_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/icon_rgba.bin icon_rgba ${GEN}/
 set(APP_SOURCES
   src/main.c
   src/app.c
+  src/app_analysis.c
   src/commands.c
   src/docs.c
   src/ui_common.c
@@ -97,6 +98,7 @@ set(APP_SOURCES
   src/ui_help.c
   src/ui_browser.c
   src/ui_data.c
+  src/ui_analysis.c
   src/export.c
   ${GEN}/font_roboto.c
   ${GEN}/font_cousine.c

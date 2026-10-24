@@ -46,6 +46,24 @@ extern "C" {
     (int, int, int, double, double, double, double, int, float *, int))       \
   X(int, xppe_manifold_count, (void))                                         \
   X(int, xppe_manifold, (int, int *))                                         \
+  X(int, xppe_fourier, (const char *))                                        \
+  X(int, xppe_power, (const char *))                                          \
+  X(int, xppe_spectrum, (int, const char *, const char *, int, int))          \
+  X(int, xppe_histogram, (const char *, int, double, double, const char *))   \
+  X(int, xppe_histogram2d,                                                    \
+    (const char *, int, double, double, const char *, int, double, double))   \
+  X(int, xppe_autocorrelation, (const char *, int, double, double))           \
+  X(int, xppe_correlation, (const char *, const char *, int, int))            \
+  X(int, xppe_mean, (const char *, double *, double *))                       \
+  X(int, xppe_lyapunov, (double *))                                           \
+  X(int, xppe_adjoint, (int, double))                                         \
+  X(int, xppe_hfunction, (int, const char *const *))                          \
+  X(int, xppe_fit, (const char *, int, int, const char *, const char *,       \
+                    const char *, double, double, int))                       \
+  X(int, xppe_result_rows, (void))                                            \
+  X(int, xppe_result_count, (void))                                           \
+  X(const char *, xppe_result_name, (int))                                    \
+  X(int, xppe_result_column, (int, double *, int))                            \
   X(int, xppe_auto_get, (const char *, double *))                             \
   X(int, xppe_auto_set, (const char *, double))                               \
   X(int, xppe_auto_parameters, (const char *, const char *))                  \

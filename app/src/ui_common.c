@@ -336,6 +336,7 @@ static void default_layout(ImGuiID dock, ImVec2_c size) {
   igDockBuilderDockWindow(WIN_PHASE, center);
   igDockBuilderDockWindow(WIN_AUTO, center);
   igDockBuilderDockWindow(WIN_ARRAY, center);
+  igDockBuilderDockWindow(WIN_ANALYSIS, center);
   igDockBuilderDockWindow(WIN_EDITOR, center);
   igDockBuilderDockWindow(WIN_CONSOLE, bottom);
   igDockBuilderDockWindow(WIN_DATA, bottom);
@@ -401,6 +402,7 @@ void ui_draw(App *a) {
   if (a->show_help) ui_help(a);
   if (a->show_data) ui_data(a);
   if (a->show_array) ui_array_plot(a);
+  if (a->show_analysis) ui_analysis(a);
   if (a->show_demo) {
     igShowDemoWindow(&a->show_demo);
     ImPlot_ShowDemoWindow(&a->show_demo);
@@ -414,7 +416,8 @@ void ui_draw(App *a) {
                {"auto", WIN_AUTO, NULL},      {"editor", WIN_EDITOR, NULL},
                {"data", WIN_DATA, NULL},      {"help", WIN_HELP, NULL},
                {"console", WIN_CONSOLE, NULL}, {"workspace", WIN_WORKSPACE, NULL},
-               {"models", WIN_BROWSER, NULL}, {"array", WIN_ARRAY, NULL}};
+               {"models", WIN_BROWSER, NULL}, {"array", WIN_ARRAY, NULL},
+               {"analysis", WIN_ANALYSIS, NULL}};
     int i;
     for (i = 0; i < (int)(sizeof map / sizeof map[0]); i++)
       if (SDL_strncasecmp(a->focus, map[i].key, strlen(a->focus)) == 0) {
@@ -425,6 +428,7 @@ void ui_draw(App *a) {
         if (i == 4) a->show_data = true;
         if (i == 5) a->show_help = true;
         if (i == 9) a->show_array = true;
+        if (i == 10) a->show_analysis = true;
         igSetWindowFocus_Str(map[i].win);
         break;
       }

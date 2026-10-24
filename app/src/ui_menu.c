@@ -50,6 +50,16 @@ static void menu_run(App *a) {
     a->show_auto = true;
     igSetWindowFocus_Str(WIN_AUTO);
   }
+  if (igBeginMenu("Analyse the run", ok)) {
+    int t;
+    for (t = 0; t < AN_COUNT; t++)
+      if (igMenuItem_Bool(app_analysis_name(t), NULL, a->an.tool == t, true)) {
+        a->an.tool = t;
+        a->show_analysis = true;
+        igSetWindowFocus_Str(WIN_ANALYSIS);
+      }
+    igEndMenu();
+  }
 }
 
 static void menu_view(App *a) {
@@ -62,6 +72,7 @@ static void menu_view(App *a) {
   igMenuItem_BoolPtr(WIN_CONSOLE, NULL, &a->show_console, true);
   igMenuItem_BoolPtr(WIN_DATA, NULL, &a->show_data, true);
   igMenuItem_BoolPtr(WIN_ARRAY, NULL, &a->show_array, true);
+  igMenuItem_BoolPtr(WIN_ANALYSIS, NULL, &a->show_analysis, true);
   igMenuItem_BoolPtr(WIN_HELP, "F1", &a->show_help, true);
   igSeparator();
   if (igMenuItem_Bool("Reset window layout", NULL, false, true))
@@ -178,6 +189,13 @@ void ui_toolbar(App *a, float height) {
            ok)) {
     a->show_auto = true;
     igSetWindowFocus_Str(WIN_AUTO);
+  }
+  if (tool("Analysis",
+           "Spectra, histograms, correlations, Liapunov exponents, phase "
+           "response curves and curve fitting on the last run.",
+           ok)) {
+    a->show_analysis = true;
+    igSetWindowFocus_Str(WIN_ANALYSIS);
   }
   igTextDisabled("|");
   igSameLine(0, 6);

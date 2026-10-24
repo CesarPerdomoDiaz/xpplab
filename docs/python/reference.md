@@ -6,6 +6,8 @@
 
 ::: xppstudio.Equilibrium
 
+::: xppstudio.Table
+
 ::: xppstudio.auto.Auto
 
 ::: xppstudio.Diagram

@@ -6,8 +6,9 @@
  *
  * --cmd runs a command-window command after start-up (repeatable); --then
  * runs one after the first few frames, once the windows exist.
- * --screenshot renders N frames (default 12), saves the window to a BMP
- * file and exits; it is used to check the interface automatically.
+ * --screenshot renders N frames (default 12), saves the window to a BMP file
+ * (a PNG if the name ends in .png) and exits; it is used to check the
+ * interface automatically.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,7 +93,8 @@ int main(int argc, char **argv) {
   const char *model = NULL, *shot = NULL;
   const char *cmds[32], *later[32];
   int ncmds = 0, nlater = 0, frames = 12, width = 1500, height = 920, frame = 0, i;
-  bool reset_layout = false, applied_dark;
+  bool reset_layout = false, applied_dark, shot_taken = false;
+  const char *quit_reason = NULL;
   float applied_scale, dpi;
   char *pref;
 
@@ -190,10 +192,15 @@ int main(int argc, char **argv) {
     SDL_Event ev;
     while (SDL_PollEvent(&ev)) {
       gui_backend_process_event(&ev);
-      if (ev.type == SDL_EVENT_QUIT) app.quit = true;
-      if (ev.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
-          ev.window.windowID == SDL_GetWindowID(window))
+      if (ev.type == SDL_EVENT_QUIT) {
         app.quit = true;
+        quit_reason = "the system asked the app to quit";
+      }
+      if (ev.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
+          ev.window.windowID == SDL_GetWindowID(window)) {
+        app.quit = true;
+        quit_reason = "the window was closed";
+      }
       if (ev.type == SDL_EVENT_DROP_FILE && ev.drop.data) app_open(&app, ev.drop.data);
       if (ev.type == SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED) {
         dpi = SDL_GetWindowDisplayScale(window);
@@ -222,6 +229,7 @@ int main(int argc, char **argv) {
     gui_backend_new_frame();
     igNewFrame();
     ui_draw(&app);
+    if (app.quit && !quit_reason) quit_reason = "a quit command or shortcut";
     igRender();
     SDL_SetRenderDrawColor(renderer, 30, 31, 34, 255);
     SDL_RenderClear(renderer);
@@ -230,12 +238,22 @@ int main(int argc, char **argv) {
 
     if (shot && ++frame >= frames) {
       SDL_Surface *s = SDL_RenderReadPixels(renderer, NULL);
-      if (!s || !SDL_SaveBMP(s, shot))
+      size_t len = strlen(shot);
+      bool png = len > 4 && SDL_strcasecmp(shot + len - 4, ".png") == 0;
+      if (!s || !(png ? export_surface_png(s, shot) : SDL_SaveBMP(s, shot)))
         fail("screenshot");
       SDL_DestroySurface(s);
       app.quit = true;
+      shot_taken = true;
     }
     SDL_RenderPresent(renderer);
+  }
+  if (shot && !shot_taken) {
+    char why[256];
+    snprintf(why, sizeof why, "stopped at frame %d of %d before the "
+             "screenshot: %s", frame, frames, quit_reason ? quit_reason : "?");
+    SDL_SetError("%s", why);
+    fail("quit");
   }
 
   app_shutdown(&app);

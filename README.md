@@ -39,7 +39,7 @@ Everything around the engine is new:
 | You want to... | Classic XPPAUT | XPP Studio |
 |---|---|---|
 | Install it on Windows | Install an X server (Xming), Cygwin DLLs, batch files | Unzip and double-click |
-| Run it on a Mac | XQuartz, then Gatekeeper workarounds in the terminal | A native app *(macOS build in progress)* |
+| Run it on a Mac | XQuartz, then Gatekeeper workarounds in the terminal | A native app for Apple Silicon and Intel *(preview)* |
 | Change a parameter | Open the Parameters window, type, re-run | Drag its slider; the solution updates live |
 | Fix a typo in a model | "Illegal syntax", and XPPAUT exits | The editor points at the line and explains |
 | Read a model file | Plain text, any editor | Syntax colouring that knows your parameters and variables |
@@ -96,9 +96,11 @@ the mathematics. XPP Studio removes that first wall:
 [Releases](https://github.com/CesarPerdomoDiaz/xppstudio/releases), unzip
 it anywhere, and run `xppstudio.exe`. Nothing else is needed.
 
-**macOS.** A native app is being prepared; see the
-[macOS plan](docs/development/macos.md). The source build with Homebrew
-(below) is set up but not yet tested on a Mac.
+**macOS** (11 or later, Apple Silicon or Intel). Download
+`XPPStudio-<version>-Darwin.dmg` from the same page and drag the app to
+*Applications*. The preview is not notarized yet, so macOS asks you to
+allow it the first time; [TESTING.md](TESTING.md) shows how. No XQuartz
+needed. See also the [macOS plan](docs/development/macos.md).
 
 **Linux.** Build from source (below); the engine needs no X11.
 

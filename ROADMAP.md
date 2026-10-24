@@ -48,7 +48,9 @@ The order is chosen so something useful ships early:
 - [x] CMake build: `xppengine` library and `xppaut-headless`
 - [x] Golden regression suite: 187 of 197 example models produce output and
       match bit for bit; the other 10 have errors in the files themselves
-- [x] CI on GitHub Actions: Windows, macOS, Linux (workflow written; runs once the repository is on GitHub)
+- [x] CI on GitHub Actions: Windows, macOS and Linux, each compared with
+      unmodified XPPAUT; every model also runs under AddressSanitizer and
+      the API, AUTO and Python tests under Valgrind
 
 ### M1 Engine API (`libxpp`)
 - [x] Load a model from a file or a string, with the parser's error message
@@ -125,6 +127,8 @@ To do:
 ### M6 Release and community
 - [x] Windows portable zip, macOS `.dmg` bundle, Linux tarball (CPack),
       built by the release workflow on a version tag
+- [x] Universal macOS app (Apple Silicon and Intel, macOS 11+), checked
+      from the mounted `.dmg` in CI; on the preview release
 - [ ] macOS notarization and Windows code signing (need developer accounts)
 - [ ] Windows installer with `.ode` file association; Linux AppImage
 - [ ] Publish on GitHub and PyPI

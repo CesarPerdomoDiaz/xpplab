@@ -61,7 +61,11 @@ Already in the code:
 - **Universal binary** (arm64 and x86_64). The release workflow sets
   `CMAKE_OSX_ARCHITECTURES` and compiles SDL3 from source
   (`XPPS_FETCH_SDL3`), because Homebrew's SDL3 is built for one
-  architecture only. *Not yet run: the first tagged release will show it.*
+  architecture only. The release workflow then mounts the `.dmg` and
+  checks it: the app, SDL and the engine are each `x86_64 arm64` with a
+  minimum of macOS 11.0, nothing links to Homebrew or the build machine,
+  the signature verifies, and the app starts from the image and runs AUTO.
+  This build is attached to the preview release.
 - **Deployment target macOS 11**, the first version for Apple Silicon
   (`LSMinimumSystemVersion` in `Info.plist`).
 - **Open `.ode` files from Finder.** `Info.plist` declares the `.ode`
@@ -106,8 +110,17 @@ like any other.
    `brew install --cask xppstudio` works.
 
 Until there is a developer account, preview builds are signed ad hoc.
-Testers then open the app the first time with right-click > *Open*, and
-TESTING.md explains this.
+The first time, testers must allow the app: on macOS 15 and later with
+*Open Anyway* in *System Settings > Privacy & Security*, on earlier
+versions with Control-click > *Open*. TESTING.md explains both.
+
+Small things to tidy in the bundle:
+
+- SDL is in the bundle twice (`Contents/MacOS` and `Contents/Frameworks`),
+  about 3 MB of the 10 MB download. The post-build copy is only needed in
+  the build tree.
+- The bundle is named `xppstudio.app`; `XPP Studio.app` would read better
+  in *Applications*.
 
 ## Phase 4: Python on the Mac
 
@@ -120,9 +133,13 @@ is already configured. Then:
 
 ## Phase 5: a test round with Mac users
 
+The download is ready: `XPPStudio-0.1.0-Darwin.dmg` on the preview
+release.
+
 - Aim for testers on Apple Silicon (M1 to M4) and on Intel Macs, ideally
-  covering a few macOS versions.
-- Give them the checklist in TESTING.md, plus Mac-specific checks:
+  covering a few macOS versions. CI runs only on Apple Silicon, so an Intel
+  Mac is the one thing no automated check has covered.
+- Give them the checklist in TESTING.md, which includes these Mac checks:
   - the first-launch dialog;
   - Retina rendering;
   - trackpad zoom and pan in plots;

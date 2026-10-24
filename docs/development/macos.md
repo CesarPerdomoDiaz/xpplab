@@ -69,8 +69,7 @@ the pixel density, the interface scale and the renderer, so a run from
 Terminal shows the numbers. On that Windows laptop it reads: display scale
 1.25, pixel density 1.00, interface scale 1.25, renderer direct3d11.
 
-**Confirmed on that MacBook Air** the same day, built from this branch.
-The start-up line read: window 1470x809 (2940x1618 pixels),
+**Confirmed on that MacBook Air** the same day, built from this branch. The start-up line read: window 1470x809 (2940x1618 pixels),
 display scale 2.00, pixel density 2.00, interface scale 1.00, renderer
 metal. The interface fills the window, and text is sharp at full
 resolution.
@@ -139,9 +138,9 @@ This is the biggest obstacle in a classroom. On macOS 15 and later the way
 past the warning is hidden in *System Settings*, and a lab handout that
 says "ignore the security warning" is a poor start.
 
-1. **Join the Apple Developer Program:** US$99 (99 €) a year.
-   Enrolment as an individual takes a day or two, and
-   users then see the member's legal name as the developer. An organization
+1. **Join the Apple Developer Program:** US$99 (99 €) a year. Enrolment
+   as an individual takes a day or two, and users then see the member's
+   legal name as the developer. An organization
    account shows the organization's name but needs a D-U-N-S number.
    Apple's fee waiver for educational institutions and nonprofits is for
    organizations that distribute free apps through the App Store, not for
@@ -411,9 +410,9 @@ The plan:
 
 ## What is needed from people
 
-- **A Mac the developers can reach**, so sessions on
-  a PC can build and take screenshots there. A person is needed for anything
-  on the screen itself: Gatekeeper, Finder, the trackpad.
+- **A Mac the developers can reach**, to build and take screenshots there.
+  A person is needed for anything on the screen itself: Gatekeeper, Finder,
+  the trackpad.
 - **An Apple Developer account** (step 2), and then the certificate
   and API key as repository secrets.
 - **One or two more Mac testers**, ideally one with an Intel Mac. CI runs

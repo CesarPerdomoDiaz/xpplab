@@ -130,6 +130,11 @@ class Claude:
             # The agent runs as its own Windows user in its own worktree; the
             # supervisor, not the model, pushes and talks to GitHub.
             args += ["--dangerously-skip-permissions"]
+        # The agent commits under its own GitHub account; Claude Code's own
+        # co-author line would add a third name to its work. (Both setting
+        # names: includeCoAuthoredBy, and attribution in newer versions.)
+        args += ["--settings", json.dumps({"includeCoAuthoredBy": False,
+                                           "attribution": {"commit": "", "pr": ""}})]
         if model or self.model:
             args += ["--model", model or self.model]
         if self.system:

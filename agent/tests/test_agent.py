@@ -549,3 +549,81 @@ def test_a_run_that_takes_too_long_is_stopped(tmp_path, monkeypatch):
     r = c.run("hello", tmp_path, tag="6-implement")
     assert r.timed_out and not r.ok and time.time() - began < 30
     assert not (tmp_path / "runs" / "current.json").exists()
+
+
+def proposals(*titles):
+    import json
+    items = [{"title": t, "milestone": m, "theme": "Learn by doing", "why": f"why {t}",
+              "what": f"what {t}", "done_when": f"done {t}", "size": "S"} for t, m in titles]
+    return "Here they are.\n```json\n" + json.dumps({"proposals": items}) + "\n```"
+
+
+def test_the_bot_proposes_work_as_issues(world):
+    w = world
+    w.gh.new_issue("Something open already")
+    w.claude.on("propose", lambda p, cwd: proposals(
+        ("Add a predator-prey tutorial", "M5 Documentation and examples"),
+        ("Pole placement design note", "M7 Beyond XPPAUT: analysis and control"),
+        ("Fix the roadmap", "M99 Nowhere")))
+    made = w.sup.propose()
+    assert [m["title"] for m in made] == ["Add a predator-prey tutorial",
+                                          "Pole placement design note", "Fix the roadmap"]
+    issue = w.gh.issues_[made[0]["number"]]
+    assert w.gh.label_names(made[0]["number"]) == {"agent:proposal"}
+    assert issue["milestone"] == {"title": "M5 Documentation and examples"}
+    assert w.gh.issues_[made[2]["number"]]["milestone"] is None      # unknown milestone dropped
+    assert "**Done when:** done Add a predator-prey tutorial" in issue["body"]
+    call = [c for c in w.claude.calls if c["kind"] == "propose"][0]
+    assert call["read_only"] and "Something open already" in call["prompt"]
+    assert "M7 Beyond XPPAUT" in call["prompt"]
+    assert not (w.cfg.work / "propose").exists()                    # its worktree is gone
+
+
+def test_declined_proposals_teach_the_next_run(world):
+    w = world
+    n = w.gh.new_issue("Rewrite the app in Rust", labels=("agent:proposal",), by="limit-cyclist")
+    w.gh.say(n, "No: the app stays in C, as XPPAUT is.")
+    w.gh.issues_[n]["state"] = "CLOSED"
+    w.claude.on("propose", lambda p, cwd: proposals(("Something else", "")))
+    w.sup.propose()
+    call = [c for c in w.claude.calls if c["kind"] == "propose"][0]
+    assert "Rewrite the app in Rust: No: the app stays in C" in call["prompt"]
+
+
+def test_proposals_are_capped_and_dry_runs_open_nothing(world):
+    w = world
+    for k in range(4):
+        w.gh.new_issue(f"Waiting {k}", labels=("agent:proposal",))
+    w.claude.on("propose", lambda p, cwd: proposals(("A", ""), ("B", ""), ("C", "")))
+    made = w.sup.propose()
+    assert len(made) == 1                                           # 5 at most wait at once
+    assert "Propose 1 pieces" in [c for c in w.claude.calls if c["kind"] == "propose"][0]["prompt"]
+    assert w.sup.propose() == []                                     # full now
+    before = len(w.gh.issues_)
+    w.gh.issues_[made[0]["number"]]["state"] = "CLOSED"
+    dry = w.sup.propose(dry_run=True)
+    assert dry and "number" not in dry[0] and len(w.gh.issues_) == before
+
+
+def test_an_approved_proposal_goes_down_the_pipeline(world):
+    w = world
+    w.claude.on("propose", lambda p, cwd: proposals(("Add a hello file", "")))
+    (made,) = w.sup.propose()
+    w.sup.tick()
+    assert w.task(made["number"]) is None                           # not before approval
+    w.gh.labels(made["number"], add=["agent"])                       # approved in the dashboard
+    w.gh.issues_[made["number"]]["labeled_by"] = OWNER
+    w.sup.tick()
+    assert w.task(made["number"]).stage == "planned"
+
+
+def test_when_proposals_are_due(world):
+    w = world
+    assert not w.sup.propose_due()                                   # first sight: later
+    w.sup.state.jobs_last["propose"] -= 2 * 86400
+    assert w.sup.propose_due()                                       # idle for a day
+    w.gh.new_issue("Busy")
+    w.sup.intake()
+    assert not w.sup.propose_due()                                   # busy: wait for the week
+    w.sup.state.jobs_last["propose"] -= 7 * 86400
+    assert w.sup.propose_due()

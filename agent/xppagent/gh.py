@@ -135,13 +135,34 @@ class GitHub:
                 return i["number"]
         return 0
 
-    def create_issue(self, title: str, body: str, labels: list[str] = ()) -> int:
+    def create_issue(self, title: str, body: str, labels: list[str] = (),
+                     milestone: str = "") -> int:
         args = ["issue", "create", "--repo", self.slug, "--title", title,
                 "--body", f"{body}\n\n{MARK}"]
         for l in labels:
             args += ["--label", l]
+        if milestone:
+            args += ["--milestone", milestone]
         out = self._gh(*args, write=True)
         return int(out.strip().rstrip("/").split("/")[-1])
+
+    # -- what the proposal job reads ---------------------------------------------
+
+    def open_issues(self) -> list[dict]:
+        return self._json("issue", "list", "--repo", self.slug, "--state", "open",
+                          "--limit", "200", "--json", "number,title,labels,milestone") or []
+
+    def closed_issues(self, label: str, limit: int = 30) -> list[dict]:
+        return self._json("issue", "list", "--repo", self.slug, "--state", "closed",
+                          "--label", label, "--limit", str(limit), "--json",
+                          "number,title,labels,comments") or []
+
+    def merged_prs(self, limit: int = 15) -> list[dict]:
+        return self._json("pr", "list", "--repo", self.slug, "--state", "merged",
+                          "--limit", str(limit), "--json", "number,title,mergedAt") or []
+
+    def milestones(self) -> list[str]:
+        return [m["title"] for m in self._api("milestones?state=open&per_page=100") or []]
 
     # -- pull requests ---------------------------------------------------------
 

@@ -73,6 +73,7 @@ nav:
       - Numerical methods: manual/numerics.md
   - Examples gallery: gallery/index.md
   - Development:
+      - Vision: vision.md
       - Architecture: development/architecture.md
       - macOS plan: development/macos.md
       - ModelDB models: development/modeldb.md

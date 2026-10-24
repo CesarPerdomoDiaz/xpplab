@@ -54,6 +54,14 @@ class Repo:
                 cwd=self.clone)
         return path
 
+    def fresh(self, name: str) -> Path:
+        """A worktree of the newest origin/base, made anew each time."""
+        self.remove(name)
+        self.ensure()
+        path = self.work / name.replace("/", "-")
+        git("worktree", "add", "--detach", str(path), f"origin/{self.base}", cwd=self.clone)
+        return path
+
     def remove(self, branch: str) -> None:
         path = self.work / branch.replace("/", "-")
         if path.exists():

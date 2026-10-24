@@ -25,6 +25,15 @@ do. It follows the design of Bart van der Lint's agents
   third-party versions, a weekly check of one manual page against the app,
   a fortnightly check of models that fail to load). Each opens an issue
   that the agent then works on like any other.
+- **Proposals:** once a week, and once a day while it has nothing to do,
+  a read-only run reads `docs/vision.md`, `ROADMAP.md`, the open issues
+  and recent merges, and drafts up to three pieces of work. Each becomes
+  an issue labelled `agent:proposal`, in a milestone, saying why, what
+  and when it is done. Approve one in the dashboard and it gets the
+  `agent` label, so the pipeline takes it; decline it with a reason, and
+  the next run reads the reason. At most five wait for you at once. A big
+  feature is proposed as a design note (`docs/design/<name>.md`) first.
+  `python -m xppagent propose --dry-run` shows what it would propose.
 - **The daily log:** every morning it comments on the issue "Maintainer
   agent log" with what it did, what is in progress, and how many Claude
   runs it used.

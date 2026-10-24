@@ -197,12 +197,14 @@ def web_password() -> int:
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="xppagent", description=__doc__)
-    p.add_argument("command", choices=("run", "once", "status", "doctor", "web", "web-password"))
+    p.add_argument("command", choices=("run", "once", "status", "doctor", "propose", "web",
+                                       "web-password"))
     p.add_argument("--config", help="the TOML settings file")
     p.add_argument("--dry-run", action="store_true",
                    help="read GitHub and work locally, but write nothing to GitHub "
                         "and keep no state")
     p.add_argument("--live", action="store_true", help="doctor: also make one Claude run")
+    p.add_argument("--count", type=int, help="propose: how many proposals (at most)")
     p.add_argument("--secrets", help="web: the dashboard's own secrets file "
                                      "(GH_TOKEN, DASHBOARD_PASSWORD)")
     p.add_argument("--host", default="127.0.0.1", help="web: the address to listen on")
@@ -225,6 +227,18 @@ def main(argv=None) -> int:
     sup = Supervisor(cfg)
     if a.command == "status":
         print(sup.status())
+        return 0
+    if a.command == "propose":
+        sup.setup()
+        made = sup.propose(count=a.count)
+        sup.save()
+        for m in made:
+            where = f"#{m['number']}" if "number" in m else "(dry run)"
+            print(f"{where} {m['title']}  [{m['milestone'] or 'no milestone'}]")
+            if "body" in m:
+                print("   " + m["body"].replace("\n", "\n   ") + "\n")
+        if not made:
+            print("no proposals made" + (f"; waiting: {sup.waiting}" if sup.waiting else ""))
         return 0
     if a.command == "once":
         sup.setup()

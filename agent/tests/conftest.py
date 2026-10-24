@@ -98,10 +98,30 @@ class FakeGitHub:
                 return i["number"]
         return 0
 
-    def create_issue(self, title, body, labels=()):
+    def create_issue(self, title, body, labels=(), milestone=""):
         n = self.new_issue(title, f"{body}\n\n{MARK}", labels, by=self.me)
+        self.issues_[n]["milestone"] = {"title": milestone} if milestone else None
         self.created_issues.append(n)
         return n
+
+    # what the proposal job reads
+    milestone_titles = ["M5 Documentation and examples", "M7 Beyond XPPAUT: analysis and control"]
+
+    def open_issues(self):
+        return [dict(i) for i in self.issues_.values() if i["state"] == "OPEN"]
+
+    def closed_issues(self, label, limit=30):
+        out = []
+        for i in self.issues_.values():
+            if i["state"] == "CLOSED" and label in self.label_names(i["number"]):
+                out.append(dict(i, comments=[{"body": c.body} for c in self.comments_.get(i["number"], [])]))
+        return out
+
+    def merged_prs(self, limit=15):
+        return [{"number": n, "title": p["title"]} for n, p in self.prs.items() if p.get("mergedAt")]
+
+    def milestones(self):
+        return list(self.milestone_titles)
 
     def pr_for_branch(self, branch):
         for p in self.prs.values():

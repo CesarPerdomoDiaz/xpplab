@@ -49,6 +49,13 @@ gates = [
   "python tests/golden.py check --exe build/cli/xppaut-headless.exe",
 ]
 
+[proposals]
+# The agent drafts work toward docs/vision.md and opens it as issues
+# labelled agent:proposal; you approve or decline each in the dashboard.
+propose_every_hours = 168         # weekly, and once a day while it has no work
+proposals_per_run = 3
+max_open_proposals = 5            # no more than this many wait for you at once
+
 [log]
 log_issue_title = "Maintainer agent log"
 log_hour = 7                      # local time of the daily summary

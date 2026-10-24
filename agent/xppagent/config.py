@@ -55,6 +55,11 @@ class Config:
     label_working: str = "agent:working"
     label_priority: str = "agent:priority"
     label_paused: str = "agent:paused"   # on the log issue: pause the agent
+    label_proposal: str = "agent:proposal"  # the agent's ideas, waiting for approval
+    # proposals: the agent suggests work; the owner approves it in the dashboard
+    propose_every_hours: float = 168.0   # and also once a day when it has no work
+    proposals_per_run: int = 3
+    max_open_proposals: int = 5
     max_open: int = 3                 # tasks in progress at once (PRs included)
     # the agent's commits
     git_name: str = "XPP Studio agent"

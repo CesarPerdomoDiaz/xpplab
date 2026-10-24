@@ -11,9 +11,9 @@ from pathlib import Path
 
 from .claude import Claude
 from .config import Config
-from .gh import GitHub, GitHubError
+from .gh import MARK, GitHub, GitHubError
 from .git import GitError, Repo, git
-from .pipeline import PROMPTS, Pipeline, Wait
+from .pipeline import PROMPTS, Pipeline, Wait, prompt
 from .state import State, Task
 
 log = logging.getLogger("xppagent")
@@ -23,7 +23,15 @@ log = logging.getLogger("xppagent")
 ORDER = ("owner", "ci", "pr", "planned", "blocked", "queued", "merged")
 OPEN = ("planned", "pr", "ci", "owner", "blocked")
 LABEL_COLOURS = {"agent": "5319e7", "agent:working": "fbca04", "agent:blocked": "d93f0b",
-                 "agent:priority": "b60205", "agent:paused": "cccccc"}
+                 "agent:priority": "b60205", "agent:paused": "cccccc",
+                 "agent:proposal": "f9d849"}
+
+
+def _read(path: Path, limit: int = 30000) -> str:
+    try:
+        return path.read_text(encoding="utf-8")[:limit]
+    except OSError:
+        return "(not found)"
 
 
 def load_secrets(path: Path) -> None:
@@ -118,7 +126,8 @@ class Supervisor:
                                self.cfg.label_working: LABEL_COLOURS["agent:working"],
                                self.cfg.label_blocked: LABEL_COLOURS["agent:blocked"],
                                self.cfg.label_priority: LABEL_COLOURS["agent:priority"],
-                               self.cfg.label_paused: LABEL_COLOURS["agent:paused"]})
+                               self.cfg.label_paused: LABEL_COLOURS["agent:paused"],
+                               self.cfg.label_proposal: LABEL_COLOURS["agent:proposal"]})
 
     # -- one pass of the loop --------------------------------------------------
 
@@ -136,10 +145,96 @@ class Supervisor:
         self.schedule()
         self.write_status("working")
         did = self.work()
+        if not did and not self.waiting:
+            try:
+                if self.propose_due():
+                    self.write_status("proposing work")
+                    did = bool(self.propose())
+            except Wait as w:
+                self._wait(w)
+            except (GitHubError, GitError, OSError) as e:
+                log.exception("proposing failed: %s", e)
         self.daily_log()
         self.save()
         self.write_status(self.waiting or "idle")
         return did
+
+    # -- proposals ---------------------------------------------------------------
+
+    def propose_due(self) -> bool:
+        """Weekly, and once a day while the bot has nothing to do."""
+        now = self.clock()
+        last = self.state.jobs_last.get("propose")
+        if last is None:
+            self.state.jobs_last["propose"] = now   # the first comes later
+            return False
+        if now - last >= self.cfg.propose_every_hours * 3600:
+            return True
+        idle = not any(t.stage in OPEN + ("queued",) for t in self.state.tasks.values())
+        return idle and now - last >= 86400
+
+    def propose(self, count: int | None = None, dry_run: bool | None = None) -> list[dict]:
+        """A read-only Claude run drafts the next work; each proposal becomes
+        an issue labelled agent:proposal. The owner approves one (it gets
+        the agent label, and the pipeline takes it from there) or declines
+        it, with a reason the next run reads."""
+        dry = self.cfg.dry_run if dry_run is None else dry_run
+        self.state.jobs_last["propose"] = self.clock()
+        issues = self.gh.open_issues()
+
+        def names(i):
+            return {l["name"] for l in i.get("labels", [])}
+        waiting = [i for i in issues
+                   if self.cfg.label_proposal in names(i) and self.cfg.label not in names(i)]
+        n = min(count or self.cfg.proposals_per_run, self.cfg.max_open_proposals - len(waiting))
+        if n <= 0:
+            log.info("%d proposals wait for the owner: none proposed", len(waiting))
+            return []
+        milestones = self.gh.milestones()
+        declined = []
+        for i in self.gh.closed_issues(self.cfg.label_proposal):
+            if self.cfg.label in names(i):
+                continue                  # approved (and since done), not declined
+            reasons = [c.get("body", "") for c in i.get("comments") or []
+                       if MARK not in c.get("body", "")]
+            why = reasons[-1].strip()[:300] if reasons else ""
+            declined.append(f"- #{i['number']} {i['title']}" + (f": {why}" if why else ""))
+        opened = [f"- #{i['number']} {i['title']}"
+                  + (f" [{i['milestone']['title']}]" if i.get("milestone") else "")
+                  for i in issues]
+        merged = [f"- #{p['number']} {p['title']}" for p in self.gh.merged_prs()]
+        path = self.repo.fresh("propose")
+        try:
+            text = prompt("propose", vision=_read(path / "docs" / "vision.md"),
+                          roadmap=_read(path / "ROADMAP.md"),
+                          open="\n".join(opened) or "(none)",
+                          merged="\n".join(merged) or "(none)",
+                          declined="\n".join(declined) or "(none yet)",
+                          count=str(n), milestones=", ".join(milestones) or "(none)")
+            res = self.pipeline._ask(text, path, read_only=True, tag="0-propose")
+        finally:
+            self.repo.remove("propose")
+        made = []
+        for p in ((res.json_block() or {}).get("proposals") or [])[:n]:
+            title = " ".join(str(p.get("title") or "").split())[:120]
+            if not title:
+                continue
+            milestone = p.get("milestone") if p.get("milestone") in milestones else ""
+            body = (f"**Why:** {p.get('why', '')}\n\n**What:** {p.get('what', '')}\n\n"
+                    f"**Done when:** {p.get('done_when', '')}\n\n"
+                    f"**Theme:** {p.get('theme', '')} · **Size:** {p.get('size', '')}\n\n"
+                    "_Proposed by The Limit Cyclist. Approve or decline it in the dashboard: "
+                    "approving gives it the `agent` label, and the bot starts on it._")
+            if dry:
+                log.info("dry run: would propose %r (%s)", title, milestone or "no milestone")
+                made.append({"title": title, "milestone": milestone, "body": body})
+                continue
+            number = self.gh.create_issue(title, body, [self.cfg.label_proposal], milestone)
+            self.state.event(f"proposed #{number}: {title}")
+            made.append({"number": number, "title": title, "milestone": milestone})
+        if not made:
+            log.warning("the proposal run gave nothing usable: %s", res.text[-300:])
+        return made
 
     def write_status(self, doing: str) -> None:
         """status.json: what the agent is doing, for the dashboard. Written

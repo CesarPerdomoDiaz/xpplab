@@ -4,6 +4,7 @@
  *   xppstudio [model.ode] [--cmd "command"]... [--then "command"]...
  *             [--screenshot out.bmp] [--frames N] [--size WxH] [--reset-layout]
  *             [--record DIR [--fps N] [--script FILE] [--at FRAME "command"]...]
+ *             [--log FILE]
  *
  * --cmd runs a command-window command after start-up (repeatable); --then
  * runs one after the first few frames, once the windows exist.
@@ -16,6 +17,8 @@
  * commands at given frames, so a recording can show the app at work; a
  * command written @command is not echoed in the command window.
  * tools/make_demo.py turns recordings into the README's animations.
+ * --log writes the command window to FILE when the app exits, so that a
+ * script can check what the commands did (tests/parity.py).
  */
 #include <float.h>
 #include <stdio.h>
@@ -149,11 +152,12 @@ static bool read_script(const char *path) {
 
 int main(int argc, char **argv) {
   static App app;
-  static char ini_path[1100], shot_path[1100], rec_path[1100], script_path[1100];
+  static char ini_path[1100], shot_path[1100], rec_path[1100], script_path[1100],
+      log_path[1100];
   SDL_Window *window;
   SDL_Renderer *renderer;
   const char *base;
-  const char *model = NULL, *shot = NULL, *record = NULL, *script = NULL;
+  const char *model = NULL, *shot = NULL, *record = NULL, *script = NULL, *logfile = NULL;
   const char *cmds[32], *later[32];
   int ncmds = 0, nlater = 0, frames = 12, width = 1500, height = 920, frame = 0, i;
   int fps = 20, saved = 0;
@@ -177,6 +181,8 @@ int main(int argc, char **argv) {
       fps = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--script") && i + 1 < argc)
       script = argv[++i];
+    else if (!strcmp(argv[i], "--log") && i + 1 < argc)
+      logfile = argv[++i];
     else if (!strcmp(argv[i], "--at") && i + 2 < argc) {
       int n = atoi(argv[++i]);
       add_timed(n, argv[++i]);
@@ -193,6 +199,7 @@ int main(int argc, char **argv) {
 
   shot = absolute(shot, shot_path, sizeof shot_path);
   record = absolute(record, rec_path, sizeof rec_path);
+  logfile = absolute(logfile, log_path, sizeof log_path);
   scripted = shot || record;
   err_file = shot ? shot : record;
   if (script && !read_script(absolute(script, script_path, sizeof script_path))) {
@@ -378,6 +385,13 @@ int main(int argc, char **argv) {
              "screenshot: %s", frame, frames, quit_reason ? quit_reason : "?");
     SDL_SetError("%s", why);
     fail("quit");
+  }
+  if (logfile) {
+    FILE *f = fopen(logfile, "w");
+    if (f) {
+      if (app.log) fwrite(app.log, 1, app.log_len, f);
+      fclose(f);
+    }
   }
 
   app_shutdown(&app);

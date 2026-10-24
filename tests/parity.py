@@ -173,7 +173,7 @@ def cases(fx):
         files={"saved_copy.ode": lambda p: None if "params iapp" in p.read_text()
                else "not the model's text"})
     # XPPAUT sets dt=1 when the discrete method is chosen, so dt is set back
-    # after each choice. Volterra runs alone, last.
+    # after each choice. Volterra has its own case, the last one.
     cmds = []
     for m in [m for m in METHODS if m != "volterra"]:
         cmds += ["set meth=%s" % m, "set dt=0.05", "run", "export {out}/meth_%s.csv" % m]
@@ -268,7 +268,8 @@ def cases(fx):
         ["help " + t for t in ("tutorial", "auto", "analysis", "odefile",
                                "numerics", "commands", "xppaut", "tools",
                                "about")] + ["show help"])
-    # Last: a crash brings up macOS's report dialog, which slows the next
+    # Last: on a model without integrals it crashed XPPAUT 8.0 (fixed in
+    # volterra2.c), and after a crash macOS's report dialog slows the next
     # windows down for a minute.
     add("meth_volterra", "Volterra integrator on a model without integrals",
         "lecar.ode", ["set meth=volterra", "run", "export {out}/meth_volterra.csv"],

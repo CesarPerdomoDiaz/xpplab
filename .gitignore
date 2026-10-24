@@ -13,6 +13,7 @@ __pycache__/
 dist/
 output.dat
 /tests/out/
+/parity-out/
 .vscode/
 .idea/
 docs/gallery/

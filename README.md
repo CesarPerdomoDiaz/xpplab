@@ -11,10 +11,11 @@
 </p>
 
 <p align="center">
-  <img alt="Platforms" src="https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-1d2b53">
+  <a href="https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/CesarPerdomoDiaz/xppstudio?include_prereleases&label=download&color=1d2b53"></a>
+  <a href="https://github.com/CesarPerdomoDiaz/xppstudio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/CesarPerdomoDiaz/xppstudio/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://cesarperdomodiaz.github.io/xppstudio/"><img alt="Documentation" src="https://img.shields.io/badge/docs-online-3b5bdb"></a>
   <img alt="Engine" src="https://img.shields.io/badge/engine-XPPAUT%208.0%20%2B%20AUTO-ffd43b">
-  <img alt="License" src="https://img.shields.io/badge/license-GPL--2.0--or--later-51cf66">
-  <img alt="Status" src="https://img.shields.io/badge/status-preview-ff6b6b">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--2.0--or--later-51cf66"></a>
 </p>
 
 <p align="center">
@@ -24,6 +25,26 @@
   falls. Everything follows at once, with no re-running or restarting: the
   nullclines move, the rest state gives way to repetitive firing, and back.</sub>
 </p>
+
+## Download
+
+| Your computer | Download | Then |
+|---|---|---|
+| **Windows** 10 or 11, 64-bit | [XPPStudio-Windows-x64.zip](https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest/download/XPPStudio-Windows-x64.zip) | Unzip it anywhere and run `xppstudio.exe` |
+| **macOS** 11 or later, Apple silicon or Intel | [XPPStudio-macOS.dmg](https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest/download/XPPStudio-macOS.dmg) | Open it and drag the app to *Applications* |
+| **Linux**, x86-64 | [XPPStudio-Linux-x86_64.tar.gz](https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest/download/XPPStudio-Linux-x86_64.tar.gz) | Unpack it and run `xppstudio` |
+| **Python** 3.9 or later | `pip install xppstudio --find-links https://github.com/CesarPerdomoDiaz/xppstudio/releases/expanded_assets/v0.1.0` | `import xppstudio` |
+
+Nothing else is needed: no X server, no compiler, no Terminal. The apps are
+not yet signed with a paid certificate, so the first time Windows or macOS
+asks you to confirm that you want to open them;
+[the install guide](docs/install.md) shows how, and how to check a download.
+Every release, with its notes and checksums, is on the
+[releases page](https://github.com/CesarPerdomoDiaz/xppstudio/releases).
+
+**First steps:** the Morris-Lecar model opens. Press **Run**, open the
+**Phase Plane** tab, tick **Nullclines** and drag the `iapp` slider. Then
+press **F1** for the manual and its tutorial.
 
 ---
 
@@ -109,21 +130,7 @@ the mathematics. XPP Studio removes that first wall:
   </tr>
 </table>
 
-## Get it
-
-**Windows.** Download `XPPStudio-<version>-Windows.zip` from
-[Releases](https://github.com/CesarPerdomoDiaz/xppstudio/releases), unzip
-it anywhere, and run `xppstudio.exe`. Nothing else is needed.
-
-**macOS** (11 or later, Apple Silicon or Intel). Download
-`XPPStudio-<version>-Darwin.dmg` from the same page and drag the app to
-*Applications*. The preview is not notarized yet, so macOS asks you to
-allow it the first time; [TESTING.md](TESTING.md) shows how. No XQuartz
-needed. See also the [macOS plan](docs/development/macos.md).
-
-**Linux.** Build from source (below); the engine needs no X11.
-
-**Python.**
+## Python
 
 ```python
 import xppstudio as xs
@@ -145,8 +152,8 @@ m.spectrum("V").plot()               # power spectral density of the run
 ```
 
 The wheel includes the compiled engine, so nothing is compiled on your
-machine and AUTO works out of the box. See the
-[Python guide](docs/python/quickstart.md).
+machine and AUTO works out of the box. Install it with the `pip` line under
+[Download](#download), then see the [Python guide](docs/python/quickstart.md).
 
 ## Same numbers as XPPAUT
 
@@ -165,7 +172,11 @@ Windows, why `delmmult` networks coupled to the wrong variable, and why
 
 ## Documentation
 
+The manual, the Python guide and the developer notes are online at
+**[cesarperdomodiaz.github.io/xppstudio](https://cesarperdomodiaz.github.io/xppstudio/)**.
+
 - **In the app:** press F1.
+- **Installing:** [the install guide](docs/install.md), for each system.
 - **Getting started:** [Welcome](docs/manual/welcome.md),
   [tutorial](docs/manual/tutorial.md), and
   [bifurcation analysis with AUTO](docs/manual/auto.md).
@@ -175,8 +186,9 @@ Windows, why `delmmult` networks coupled to the wrong variable, and why
 - **For XPPAUT users:** [Coming from XPPAUT](docs/manual/xppaut.md).
 - **Python:** the [Python guide](docs/python/quickstart.md).
 - **How it works:** [architecture](docs/development/architecture.md).
-- **Maintenance:** issues labelled `agent` are worked on by the
-  [maintainer agent](agent/README.md), which opens pull requests for review.
+- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md). Some issues are
+  worked on by the project's [maintainer agent](agent/README.md), which
+  takes work only from the maintainer and opens pull requests for review.
 
 ## Building from source
 
@@ -202,17 +214,21 @@ XPPAUT's C code needs GCC or Clang, so put MinGW-w64 on `PATH` and set
 
 **Packages:** `cpack` in the build folder makes the zip, `.dmg` or tarball.
 
-## Trying the preview?
+## Help test it
 
-Thank you! [TESTING.md](TESTING.md) has a short list of things to try and
-explains how to report what you find.
+Found a problem, or a model that works in XPPAUT but not here? Please
+[open an issue](https://github.com/CesarPerdomoDiaz/xppstudio/issues/new/choose).
+[TESTING.md](TESTING.md) has a short list of things to try.
 
 ## Credits and licence
 
-XPP Studio is built on **XPPAUT** by G. Bard Ermentrout and contributors
-(GPL-2.0-or-later) and on **AUTO** by E. J. Doedel and collaborators (BSD),
-as translated to C inside XPPAUT. The interface uses Dear ImGui, ImPlot,
-cimgui/cimplot (MIT) and SDL (zlib).
+XPP Studio is an independent rebuild of **XPPAUT** by G. Bard Ermentrout
+and contributors (GPL-2.0-or-later), and is not endorsed by him. It also
+contains **AUTO** by E. J. Doedel and collaborators, as translated to C
+inside XPPAUT. The interface uses Dear ImGui, ImPlot, cimgui and cimplot
+(MIT), SDL (zlib), stb_image_write (MIT) and the Roboto and Cousine fonts
+(Apache 2.0); [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) has their
+licences.
 
 If XPPAUT's methods help your research, please cite G. B. Ermentrout,
 *Simulating, Analyzing, and Animating Dynamical Systems: A Guide to XPPAUT

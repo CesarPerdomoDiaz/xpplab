@@ -31,7 +31,6 @@ query($owner: String!, $name: String!) {
           state
           contexts(first: 40) { nodes {
             __typename
-            ... on CheckRun { name status conclusion detailsUrl }
             ... on StatusContext { context state targetUrl }
           } }
         } } } }
@@ -87,11 +86,33 @@ class GitHubAPI:
     # -- reading ---------------------------------------------------------------
 
     def overview(self) -> dict:
+        """The page's data. Parts the token may not read come back empty
+        rather than failing the whole page; `warnings` says which."""
         out = self._request("POST", "/graphql", {
             "query": OVERVIEW, "variables": {"owner": self.owner, "name": self.name}})
-        if out.get("errors"):
-            raise GitHubAPIError("; ".join(e.get("message", "?") for e in out["errors"])[:400])
-        return out["data"]
+        errors = out.get("errors") or []
+        if errors and not (out.get("data") or {}).get("repository"):
+            raise GitHubAPIError("; ".join(e.get("message", "?") for e in errors)[:400])
+        data = out["data"]
+        data["warnings"] = sorted({e.get("message", "?") for e in errors})
+        return data
+
+    def workflow_jobs(self, sha: str) -> list[dict]:
+        """CI for a commit: the jobs of its newest run of each workflow.
+        (Fine-grained tokens cannot read check runs; Actions they can.)"""
+        runs = self._request("GET", f"/repos/{self.slug}/actions/runs?head_sha={sha}&per_page=30")
+        newest: dict = {}
+        for run in (runs or {}).get("workflow_runs", []):
+            key = run.get("workflow_id") or run.get("name")
+            if key not in newest or run.get("run_number", 0) > newest[key].get("run_number", 0):
+                newest[key] = run
+        jobs = []
+        for run in newest.values():
+            out = self._request("GET", f"/repos/{self.slug}/actions/runs/{run['id']}/jobs?per_page=50")
+            for j in (out or {}).get("jobs", []):
+                jobs.append({"name": j.get("name"), "status": j.get("status"),
+                             "conclusion": j.get("conclusion"), "url": j.get("html_url")})
+        return jobs
 
     def comments(self, number: int) -> list[dict]:
         return self._request("GET", f"/repos/{self.slug}/issues/{number}/comments?per_page=100")

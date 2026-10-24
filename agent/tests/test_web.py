@@ -48,13 +48,16 @@ class FakeAPI:
                      "body": "Closes #6.\n\nfail() now flags an error.\n\n**Checks run before pushing**\n\n- x\n\n<!-- xpps-agent -->",
                      "author": {"login": "limit-cyclist"},
                      "commits": {"nodes": [{"commit": {"oid": "abc", "statusCheckRollup": {
-                         "state": "SUCCESS", "contexts": {"nodes": [
-                             {"__typename": "CheckRun", "name": "Windows", "status": "COMPLETED",
-                              "conclusion": "SUCCESS", "detailsUrl": "https://x"}]}}}}]}}]},
+                         "state": "SUCCESS", "contexts": {"nodes": [None]}}}}]}}]},
                 "merged": {"nodes": []},
                 "milestones": {"nodes": []},
                 "roadmap": {"text": "## Milestones\n### M1 Engine\n- [x] load\n- [ ] the `xpp` tool\n"},
             }}
+
+    def workflow_jobs(self, sha):
+        self.calls.append(("jobs", sha))
+        return [{"name": "Windows", "status": "completed", "conclusion": "success", "url": "https://x"},
+                {"name": "macos", "status": "completed", "conclusion": "skipped", "url": "https://y"}]
 
     def comments(self, number):
         return [{"body": "### 🔍 Agent review\n\n- **low** an old quirk\n\n<!-- xpps-agent -->"}]
@@ -118,6 +121,7 @@ def site(tmp_path):
     api = FakeAPI()
     dash = Dashboard(cfg, api, refresh_seconds=3600)
     dash.refresh_github()
+    api.calls.clear()
     sessions = Sessions(hash_password("correct horse battery"))
     httpd = serve(dash, sessions, "127.0.0.1", 0, background=False)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
@@ -188,6 +192,7 @@ def test_the_page_shows_what_the_bot_does_and_what_waits(site):
     review = kinds["review"]
     assert review["pr"] == 7 and review["summary"] == "fail() now flags an error."
     assert review["checks"]["items"][0]["result"] == "success"
+    assert review["checks"]["state"] == "success"      # a skipped job does not hold it back
     assert "an old quirk" in review["review"]
     assert kinds["proposal"]["issue"] == 9 and "control design" in kinds["proposal"]["body"]
     assert page["runs"][0]["kind"] == "review" and page["runs"][0]["ok"]
@@ -283,3 +288,8 @@ def test_a_line_still_being_written_is_read_next_time(tmp_path):
     events, after = read_events(path)
     assert [e["kind"] for e in events] == ["start"] and after == 1
     assert summarize({"type": "result", "is_error": True, "result": "x"})[0]["ok"] is False
+
+
+def test_finished_ci_is_not_fetched_again(site):
+    site.dash.refresh_github()
+    assert ("jobs", "abc") not in site.api.calls       # completed on the first refresh

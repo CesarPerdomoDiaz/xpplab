@@ -217,6 +217,7 @@ class Dashboard:
         self._github_time = 0.0
         self._github_error = ""
         self._comments: dict = {}     # pr -> (updatedAt, comments)
+        self._jobs: dict = {}         # commit sha -> its CI jobs
         self._wake = threading.Event()
 
     # files of the agent's home
@@ -261,7 +262,19 @@ class Dashboard:
             files = self.agent_files()
             tasks = (files["state"].get("tasks") or {}).values()
             waiting = {t.get("pr") for t in tasks if t.get("stage") in ("owner", "pr", "ci") and t.get("pr")}
-            for pr in data["repository"]["pullRequests"]["nodes"]:
+            open_prs = data["repository"]["pullRequests"]["nodes"]
+            shas = set()
+            for pr in open_prs:
+                sha = self._head(pr)
+                if not sha:
+                    continue
+                shas.add(sha)
+                known = self._jobs.get(sha)
+                # Finished CI does not change: fetch only what may still move.
+                if known is None or not known or any(j["status"] != "completed" for j in known):
+                    self._jobs[sha] = self.gh.workflow_jobs(sha)
+            self._jobs = {k: v for k, v in self._jobs.items() if k in shas}
+            for pr in open_prs:
                 if pr["number"] in waiting:
                     seen = self._comments.get(pr["number"])
                     if not seen or seen[0] != pr["updatedAt"]:
@@ -361,19 +374,34 @@ class Dashboard:
             "log_issue": log_issue,
             "github_age": round(now - gh_time) if gh_time else None,
             "github_error": gh_error,
+            "github_warnings": (gh or {}).get("warnings") or [],
         }
 
     @staticmethod
-    def _checks(pr: dict) -> dict:
-        nodes = pr.get("commits", {}).get("nodes") or [{}]
+    def _head(pr: dict) -> str:
+        nodes = (pr.get("commits") or {}).get("nodes") or [{}]
+        return (nodes[0].get("commit") or {}).get("oid") or ""
+
+    def _checks(self, pr: dict) -> dict:
+        """CI of the pull request's head: its Actions jobs, and any commit
+        statuses. The overall state: failure, pending, success or none."""
+        nodes = (pr.get("commits") or {}).get("nodes") or [{}]
         roll = (nodes[0].get("commit") or {}).get("statusCheckRollup") or {}
-        items = []
+        items = [{"name": j["name"], "url": j.get("url"),
+                  "result": (j.get("conclusion") or j.get("status") or "").lower()}
+                 for j in self._jobs.get(self._head(pr), [])]
         for c in (roll.get("contexts") or {}).get("nodes") or []:
-            name = c.get("name") or c.get("context") or "?"
-            result = (c.get("conclusion") or c.get("state") or c.get("status") or "").lower()
-            items.append({"name": name, "result": result,
-                          "url": c.get("detailsUrl") or c.get("targetUrl")})
-        return {"state": (roll.get("state") or "").lower(), "items": items}
+            if c and c.get("context"):
+                items.append({"name": c["context"], "url": c.get("targetUrl"),
+                              "result": (c.get("state") or "").lower()})
+        results = {i["result"] for i in items}
+        if results & {"failure", "error", "cancelled", "timed_out", "action_required"}:
+            state = "failure"
+        elif results - {"success", "skipped", "neutral"}:
+            state = "pending"
+        else:
+            state = "success" if items else ""
+        return {"state": state, "items": items}
 
     def _agent_review(self, pr: int) -> str:
         comments = (self._comments.get(pr) or (None, []))[1]

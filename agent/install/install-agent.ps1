@@ -71,7 +71,8 @@ if (-not (Test-Path $bash)) {
 } else {
     $need = "mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja " +
             "mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-python-pytest " +
-            "mingw-w64-ucrt-x86_64-python-numpy mingw-w64-ucrt-x86_64-sdl3"
+            "mingw-w64-ucrt-x86_64-python-numpy mingw-w64-ucrt-x86_64-python-matplotlib " +
+            "mingw-w64-ucrt-x86_64-python-pandas mingw-w64-ucrt-x86_64-sdl3"
     $env:MSYSTEM = "UCRT64"
     $check = & $bash -lc "pacman -Q $need >/dev/null 2>&1 && echo yes"
     if ($check -ne "yes") {

@@ -126,7 +126,7 @@ Then open "MSYS2 UCRT64" from the Start menu and run:
 
 ```bash
 pacman -Syu
-pacman -S --needed mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-python-pytest mingw-w64-ucrt-x86_64-python-numpy mingw-w64-ucrt-x86_64-sdl3
+pacman -S --needed mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-python mingw-w64-ucrt-x86_64-python-pytest mingw-w64-ucrt-x86_64-python-numpy mingw-w64-ucrt-x86_64-python-matplotlib mingw-w64-ucrt-x86_64-python-pandas mingw-w64-ucrt-x86_64-sdl3
 ```
 
 ### 2. A checkout to install from

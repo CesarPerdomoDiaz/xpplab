@@ -124,7 +124,7 @@ def test_every_bundled_animation_loads(tmp_path):
 # -- 3-D --------------------------------------------------------------------
 
 def test_plot3d():
-    import matplotlib
+    matplotlib = pytest.importorskip("matplotlib")
     matplotlib.use("Agg")
     with xs.load(ODE / "lorenz.ode") as m:
         ax = m.run(total=20).plot3d("X", "Y", "Z")

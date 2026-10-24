@@ -46,6 +46,20 @@ static ImFont *add_font(const unsigned char *data, unsigned int size) {
   return f;
 }
 
+/* The scale for the interface's sizes: the user's display scaling (125%,
+   150%, ...) without the pixel density. On a Retina Mac the window display
+   scale is 2 because each point is 2x2 pixels; ImGui's backend already
+   draws at that density (DisplayFramebufferScale), so scaling the sizes by
+   it as well would make everything twice as large. On Windows the pixel
+   density is 1 and this is the display scale. */
+static float interface_scale(SDL_Window *window) {
+  float scale = SDL_GetWindowDisplayScale(window);
+  float density = SDL_GetWindowPixelDensity(window);
+  if (scale <= 0) scale = 1;
+  if (density <= 0) density = 1;
+  return scale / density;
+}
+
 static void apply_scale(App *a, float dpi) {
   ImGuiStyle *s = igGetStyle();
   *s = base_style;
@@ -235,9 +249,19 @@ int main(int argc, char **argv) {
   app_init(&app, base ? base : "./", scripted);
   app.window = window;
   app.reset_layout = reset_layout;
-  dpi = SDL_GetWindowDisplayScale(window);
-  if (dpi <= 0) dpi = 1;
+  dpi = interface_scale(window);
   apply_scale(&app, dpi);
+  {
+    /* For bug reports from a Terminal, and in CI's log. */
+    int w, h, pw, ph;
+    SDL_GetWindowSize(window, &w, &h);
+    SDL_GetWindowSizeInPixels(window, &pw, &ph);
+    fprintf(stderr, "XPP Studio: window %dx%d (%dx%d pixels), display scale %.2f, "
+            "pixel density %.2f, interface scale %.2f, renderer %s\n", w, h, pw, ph,
+            (double)SDL_GetWindowDisplayScale(window),
+            (double)SDL_GetWindowPixelDensity(window), (double)dpi,
+            SDL_GetRendererName(renderer));
+  }
   applied_dark = app.dark;
   applied_scale = app.ui_scale;
 
@@ -272,7 +296,7 @@ int main(int argc, char **argv) {
       }
       if (ev.type == SDL_EVENT_DROP_FILE && ev.drop.data) app_open(&app, ev.drop.data);
       if (ev.type == SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED) {
-        dpi = SDL_GetWindowDisplayScale(window);
+        dpi = interface_scale(window);
         apply_scale(&app, dpi);
       }
     }

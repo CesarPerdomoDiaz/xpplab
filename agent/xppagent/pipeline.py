@@ -371,7 +371,10 @@ class Pipeline:
         if not news and not conflicting:
             return False
         path = self._path(task)
-        conflict = self.repo.merge_base(path)
+        head = self.repo.head(path)
+        # Bring in the base only when GitHub says the branch conflicts with
+        # it: otherwise a merge commit would only clutter the pull request.
+        conflict = self.repo.merge_base(path) if conflicting else ""
         if news or conflict:
             what = ("The maintainer commented on your pull request:" if news else
                     f"Your branch no longer merges cleanly into {self.cfg.base}.")
@@ -380,7 +383,15 @@ class Pipeline:
                 details += (f"\n\nMerging origin/{self.cfg.base} into the branch left "
                             f"conflicts (the merge is in progress); resolve them and "
                             f"commit:\n{conflict}")
-            self._fix(task, path, what, details, tag=f"{task.issue}-owner")
+            res = self._fix(task, path, what, details, tag=f"{task.issue}-owner")
+            answer = res.json_block() or {}
+            if self.repo.head(path) == head and not self.repo.dirty(path):
+                # Nothing changed (a question, or nothing to do): answer, and
+                # go on waiting for the owner.
+                reply = (answer.get("summary") or answer.get("question")
+                         or res.text[-1500:]).strip()
+                self.gh.comment(task.pr, f"🤖 {reply}")
+                return True
         ok, _ = self._gates(task, path)
         if not ok:
             return True

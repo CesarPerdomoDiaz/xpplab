@@ -453,3 +453,24 @@ def test_labelling_a_failed_task_again_carries_on_where_it_stopped(world):
     w.sup.tick()
     assert w.task(n) is t and t.stage == "owner" and t.pr == pr
     assert "agent:working" in w.gh.label_names(n) and "errors" not in t.rounds
+
+
+def test_a_comment_that_needs_no_change_gets_an_answer_and_no_push(world):
+    w = world
+    n = w.gh.new_issue("Add a hello file")
+    w.claude.on("implement", hello)
+    w.claude.on("review", lambda p, cwd: approve())
+    ticks(w, 4)
+    t = w.task(n)
+    before = sh("git", "rev-parse", t.branch, cwd=w.origin)
+    write(w.seed, "OTHER.txt", "main moved on\n")          # no conflict
+    sh("git", "add", "OTHER.txt", cwd=w.seed)
+    sh("git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-m", "x", cwd=w.seed)
+    sh("git", "push", str(w.origin), "main", cwd=w.seed)
+    w.gh.say(n, "Thanks, looks fine. Why hello?")
+    w.claude.on("owner", lambda p, cwd: "```json\n{\"status\": \"no-change\", "
+                "\"summary\": \"The issue asked for it.\"}\n```")
+    w.sup.tick()
+    assert t.stage == "owner"
+    assert sh("git", "rev-parse", t.branch, cwd=w.origin) == before   # nothing pushed
+    assert any("The issue asked for it." in b for b in w.gh.said(t.pr))

@@ -52,5 +52,14 @@ elseif(APPLE)
 else()
   set(CPACK_GENERATOR TGZ)
 endif()
-set(CPACK_PACKAGE_FILE_NAME "XPPStudio-${PROJECT_VERSION}-${CMAKE_SYSTEM_NAME}")
+# The same names in every release, so that the README can link to
+# releases/latest/download/<name> and the links never break.
+if(WIN32)
+  set(XPPS_PACKAGE_OS "Windows-x64")
+elseif(APPLE)
+  set(XPPS_PACKAGE_OS "macOS")           # universal in release builds
+else()
+  set(XPPS_PACKAGE_OS "Linux-${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+set(CPACK_PACKAGE_FILE_NAME "XPPStudio-${XPPS_PACKAGE_OS}")
 include(CPack)

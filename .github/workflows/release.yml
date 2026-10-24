@@ -1,15 +1,20 @@
 name: Release
 
 # Push a tag like v0.1.0 to build the desktop app for Windows, macOS and
-# Linux, and attach them to a GitHub release. Run it by hand (workflow
-# dispatch) to build the same packages as downloadable artifacts only.
+# Linux and the Python wheels, test each package as a user gets it, and
+# publish them in a GitHub release with checksums and notes
+# (.github/release-notes.md). Run it by hand (workflow dispatch) to build
+# the same packages as downloadable artifacts only.
+#
+# The packages keep the same names in every release, so that
+# releases/latest/download/<name> always points at the newest one.
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   windows:
@@ -32,6 +37,24 @@ jobs:
           cmake -S . -B build -G Ninja -DXPPS_BUILD_TESTS=OFF
           cmake --build build
           cd build && cpack
+      # Unzipped elsewhere, with nothing from MSYS2 on PATH: a missing DLL
+      # shows here, not on a user's machine.
+      - name: The unzipped app starts and renders
+        shell: pwsh
+        run: |
+          $pkg = Join-Path $env:RUNNER_TEMP "pkg"
+          Expand-Archive build\XPPStudio-Windows-x64.zip $pkg
+          $dir = Join-Path $pkg "XPPStudio-Windows-x64"
+          Get-ChildItem $dir | Select-Object Name, Length | Format-Table
+          foreach ($f in "LICENSE", "THIRD-PARTY-NOTICES.md", "licenses\LGPL-2.1.txt", "examples\lecar.ode") {
+            if (-not (Test-Path (Join-Path $dir $f))) { throw "missing from the zip: $f" }
+          }
+          if (Get-ChildItem (Join-Path $dir "examples") -Filter "*~") { throw "editor backups in the examples" }
+          $env:Path = "C:\Windows\System32;C:\Windows"
+          $p = Start-Process -FilePath (Join-Path $dir "xppstudio.exe") -WorkingDirectory $dir -Wait -PassThru `
+               -ArgumentList 'examples/lecar.ode', '--cmd', '"auto steady iapp"', '--screenshot', 'shot.png', '--frames', '10'
+          if (Test-Path (Join-Path $dir "shot.png.err")) { Get-Content (Join-Path $dir "shot.png.err") }
+          if (-not (Test-Path (Join-Path $dir "shot.png"))) { throw "no screenshot (exit code $($p.ExitCode))" }
       - uses: actions/upload-artifact@v4
         with:
           name: app-windows
@@ -53,9 +76,15 @@ jobs:
       - name: Check the packaged app (architectures, libraries, signature, start-up)
         run: |
           yes | hdiutil attach build/XPPStudio-*.dmg -mountpoint /tmp/xpps -nobrowse -readonly
+          ls -la /tmp/xpps
+          test -f /tmp/xpps/LICENSE && test -f /tmp/xpps/THIRD-PARTY-NOTICES.md
           bundle=$(ls -d /tmp/xpps/*.app | head -1)
           exe="$bundle/Contents/MacOS/$(defaults read "$bundle/Contents/Info" CFBundleExecutable)"
           echo "bundle: $bundle"
+          test -f "$bundle/Contents/Resources/THIRD-PARTY-NOTICES.md"
+          if ls "$bundle"/Contents/Resources/examples/*~ "$bundle"/Contents/Resources/examples/a.out 2>/dev/null; then
+            echo "::error::build leftovers in the examples"; exit 1
+          fi
           lipo -archs "$exe"
           vtool -show-build "$exe" | grep -E "platform|minos" || true
           echo "libraries:" && otool -L "$exe"
@@ -78,7 +107,9 @@ jobs:
             macos-release.bmp
 
   linux:
-    runs-on: ubuntu-latest
+    # The oldest supported runner: a program built against an older glibc
+    # runs on newer distributions, not the other way round.
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Build dependencies for SDL3
@@ -86,26 +117,100 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build libx11-dev libxext-dev libxrandr-dev \
             libxcursor-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libwayland-dev \
-            wayland-protocols libegl1-mesa-dev libgl1-mesa-dev libdbus-1-dev
+            wayland-protocols libegl1-mesa-dev libgl1-mesa-dev libdbus-1-dev xvfb
       - run: |
           cmake -S . -B build -G Ninja -DXPPS_BUILD_TESTS=OFF -DXPPS_FETCH_SDL3=ON
           cmake --build build
           cd build && cpack
+      - name: The unpacked app starts and renders
+        run: |
+          mkdir -p /tmp/pkg && tar xzf build/XPPStudio-Linux-x86_64.tar.gz -C /tmp/pkg
+          cd /tmp/pkg/XPPStudio-Linux-x86_64
+          ls -la
+          test -f LICENSE && test -f THIRD-PARTY-NOTICES.md && test -f examples/lecar.ode
+          if ls examples/*~ examples/a.out 2>/dev/null; then echo "::error::build leftovers"; exit 1; fi
+          if ldd ./xppstudio | grep "not found"; then echo "::error::missing libraries"; exit 1; fi
+          xvfb-run -a ./xppstudio examples/lecar.ode --cmd "auto steady iapp" \
+            --screenshot shot.png --frames 10 || true
+          cat shot.png.err 2>/dev/null || true
+          test -s shot.png
       - uses: actions/upload-artifact@v4
         with:
           name: app-linux
           path: build/XPPStudio-*.tar.gz
 
+  wheels:
+    name: Wheel (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: MinGW-w64 toolchain (Windows)
+        if: runner.os == 'Windows'
+        id: msys2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+      - name: Put MinGW-w64 on PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "${{ steps.msys2.outputs.msys2-location }}\ucrt64\bin" >> $env:GITHUB_PATH
+      - name: Build and test the wheels
+        run: |
+          python -m pip install cibuildwheel
+          python -m cibuildwheel --output-dir wheelhouse
+        env:
+          # The wheel is py3-none-<platform>: one build serves every Python 3.
+          CIBW_BUILD: "cp312-*"
+          CIBW_SKIP: "*-musllinux_*"
+          CIBW_ARCHS_LINUX: "x86_64"
+          CIBW_ARCHS_WINDOWS: "AMD64"
+          CIBW_ARCHS_MACOS: "universal2"
+          CIBW_ENVIRONMENT_WINDOWS: CC=gcc CMAKE_GENERATOR=Ninja
+          CIBW_TEST_REQUIRES: pytest matplotlib pandas
+          CIBW_TEST_COMMAND: pytest -q {project}/python/tests
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.os }}
+          path: wheelhouse/*.whl
+
   publish:
-    needs: [windows, macos, linux]
+    needs: [windows, macos, linux, wheels]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+      - name: Checksums and release notes
+        run: |
+          (cd dist && sha256sum XPPStudio-* *.whl > SHA256SUMS && cat SHA256SUMS)
+          version="${GITHUB_REF_NAME#v}"
+          sed -e "s/@VERSION@/$version/g" -e "s/@TAG@/$GITHUB_REF_NAME/g" \
+              .github/release-notes.md > notes.md
+          { echo; echo "## Checksums (SHA-256)"; echo; echo '```text'; cat dist/SHA256SUMS; echo '```'; } >> notes.md
       - uses: softprops/action-gh-release@v2
         with:
-          files: dist/XPPStudio-*
+          name: XPP Studio ${{ github.ref_name }}
+          body_path: notes.md
+          # GitHub's list of the changes since the last release follows the notes.
           generate_release_notes: true
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
+          files: |
+            dist/XPPStudio-*
+            dist/*.whl
+            dist/SHA256SUMS

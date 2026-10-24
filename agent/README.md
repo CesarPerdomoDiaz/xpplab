@@ -241,8 +241,20 @@ within a minute, then a draft pull request.
 | Pause, resume | the `agent:paused` label on the log issue, or the file `C:\xpps-agent\STOP` |
 | Stop, start | `Stop-ScheduledTask` / `Start-ScheduledTask -TaskName "XPP Studio maintainer agent"` |
 | Change settings | edit `C:\xpps-agent\config.toml`, then stop and start the task |
-| Update the agent | `git pull` in `C:\src\xppstudio`, then run the installer again (it keeps the settings, secrets and state) |
+| Update the agent | `agent\install\update-agent.ps1`, as administrator. It pulls `C:\src\xppstudio`, lets the agent finish its step, copies the new code and restarts it, keeping the settings, secrets and state |
 | Remove it | `agent\install\uninstall-agent.ps1` (add `-Purge` to delete its folder and account too) |
+
+### Looking after it from another computer
+
+`agent\install\enable-ssh.ps1 -PublicKey "ssh-ed25519 ..."`, run once as
+administrator, lets one other computer log in over SSH, but only through
+Tailscale and only with that key. Password logins are turned off, and port
+22 is closed to everything outside the tailnet. From that computer, updates,
+logs and restarts then need no Remote Desktop:
+
+```
+ssh you@<workstation> "powershell -File C:\src\xppstudio\agent\install\update-agent.ps1"
+```
 
 ## Trying it on another computer
 

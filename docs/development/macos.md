@@ -69,8 +69,16 @@ the pixel density, the interface scale and the renderer, so a run from
 Terminal shows the numbers. On that Windows laptop it reads: display scale
 1.25, pixel density 1.00, interface scale 1.25, renderer direct3d11.
 
-**Still to confirm on the Mac** with the `.dmg` that CI builds from this
-branch.
+**Confirmed on that MacBook Air** the same day, built from this branch.
+The start-up line read: window 1470x809 (2940x1618 pixels),
+display scale 2.00, pixel density 2.00, interface scale 1.00, renderer
+metal. The interface fills the window, and text is sharp at full
+resolution.
+
+![XPP Studio on a Retina MacBook Air](../images/macos-retina.png)
+
+*The fixed app on the M2 MacBook Air (macOS 26.6), shown at half its
+2940 × 1618 pixels.*
 
 ## What already works
 
@@ -118,13 +126,12 @@ So each push that touches code costs about 67 billed minutes, nearly half
 of it macOS; GitHub Free includes 2,000 a month. On a public repository
 standard runners are free, which ends this cost.
 
-### 1. Draw correctly on Retina — fixes written
+### 1. Draw correctly on Retina — done
 
-The two fixes described above. What is left is to run them on a real Mac.
+The two fixes described above, confirmed on the MacBook Air. CI passed
+on the branch.
 
-- **Cost:** nothing more to write. One CI run when the branch is pushed
-  (about 67 billed minutes, 30 of them macOS); a tester downloads the `.dmg`
-  from the run's artifacts, or builds from source as in the README.
+- **Cost:** one CI run (about 67 billed minutes, 30 of them macOS).
 
 ### 2. Open without a warning: Developer ID and notarization
 
@@ -391,7 +398,7 @@ The plan:
 
 | Step | For students | Work | Money | Billed CI minutes |
 |---|---|---|---|---|
-| 1. Retina drawing and scale | the app is usable at all | done; needs a Mac to confirm | – | one CI run, about 67 (30 macOS) |
+| 1. Retina drawing and scale | the app is usable at all | done, confirmed on a Mac | – | one CI run, about 67 (30 macOS) |
 | 2. Developer ID, notarization | opens without a warning | about 1 day | US$99 a year | a few release runs of 40+; then per release |
 | 3. Fit a 13-inch screen | nothing cut off | 0.5–1 day | – | Windows and Linux only |
 | 4. Appearance, quit prompt, save copies, ⌘W ⌘, | no lost work, looks right | 1–2 days | – | Windows and Linux mostly |
@@ -404,8 +411,9 @@ The plan:
 
 ## What is needed from people
 
-- **A Mac:** a run of the fixed build, a screenshot and the Terminal
-  output.
+- **A Mac the developers can reach**, so sessions on
+  a PC can build and take screenshots there. A person is needed for anything
+  on the screen itself: Gatekeeper, Finder, the trackpad.
 - **An Apple Developer account** (step 2), and then the certificate
   and API key as repository secrets.
 - **One or two more Mac testers**, ideally one with an Intel Mac. CI runs

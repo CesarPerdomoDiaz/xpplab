@@ -354,6 +354,12 @@ bool app_auto_equilibria(App *a);
 bool app_auto_continue(App *a, int point, const char *action);
 void app_auto_reset(App *a);
 void app_auto_refresh(App *a);
+/* The diagram to and from an .auto file (XPPAUT's AUTO > File > Save and
+   Load diagram), and the periodic orbit at a point as the run (Import
+   orbit). */
+bool app_auto_save(App *a, const char *path);
+bool app_auto_load(App *a, const char *path);
+bool app_auto_orbit(App *a, int point);
 bool app_auto_push_settings(App *a);
 /* Actions available from a diagram point, as (label, key) pairs. */
 int app_auto_actions(App *a, int point, const char **labels, const char **keys,

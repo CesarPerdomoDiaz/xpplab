@@ -67,6 +67,12 @@ CASES = [
         "use hopf", "auto set parmax=0.6 nmax=220", "auto steady iapp",
         "auto from 2 periodic", "export {out}/diagram.csv auto",
         "auto reset", "auto steady iapp", "export {out}/again.csv auto"]),
+    ("auto_files", "lecar.ode", [
+        "use hopf", "auto set parmax=0.6 nmax=220", "auto steady iapp",
+        "auto from 2 periodic", "auto save {out}/d.auto", "auto reset",
+        "auto load {out}/d.auto", "export {out}/loaded.csv auto",
+        "auto orbit 6", "export {out}/orbit.csv",
+        "auto from 17 extend", "export {out}/continued.csv auto"]),
     ("auto_two", "lecar.ode", [
         "use hopf", "auto set parmax=0.6 nmax=220", "auto steady iapp",
         "auto from 2 two", "export {out}/diagram.csv auto"]),

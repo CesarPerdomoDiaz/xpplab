@@ -185,7 +185,7 @@ To do:
 ### M10 XPPAUT parity sprint: the features the interface still lacked
 - [x] Equilibria over a parameter (Sing pts > Range) and every equilibrium
       in a box (Sing pts > Monte Carlo), in the C API, Python and the app
-- [ ] Save and reload AUTO diagrams; import an orbit
+- [x] Save and reload AUTO diagrams (exactly, unlike XPPAUT's 6 digits); import an orbit
 - [ ] Range over two parameters
 - [ ] Initial values from a file, a formula, Shift, several clicks
 - [ ] Freeze and save nullclines

@@ -1,7 +1,7 @@
-site_name: XPP Studio
+site_name: XPP Lab
 site_description: XPPAUT's engine with a modern interface and a Python package
-site_url: https://cesarperdomodiaz.github.io/xppstudio/
-repo_url: https://github.com/CesarPerdomoDiaz/xppstudio
+site_url: https://cesarperdomodiaz.github.io/xpplab/
+repo_url: https://github.com/CesarPerdomoDiaz/xpplab
 edit_uri: edit/main/docs/
 docs_dir: docs
 site_dir: build/site

@@ -1,8 +1,8 @@
-# Contributing to XPP Studio
+# Contributing to XPP Lab
 
 Thank you for helping! Bug reports, models that do not work, ideas and code
 are all welcome. For reports, please use the
-[issue templates](https://github.com/CesarPerdomoDiaz/xppstudio/issues/new/choose).
+[issue templates](https://github.com/CesarPerdomoDiaz/xpplab/issues/new/choose).
 
 ## Build and test
 
@@ -21,7 +21,7 @@ commit. `tests/golden.py` checks every example model bit for bit against it.
 - New features go in `engine/api/`, `engine/platform/`, `app/` and
   `python/`, never in a rewrite of XPPAUT's numerics.
 - If XPPAUT's code must change (a genuine bug, or a guard for embedding),
-  keep the change minimal and mark it with an `XPP Studio` comment. Bug fixes
+  keep the change minimal and mark it with an `XPP Lab` comment. Bug fixes
   also get an entry in `docs/upstream-issues.md`.
 - If a change alters the golden output on purpose, explain why in the
   commit, and re-record with `python tests/golden.py record`.

@@ -1,9 +1,9 @@
-# Test XPP Studio on a real Mac
+# Test XPP Lab on a real Mac
 
 *A prompt for Claude Code on a Mac. Open a clone of this repository in
 Claude Code and say: "Follow tests/macos/TEST-PROMPT.md".*
 
-You are testing XPP Studio on a real Mac, with a tester beside you. CI already
+You are testing XPP Lab on a real Mac, with a tester beside you. CI already
 builds and tests everything on GitHub's Apple Silicon runner
 (`docs/development/macos.md`, Phase 1). Your job is what CI cannot see: the
 download as a user gets it, the first run, Retina drawing, the trackpad,
@@ -32,7 +32,7 @@ brew install cmake ninja pkg-config sdl3 libx11 gh python
 ## 1. The release, as a user gets it
 
 1. Download the newest release's disk image into a new folder:
-   `gh release download --repo CesarPerdomoDiaz/xppstudio --pattern 'XPPStudio-macOS.dmg' --dir ~/xpps-test`.
+   `gh release download --repo CesarPerdomoDiaz/xpplab --pattern 'XPPLab-macOS.dmg' --dir ~/xpps-test`.
 2. Ask the tester to double-click the `.dmg`, drag the app to *Applications*, and
    open it by double-clicking, as a user would. Note exactly what macOS
    shows and what they had to do (`TESTING.md` describes *Open Anyway* and
@@ -45,8 +45,8 @@ brew install cmake ninja pkg-config sdl3 libx11 gh python
    panels complete, the theme right?
 
    ```
-   A=/Applications/xppstudio.app/Contents/MacOS/xppstudio
-   E=/Applications/xppstudio.app/Contents/Resources/examples
+   A=/Applications/xpplab.app/Contents/MacOS/xpplab
+   E=/Applications/xpplab.app/Contents/Resources/examples
    $A $E/lecar.ode --cmd nullclines --cmd "show phase" --screenshot ~/xpps-test/phase.png
    $A $E/lecar.ode --cmd "use hopf" --cmd "auto set parmax=0.6 nmax=220" --cmd "auto steady iapp" --cmd "auto from 2 periodic" --cmd "show auto" --screenshot ~/xpps-test/auto.png
    $A $E/lorenz.ode --cmd view3d --screenshot ~/xpps-test/view3d.png
@@ -56,7 +56,7 @@ brew install cmake ninja pkg-config sdl3 libx11 gh python
    ```
 
    If the examples are elsewhere in the bundle, find them with
-   `find /Applications/xppstudio.app -name lecar.ode`. If a run fails, read
+   `find /Applications/xpplab.app -name lecar.ode`. If a run fails, read
    the `.err` file it leaves next to the output.
 
 ## 2. Built from source
@@ -71,7 +71,7 @@ python3 tests/golden.py compare --exe build/cli/xppaut-headless --reference buil
 python3 -m venv .venv && . .venv/bin/activate && pip install numpy pytest matplotlib pandas
 PYTHONPATH=python/src python -m pytest -q python/tests
 python -m pytest -q agent/tests
-pip install . && python -c "import xppstudio as xs, os; m = xs.load(os.path.abspath('engine/xppaut/ode/lecar.ode')); print(m.run(total=50))"
+pip install . && python -c "import xpplab as xs, os; m = xs.load(os.path.abspath('engine/xppaut/ode/lecar.ode')); print(m.run(total=50))"
 ```
 
 The golden comparison must report every model as matching. For any
@@ -102,7 +102,7 @@ down what happened, in their words where it matters:
 - **3D and Animator:** View > 3D View with Spin; View > Animator on
   `doubpend.ode` with `doubpend.ani`.
 - **Battery:** with the app open and idle for a minute, its CPU use in
-  Activity Monitor (or `top -l 2 -pid $(pgrep -n xppstudio)`). An idle app
+  Activity Monitor (or `top -l 2 -pid $(pgrep -n xpplab)`). An idle app
   should use almost none.
 
 ## 4. The report

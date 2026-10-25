@@ -233,7 +233,7 @@ void init_ar_ic()
     ar_ic[i].index0=-1;
     ar_ic[i].formula[0]=0;
     ar_ic[i].n=0;
-    ar_ic[i].var[0]=0; /* XPP Studio fix: was var[i], out of bounds for i>=20 */
+    ar_ic[i].var[0]=0; /* XPP Lab fix: was var[i], out of bounds for i>=20 */
     ar_ic[i].type=0;
   }
 }

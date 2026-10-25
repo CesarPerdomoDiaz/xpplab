@@ -109,7 +109,7 @@ int xppe_same_name(const char *a, const char *b) {
 
 int xppe_api_version(void) { return XPPE_API_VERSION; }
 
-const char *xppe_version(void) { return "XPPAUT 8.0 engine (XPP Studio)"; }
+const char *xppe_version(void) { return "XPPAUT 8.0 engine (XPP Lab)"; }
 
 const char *xppe_log(void) { return last_log ? last_log : ""; }
 

@@ -6,11 +6,11 @@
 
 // The application manifest (resource type 24, RT_MANIFEST, number 1): the
 // UTF-8 code page, so that file names with non-ASCII letters open.
-1 24 "xppstudio.manifest"
+1 24 "xpplab.manifest"
 
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION 0,1,0,0
-PRODUCTVERSION 0,1,0,0
+FILEVERSION 0,1,1,0
+PRODUCTVERSION 0,1,1,0
 FILEOS VOS_NT_WINDOWS32
 FILETYPE VFT_APP
 BEGIN
@@ -18,12 +18,12 @@ BEGIN
   BEGIN
     BLOCK "040904B0"
     BEGIN
-      VALUE "FileDescription", "XPP Studio - dynamical systems and bifurcation analysis"
-      VALUE "ProductName", "XPP Studio"
-      VALUE "FileVersion", "0.1.0"
-      VALUE "ProductVersion", "0.1.0"
+      VALUE "FileDescription", "XPP Lab - dynamical systems and bifurcation analysis"
+      VALUE "ProductName", "XPP Lab"
+      VALUE "FileVersion", "0.1.1"
+      VALUE "ProductVersion", "0.1.1"
       VALUE "LegalCopyright", "GPL-2.0-or-later. Engine: XPPAUT by G. B. Ermentrout."
-      VALUE "OriginalFilename", "xppstudio.exe"
+      VALUE "OriginalFilename", "xpplab.exe"
     END
   END
   BLOCK "VarFileInfo"

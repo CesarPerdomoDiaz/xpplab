@@ -1,10 +1,10 @@
-# XPP Studio
+# XPP Lab
 
 **XPPAUT's engine, with a modern interface and a Python package.**
 
 Simulate differential equations, maps, delay and stochastic equations.
 Explore phase planes with nullclines and flow. Compute bifurcation
-diagrams with AUTO. XPP Studio runs XPPAUT 8.0's own numerical code,
+diagrams with AUTO. XPP Lab runs XPPAUT 8.0's own numerical code,
 natively on Windows, macOS and Linux, with no X11 server and no Fortran
 compiler.
 
@@ -26,7 +26,7 @@ window, a command window and this manual built in.
 and notebooks:
 
 ```python
-import xppstudio as xs
+import xpplab as xs
 
 m = xs.load("lecar.ode")
 sol = m.run(total=200)
@@ -37,7 +37,7 @@ m.auto.diagram.plot("V")
 
 [Get started with Python](python/quickstart.md).
 
-## Why XPP Studio
+## Why XPP Lab
 
 - **Your models work.** Any XPPAUT `.ode` file loads unchanged.
 - **The numbers are XPPAUT's.** Every example model is checked bit for bit

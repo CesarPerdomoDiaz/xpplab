@@ -1868,7 +1868,7 @@ fnhbae(iap_type *iap, rap_type *rap, doublereal *par, integer *icp, logical *chn
   doublereal rev;
   integer isw;
 
-  /* XPP Studio fix: calloc. eig() fills the first ndm entries, but
+  /* XPP Lab fix: calloc. eig() fills the first ndm entries, but
      send_eigen() below reads all ndim of them. */
   ev = (doublecomplex *)calloc(iap->ndim, sizeof(doublecomplex));
 

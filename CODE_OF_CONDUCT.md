@@ -1,6 +1,6 @@
 # Code of conduct
 
-XPP Studio follows the
+XPP Lab follows the
 [Contributor Covenant, version 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
 In short: be welcoming and patient, assume good intent, criticise ideas
 and not people, and leave out harassment of any kind. Many people here
@@ -14,7 +14,7 @@ and wherever someone represents it.
 
 If someone's behaviour worries you, tell the maintainer privately: open a
 report on the
-[Security tab](https://github.com/CesarPerdomoDiaz/xppstudio/security/advisories/new)
+[Security tab](https://github.com/CesarPerdomoDiaz/xpplab/security/advisories/new)
 and say that it is about conduct. Reports are read only by the maintainer
 and kept confidential. The maintainer may remove comments, and may ban
 people who keep breaking these rules.

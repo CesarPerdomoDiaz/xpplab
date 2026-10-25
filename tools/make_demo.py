@@ -5,7 +5,7 @@ of timed commands changes parameters, starts trajectories, runs AUTO or
 plays an animation, and every frame is saved. Pillow joins the frames into
 GIFs in docs/images.
 
-    python tools/make_demo.py [--exe build/app/xppstudio.exe] [--only NAME ...]
+    python tools/make_demo.py [--exe build/app/xpplab.exe] [--only NAME ...]
 """
 import argparse
 import math
@@ -151,7 +151,7 @@ def shot(exe, out, args, size="1400x860", frames=12):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--exe", default=str(ROOT / "build" / "app" / "xppstudio.exe"))
+    ap.add_argument("--exe", default=str(ROOT / "build" / "app" / "xpplab.exe"))
     ap.add_argument("--only", nargs="*", help=f"some of: {', '.join(DEMOS)}, stills")
     args = ap.parse_args()
     exe = Path(args.exe).resolve()

@@ -1,10 +1,11 @@
-# xppstudio
+# xpplab
 
 XPPAUT's simulation and AUTO bifurcation engine for Python. Install it with
-pip; there is nothing to compile and no X11 server is needed.
+pip; there is nothing to compile and no X11 server is needed. Until version
+0.1.1 this package was called `xppstudio`.
 
 ```python
-import xppstudio as xs
+import xpplab as xs
 
 m = xs.load("lecar.ode")              # any XPPAUT .ode file
 sol = m.run(total=200, iapp=0.1)     # NumPy arrays: sol.t, sol["V"]
@@ -29,5 +30,5 @@ m.auto.diagram.plot("V")             # matplotlib, XPPAUT's colours
 - **Fidelity**: the numerics are XPPAUT 8.0's own C code. The test suite
   checks the output against unmodified XPPAUT bit for bit.
 
-Part of [XPP Studio](https://github.com/CesarPerdomoDiaz/xppstudio). GPL-2.0-or-later,
+Part of [XPP Lab](https://github.com/CesarPerdomoDiaz/xpplab). GPL-2.0-or-later,
 like XPPAUT.

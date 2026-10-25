@@ -1,7 +1,7 @@
 """Build the examples gallery for the documentation website.
 
 Every XPPAUT example model that runs in batch mode is integrated with the
-xppstudio package and drawn as a small plot. The page lists each model with
+xpplab package and drawn as a small plot. The page lists each model with
 the description from its leading comments.
 
     python tools/make_gallery.py [--limit N]
@@ -21,14 +21,14 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 try:  # an installed package (with its engine) wins over the source tree
-    import xppstudio as xs
+    import xpplab as xs
 except ImportError:
     sys.path.insert(0, str(ROOT / "python" / "src"))
-    import xppstudio as xs
+    import xpplab as xs
 
 ODE = ROOT / "engine" / "xppaut" / "ode"
 OUT = ROOT / "docs" / "gallery"
-REPO = "https://github.com/CesarPerdomoDiaz/xppstudio/blob/main/engine/xppaut/ode/"
+REPO = "https://github.com/CesarPerdomoDiaz/xpplab/blob/main/engine/xppaut/ode/"
 
 
 def describe(path: Path) -> str:
@@ -79,7 +79,7 @@ def main():
             break
     lines = ["# Examples gallery", "",
              f"The {len(entries)} example models that ship with XPPAUT, run by "
-             "XPP Studio. Open any of them from the app's **Models** window, "
+             "XPP Lab. Open any of them from the app's **Models** window, "
              "or in Python with `xs.load(\"name.ode\")`.", ""]
     for path, variables, params in entries:
         about = describe(path) or "No description in the file."

@@ -1,9 +1,9 @@
-"""The tools of the XPP Studio MCP server, as plain Python.
+"""The tools of the XPP Lab MCP server, as plain Python.
 
 Every public method of :class:`Session` is one tool. It takes JSON-ready
 arguments and returns a JSON-ready dict: small summaries inline, big arrays
 in CSV files in the work folder, and a ``python`` entry with the code that
-reproduces the result with the ``xppstudio`` package. Nothing here imports
+reproduces the result with the ``xpplab`` package. Nothing here imports
 the MCP SDK, so the tools can be used and tested without it.
 
 State. A model is named by a path, an example name or its text. Each call
@@ -72,9 +72,9 @@ def _repo_dir() -> Path:
 
 
 def examples_dir() -> Path | None:
-    """The folder of example models: $XPPSTUDIO_EXAMPLES, the copy inside
+    """The folder of example models: $XPPLAB_EXAMPLES, the copy inside
     the installed package, or engine/xppaut/ode in a source checkout."""
-    env = os.environ.get("XPPSTUDIO_EXAMPLES")
+    env = os.environ.get("XPPLAB_EXAMPLES")
     cands = [Path(env)] if env else []
     cands += [_package_dir() / "examples", _repo_dir() / "engine" / "xppaut" / "ode"]
     for c in cands:
@@ -221,16 +221,16 @@ class Session:
     @property
     def workdir(self) -> Path:
         """Where CSV files, figures and inline models go: --workdir,
-        $XPPSTUDIO_WORKDIR, ./xppstudio-out, or a temporary folder when the
+        $XPPLAB_WORKDIR, ./xpplab-out, or a temporary folder when the
         current one is not writable."""
         if self._workdir is None:
-            env = os.environ.get("XPPSTUDIO_WORKDIR")
+            env = os.environ.get("XPPLAB_WORKDIR")
             if env:
                 self._workdir = Path(env).resolve()
             elif os.access(self.cwd, os.W_OK):
-                self._workdir = self.cwd / "xppstudio-out"
+                self._workdir = self.cwd / "xpplab-out"
             else:
-                self._workdir = Path(tempfile.gettempdir()) / "xppstudio-out"
+                self._workdir = Path(tempfile.gettempdir()) / "xpplab-out"
         self._workdir.mkdir(parents=True, exist_ok=True)
         return self._workdir
 
@@ -410,7 +410,7 @@ class Session:
                 m.auto.set(**back)
 
     def _snippet(self, entry: _Entry, values, parameter_set, *body: str) -> str:
-        lines = ["import xppstudio as xs", entry.load_code]
+        lines = ["import xpplab as xs", entry.load_code]
         if parameter_set:
             lines.append(f"m.apply_set({parameter_set!r})")
         if values:
@@ -425,7 +425,7 @@ class Session:
         """Load a model and report parse errors with line numbers."""
         path, origin = self._resolve(model)
         text = path.read_text(encoding="latin-1")
-        snippet = f"import xppstudio as xs\nm = xs.load({path.as_posix()!r})"
+        snippet = f"import xpplab as xs\nm = xs.load({path.as_posix()!r})"
         try:
             entry, notes = self._entry(str(path))
         except _LoadError as err:
@@ -434,7 +434,7 @@ class Session:
                     "warnings": lint(text),
                     "next": "fix the line and call check_model again; the "
                             "format is described in the resource "
-                            "xppstudio://docs/ode-format",
+                            "xpplab://docs/ode-format",
                     "python": snippet}
         m = entry.model
         warnings = lint(text)
@@ -488,7 +488,7 @@ class Session:
         """Example models whose name or leading comment matches the query."""
         ex = examples_dir()
         if ex is None:
-            raise ToolError("no example folder found: set XPPSTUDIO_EXAMPLES to "
+            raise ToolError("no example folder found: set XPPLAB_EXAMPLES to "
                             "a folder of .ode files (XPPAUT's ode/ folder)")
         words = [w.lower() for w in query.split()]
         hits = []
@@ -825,7 +825,7 @@ class Session:
 
     def _chain(self, entry: _Entry, *tail: str) -> str:
         """The Python that repeats every AUTO step of a model in order."""
-        lines = ["import xppstudio as xs", entry.load_code]
+        lines = ["import xpplab as xs", entry.load_code]
         starts = sum(1 for s in entry.steps if s.start)
         if starts > 1:
             lines.append("defaults = {**m.parameters, **m.initial_conditions}")
@@ -1084,7 +1084,7 @@ class Session:
             import matplotlib.pyplot as plt
         except ImportError:
             raise ToolError("plots need matplotlib: pip install matplotlib "
-                            "(it comes with xppstudio[mcp])") from None
+                            "(it comes with xpplab[mcp])") from None
         fig, ax = plt.subplots(1, ncols, figsize=(7 if ncols == 1 else 11, 4.5))
         return plt, fig, ax
 
@@ -1179,7 +1179,7 @@ class Session:
             two.plot(ax=ax2)
             ax2.set_title("two-parameter curves")
             code = ["import matplotlib.pyplot as plt",
-                    "from xppstudio import Diagram",
+                    "from xpplab import Diagram",
                     "d = m.auto.diagram",
                     "fig, (a1, a2) = plt.subplots(1, 2, figsize=(11, 4.5))",
                     f"Diagram([p for p in d if not p.two_parameter], d.variables).plot({y!r}, ax=a1)",

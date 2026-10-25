@@ -1,15 +1,15 @@
 # Vision
 
-**XPP Studio brings the self-contained XPPAUT experience back to more
+**XPP Lab brings the self-contained XPPAUT experience back to more
 people.** You write a model, simulate it, look at its phase plane, follow
 its bifurcations with AUTO, and understand it, all in one program that
 installs in a minute on any computer. XPPAUT has offered this for thirty
-years to the people who could get it running. XPP Studio makes it
+years to the people who could get it running. XPP Lab makes it
 approachable for everyone else: students meeting differential equations
 for the first time, teachers, and researchers in neuroscience, biology,
 chemistry and engineering.
 
-This page says where the project is going. [The roadmap](https://github.com/CesarPerdomoDiaz/xppstudio/blob/main/ROADMAP.md)
+This page says where the project is going. [The roadmap](https://github.com/CesarPerdomoDiaz/xpplab/blob/main/ROADMAP.md)
 says how far it has got. The maintainer agent reads both when it proposes
 work.
 
@@ -42,7 +42,7 @@ work.
 
 ### 4. Beyond XPPAUT: control design
 
-Most tools that analyse a system stop at describing it. XPP Studio should
+Most tools that analyse a system stop at describing it. XPP Lab should
 also let you change it:
 
 - linearise a model at an equilibrium, with chosen inputs;
@@ -56,7 +56,7 @@ also let you change it:
 - Open source and easy to cite, with a paper, releases and a Python package
   on PyPI.
 - Ready for coding agents. Many researchers now work with assistants such as
-  Claude Code. XPP Studio gives those agents their own tools: an MCP server,
+  Claude Code. XPP Lab gives those agents their own tools: an MCP server,
   a skill and machine-readable results. An agent can then take an `.ode` model
   and run a whole analysis, while the researcher checks every step.
 

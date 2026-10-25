@@ -1,6 +1,6 @@
 name: PyPI
 
-# Publishes a release's wheels to PyPI, so that `pip install xppstudio`
+# Publishes a release's wheels to PyPI, so that `pip install xpplab`
 # works. PyPI trusts this workflow itself (trusted publishing): no PyPI
 # token is stored anywhere. It runs when a release is published, and by
 # hand for a given tag (the first upload created the project on PyPI).
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/project/xppstudio/
+      url: https://pypi.org/project/xpplab/
     permissions:
       contents: read
       id-token: write     # the identity PyPI checks, instead of a token

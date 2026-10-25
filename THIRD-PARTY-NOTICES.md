@@ -1,13 +1,13 @@
 # Third-party notices
 
-XPP Studio is free software under the GNU General Public License, version 2 or
+XPP Lab is free software under the GNU General Public License, version 2 or
 (at your option) any later version: see [LICENSE](LICENSE).
 
 Its downloads also contain the work of others, listed here with their licences.
 All of them allow this use. Because the desktop app has two fonts under the
 Apache License 2.0 built in, and that licence is compatible with version 3 of
 the GPL but not version 2, the desktop app as distributed is covered by
-GPL version 3, which the "any later version" of XPP Studio's licence allows.
+GPL version 3, which the "any later version" of XPP Lab's licence allows.
 The engine library and the Python package contain no Apache-licensed parts.
 
 ## XPPAUT and AUTO
@@ -16,7 +16,7 @@ The engine is XPPAUT 8.0 by G. Bard Ermentrout and contributors
 (http://www.math.pitt.edu/~bard/xpp/xpp.html), licensed under the GNU General
 Public License, version 2 or any later version (see `engine/xppaut/LICENSE` in
 the source). It contains AUTO by E. J. Doedel and collaborators, as translated
-to C within XPPAUT, and is distributed with XPPAUT under its terms. XPP Studio's
+to C within XPPAUT, and is distributed with XPPAUT under its terms. XPP Lab's
 changes to XPPAUT are marked in the source and listed in
 `docs/upstream-issues.md`.
 

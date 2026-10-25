@@ -199,7 +199,7 @@ void init_sums(t0,n,dt,i0,iend,ishift)
    int l,ioff,ker,i;
    SETVAR(0,t);
    SETVAR(PrimeStart,tp);
-   if(NKernel==0)return; /* XPP Studio fix: no Memory[] (see volterra()) */
+   if(NKernel==0)return; /* XPP Lab fix: no Memory[] (see volterra()) */
    for(l=0;l<nvar;l++)SETVAR(l+1,Memory[l][ishift]);
    for(ker=0;ker<NKernel;ker++){
      kernel[ker].k_n1=kernel[ker].k_n;
@@ -331,7 +331,7 @@ int volterra(y,t,dt,nt,neq,istart,work)
       }
     for(i=NODE;i<NODE+FIX_VAR;i++)       /* pass 2 for fixed variables      */
       SETVAR(i+1,evaluate(my_ode[i]));
-    /* XPP Studio fix: allocate_volterra() allocates Memory[] only when the
+    /* XPP Lab fix: allocate_volterra() allocates Memory[] only when the
        model has integrals (NKernel>0), so choosing the Volterra method for
        any other model wrote through null pointers here and crashed. The
        history is needed only for the integrals: without them it is not
@@ -437,7 +437,7 @@ int volt_step(y,t,dt,neq,yg,yp,yp2,ytemp,errvec,jac)
    SETVAR(i+1,evaluate(my_ode[i])); */
  for(i=0;i<NODE;i++)y[i]=yg[i];
  ind=CurrentPoint%MaxPoints;
- if(NKernel>0) /* XPP Studio fix: no Memory[] (see volterra()) */
+ if(NKernel>0) /* XPP Lab fix: no Memory[] (see volterra()) */
  for(i=0;i<NODE+FIX_VAR+NMarkov;i++)
    Memory[i][ind]=GETVAR(i+1);
  CurrentPoint++;

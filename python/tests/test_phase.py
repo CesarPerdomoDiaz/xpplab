@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import xppstudio as xs
+import xpplab as xs
 
 FHN = """
 v' = v - v^3/3 - w + I

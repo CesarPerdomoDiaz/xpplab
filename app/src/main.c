@@ -1,7 +1,7 @@
 /*
- * XPP Studio - the desktop application.
+ * XPP Lab - the desktop application.
  *
- *   xppstudio [model.ode] [--cmd "command"]... [--then "command"]...
+ *   xpplab [model.ode] [--cmd "command"]... [--then "command"]...
  *             [--screenshot out.bmp] [--frames N] [--size WxH] [--reset-layout]
  *             [--record DIR [--fps N] [--script FILE] [--at FRAME "command"]...]
  *             [--log FILE]
@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
     fail("SDL_Init");
     return 1;
   }
-  window = SDL_CreateWindow("XPP Studio", width, height,
+  window = SDL_CreateWindow("XPP Lab", width, height,
                             SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY |
                                 (scripted ? 0 : SDL_WINDOW_MAXIMIZED));
   if (!window) {
@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
     ImGuiIO *io = igGetIO_Nil();
     io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard |
                        ImGuiConfigFlags_DockingEnable;
-    pref = SDL_GetPrefPath("XPPStudio", "XPPStudio");
+    pref = app_pref_dir();
     snprintf(ini_path, sizeof ini_path, "%slayout.ini", pref ? pref : "");
     SDL_free(pref);
     io->IniFilename = scripted ? NULL : ini_path;
@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
     int w, h, pw, ph;
     SDL_GetWindowSize(window, &w, &h);
     SDL_GetWindowSizeInPixels(window, &pw, &ph);
-    fprintf(stderr, "XPP Studio: window %dx%d (%dx%d pixels), display scale %.2f, "
+    fprintf(stderr, "XPP Lab: window %dx%d (%dx%d pixels), display scale %.2f, "
             "pixel density %.2f, interface scale %.2f, renderer %s\n", w, h, pw, ph,
             (double)SDL_GetWindowDisplayScale(window),
             (double)SDL_GetWindowPixelDensity(window), (double)dpi,

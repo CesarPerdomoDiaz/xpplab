@@ -76,7 +76,7 @@ commands. `help` lists them all.
 The desktop app takes a model file and these options:
 
 ```
-xppstudio [model.ode] [options]
+xpplab [model.ode] [options]
 ```
 
 With no model, it opens `lecar.ode` from its examples the first time it
@@ -107,7 +107,7 @@ and CI can tell the two apart. The folder for `--record` must already exist.
 Take a screenshot of the phase plane after a run:
 
 ```
-xppstudio lecar.ode --cmd run --cmd "show phase" --screenshot s.png
+xpplab lecar.ode --cmd run --cmd "show phase" --screenshot s.png
 ```
 
 Record five seconds at 20 frames a second. The script `demo.txt`:
@@ -123,7 +123,7 @@ Record five seconds at 20 frames a second. The script `demo.txt`:
 and the command:
 
 ```
-xppstudio lecar.ode --record frames --fps 20 --frames 100 --script demo.txt
+xpplab lecar.ode --record frames --fps 20 --frames 100 --script demo.txt
 ```
 
 The frames in `frames/` can be turned into a video or an animated GIF with

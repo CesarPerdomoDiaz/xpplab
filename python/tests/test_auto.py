@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-import xppstudio as xs
+import xpplab as xs
 
 ROOT = Path(__file__).resolve().parents[2]
 ODE = ROOT / "engine" / "xppaut" / "ode"

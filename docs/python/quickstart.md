@@ -3,8 +3,8 @@
 ## Install
 
 ```
-pip install xppstudio            # the engine (NumPy is the only dependency)
-pip install "xppstudio[all]"     # plus matplotlib and pandas
+pip install xpplab            # the engine (NumPy is the only dependency)
+pip install "xpplab[all]"     # plus matplotlib and pandas
 ```
 
 The wheel contains the compiled XPPAUT engine. Nothing needs a compiler,
@@ -18,7 +18,7 @@ and no X11 server is involved.
 Any XPPAUT `.ode` file works. You can also write the model inline:
 
 ```python
-import xppstudio as xs
+import xpplab as xs
 
 m = xs.Model.from_text("""
 v' = v - v^3/3 - w + I

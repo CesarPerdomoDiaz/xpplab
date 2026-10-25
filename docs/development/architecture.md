@@ -1,6 +1,6 @@
 # Architecture
 
-XPP Studio wraps XPPAUT instead of rewriting it, so the numerics stay
+XPP Lab wraps XPPAUT instead of rewriting it, so the numerics stay
 identical. Everything new lives around the engine.
 
 ```
@@ -23,7 +23,7 @@ identical. Everything new lives around the engine.
 ## Keeping XPPAUT unchanged
 
 - `engine/xppaut/` started as the untouched XPPAUT 8.0 source; the first
-  commit holds it exactly. Every later edit carries an `XPP Studio` comment.
+  commit holds it exactly. Every later edit carries an `XPP Lab` comment.
   The edits are of three kinds:
   - **Embedding**: two lines in `main.c` let the engine stop after loading
     when embedded.

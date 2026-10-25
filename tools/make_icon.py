@@ -1,4 +1,4 @@
-"""Draw the XPP Studio icon: a limit cycle around an unstable equilibrium,
+"""Draw the XPP Lab icon: a limit cycle around an unstable equilibrium,
 with the two nullclines, on a rounded square.
 
     python tools/make_icon.py

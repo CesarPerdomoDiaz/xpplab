@@ -1117,7 +1117,7 @@ void find_ker(string,alt)   /* this extracts the integral operators from the str
 	inum++;
 	i++;
       }
-      /* XPP Studio fix: terminate the number. atof() read on into
+      /* XPP Lab fix: terminate the number. atof() read on into
 	 uninitialised stack, so the kernel exponent mu sometimes picked up
 	 stray digits (int[.5] became .57...): mlvolt.ode differed from run
 	 to run. */
@@ -1373,7 +1373,7 @@ int nnn;
  char big[MAXEXPLEN],old[MAXEXPLEN],new[MAXEXPLEN];
  char *my_string;
  int is_array=0;
- /* XPP Studio fix: after a line with no statements, v was tested below
+ /* XPP Lab fix: after a line with no statements, v was tested below
     (the Markov clean-up) without having been set. */
  memset(&v,0,sizeof v);
  if(nnn==0){init_varinfo();}
@@ -1768,7 +1768,7 @@ void compile_em() /* Now we try to keep track of markov, fixed, etc as
  char vnames[MAXODE1][MAXVNAM],fnames[MAXODE1][MAXVNAM],anames[MAXODE1][MAXVNAM];
  char mnames[MAXODE1][MAXVNAM];
  double z,xlo,xhi;
- /* XPP Studio fix: name was name[10], one byte short for a name of
+ /* XPP Lab fix: name was name[10], one byte short for a name of
     NAMLEN=10 characters in an init statement. Its terminating zero landed
     in tmp, and convert(name,tmp) then copied the name onto itself without
     end and overran the stack. Both now hold anything a line can. */
@@ -2649,7 +2649,7 @@ void read_a_line(fp,s)
 
   while(ok){
     ok=0;
-    /* XPP Studio fix: at the end of a file without "done", fgets() reads
+    /* XPP Lab fix: at the end of a file without "done", fgets() reads
        nothing and temp was used uninitialised. */
     if(fgets(temp,MAXEXPLEN,fp)==NULL)temp[0]=0;
 
@@ -2684,7 +2684,7 @@ void read_a_line(fp,s)
     }
   */
       
-  /* XPP Studio fix: n is 0 at the end of a file without "done"; s[n-1]
+  /* XPP Lab fix: n is 0 at the end of a file without "done"; s[n-1]
      was then the byte before the buffer. */
   if(n>0&&(s[n-1]=='\n'||s[n-1]=='\r'))s[n-1]=' ';
   s[n]=' ';

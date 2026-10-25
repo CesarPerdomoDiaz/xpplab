@@ -1,12 +1,12 @@
 # Coming from XPPAUT
 
-XPP Studio is XPPAUT with a new interface. The parts that compute (the
+XPP Lab is XPPAUT with a new interface. The parts that compute (the
 `.ode` parser, the fifteen integrators, the equilibrium solver, nullclines,
 AUTO) are XPPAUT 8.0's own C code. The test suite checks that every
 example model shipped with XPPAUT gives bit-for-bit the same output as
 unmodified XPPAUT in batch mode. The only changes fix genuine bugs, such as
 memory errors; each is listed in the
-[upstream issues](https://github.com/CesarPerdomoDiaz/xppstudio/blob/main/docs/upstream-issues.md)
+[upstream issues](https://github.com/CesarPerdomoDiaz/xpplab/blob/main/docs/upstream-issues.md)
 page.
 
 ## What stays the same
@@ -27,12 +27,12 @@ page.
 - An editor with error messages that point at the offending line.
 - AUTO without dialogs: the special points are listed in a table, and only
   the continuations that make sense from a point are offered, in plain words.
-- A command window to script what you do, and a Python package (`xppstudio`)
+- A command window to script what you do, and a Python package (`xpplab`)
   that runs the same engine, including AUTO, from notebooks.
 
 ## Where XPPAUT's menus went
 
-| XPPAUT | XPP Studio |
+| XPPAUT | XPP Lab |
 |---|---|
 | Initial conds > Go | Run button, F5, `run` |
 | Initial conds > Mouse | Phase Plane > Click to start |

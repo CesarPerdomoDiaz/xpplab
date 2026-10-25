@@ -4,7 +4,7 @@ The continuation is XPPAUT's own AUTO, run exactly as XPPAUT's AUTO window
 runs it, without the window:
 
 ```python
-m = xppstudio.load("lecar.ode")
+m = xpplab.load("lecar.ode")
 m.apply_set("hopf")
 d = m.auto.equilibria("iapp")            # steady states vs. iapp
 d.special()                              # labelled points: HB, LP, ...

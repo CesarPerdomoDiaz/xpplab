@@ -32,7 +32,7 @@ int go_go_auto() /* this is the entry  at this point, xAuto has been set */
   rap_type rap;
   function_list list;
   int irs=xAuto.irs;
-  /* XPP Studio fix: binary mode. findlb() in autlib1.c steps backwards
+  /* XPP Lab fix: binary mode. findlb() in autlib1.c steps backwards
      through fort.3 with relative fseek(), which only works when a line
      ends in one byte. In Windows text mode (CRLF) it lands on the wrong
      record, so restarting from a labelled point read garbage. The "b"
@@ -119,7 +119,7 @@ int go_go_auto() /* this is the entry  at this point, xAuto has been set */
   return 1;  /* normal return */
 }
 
-/* XPP Studio: AUTO's code calls exit() on a singular matrix (ge() in
+/* XPP Lab: AUTO's code calls exit() on a singular matrix (ge() in
    autlib1.c, "Division by Zero") and on a few other errors, which ends the
    whole program, and in the app it left the engine unusable. Embedded,
    such an exit() ends only this continuation: its files are closed here,

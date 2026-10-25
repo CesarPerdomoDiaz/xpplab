@@ -15,7 +15,7 @@
   <key>CFBundleName</key>
   <string>${MACOSX_BUNDLE_BUNDLE_NAME}</string>
   <key>CFBundleDisplayName</key>
-  <string>XPP Studio</string>
+  <string>XPP Lab</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -33,12 +33,12 @@
   <key>NSHumanReadableCopyright</key>
   <string>GPL-2.0-or-later. Engine: XPPAUT by G. B. Ermentrout; AUTO by E. J. Doedel.</string>
 
-  <!-- XPPAUT model files (.ode) open in XPP Studio from Finder. -->
+  <!-- XPPAUT model files (.ode) open in XPP Lab from Finder. -->
   <key>UTExportedTypeDeclarations</key>
   <array>
     <dict>
       <key>UTTypeIdentifier</key>
-      <string>org.xppstudio.ode</string>
+      <string>org.xpplab.ode</string>
       <key>UTTypeDescription</key>
       <string>XPPAUT model</string>
       <key>UTTypeConformsTo</key>
@@ -67,7 +67,7 @@
       <string>Owner</string>
       <key>LSItemContentTypes</key>
       <array>
-        <string>org.xppstudio.ode</string>
+        <string>org.xpplab.ode</string>
       </array>
     </dict>
   </array>

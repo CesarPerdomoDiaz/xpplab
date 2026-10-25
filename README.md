@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="app/resources/icon.png" width="128" alt="XPP Studio logo">
+  <img src="app/resources/icon.png" width="128" alt="XPP Lab logo">
 </p>
 
-<h1 align="center">XPP Studio</h1>
+<h1 align="center">XPP Lab</h1>
 
 <p align="center">
   <b>XPPAUT, modernized.</b><br>
@@ -10,10 +10,12 @@
   macOS and Linux, and a Python package.
 </p>
 
+<p align="center"><sub>Called XPP Studio until version 0.1.1.</sub></p>
+
 <p align="center">
-  <a href="https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/CesarPerdomoDiaz/xppstudio?include_prereleases&label=download&color=1d2b53"></a>
-  <a href="https://github.com/CesarPerdomoDiaz/xppstudio/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/CesarPerdomoDiaz/xppstudio/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://cesarperdomodiaz.github.io/xppstudio/"><img alt="Documentation" src="https://img.shields.io/badge/docs-online-3b5bdb"></a>
+  <a href="https://github.com/CesarPerdomoDiaz/xpplab/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/CesarPerdomoDiaz/xpplab?include_prereleases&label=download&color=1d2b53"></a>
+  <a href="https://github.com/CesarPerdomoDiaz/xpplab/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/CesarPerdomoDiaz/xpplab/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://cesarperdomodiaz.github.io/xpplab/"><img alt="Documentation" src="https://img.shields.io/badge/docs-online-3b5bdb"></a>
   <img alt="Engine" src="https://img.shields.io/badge/engine-XPPAUT%208.0%20%2B%20AUTO-ffd43b">
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPL--2.0--or--later-51cf66"></a>
 </p>
@@ -30,17 +32,17 @@
 
 | Your computer | Download | Then |
 |---|---|---|
-| **Windows** 10 or 11, 64-bit | [XPPStudio-Windows-x64.zip](https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest/download/XPPStudio-Windows-x64.zip) | Unzip it anywhere and run `xppstudio.exe` |
-| **macOS** 11 or later, Apple silicon or Intel | [XPPStudio-macOS.dmg](https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest/download/XPPStudio-macOS.dmg) | Open it and drag the app to *Applications* |
-| **Linux**, x86-64 | [XPPStudio-Linux-x86_64.tar.gz](https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest/download/XPPStudio-Linux-x86_64.tar.gz) | Unpack it and run `xppstudio` |
-| **Python** 3.9 or later | `pip install xppstudio` | `import xppstudio` |
+| **Windows** 10 or 11, 64-bit | [XPPLab-Windows-x64.zip](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest/download/XPPLab-Windows-x64.zip) | Unzip it anywhere and run `xpplab.exe` |
+| **macOS** 11 or later, Apple silicon or Intel | [XPPLab-macOS.dmg](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest/download/XPPLab-macOS.dmg) | Open it and drag the app to *Applications* |
+| **Linux**, x86-64 | [XPPLab-Linux-x86_64.tar.gz](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest/download/XPPLab-Linux-x86_64.tar.gz) | Unpack it and run `xpplab` |
+| **Python** 3.9 or later | `pip install xpplab` | `import xpplab` |
 
 Nothing else is needed: no X server, no compiler, no Terminal. The apps are
 not yet signed with a paid certificate, so the first time Windows or macOS
 asks you to confirm that you want to open them;
 [the install guide](docs/install.md) shows how, and how to check a download.
 Every release, with its notes and checksums, is on the
-[releases page](https://github.com/CesarPerdomoDiaz/xppstudio/releases).
+[releases page](https://github.com/CesarPerdomoDiaz/xpplab/releases).
 
 **First steps:** the Morris-Lecar model opens. Press **Run**, open the
 **Phase Plane** tab, tick **Nullclines** and drag the `iapp` slider. Then
@@ -48,16 +50,16 @@ press **F1** for the manual and its tutorial.
 
 ---
 
-## If you know XPPAUT, you already know XPP Studio
+## If you know XPPAUT, you already know XPP Lab
 
-XPP Studio runs **XPPAUT 8.0's own numerical code**: the same
+XPP Lab runs **XPPAUT 8.0's own numerical code**: the same
 `.ode` files, the same fifteen integrators, the same AUTO with its HB, LP,
 BP, PD and TR labels in the same colours. Even the two-key commands still
 work: `I G` integrates, `N N` draws nullclines, `S G` finds an equilibrium.
 
 Everything around the engine is new:
 
-| You want to... | Classic XPPAUT | XPP Studio |
+| You want to... | Classic XPPAUT | XPP Lab |
 |---|---|---|
 | Install it on Windows | Install an X server (Xming), Cygwin DLLs, batch files | Unzip and double-click |
 | Run it on a Mac | XQuartz, then Gatekeeper workarounds in the terminal | A native app for Apple Silicon and Intel |
@@ -75,7 +77,7 @@ Everything around the engine is new:
 ## Made for teaching
 
 Learning XPPAUT and AUTO has always meant fighting the interface before
-the mathematics. XPP Studio removes that first wall:
+the mathematics. XPP Lab removes that first wall:
 
 - **Nothing to install** on Windows. The first start opens a classic model
   (Morris-Lecar) so there is something to explore at once.
@@ -133,7 +135,7 @@ the mathematics. XPP Studio removes that first wall:
 ## Python
 
 ```python
-import xppstudio as xs
+import xpplab as xs
 
 m = xs.load("lecar.ode")              # any XPPAUT model file
 m.parameters["iapp"] = 0.1           # parameters are a live dictionary
@@ -157,22 +159,22 @@ machine and AUTO works out of the box. Install it with the `pip` line under
 
 ## Use it with a coding agent
 
-XPP Studio includes an MCP server, so coding agents such as Claude Code,
+XPP Lab includes an MCP server, so coding agents such as Claude Code,
 Codex and Claude Desktop can use it: the agent writes the `.ode` file, has
 it checked (errors come with line numbers), simulates it, runs AUTO from the
 rest state to the limit cycles, and looks at the figures. Every result
 includes the Python code that reproduces it.
 
 ```bash
-pip install "xppstudio[mcp]"
-claude mcp add xppstudio -- python -m xppstudio.mcp
+pip install "xpplab[mcp]"
+claude mcp add xpplab -- python -m xpplab.mcp
 ```
 
 For Claude Code there is also a plugin, which adds a skill that teaches the
 workflow and AUTO's pitfalls:
 
 ```
-/plugin install xppstudio --marketplace CesarPerdomoDiaz/xppstudio
+/plugin install xpplab --marketplace CesarPerdomoDiaz/xpplab
 ```
 
 Codex and Claude Desktop setup, the list of tools and an example session
@@ -196,7 +198,7 @@ Windows, why `delmmult` networks coupled to the wrong variable, and why
 ## Documentation
 
 The manual, the Python guide and the developer notes are online at
-**[cesarperdomodiaz.github.io/xppstudio](https://cesarperdomodiaz.github.io/xppstudio/)**.
+**[cesarperdomodiaz.github.io/xpplab](https://cesarperdomodiaz.github.io/xpplab/)**.
 
 - **In the app:** press F1.
 - **Installing:** [the install guide](docs/install.md), for each system.
@@ -224,7 +226,7 @@ You need a C compiler and CMake 3.20 or later, plus SDL3 for the app.
 pacman -S mingw-w64-ucrt-x86_64-{gcc,cmake,ninja,sdl3,python-numpy}
 cmake -S . -B build -G Ninja && cmake --build build
 ctest --test-dir build
-build/app/xppstudio.exe
+build/app/xpplab.exe
 ```
 
 **macOS:** run `brew install cmake ninja sdl3`, then the same CMake commands.
@@ -241,12 +243,12 @@ XPPAUT's C code needs GCC or Clang, so put MinGW-w64 on `PATH` and set
 ## Help test it
 
 Found a problem, or a model that works in XPPAUT but not here? Please
-[open an issue](https://github.com/CesarPerdomoDiaz/xppstudio/issues/new/choose).
+[open an issue](https://github.com/CesarPerdomoDiaz/xpplab/issues/new/choose).
 [TESTING.md](TESTING.md) has a short list of things to try.
 
 ## Credits and licence
 
-XPP Studio is an independent rebuild of **XPPAUT** by G. Bard Ermentrout
+XPP Lab is an independent rebuild of **XPPAUT** by G. Bard Ermentrout
 and contributors (GPL-2.0-or-later), and is not endorsed by him. It also
 contains **AUTO** by E. J. Doedel and collaborators, as translated to C
 inside XPPAUT. The interface uses Dear ImGui, ImPlot, cimgui and cimplot
@@ -258,5 +260,5 @@ If XPPAUT's methods help your research, please cite G. B. Ermentrout,
 *Simulating, Analyzing, and Animating Dynamical Systems: A Guide to XPPAUT
 for Researchers and Students*, SIAM, 2002.
 
-XPP Studio is free software under the GNU General Public License, version 2
+XPP Lab is free software under the GNU General Public License, version 2
 or later. See [LICENSE](LICENSE).

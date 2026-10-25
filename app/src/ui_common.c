@@ -408,6 +408,7 @@ void ui_draw(App *a) {
   igPushStyleVar_Vec2(ImGuiStyleVar_WindowPadding, V2(0, 0));
   igBegin("##dockhost", NULL, host | ImGuiWindowFlags_NoBackground);
   igPopStyleVar(1);
+  /* The id has the old name, XPP Studio: saved layouts refer to it. */
   dock = igGetID_Str("XPPStudioDock");
   if (a->reset_layout) {
     default_layout(a, dock, V2(vp->WorkSize.x, vp->WorkSize.y - toolbar_h - status_h));

@@ -1,20 +1,20 @@
-# Testing XPP Studio
+# Testing XPP Lab
 
-Thank you for trying XPP Studio! It is young, and the most useful thing you
+Thank you for trying XPP Lab! It is young, and the most useful thing you
 can do is use it the way you normally use XPPAUT, then tell us what worked,
 what broke and what confused you.
 
 ## Install
 
 Download the file for your system from the
-[newest release](https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest):
+[newest release](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest):
 
-- **Windows:** `XPPStudio-Windows-x64.zip`. Unzip it anywhere and run
-  `xppstudio.exe`.
-- **macOS** (11 or later, Apple silicon or Intel): `XPPStudio-macOS.dmg`.
+- **Windows:** `XPPLab-Windows-x64.zip`. Unzip it anywhere and run
+  `xpplab.exe`.
+- **macOS** (11 or later, Apple silicon or Intel): `XPPLab-macOS.dmg`.
   Open it and drag the app to *Applications*.
-- **Linux** (x86-64): `XPPStudio-Linux-x86_64.tar.gz`. Unpack it and run
-  `xppstudio`.
+- **Linux** (x86-64): `XPPLab-Linux-x86_64.tar.gz`. Unpack it and run
+  `xpplab`.
 
 The apps are not yet signed with a paid certificate, so the first time
 Windows or macOS asks you to confirm that you want to open them. The
@@ -44,12 +44,12 @@ things worth checking are at the end of the list below.
    lines are sharp on a Retina screen.
 
 If you teach with XPPAUT, we would especially like to know whether a first
-lab session would go more smoothly with XPP Studio, and what is still
+lab session would go more smoothly with XPP Lab, and what is still
 missing for that.
 
 ## Reporting
 
-Open an [issue](https://github.com/CesarPerdomoDiaz/xppstudio/issues/new/choose)
+Open an [issue](https://github.com/CesarPerdomoDiaz/xpplab/issues/new/choose)
 and pick:
 
 - **Bug report** when something crashes or gives a wrong result;

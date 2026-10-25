@@ -1,6 +1,6 @@
 # Numerical methods
 
-XPP Studio offers XPPAUT's fifteen integrators. Choose one in the toolbar,
+XPP Lab offers XPPAUT's fifteen integrators. Choose one in the toolbar,
 in **Workspace > Numerics**, or with `@ meth=...` in the model file.
 
 | Method | Kind | Use it for |

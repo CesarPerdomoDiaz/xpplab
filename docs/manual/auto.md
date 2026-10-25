@@ -2,7 +2,7 @@
 
 A **bifurcation diagram** shows how the long-term behaviour of a system
 changes as one parameter varies: where equilibria appear, vanish or lose
-stability, and where oscillations are born. XPP Studio computes these
+stability, and where oscillations are born. XPP Lab computes these
 diagrams with **AUTO** (E. Doedel), the same continuation code that XPPAUT
 embeds.
 
@@ -93,7 +93,7 @@ auto from 2 periodic
 and from Python:
 
 ```
-import xppstudio as xs
+import xpplab as xs
 m = xs.load("lecar.ode")
 m.apply_set("hopf")
 d = m.auto.equilibria("iapp")

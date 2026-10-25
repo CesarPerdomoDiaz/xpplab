@@ -1,6 +1,6 @@
 name: ModelDB models
 
-# Runs the XPPAUT models published on ModelDB through XPP Studio and through
+# Runs the XPPAUT models published on ModelDB through XPP Lab and through
 # unmodified XPPAUT 8.0 (see docs/development/modeldb.md). On request only:
 # it downloads about 200 MB from modeldb.science and takes a while.
 on:

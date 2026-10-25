@@ -65,7 +65,7 @@ static int make_private_dir(char *dir, size_t len) {
   int tries;
   if (n == 0 || n >= sizeof tmp) return -1;
   for (tries = 0; tries < 100; tries++) {
-    snprintf(dir, len, "%sxppstudio-%lu-%lu-%u", tmp,
+    snprintf(dir, len, "%sxpplab-%lu-%lu-%u", tmp,
              (unsigned long)GetCurrentProcessId(),
              (unsigned long)GetTickCount(), counter++);
     if (CreateDirectoryA(dir, NULL)) return 0;
@@ -73,7 +73,7 @@ static int make_private_dir(char *dir, size_t len) {
   return -1;
 #else
   const char *t = getenv("TMPDIR");
-  snprintf(dir, len, "%s/xppstudio-XXXXXX", t && *t ? t : "/tmp");
+  snprintf(dir, len, "%s/xpplab-XXXXXX", t && *t ? t : "/tmp");
   return mkdtemp(dir) ? 0 : -1;
 #endif
 }

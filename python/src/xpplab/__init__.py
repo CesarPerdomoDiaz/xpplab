@@ -1,6 +1,6 @@
-"""XPP Studio: XPPAUT's simulation and AUTO bifurcation engine for Python.
+"""XPP Lab: XPPAUT's simulation and AUTO bifurcation engine for Python.
 
-    import xppstudio as xs
+    import xpplab as xs
     m = xs.load("lecar.ode")
     sol = m.run(total=100)
     d = m.auto.equilibria("iapp")
@@ -20,4 +20,4 @@ __all__ = ["Model", "Trajectory", "Equilibrium", "Diagram", "Point", "Table", "A
            "EngineError", "METHODS", "load", "find_engine_library",
            "__version__"]
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

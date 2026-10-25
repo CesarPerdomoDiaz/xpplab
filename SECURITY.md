@@ -4,7 +4,7 @@
 
 Please report security problems privately, not in a public issue: use
 **Report a vulnerability** on the
-[Security tab](https://github.com/CesarPerdomoDiaz/xppstudio/security/advisories/new).
+[Security tab](https://github.com/CesarPerdomoDiaz/xpplab/security/advisories/new).
 Only the maintainer sees the report. You will get an answer within a week,
 and credit in the fix if you want it.
 
@@ -28,4 +28,4 @@ from them, and look for `dll_lib` in it before you open it.
 ## Supported versions
 
 Fixes go into the next release. Please check that a problem still happens
-with the [newest one](https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest).
+with the [newest one](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest).

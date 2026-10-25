@@ -1272,7 +1272,7 @@ int ind;
        sum=0.0;
        for(i=0;i<ncon;i++){
          ij=j*ncon+i;
-	 /* XPP Studio fix: root indexes variables[], where t is 0, but
+	 /* XPP Lab fix: root indexes variables[], where t is 0, but
 	    get_delay() takes the 0-based ODE index (as delay() passes
 	    variable-1). This took u[i+1] and read past the delay buffer. */
 	 sum+=(w[ij]*get_delay(i+in0-1,tau[ij]));
@@ -1299,7 +1299,7 @@ int ind;
        for(j=0;j<ncon;j++){
 	 ij=i*ncon+j;
 	 k=(int)cc[ij];
-         if(k>=0) /* XPP Studio fix: 0-based ODE index, as above */
+         if(k>=0) /* XPP Lab fix: 0-based ODE index, as above */
 	   sum+=(w[ij]*get_delay(k+in0-1,tau[ij]));
        }
        values[i]=sum;

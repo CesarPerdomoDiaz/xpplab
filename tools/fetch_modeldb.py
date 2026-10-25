@@ -39,7 +39,7 @@ MANIFEST = ROOT / "tests" / "modeldb" / "manifest.json"
 SITE = "https://modeldb.science"
 API = SITE + "/api/v1/models"
 SIMULATORS = {"XPPAUT", "XPP (web link to model)"}
-USER_AGENT = "xppstudio-modeldb-check/1 (+https://github.com/CesarPerdomoDiaz/xppstudio)"
+USER_AGENT = "xpplab-modeldb-check/1 (+https://github.com/CesarPerdomoDiaz/xpplab)"
 
 MAX_FILE = 100 << 20   # larger members (recordings, movies) are skipped
 MAX_MODEL = 300 << 20  # and a model stops unpacking past this total

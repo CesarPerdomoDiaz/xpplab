@@ -84,7 +84,7 @@ Command: `prc`, or `prc 500` to settle for 500 time units first.
 oscillator coupled weakly: the coupling averaged over one cycle with the
 adjoint. Give one formula per variable; primed names are the other copy's
 variables. For gap-junction coupling through V, write `V'-V` for V and `0`
-for the others. XPP Studio finds the cycle and its adjoint first.
+for the others. XPP Lab finds the cycle and its adjoint first.
 
 For a symmetric pair the phase difference φ changes at a rate proportional
 to −H*odd*(φ), so the stable phase-locked states are the zeros of *Hodd*

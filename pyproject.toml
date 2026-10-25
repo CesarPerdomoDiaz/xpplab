@@ -3,8 +3,8 @@ requires = ["scikit-build-core>=0.10"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "xppstudio"
-version = "0.1.0"
+name = "xpplab"
+version = "0.1.1"
 description = "XPPAUT's simulation and AUTO bifurcation engine for Python: pip install and go, no compiler, no X11"
 readme = "python/README.md"
 license = "GPL-2.0-or-later"
@@ -37,24 +37,24 @@ classifiers = [
 [project.optional-dependencies]
 plot = ["matplotlib>=3.5"]
 pandas = ["pandas>=1.3"]
-# The MCP server for coding agents: python -m xppstudio.mcp (docs/agents.md).
+# The MCP server for coding agents: python -m xpplab.mcp (docs/agents.md).
 mcp = ["mcp>=1.25", "matplotlib>=3.5"]
 all = ["matplotlib>=3.5", "pandas>=1.3", "mcp>=1.25; python_version >= '3.10'"]
 test = ["pytest>=7", "matplotlib>=3.5", "pandas>=1.3"]
 
 [project.scripts]
-xppstudio-mcp = "xppstudio.mcp:main"
+xpplab-mcp = "xpplab.mcp:main"
 
 [project.urls]
-Homepage = "https://github.com/CesarPerdomoDiaz/xppstudio"
-Documentation = "https://cesarperdomodiaz.github.io/xppstudio/"
-Source = "https://github.com/CesarPerdomoDiaz/xppstudio"
-Issues = "https://github.com/CesarPerdomoDiaz/xppstudio/issues"
-Download = "https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest"
+Homepage = "https://github.com/CesarPerdomoDiaz/xpplab"
+Documentation = "https://cesarperdomodiaz.github.io/xpplab/"
+Source = "https://github.com/CesarPerdomoDiaz/xpplab"
+Issues = "https://github.com/CesarPerdomoDiaz/xpplab/issues"
+Download = "https://github.com/CesarPerdomoDiaz/xpplab/releases/latest"
 
 [tool.scikit-build]
 minimum-version = "build-system.requires"
-wheel.packages = ["python/src/xppstudio"]
+wheel.packages = ["python/src/xpplab"]
 # The engine is loaded with ctypes and does not link against Python, so a
 # single wheel per platform serves every Python 3 version.
 wheel.py-api = "py3"

@@ -1,7 +1,7 @@
 # ModelDB models
 
 The example models that come with XPPAUT are the engine's regression tests,
-and XPP Studio reproduces them bit for bit. Researchers' own models are a
+and XPP Lab reproduces them bit for bit. Researchers' own models are a
 larger and messier body of work. [ModelDB](https://modeldb.science) lists
 XPPAUT as the simulator of 143 published models, and they are the test of
 the promise that *your models just work*.
@@ -21,7 +21,7 @@ include file it reads, its name, URL and SHA-256. Later runs check the
 downloads against it, and `--refresh` asks ModelDB again.
 
 `modeldb_check.py` runs every model file in batch mode
-(`-silent -outfile`) with XPP Studio's `xppaut-headless` and with
+(`-silent -outfile`) with XPP Lab's `xppaut-headless` and with
 unmodified XPPAUT 8.0, each in a fresh copy of the model's folder, and
 compares the output bit for bit. The reference is XPPAUT built from the
 repository's first commit: on Windows against the null Xlib, on Linux with
@@ -34,10 +34,10 @@ Each model file ends up in one of these classes:
 | Class | Meaning |
 |---|---|
 | identical | Both ran and wrote the same numbers |
-| fixed | They differ only because XPP Studio fixes an [upstream bug](../upstream-issues.md). Where it can, the check proves it by running XPPAUT again without the bug's trigger |
+| fixed | They differ only because XPP Lab fixes an [upstream bug](../upstream-issues.md). Where it can, the check proves it by running XPPAUT again without the bug's trigger |
 | differs | Both ran, the numbers differ |
-| ours-fails | XPPAUT ran it, XPP Studio did not |
-| ref-fails | XPP Studio ran it, XPPAUT did not |
+| ours-fails | XPPAUT ran it, XPP Lab did not |
+| ref-fails | XPP Lab ran it, XPPAUT did not |
 | both-fail | Neither wrote output |
 
 Some details matter for getting a fair comparison:
@@ -85,8 +85,8 @@ with the null Xlib, with a time limit of 10 minutes per run. 136 of the
 | both-fail | 8 |
 | too-slow | 4 |
 
-**No model gives different numbers in XPP Studio, and none fails in XPP
-Studio that runs in XPPAUT.** Four that crash XPPAUT now run. The other
+**No model gives different numbers in XPP Lab, and none fails in XPP
+Lab that runs in XPPAUT.** Four that crash XPPAUT now run. The other
 twelve fail or time out the same way in both, for reasons in the models or
 in XPPAUT 8.0's rules.
 
@@ -94,8 +94,8 @@ in XPPAUT 8.0's rules.
 
 | ModelDB | Model file | Class | Why |
 |---|---|---|---|
-| [112079](https://modeldb.science/112079) | `NG108-ACO/NG108_Acon.ode` | fixed | `init ... inhibitedA=1.0, D=0.1, ...`: a 10-character name in an `init` statement overruns a buffer in XPPAUT (`compile_em()`), which crashes. XPP Studio runs it with every initial value set |
-| [136097](https://modeldb.science/136097) | `mouse_ORN_cilia_ModelDB.ode`, `mouse_ORN_whole_cell_ModelDB.ode`, `mouse_ORN_whole_cell_osc_ModelDB.ode` | fixed | `meth=cvode` with `dt=0.00001` below `dtmin=0.0001`: XPPAUT stops the run at once and then crashes freeing CVODE memory it never allocated. XPP Studio stops with XPPAUT's own "Integration not completed". To run them, lower `dtmin` or raise `dt` |
+| [112079](https://modeldb.science/112079) | `NG108-ACO/NG108_Acon.ode` | fixed | `init ... inhibitedA=1.0, D=0.1, ...`: a 10-character name in an `init` statement overruns a buffer in XPPAUT (`compile_em()`), which crashes. XPP Lab runs it with every initial value set |
+| [136097](https://modeldb.science/136097) | `mouse_ORN_cilia_ModelDB.ode`, `mouse_ORN_whole_cell_ModelDB.ode`, `mouse_ORN_whole_cell_osc_ModelDB.ode` | fixed | `meth=cvode` with `dt=0.00001` below `dtmin=0.0001`: XPPAUT stops the run at once and then crashes freeing CVODE memory it never allocated. XPP Lab stops with XPPAUT's own "Integration not completed". To run them, lower `dtmin` or raise `dt` |
 | [64285](https://modeldb.science/64285) | `kuzkopwil2006/KuzKopWil2006.ode` | both-fail | `@ bell=off`: XPPAUT 8.0 accepts only `bell=0` or `bell=1` and stops |
 | [266636](https://modeldb.science/266636) | `TabakEtAl2011/JNS_11b.ode.txt` | both-fail | `@ bell=off`, as above |
 | [79238](https://modeldb.science/79238) | `muscleAP/muscleAP.ode` | both-fail | Names longer than XPPAUT's limit of 10 characters (`alpha_n_max`). The first formula that uses one fails: "Error allocating or compiling ALPHA_N" |

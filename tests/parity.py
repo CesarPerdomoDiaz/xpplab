@@ -8,8 +8,8 @@ expected, the files the commands write exist, and the screenshot is as large
 as the window in pixels. The same cases run on Windows, macOS and Linux, so
 the result tables can be set side by side (docs/development/macos.md).
 
-    python tests/parity.py --app build/app/xppstudio.exe
-    python3 tests/parity.py --app build/app/xppstudio.app/Contents/MacOS/xppstudio
+    python tests/parity.py --app build/app/xpplab.exe
+    python3 tests/parity.py --app build/app/xpplab.app/Contents/MacOS/xpplab
     python3 tests/parity.py --app ... --all-examples   # also open every example
 
 Each case opens a window for a few seconds. Only the standard library is
@@ -34,10 +34,10 @@ EXAMPLES = ROOT / "engine" / "xppaut" / "ode"
 def default_app():
     base = ROOT / "build" / "app"
     if sys.platform == "win32":
-        return base / "xppstudio.exe"
+        return base / "xpplab.exe"
     if sys.platform == "darwin":
-        return base / "xppstudio.app" / "Contents" / "MacOS" / "xppstudio"
-    return base / "xppstudio"
+        return base / "xpplab.app" / "Contents" / "MacOS" / "xpplab"
+    return base / "xpplab"
 
 
 # ---- Checks on the files a case writes ------------------------------------
@@ -152,7 +152,7 @@ def cases(fx, shipped):
     c = []
 
     # documents: the app's Documents folder is out/documents
-    # (XPPSTUDIO_DOCUMENTS); unchanged: files whose bytes must not change.
+    # (XPPLAB_DOCUMENTS); unchanged: files whose bytes must not change.
     def add(name, what, model, cmds=(), then=(), expect=(), files=None,
             frames=12, allow_errors=False, documents=False, unchanged=()):
         c.append(dict(name=name, what=what, model=str(model), cmds=list(cmds),
@@ -181,16 +181,16 @@ def cases(fx, shipped):
     add("new_model", "new model", "lecar.ode", ["new"])
     # Saving an example that comes with the app writes a copy in Documents
     # and leaves the app alone; the next time the copy gets a new name.
-    copies = "documents/XPP Studio/"
+    copies = "documents/XPP Lab/"
     add("save_example", "save an example of the app: a copy in Documents",
         shipped / "lecar.ode", ["save", "save"], documents=True,
-        expect=[r"your version of lecar\.ode is a copy in .*XPP Studio.lecar\.ode"],
+        expect=[r"your version of lecar\.ode is a copy in .*XPP Lab.lecar\.ode"],
         files={copies + "lecar.ode": lambda p: None if "params iapp" in p.read_text()
                else "not the model's text"},
         unchanged=[shipped / "lecar.ode"])
     add("save_example_again", "save it again: the earlier copy is kept",
         shipped / "lecar.ode", ["save"], documents=True,
-        expect=[r"is a copy in .*XPP Studio.lecar 2\.ode"],
+        expect=[r"is a copy in .*XPP Lab.lecar 2\.ode"],
         files={copies + "lecar.ode": lambda p: None, copies + "lecar 2.ode": lambda p: None},
         unchanged=[shipped / "lecar.ode"])
     add("save_example_ani", "the copy of an example takes its animation along",
@@ -327,7 +327,7 @@ def run_case(app, out, case, timeout):
     before = {u: state(u) for u in case["unchanged"] if u.exists()}
     env = dict(os.environ)
     if case["documents"]:
-        env["XPPSTUDIO_DOCUMENTS"] = str(out / "documents")
+        env["XPPLAB_DOCUMENTS"] = str(out / "documents")
     model = case["model"]
     if not os.path.isabs(model):
         model = str(EXAMPLES / model)

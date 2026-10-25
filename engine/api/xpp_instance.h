@@ -47,6 +47,10 @@ extern "C" {
     (int, int, int, double, double, double, double, int, float *, int))       \
   X(int, xppe_manifold_count, (void))                                         \
   X(int, xppe_manifold, (int, int *))                                         \
+  X(int, xppe_equilibrium_sweep,                                              \
+    (const char *, const double *, int, const double *))                      \
+  X(int, xppe_find_equilibria, (int, double, const double *, const double *)) \
+  X(int, xppe_found_equilibrium, (int, double *, double *, double *))         \
   X(int, xppe_fourier, (const char *))                                        \
   X(int, xppe_power, (const char *))                                          \
   X(int, xppe_spectrum, (int, const char *, const char *, int, int))          \

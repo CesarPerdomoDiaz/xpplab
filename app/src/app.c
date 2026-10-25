@@ -1,5 +1,6 @@
 /* The application's actions; see app.h. */
 #include "app.h"
+#include "export.h"
 
 #include <ctype.h>
 #include <math.h>
@@ -118,6 +119,31 @@ static void free_traj(Trajectory *t) {
   memset(t, 0, sizeof *t);
 }
 
+static void free_found(App *a) {
+  FoundEquilibria *f = &a->found;
+  free(f->x);
+  free(f->re);
+  free(f->im);
+  free(f->unstable);
+  memset(f, 0, sizeof *f);
+}
+
+/* The engine's result table as a Trajectory (its columns, by name). */
+static void fetch_table(App *a, Trajectory *t) {
+  xpp_engine_api *x = &a->eng->api;
+  int rows = x->xppe_result_rows(), ncols = x->xppe_result_count(), j;
+  free_traj(t);
+  t->nrows = rows;
+  t->ncols = ncols;
+  t->names = calloc((size_t)ncols + 1, APP_NAME_LEN);
+  t->cols = calloc((size_t)ncols + 1, sizeof(double *));
+  for (j = 0; j < ncols; j++) {
+    snprintf(t->names[j], APP_NAME_LEN, "%s", x->xppe_result_name(j));
+    t->cols[j] = malloc(sizeof(double) * (size_t)(rows > 0 ? rows : 1));
+    x->xppe_result_column(j, t->cols[j], rows);
+  }
+}
+
 static void free_model_cache(App *a) {
   int i;
   free(a->vars);
@@ -188,6 +214,11 @@ void app_init(App *a, const char *base_dir, bool ephemeral) {
 void app_shutdown(App *a) {
   if (!a->ephemeral) app_save_settings(a);
   free_model_cache(a);
+  free(a->sw.x);
+  free(a->sw.ymax);
+  free(a->sw.ymin);
+  free_traj(&a->sw.eqt);
+  free_found(a);
   app_analysis_free(a);
   if (a->eng) xpp_instance_close(a->eng);
   a->eng = NULL;
@@ -405,7 +436,9 @@ static bool load_engine(App *a) {
   free(a->sw.x);
   free(a->sw.ymax);
   free(a->sw.ymin);
+  free_traj(&a->sw.eqt);
   memset(&a->sw, 0, sizeof a->sw);
+  free_found(a);
   if (a->npars > 0) {
     a->sw.from = a->par[0].lo;
     a->sw.to = a->par[0].hi;
@@ -959,6 +992,8 @@ bool app_continue(App *a, double more) {
 
 /* ---- Parameter sweeps ------------------------------------------------------ */
 
+static bool sweep_equilibria(App *a);
+
 bool app_sweep(App *a) {
   SweepUI *s = &a->sw;
   double old, *ics;
@@ -966,6 +1001,7 @@ bool app_sweep(App *a) {
   int k, n, col = -1, j;
   const char *what;
   if (!a->model_ok) return false;
+  if (s->mode == SWEEP_EQUILIBRIA) return sweep_equilibria(a);
   if (s->over_ic ? (s->par < 0 || s->par >= a->nvars)
                  : (s->par < 0 || s->par >= a->npars))
     return false;
@@ -991,6 +1027,7 @@ bool app_sweep(App *a) {
     s->ymax = malloc(sizeof(double) * (size_t)n);
     s->ymin = malloc(sizeof(double) * (size_t)n);
     s->n = 0;
+    s->result_mode = s->mode;
   }
   for (k = 0; k < n; k++) {
     double v = s->from + (s->to - s->from) * k / (n - 1);
@@ -1079,6 +1116,79 @@ bool app_sweep(App *a) {
           s->overlay ? " (trajectories kept on the plots)"
                      : s->mode == SWEEP_LYAPUNOV ? " (Liapunov exponents)" : "");
   app_status(a, "Range over %s done", what);
+  return true;
+}
+
+/* XPPAUT's Sing pts > Range over the Range tab's values: the equilibrium
+   followed from the initial values as the parameter changes. */
+static bool sweep_equilibria(App *a) {
+  SweepUI *s = &a->sw;
+  xpp_engine_api *x = &a->eng->api;
+  int n = s->steps < 2 ? 2 : s->steps, k, rc, stable = 0, unstable = 0, failed = 0;
+  int col;
+  double *values;
+  bool outer;
+  if (s->over_ic || s->par < 0 || s->par >= a->npars) {
+    app_log(a, "error: equilibria are followed over a parameter, not an "
+               "initial value");
+    return false;
+  }
+  values = malloc(sizeof(double) * (size_t)n);
+  if (!values) return false;
+  for (k = 0; k < n; k++) values[k] = s->from + (s->to - s->from) * k / (n - 1);
+  outer = echo_begin(a);
+  rc = x->xppe_equilibrium_sweep(a->pars[s->par], values, n, a->ic);
+  free(values);
+  if (rc != XPPE_OK) {
+    app_log(a, "error: %s", x->xppe_error());
+    echo_end(a);
+    return false;
+  }
+  fetch_table(a, &s->eqt);
+  free(s->x);
+  free(s->ymax);
+  free(s->ymin);
+  s->n = s->eqt.nrows;
+  s->x = malloc(sizeof(double) * (size_t)(s->n + 1));
+  s->ymax = malloc(sizeof(double) * (size_t)(s->n + 1));
+  s->ymin = malloc(sizeof(double) * (size_t)(s->n + 1));
+  col = s->var >= 0 && s->var < a->nvars ? s->var + 1 : 1;
+  for (k = 0; k < s->n && s->eqt.ncols > a->nvars + 1; k++) {
+    s->x[k] = s->eqt.cols[0][k];
+    s->ymax[k] = s->eqt.cols[col][k];
+    s->ymin[k] = s->eqt.cols[a->nvars + 1][k];
+    if (isnan(s->ymin[k]))
+      failed++;
+    else if (s->ymin[k] > 0)
+      unstable++;
+    else
+      stable++;
+  }
+  s->overlay = false;
+  s->result_mode = SWEEP_EQUILIBRIA;
+  s->reveal = true;
+  a->show_workspace = true;
+  snprintf(a->focus, sizeof a->focus, "workspace");
+  if (failed)
+    app_log(a, "Equilibria over %s from %g to %g at %d values: %d stable, %d "
+               "unstable, none found at %d.", a->pars[s->par], s->from, s->to,
+            n, stable, unstable, failed);
+  else
+    app_log(a, "Equilibria over %s from %g to %g at %d values: %d stable, %d "
+               "unstable.", a->pars[s->par], s->from, s->to, n, stable, unstable);
+  app_status(a, "Equilibria over %s done", a->pars[s->par]);
+  if (outer) {
+    char nm[160], f[64], t[64];
+    echo_line(a, "sweep_values = [%s + (%s - %s) * k / %d for k in range(%d)]",
+              echo_num(s->from, f, sizeof f), echo_num(s->to, t, sizeof t), f,
+              n - 1, n);
+    echo_line(a, "eq_sweep = m.equilibrium_sweep(%s, sweep_values)",
+              echo_str(a->pars[s->par], nm, sizeof nm));
+    a->echo.sweep_mode = SWEEP_EQUILIBRIA;
+    snprintf(a->echo.sweep_name, sizeof a->echo.sweep_name, "%s", a->pars[s->par]);
+    a->echo.sweep_var[0] = '\0';
+  }
+  echo_end(a);
   return true;
 }
 
@@ -1202,6 +1312,135 @@ static bool equilibrium(App *a, const double *guess) {
   }
   app_status(a, "Found %s %s", strchr("aeiou", e->kind[0]) ? "an" : "a",
              e->kind);
+  return true;
+}
+
+bool app_find_equilibria(App *a, int guesses) {
+  xpp_engine_api *x;
+  FoundEquilibria *f = &a->found;
+  const double tol = 0.001;
+  double *lo, *hi;
+  int n = a->nvars, i, k, count;
+  bool outer, discrete;
+  if (!a->model_ok || n < 1) return false;
+  if (guesses < 1) guesses = 100;
+  x = &a->eng->api;
+  lo = malloc(sizeof(double) * (size_t)n);
+  hi = malloc(sizeof(double) * (size_t)n);
+  if (!lo || !hi) {
+    free(lo);
+    free(hi);
+    return false;
+  }
+  /* The phase plane's window for its two variables. For the others, the
+     range the last run covered, widened by a quarter on each side (the
+     equilibria that matter are usually near it), else XPPAUT's default
+     box. */
+  for (i = 0; i < n; i++) {
+    int j, k;
+    lo[i] = -10;
+    hi[i] = 10;
+    for (j = 1; a->have_traj && j < a->traj.ncols; j++) {
+      double mn, mx;
+      if (SDL_strcasecmp(a->traj.names[j], a->vars[i]) != 0 || a->traj.nrows < 1) continue;
+      mn = mx = a->traj.cols[j][0];
+      for (k = 1; k < a->traj.nrows; k++) {
+        mn = fmin(mn, a->traj.cols[j][k]);
+        mx = fmax(mx, a->traj.cols[j][k]);
+      }
+      if (isfinite(mn) && isfinite(mx)) {
+        double d = mx > mn ? 0.25 * (mx - mn) : fmax(1.0, 0.25 * fabs(mx));
+        lo[i] = mn - d;
+        hi[i] = mx + d;
+      }
+    }
+  }
+  if (n > 1 && a->pp.xvar != a->pp.yvar) {
+    const FigureState *g = &g_figures[FIG_PHASE];
+    double w[4] = {a->pp.xlo, a->pp.xhi, a->pp.ylo, a->pp.yhi};
+    if (g->valid) {
+      w[0] = g->xmin;
+      w[1] = g->xmax;
+      w[2] = g->ymin;
+      w[3] = g->ymax;
+    } else if (a->pp.set_window || !(w[1] > w[0] && w[3] > w[2])) {
+      w[0] = a->pp.win_xlo;
+      w[1] = a->pp.win_xhi;
+      w[2] = a->pp.win_ylo;
+      w[3] = a->pp.win_yhi;
+    }
+    if (w[1] > w[0] && w[3] > w[2]) {
+      lo[a->pp.xvar] = w[0];
+      hi[a->pp.xvar] = w[1];
+      lo[a->pp.yvar] = w[2];
+      hi[a->pp.yvar] = w[3];
+    }
+  }
+  outer = echo_begin(a);
+  count = x->xppe_find_equilibria(guesses, tol, lo, hi);
+  if (count < 0) {
+    app_log(a, "error: %s", x->xppe_error());
+    echo_end(a);
+    free(lo);
+    free(hi);
+    return false;
+  }
+  free_found(a);
+  f->n = count;
+  f->guesses = guesses;
+  f->x = malloc(sizeof(double) * (size_t)(count * n + 1));
+  f->re = malloc(sizeof(double) * (size_t)(count * n + 1));
+  f->im = malloc(sizeof(double) * (size_t)(count * n + 1));
+  f->unstable = calloc((size_t)count + 1, sizeof(int));
+  discrete = a->meth == 0;
+  app_clear_equilibria(a);
+  for (k = 0; k < count; k++) {
+    double *xk = f->x + (size_t)k * n, *rk = f->re + (size_t)k * n,
+           *ik = f->im + (size_t)k * n;
+    x->xppe_found_equilibrium(k, xk, rk, ik);
+    /* Counted as xpplab's Equilibrium.unstable_count does. */
+    for (i = 0; i < n; i++)
+      if (discrete ? hypot(rk[i], ik[i]) > 1 : rk[i] > 0) f->unstable[k]++;
+    if (a->neq < APP_MAX_EQUILIBRIA) {
+      Equilibrium *e = &a->eq[a->neq];
+      memset(e, 0, sizeof *e);
+      e->x = malloc(sizeof(double) * (size_t)n);
+      e->re = malloc(sizeof(double) * (size_t)n);
+      e->im = malloc(sizeof(double) * (size_t)n);
+      memcpy(e->x, xk, sizeof(double) * (size_t)n);
+      memcpy(e->re, rk, sizeof(double) * (size_t)n);
+      memcpy(e->im, ik, sizeof(double) * (size_t)n);
+      classify(e, n, discrete);
+      a->neq++;
+    }
+  }
+  app_log(a, "Found %d equilibri%s from %d random guesses in the box:", count,
+          count == 1 ? "um" : "a", guesses);
+  for (k = 0; k < a->neq; k++) {
+    char line[1024];
+    int m = snprintf(line, sizeof line, "  %s:", a->eq[k].kind);
+    for (i = 0; i < n && m < (int)sizeof line - 40; i++)
+      m += snprintf(line + m, sizeof line - m, " %s=%.6g", a->vars[i], a->eq[k].x[i]);
+    app_log(a, "%s", line);
+  }
+  if (count > a->neq)
+    app_log(a, "  ... and %d more (export them with export FILE.csv equilibria)",
+            count - a->neq);
+  app_status(a, "Found %d equilibri%s", count, count == 1 ? "um" : "a");
+  a->show_phase = true;
+  if (outer) {
+    char box[4096], name[160], v[2][64];
+    size_t m = 0;
+    for (i = 0; i < n && m < sizeof box - 300; i++)
+      m += (size_t)snprintf(box + m, sizeof box - m, "%s%s: (%s, %s)", i ? ", " : "",
+                            echo_str(a->vars[i], name, sizeof name),
+                            echo_num(lo[i], v[0], 64), echo_num(hi[i], v[1], 64));
+    echo_line(a, "eqs = m.find_equilibria(guesses=%d, box={%s}, tol=%s)", guesses, box,
+              echo_num(tol, v[0], 64));
+  }
+  echo_end(a);
+  free(lo);
+  free(hi);
   return true;
 }
 
@@ -1625,6 +1864,11 @@ bool app_export_range_csv(App *a, const char *path) {
                "Liapunov exponent (a Range that keeps the runs has no table)");
     return false;
   }
+  if (s->result_mode == SWEEP_EQUILIBRIA) {
+    if (!write_table(a, path, &s->eqt)) return false;
+    echo_export(a, "eq_sweep", path);
+    return true;
+  }
   memset(&t, 0, sizeof t);
   snprintf(names[0], APP_NAME_LEN, "%s", a->echo.sweep_name);
   c[0] = s->x;
@@ -1654,6 +1898,45 @@ bool app_export_range_csv(App *a, const char *path) {
                 echo_str(names[2], cols[1], sizeof cols[1]), echo_str(p, q, sizeof q));
   }
   echo_end(a);
+  return true;
+}
+
+/* The columns xpplab's EquilibriumList.to_csv() writes. */
+bool app_export_equilibria_csv(App *a, const char *path) {
+  FoundEquilibria *f = &a->found;
+  FILE *fp;
+  char num[40];
+  int n = a->nvars, i, k;
+  if (!a->model_ok || f->n <= 0) {
+    app_log(a, "error: no equilibria found yet (eq all)");
+    return false;
+  }
+  fp = fopen(path, "w");
+  if (!fp) {
+    app_log(a, "error: cannot write %s", path);
+    return false;
+  }
+  for (i = 0; i < n; i++) fprintf(fp, "%s,", a->vars[i]);
+  fputs("unstable", fp);
+  for (i = 1; i <= n; i++) fprintf(fp, ",re%d,im%d", i, i);
+  fputc('\n', fp);
+  for (k = 0; k < f->n; k++) {
+    for (i = 0; i < n; i++) {
+      app_format_double(num, sizeof num, f->x[(size_t)k * n + i]);
+      fprintf(fp, "%s,", num);
+    }
+    fprintf(fp, "%d", f->unstable[k]);
+    for (i = 0; i < n; i++) {
+      app_format_double(num, sizeof num, f->re[(size_t)k * n + i]);
+      fprintf(fp, ",%s", num);
+      app_format_double(num, sizeof num, f->im[(size_t)k * n + i]);
+      fprintf(fp, ",%s", num);
+    }
+    fputc('\n', fp);
+  }
+  fclose(fp);
+  app_log(a, "Exported %d equilibria to %s", f->n, path);
+  echo_export(a, "eqs", path);
   return true;
 }
 

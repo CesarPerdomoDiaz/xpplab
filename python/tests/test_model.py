@@ -149,3 +149,30 @@ def test_raising_maxstor_grows_the_storage(lecar):
     assert len(lecar.run()) == 6001
     lecar.set(maxstor=100)  # less than allocated: runs grow it again
     assert len(lecar.run()) == 6001
+
+
+def test_equilibrium_sweep_follows_the_branch(lecar):
+    t = lecar.equilibrium_sweep("IAPP", np.linspace(0, 0.3, 7))
+    assert t.columns == ["iapp", "V", "W", "unstable", "stable"]
+    assert len(t) == 7
+    # Two Hopf points between 0.05 and 0.25 (see test_auto): unstable there.
+    assert list(t["unstable"]) == [1, 1, 2, 2, 2, 0, 0]
+    assert lecar.parameters["iapp"] == pytest.approx(0.05)  # restored
+    # Each row is an equilibrium at its value.
+    lecar.parameters["iapp"] = 0.3
+    eq = lecar.equilibrium({"V": t["V"][-1], "W": t["W"][-1]})
+    assert eq["V"] == pytest.approx(t["V"][-1])
+
+
+def test_find_equilibria_finds_all_three(lecar, tmp_path):
+    box = {"V": (-0.6, 0.6), "W": (-0.1, 0.8)}
+    eqs = lecar.find_equilibria(guesses=200, box=box)
+    assert sorted(e.kind for e in eqs) == ["saddle", "stable node", "unstable focus"]
+    # XPPAUT's random numbers repeat: a fresh model finds the same list.
+    with xs.load(ODE / "lecar.ode") as other:
+        again = other.find_equilibria(guesses=200, box=box)
+    assert [e.values for e in again] == [e.values for e in eqs]
+    eqs.to_csv(tmp_path / "eqs.csv")
+    lines = (tmp_path / "eqs.csv").read_text().splitlines()
+    assert lines[0] == "V,W,unstable,re1,im1,re2,im2"
+    assert len(lines) == 4

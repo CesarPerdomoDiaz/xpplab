@@ -42,6 +42,15 @@ static void menu_run(App *a) {
   bool ok = a->model_ok;
   if (igMenuItem_Bool("Integrate", "F5  /  I G", false, ok)) app_run(a);
   if (igMenuItem_Bool("Find equilibrium", "S G", false, ok)) app_command(a, "eq");
+  if (igMenuItem_Bool("Find all equilibria", NULL, false, ok)) app_command(a, "eq all");
+  if (igIsItemHovered(0))
+    igSetTooltip("Every equilibrium in the phase plane's window, from random "
+                 "starting points (XPPAUT's Sing pts > Monte Carlo).");
+  if (igMenuItem_Bool("Equilibria over a parameter...", NULL, false, ok)) {
+    a->sw.mode = SWEEP_EQUILIBRIA;
+    a->sw.reveal = true;
+    a->show_workspace = true;
+  }
   if (igMenuItem_Bool("Nullclines", "N N", a->pp.nullclines, ok))
     app_command(a, a->pp.nullclines ? "nullclines off" : "nullclines");
   if (igMenuItem_Bool("Direction field", "D D", a->pp.dirfield, ok))

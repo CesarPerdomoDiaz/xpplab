@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 2
+#define XPPE_API_VERSION 3
 
 enum {
   XPPE_OK = 0,
@@ -114,6 +114,29 @@ XPPE_API int xppe_nullcline(int which, int ix, int iy, double xlo, double xhi,
    as the current run; *type is +1 for unstable, -1 for stable. */
 XPPE_API int xppe_manifold_count(void);
 XPPE_API int xppe_manifold(int k, int *type);
+
+/* Equilibria as a parameter changes (XPPAUT's Sing pts > Range): for each
+   of the n values in turn, the parameter takes it and Newton's method
+   starts from the last equilibrium found (the first time from guess, one
+   value per ODE variable). Result table: the parameter, each variable,
+   then "unstable" and "stable", the numbers of eigenvalues with positive
+   and negative real parts (for maps, outside and inside the unit circle).
+   A row where Newton's method failed holds NaN after the parameter. The
+   parameter is restored afterwards. Since API version 3. */
+XPPE_API int xppe_equilibrium_sweep(const char *parameter, const double *values,
+                                    int n, const double *guess);
+
+/* Every equilibrium Newton's method finds from `guesses` random starting
+   points in a box (XPPAUT's Sing pts > Monte Carlo): lo and hi give the
+   box's edges, one value per ODE variable. Two equilibria closer than
+   `tolerance` (the sum of the absolute differences) count as one. Returns
+   how many were found, at most 400; xppe_found_equilibrium(i, ...) gives
+   equilibrium i and the eigenvalues there. The random numbers come from
+   XPPAUT's generator, so the same calls find the same equilibria. Since
+   API version 3. */
+XPPE_API int xppe_find_equilibria(int guesses, double tolerance,
+                                  const double *lo, const double *hi);
+XPPE_API int xppe_found_equilibrium(int i, double *x, double *re, double *im);
 
 /* ---- Data analysis --------------------------------------------------------
  *

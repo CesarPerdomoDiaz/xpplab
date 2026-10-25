@@ -212,6 +212,17 @@ To do:
 - [ ] An MCP server and a Claude Code skill (`python -m xpplab.mcp`)
 - [ ] A coding agent drives the running app while the researcher watches
 
+### Parity sprint (XPPAUT features the interface lacked)
+- [x] Equilibria over a parameter (Sing pts > Range) and every equilibrium
+      in a box (Sing pts > Monte Carlo), in the C API, Python and the app
+- [ ] Save and reload AUTO diagrams; import an orbit
+- [ ] Range over two parameters
+- [ ] Initial values from a file, a formula, Shift, several clicks
+- [ ] Freeze and save nullclines
+- [ ] Kinescope
+- [ ] A batch command-line tool (XPPAUT's -silent, with AUTO)
+- [ ] Ensemble statistics over noisy runs (stocHastic > Compute)
+
 ### M9 The app and Python together
 - [x] Each action in the app written in the command window as the Python
       that does the same; File > Save session as Python script

@@ -390,6 +390,11 @@ class Dashboard:
                       "runs_used": status.get("runs_used"),
                       "runs_per_window": status.get("runs_per_window") or self.cfg.runs_per_window,
                       "window_hours": status.get("window_hours") or self.cfg.window_hours,
+                      "usage": status.get("usage") or state.get("usage") or {},
+                      "max_five_hour_percent": status.get("max_five_hour_percent")
+                      or self.cfg.max_five_hour_percent,
+                      "max_week_percent": status.get("max_week_percent")
+                      or self.cfg.max_week_percent,
                       "current": current | run_info(Path(current["file"]).stem)
                       if current and current.get("file") else None,
                       "explaining": files["explaining"]

@@ -37,7 +37,12 @@ class Config:
     max_turns: int = 250
     # pacing (a Max subscription is shared with its owner)
     window_hours: float = 5.0
-    runs_per_window: int = 8
+    runs_per_window: int = 16
+    # no run while the subscription's own use, as the last run reported it,
+    # is above these percentages of its five-hour window or of its week
+    # (100 turns a check off); the agent waits for that window to reset
+    max_five_hour_percent: float = 60.0
+    max_week_percent: float = 75.0
     quiet_hours: list[str] = field(default_factory=list)  # ["09:00-18:00"]
     poll_seconds: int = 60
     # how many rounds of fixes before asking for help

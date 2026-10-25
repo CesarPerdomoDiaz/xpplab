@@ -47,6 +47,7 @@ class State:
     tasks: dict = field(default_factory=dict)      # str(issue) -> Task
     runs: list = field(default_factory=list)       # start times of Claude runs
     paused_until: float = 0.0                      # usage limit reached
+    usage: dict = field(default_factory=dict)      # the subscription's use at the last run
     jobs_last: dict = field(default_factory=dict)  # job name -> time last opened
     log_day: str = ""
     log_time: float = 0.0                          # when the last log was posted
@@ -72,7 +73,9 @@ class State:
         if not path.exists():
             return cls()
         raw = json.loads(path.read_text(encoding="utf-8"))
-        st = cls(**{k: v for k, v in raw.items() if k != "tasks"})
+        # Fields a newer version wrote are dropped, so going back a version works.
+        known = set(cls.__dataclass_fields__) - {"tasks"}
+        st = cls(**{k: v for k, v in raw.items() if k in known})
         st.tasks = {k: Task(**v) for k, v in raw.get("tasks", {}).items()}
         return st
 

@@ -174,5 +174,9 @@ def test_diagram_and_point_html(lecar_hopf):
         html = obj._repr_html_()
         assert html.startswith("<")
         HTMLParser().feed(html)
-    assert "HB" in d._repr_html_()
+    html = d._repr_html_()
+    assert "HB" in html
+    hb = d.first("HB")
+    assert f"<td>{'stable' if hb.stable else 'unstable'}</td>" in html
+    assert f"<td>{'stable' if hb.stable else 'unstable'}</td>" in hb._repr_html_()
     assert "Hopf bifurcation" in d.first("HB")._repr_html_()

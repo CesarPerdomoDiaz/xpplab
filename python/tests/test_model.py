@@ -299,15 +299,24 @@ def test_trajectory_html_empty_and_escaped():
 def test_equilibrium_html(lecar):
     eq = lecar.find_equilibria()
     text = _check_html(eq._repr_html_())
-    assert "stability" in text and ("stable" in text)
-    one = eq[0]
-    text = _check_html(one._repr_html_())
-    assert one.kind in text and "eigenvalue" in text
+    html = eq._repr_html_()
+    assert "stability" in text
+    # One <td> per label, so "unstable" is not mistaken for "stable".
+    assert html.count("<td>stable</td>") == sum(e.stable for e in eq)
+    assert html.count("<td>unstable</td>") == sum(not e.stable for e in eq)
+    for one in eq:
+        title = "stable" if one.stable else "unstable"
+        html = one._repr_html_()
+        assert f"Equilibrium: {title} ({one.kind})" in html
+        assert "eigenvalue" in _check_html(html)
 
 
 def test_equilibrium_html_empty_and_escaped():
     assert "0 equilibria" in _check_html(xs.EquilibriumList(["V"])._repr_html_())
     e = xs.Equilibrium({"<&>": 1.0}, np.array([-1.0 + 2j, -1.0 - 2j]))
     html = e._repr_html_()
-    assert "&lt;&amp;&gt;" in html and "stable" in html
+    assert "&lt;&amp;&gt;" in html
+    assert "Equilibrium: stable (stable focus)" in html
+    unstable = xs.Equilibrium({"x": 0.0}, np.array([0.5]))
+    assert "Equilibrium: unstable (unstable node)" in unstable._repr_html_()
     _check_html(html)

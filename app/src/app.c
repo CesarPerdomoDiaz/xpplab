@@ -2427,13 +2427,41 @@ static void echo_export(App *a, const char *what, const char *path) {
   echo_end(a);
 }
 
+/* XPPAUT's output.dat: every column, 8 significant digits, no header, as
+   xppaut -silent and Trajectory.save() write it. */
+static bool write_dat(App *a, const char *path, const Trajectory *t) {
+  FILE *f = fopen(path, "w");
+  int i, j;
+  if (!f) {
+    app_log(a, "error: cannot write %s", path);
+    return false;
+  }
+  for (i = 0; i < t->nrows; i++)
+    for (j = 0; j < t->ncols; j++)
+      fprintf(f, j + 1 < t->ncols ? "%.8g " : "%.8g\n", t->cols[j][i]);
+  fclose(f);
+  app_log(a, "Exported %d rows to %s (XPPAUT's format)", t->nrows, path);
+  return true;
+}
+
 bool app_export_csv(App *a, const char *path) {
+  size_t n = strlen(path);
+  bool dat = n > 4 && SDL_strcasecmp(path + n - 4, ".dat") == 0;
   if (!a->have_traj) {
     app_log(a, "error: there is no run to export");
     return false;
   }
-  if (!write_table(a, path, &a->traj)) return false;
-  echo_export(a, "sol", path);
+  if (!(dat ? write_dat(a, path, &a->traj) : write_table(a, path, &a->traj))) return false;
+  if (dat) {
+    char p[2100], q[2200];
+    if (echo_begin(a)) {
+      echo_abs_path(path, p, sizeof p);
+      echo_line(a, "sol.save(%s)", echo_str(p, q, sizeof q));
+    }
+    echo_end(a);
+  } else {
+    echo_export(a, "sol", path);
+  }
   return true;
 }
 

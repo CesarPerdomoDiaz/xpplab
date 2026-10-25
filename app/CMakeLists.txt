@@ -148,6 +148,32 @@ add_dependencies(xpplab xppe)
 target_compile_definitions(xpplab PRIVATE
   XPPS_VERSION="${PROJECT_VERSION}")
 
+# xpplab-batch: the app's commands without a window (XPPAUT's -silent). It
+# is a console program, so that shells wait for it and show its output, and
+# it shares the app's core: the commands, the echo, the exports.
+add_executable(xpplab-batch
+  src/batch.c src/app.c src/app_analysis.c src/app_kinescope.c src/echo.c
+  src/commands.c src/export.c
+  ${PROJECT_SOURCE_DIR}/engine/api/xpp_instance.c)
+target_include_directories(xpplab-batch PRIVATE src ${PROJECT_SOURCE_DIR}/engine/api ${TP})
+target_link_libraries(xpplab-batch PRIVATE SDL3::SDL3)
+if(NOT WIN32)
+  target_link_libraries(xpplab-batch PRIVATE ${CMAKE_DL_LIBS} m)
+endif()
+if(MINGW)
+  target_link_options(xpplab-batch PRIVATE -static)
+endif()
+set_target_properties(xpplab-batch PROPERTIES INSTALL_RPATH "$ORIGIN" BUILD_RPATH "$ORIGIN")
+target_compile_definitions(xpplab-batch PRIVATE XPPS_VERSION="${PROJECT_VERSION}")
+# It finds the engine and the examples where the app does: built after it,
+# and on macOS copied into the bundle beside the app's executable.
+add_dependencies(xpplab-batch xpplab)
+if(APPLE)
+  add_custom_command(TARGET xpplab-batch POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:xpplab-batch>
+            $<TARGET_BUNDLE_CONTENT_DIR:xpplab>/MacOS/)
+endif()
+
 # The engine library and the example models go where SDL_GetBasePath()
 # points: next to the executable, or Contents/Resources in a macOS bundle.
 if(APPLE)
@@ -193,7 +219,7 @@ if(APPLE)
     execute_process(COMMAND codesign --force --deep --sign - "${app}")
   ]] COMPONENT app)
 else()
-  install(TARGETS xpplab RUNTIME DESTINATION . COMPONENT app)
+  install(TARGETS xpplab xpplab-batch RUNTIME DESTINATION . COMPONENT app)
   install(FILES $<TARGET_FILE:xppe> DESTINATION . COMPONENT app)
   if(WIN32)
     install(FILES $<TARGET_FILE:SDL3::SDL3> DESTINATION . COMPONENT app)
@@ -221,7 +247,7 @@ if(MINGW)
   install(CODE "set(XPPS_MINGW_BIN \"${XPPS_MINGW_BIN}\")" COMPONENT app)
   install(CODE [[
     file(GET_RUNTIME_DEPENDENCIES
-      EXECUTABLES "${CMAKE_INSTALL_PREFIX}/xpplab.exe"
+      EXECUTABLES "${CMAKE_INSTALL_PREFIX}/xpplab.exe" "${CMAKE_INSTALL_PREFIX}/xpplab-batch.exe"
       LIBRARIES "${CMAKE_INSTALL_PREFIX}/SDL3.dll" "${CMAKE_INSTALL_PREFIX}/libxppe.dll"
       DIRECTORIES "${XPPS_MINGW_BIN}"
       PRE_EXCLUDE_REGEXES "^api-ms-" "^ext-ms-"

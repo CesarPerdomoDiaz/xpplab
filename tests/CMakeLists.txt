@@ -43,3 +43,18 @@ if(Python3_FOUND AND TARGET xpplab)
   set_tests_properties(app_exit_status PROPERTIES TIMEOUT 120
                         SKIP_RETURN_CODE 77)
 endif()
+
+if(Python3_FOUND AND TARGET xpplab-batch)
+  # xpplab-batch: XPPAUT's -silent output, and the app's commands in a file.
+  # On macOS it runs from the app bundle, where it finds the engine.
+  if(APPLE)
+    set(XPPS_BATCH $<TARGET_BUNDLE_CONTENT_DIR:xpplab>/MacOS/xpplab-batch)
+  else()
+    set(XPPS_BATCH $<TARGET_FILE:xpplab-batch>)
+  endif()
+  add_test(NAME batch_cli
+    COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/batch_check.py
+            ${XPPS_BATCH} $<TARGET_FILE:xppaut-headless>
+            ${PROJECT_SOURCE_DIR}/engine/xppaut/ode)
+  set_tests_properties(batch_cli PROPERTIES TIMEOUT 600)
+endif()

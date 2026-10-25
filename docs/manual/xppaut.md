@@ -56,6 +56,7 @@ page.
 | AUTO > File > Import orbit | Bifurcation > Show this orbit as the run, `auto orbit` |
 | Kinescope (Capture, Reset, Playback, Autoplay, Save, Make AniGif) | View > Kinescope; `kinescope capture`, `kinescope play`, `kinescope save film.gif` |
 | Initial conds > Range with Movie = Yes | Workspace > Range > Film it in the Kinescope, `range ... film` |
+| `xppaut model.ode -silent` | `xpplab-batch model.ode` (and `-c` commands, AUTO included) |
 | Data viewer | View > Data |
 | File > Write .set / Read .set | the `.ode` file keeps the values; `set` statements give named sets |
 

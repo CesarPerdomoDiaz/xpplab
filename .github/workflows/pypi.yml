@@ -2,8 +2,9 @@ name: PyPI
 
 # Publishes a release's wheels to PyPI, so that `pip install xpplab`
 # works. PyPI trusts this workflow itself (trusted publishing): no PyPI
-# token is stored anywhere. It runs when a release is published, and by
-# hand for a given tag (the first upload created the project on PyPI).
+# token is stored anywhere. release.yml starts it for the tag it has just
+# released (a release it publishes cannot trigger this workflow); it also
+# runs when a release is published by hand, and by hand for a given tag.
 on:
   release:
     types: [published]

@@ -41,6 +41,8 @@ page.
 | Dir.field | Phase Plane > Flow |
 | Window/zoom | Mouse: drag, scroll, double-click |
 | Sing pts > Go | Equilibrium button |
+| Sing pts > Monte Carlo | Phase Plane > All equilibria, `eq all` |
+| Sing pts > Range | Workspace > Range > Equilibria, `range ... eq` |
 | Parameters, ICs, Numerics windows | Workspace tabs |
 | Erase | `erase` (E) |
 | File > Auto | Bifurcation window |

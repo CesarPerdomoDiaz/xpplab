@@ -94,6 +94,14 @@ CASES = [
     ("hfun", "lecar.ode", [
         "set iapp=0.1", "hfun V'-V; 0", "export {out}/h.csv analysis"]),
     ("bvp", "dumbbvp.ode", ["bvp", "export {out}/bvp.csv"]),
+    ("equilibria", "lecar.ode", [
+        "range iapp 0 0.3 31 eq V", "export {out}/sweep.csv range",
+        "eq all", "export {out}/all.csv equilibria",
+        "set iapp=0.2", "eq all 300", "export {out}/more.csv equilibria",
+        "run", "export {out}/run.csv"]),
+    ("equilibria_3d", "lorenz.ode", [
+        "eq all 200", "export {out}/all.csv equilibria",
+        "range r 0.5 30 30 eq z", "export {out}/sweep.csv range"]),
 ]
 
 

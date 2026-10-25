@@ -19,6 +19,11 @@ void xppe_end_call(void);
 /* Called when the engine aborts inside a guarded region. */
 void xppe_mark_broken(void);
 
+/* The result table (xppe_data.c), for the API's other files: start a table
+   of nrows rows with these column names, then fill it cell by cell. */
+int xppe_result_start(int nrows, int ncols, const char *const *names);
+void xppe_result_put(int col, int row, double value);
+
 /* Run the statements between XPPE_GUARD_BEGIN and XPPE_GUARD_END in a
    guarded region. If the engine calls exit() inside it, `cleanup` runs and
    the enclosing function returns XPPE_ERR_FATAL. */

@@ -48,3 +48,24 @@ m.equilibrium(set_initial=True)          # also make it the initial value
 
 `kind` is one of: stable node, unstable node, stable focus, unstable focus,
 saddle, saddle-focus. For maps it is stable or unstable.
+
+### Every equilibrium, and equilibria over a parameter
+
+```python
+eqs = m.find_equilibria(guesses=200, box={"V": (-0.6, 0.6), "W": (-0.1, 0.8)})
+eqs                 # <3 equilibria: unstable focus, saddle, stable node>
+eqs.to_csv("eqs.csv")
+
+t = m.equilibrium_sweep("iapp", np.linspace(0, 0.3, 31))
+t.columns           # ['iapp', 'V', 'W', 'unstable', 'stable']
+```
+
+`find_equilibria` is XPPAUT's *Sing pts > Monte Carlo*: Newton's method
+from random points in a box (variables left out of `box` span -10 to 10,
+XPPAUT's default), keeping each distinct equilibrium. XPPAUT's random
+numbers repeat, so the same call finds the same list.
+
+`equilibrium_sweep` is *Sing pts > Range*: at each value the search starts
+from the equilibrium found at the value before. The table gives the
+numbers of unstable and stable eigenvalues; where no equilibrium was found
+the row holds NaN. The parameter is restored afterwards.

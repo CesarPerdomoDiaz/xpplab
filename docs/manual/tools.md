@@ -14,6 +14,13 @@ value, from *From* to *To*:
 - **Liapunov exponent** gives the largest exponent of each run. Where it
   rises above zero the system is chaotic; try the Lorenz model with `r`
   from 20 to 30.
+- **Equilibria (no runs)** is XPPAUT's *Sing pts > Range*: at each value
+  Newton's method looks for an equilibrium, starting from the one found at
+  the value before (the first time from the initial values). The plot shows
+  the chosen variable, red where the equilibrium is stable and black where
+  it is not: steady states and their stability without AUTO. When the
+  parameter matches the Bifurcation window's, the dots appear on AUTO's
+  diagram too, and should sit on its steady-state branch.
 
 *Start each run where the last ended* is XPPAUT's "Use old ICs = No": each
 run continues from the end of the previous one, so a branch is followed
@@ -22,7 +29,25 @@ values. The parameter and initial values are put back afterwards.
 
 Command: `range iapp 0 0.2 40 V` (max and min of V),
 `range r 20 30 30 lyap continue`, `range V -0.5 0.5 10` (over V's initial
-value, keeping the runs).
+value, keeping the runs), `range iapp 0 0.3 31 eq V` (equilibria). `export
+range.csv range` saves the table.
+
+## Every equilibrium at once
+
+**All equilibria** in the Phase Plane (or **Run > Find all equilibria**,
+or `eq all`) is XPPAUT's *Sing pts > Monte Carlo*. Newton's method starts
+from 100 random points and keeps every distinct equilibrium it reaches;
+each is marked in the phase plane, filled when stable, and listed in the
+command window with its kind. The points are spread over the phase plane's
+window and, for the other variables, over the range the last run covered,
+widened by a quarter. `eq all 500` tries 500 points; `export eqs.csv
+equilibria` saves every equilibrium found with its eigenvalues.
+
+In the Morris-Lecar model at its defaults this finds the three equilibria
+that the nullclines' crossings show: a stable node, a saddle and an
+unstable focus. The random points come from XPPAUT's generator, which
+repeats from one session to the next, so the same search finds the same
+equilibria every time.
 
 ## Boundary-value problems
 

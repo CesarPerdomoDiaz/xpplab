@@ -156,8 +156,8 @@ To do:
 - [ ] Journal of Open Source Software paper
 
 ### M7 Beyond XPPAUT: analysis and control
-- [ ] Linearise a model at an equilibrium with chosen inputs (the A and B
-      matrices), in Python and in the app
+- [x] Linearise a model at an equilibrium with chosen inputs (the A and B
+      matrices), in Python (`Model.linearize`); the app part is still open
 - [ ] Eigenvalues in the complex plane, with a controllability check
 - [ ] Pole placement: drag an eigenvalue, get the feedback gain, simulate the
       closed loop (generated as an `.ode` model)

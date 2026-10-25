@@ -19,7 +19,7 @@ from pathlib import Path
 
 __all__ = ["Engine", "EngineError", "find_engine_library"]
 
-API_VERSION = 5
+API_VERSION = 6
 
 OK = 0
 ERR_STATE = -1
@@ -224,6 +224,7 @@ _SIGNATURES = {
     "xppe_auto_set_workdir": ([ctypes.c_char_p], ctypes.c_int),
     "xppe_auto_reset": ([], ctypes.c_int),
     "xppe_auto_run": ([ctypes.c_char_p], ctypes.c_int),
+    "xppe_auto_run_form": ([ctypes.c_char_p, ctypes.c_char_p], ctypes.c_int),
     "xppe_auto_grab": ([ctypes.c_int], ctypes.c_int),
     "xppe_auto_ungrab": ([], ctypes.c_int),
     "xppe_auto_save": ([ctypes.c_char_p], ctypes.c_int),

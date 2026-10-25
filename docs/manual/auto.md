@@ -87,6 +87,55 @@ in the phase plane and the time series, and the Analysis tools work on it.
 
 Commands: `auto save fold.auto`, `auto load fold.auto`, `auto orbit 6`.
 
+## Boundary value problems and homoclinic orbits (Python)
+
+AUTO's boundary value and homoclinic starts are available from Python as
+`start("bvp", ...)` and `start("homoclinic", ...)`, and tested against known
+answers (`python/tests/test_auto_bvp_homoclinic.py`). The desktop app does
+not offer them yet.
+
+**Boundary value problems.** Rescale the interval to `[0, 1]`, give one `b`
+line per equation, and run the model so that AUTO starts from a solution
+that satisfies the conditions. For `x'' = l x`, `x(0) = 0`, `x(1) = 1`:
+
+```python
+m.run()                      # the exact solution at l = 1
+d = m.auto.start("bvp", "l", nmax=40, ds=0.05)
+```
+
+Each point agrees with `x'(0) = sqrt(l) / sinh(sqrt(l))`.
+
+**Homoclinic orbits.** The start continues a long periodic orbit in two
+parameters. Find the orbit first: continue periodic orbits from a Hopf point
+until the period is large, import one with `auto.orbit(point)`, and put the
+model's parameters at that point's values. Then give the saddle:
+
+```python
+m.auto.orbit(orbit_point)
+m.set(a=orbit_point.value)
+h = m.auto.start("homoclinic", "a", second="b", left=[0, 0],
+                 unstable=1, stable=1)
+```
+
+`left=` is the saddle (and `right=` the second equilibrium of a
+heteroclinic start); `unstable=` and `stable=` are the dimensions of its
+manifolds. They fill the "Homoclinic info" box XPPAUT shows. The test uses
+`x' = y`, `y' = x(1-x) - a y + b x y`: the curve starts where the period of
+the orbits diverges and follows `a = 6b/7` for small `b`.
+
+Limits:
+
+- The starting orbit must be close to the homoclinic but not too long. A
+  period of about 150 worked. With a period of 12 000 or more in the same
+  model, and with a period of 370 in another, the first steps left the
+  curve. Start from the first labelled orbit with a long period, not the
+  longest.
+- The first steps after the start can wobble before AUTO settles on the
+  curve (a couple of per cent in the test); the test allows 1% on the
+  settled points.
+- Only 1-dimensional unstable and stable manifolds in the plane have been
+  tested. Heteroclinic starts use the same code but have no test.
+
 ## When things go wrong
 
 - **"AUTO computed no points"**: the start point is probably not an

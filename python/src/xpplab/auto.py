@@ -305,11 +305,14 @@ class Auto:
         self._eng.call("xppe_auto_orbit", label)
         return self._model._collect()
 
-    def _run(self, key: str, settings: dict) -> Diagram:
+    def _run(self, key: str, settings: dict, form: str | None = None) -> Diagram:
         if settings:
             self.set(**settings)
         before = self._eng.call("xppe_auto_count", check=False)
-        self._eng.call("xppe_auto_run", key.encode())
+        if form is None:
+            self._eng.call("xppe_auto_run", key.encode())
+        else:
+            self._eng.call("xppe_auto_run_form", key.encode(), form.encode())
         return self._points(before)
 
     def equilibria(self, parameter: str, *, from_equilibrium: bool = True,
@@ -330,16 +333,52 @@ class Auto:
         self._eng.call("xppe_auto_ungrab")
         return self._run("s", settings)
 
-    def start(self, kind: str, parameter: str, **settings) -> Diagram:
+    def start(self, kind: str, parameter: str, *, second: str | None = None,
+              left=None, right=None, unstable: int | None = None,
+              stable: int | None = None, **settings) -> Diagram:
         """Start a new branch: kind is "steady", "periodic" (from the
-        current orbit), "bvp", "homoclinic" or "heteroclinic"."""
+        current orbit), "bvp", "homoclinic" or "heteroclinic".
+
+        A "bvp" start continues the boundary value problem of the model's
+        ``b`` lines from the last run. A "homoclinic" or "heteroclinic"
+        start continues the last run, a long periodic orbit (see
+        :meth:`orbit`), in ``parameter`` and ``second``. It needs the saddle
+        ``left=`` (and ``right=`` for a heteroclinic), as a dict by variable
+        name or a sequence, and optionally the dimensions of its
+        ``unstable=`` and ``stable=`` manifolds (the "Homoclinic info" box).
+        """
         key = _ACTIONS["start"].get(kind)
         if key is None:
             raise ValueError(f"unknown start {kind!r}; choose from "
                              f"{', '.join(_ACTIONS['start'])}")
-        self.parameters(parameter)
+        form = None
+        if kind in ("homoclinic", "heteroclinic"):
+            if second is None:
+                raise ValueError(f"a {kind} start needs second=<parameter>")
+            if left is None or (kind == "heteroclinic" and right is None):
+                raise ValueError(f"a {kind} start needs the equilibria "
+                                 "left= (and right= for a heteroclinic)")
+            names = list(self._model.variables)
+
+            def values(v):
+                v = [v[n] for n in names] if isinstance(v, dict) else list(v)
+                if len(v) != len(names):
+                    raise ValueError(f"expected {len(names)} values, "
+                                     f"got {len(v)}")
+                return v
+
+            fields = []
+            if unstable is not None:
+                fields.append(("dim unstable", unstable))
+            if stable is not None:
+                fields.append(("dim stable", stable))
+            fields += [(f"{n}_L", x) for n, x in zip(names, values(left))]
+            if kind == "heteroclinic":
+                fields += [(f"{n}_R", x) for n, x in zip(names, values(right))]
+            form = ";".join(f"{k}={v!r}" for k, v in fields)
+        self.parameters(parameter, second)
         self._eng.call("xppe_auto_ungrab")
-        return self._run(key, settings)
+        return self._run(key, settings, form)
 
     def continue_from(self, point: Point | int, action: str | None = None, *,
                       parameter: str | None = None,

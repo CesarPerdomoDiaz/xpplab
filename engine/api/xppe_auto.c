@@ -232,13 +232,14 @@ static void restore_parameters(const double *before) {
   if (changed) redo_stuff();
 }
 
-int xppe_auto_run(const char *choice) {
+int xppe_auto_run_form(const char *choice, const char *form) {
   int rc, before, i;
   double *saved;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
   xppe_begin_call();
   xpps_answers_clear();
   if (choice && choice[0]) xpps_answers_push(choice);
+  if (form && form[0]) xpps_answers_push(form);
   before = xppe_auto_count();
   saved = calloc(MAXPAR, sizeof *saved);
   for (i = 0; saved && i < NUPAR && i < MAXPAR; i++) get_val(upar_names[i], &saved[i]);
@@ -259,6 +260,8 @@ int xppe_auto_run(const char *choice) {
   }
   return XPPE_OK;
 }
+
+int xppe_auto_run(const char *choice) { return xppe_auto_run_form(choice, NULL); }
 
 /* ---- The diagram -------------------------------------------------------- */
 

@@ -84,8 +84,9 @@ Path: M0 → M1 → M2 → M3 → M4 → M10 → M9 → [M7] → M11
 - [x] **Headless AUTO:** equilibria, periodic orbits, two-parameter curves,
       branch switching. Branches and labelled special points (HB, LP, PD,
       TR, BP, UZ) are returned as data
-- [ ] AUTO: BVPs and homoclinics (can be started with `start="bvp"`,
-      `"homoclinic"` or `"heteroclinic"`, but no test covers them)
+- [x] AUTO: BVPs and homoclinics (`start("bvp")` and `start("homoclinic")`
+      are tested against closed-form and Melnikov answers; heteroclinic
+      starts are untested; see `docs/manual/auto.md` for the limits)
 - [x] Shared library build with an exported, versioned C API
 - [x] A command-line tool built on the API: `xpplab-batch` (XPPAUT's
       `-silent`, and the app's commands with AUTO); `xppaut-headless` stays

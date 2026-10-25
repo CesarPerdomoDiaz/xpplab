@@ -331,6 +331,10 @@ XPPE_API int xppe_auto_set_workdir(const char *dir);
 /* Forget the bifurcation diagram. */
 XPPE_API int xppe_auto_reset(void);
 XPPE_API int xppe_auto_run(const char *choice);
+/* Like xppe_auto_run, and answers the dialog some starts open (homoclinic and
+   heteroclinic: "Homoclinic info") with `form`, "label=value;label=value",
+   for example "dim unstable=1;dim stable=1;X_L=0.14;Y_L=0". */
+XPPE_API int xppe_auto_run_form(const char *choice, const char *form);
 /* Select the point with this label as the start of the next run. */
 XPPE_API int xppe_auto_grab(int label);
 XPPE_API int xppe_auto_ungrab(void);

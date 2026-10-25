@@ -136,22 +136,25 @@ static void draw_special(App *a, bool two_param) {
     x = p->par1;
     y = two_param ? p->par2 : yvalue(a, i, 0);
     {
-      ImPlotSpec_c s = SpecMarker(i == u->selected ? HEX(0xffd600) : COL_SPECIAL,
-                                  ImPlotMarker_Circle,
-                                  i == u->selected ? 6.0f : 4.0f);
-      ImPlot_PlotScatter_doublePtrdoublePtr("##sp", &x, &y, 1, s);
-    }
-    if (p->type_name[0] && strcmp(p->type_name, "EP") != 0) {
       /* AUTO often passes the same point several times (closed loops of
-         orbits): label it once. */
+         orbits, or a periodic branch that climbs at a fixed parameter and
+         flags a limit point at every step): mark and label it once. */
       ImVec2_c px = ImPlot_PlotToPixels_double(x, y, ImAxis_X1, ImAxis_Y1);
       int k;
-      bool crowded = false;
-      for (k = 0; k < ndrawn; k++)
-        if (fabsf(drawn[k].x - px.x) < 18 && fabsf(drawn[k].y - px.y) < 14 &&
-            strcmp(drawn_type[k], p->type_name) == 0)
-          crowded = true;
-      if (!crowded) {
+      bool crowded = false, named = p->type_name[0] && strcmp(p->type_name, "EP") != 0;
+      if (named)
+        for (k = 0; k < ndrawn; k++)
+          if (fabsf(drawn[k].x - px.x) < 18 && fabsf(drawn[k].y - px.y) < 14 &&
+              strcmp(drawn_type[k], p->type_name) == 0)
+            crowded = true;
+      if (crowded && i != u->selected) continue;
+      {
+        ImPlotSpec_c s = SpecMarker(i == u->selected ? HEX(0xffd600) : COL_SPECIAL,
+                                    ImPlotMarker_Circle,
+                                    i == u->selected ? 6.0f : 4.0f);
+        ImPlot_PlotScatter_doublePtrdoublePtr("##sp", &x, &y, 1, s);
+      }
+      if (named && !crowded) {
         ImPlot_PlotText(p->type_name, x, y, V2(12, -10), Spec(COL_SPECIAL, 1.0f));
         if (ndrawn < MAXL) {
           drawn[ndrawn] = px;

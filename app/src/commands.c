@@ -58,9 +58,13 @@ static const char *usage =
     "  fitdata FILE VARS COLS PARS\n"
     "                           fit parameters to data (comma lists)\n"
     "  open FILE | new | save   models\n"
-    "  export FILE.csv          save the last run as CSV\n"
+    "  export FILE.csv [WHAT]   save data as CSV: the last run, or auto (the\n"
+    "                           bifurcation diagram), range or analysis\n"
     "  export FILE.svg [WHICH]  save a figure (time, phase, auto, auto2);\n"
     "                           .png saves it as it looks on screen\n"
+    "  script FILE.py           save the session as a Python script that\n"
+    "                           repeats it with the xpplab package\n"
+    "  echo on | off            show each action as Python here, or not\n"
     "  show WINDOW              bring a window forward: time, phase, auto,\n"
     "                           editor, data, analysis, 3d, animator, help,\n"
     "                           console, workspace; hide WINDOW closes one\n"
@@ -237,19 +241,6 @@ static void cmd_whos(App *a) {
           app_method_name(a->meth), a->total, a->dt);
 }
 
-static void cmd_ic_last(App *a) {
-  int i, j;
-  if (!a->have_traj || a->traj.nrows == 0) {
-    app_log(a, "There is no run yet.");
-    return;
-  }
-  for (i = 0; i < a->nvars; i++)
-    for (j = 1; j < a->traj.ncols; j++)
-      if (SDL_strcasecmp(a->traj.names[j], a->vars[i]) == 0)
-        app_set_ic(a, i, a->traj.cols[j][a->traj.nrows - 1]);
-  app_log(a, "Initial values set to the end of the last run.");
-}
-
 static const char *action_key(App *a, int point, const char *word) {
   const xppe_auto_point_info *p = &a->au.info[point];
   if (!strcmp(word, "periodic")) return "p";
@@ -364,7 +355,7 @@ void app_command(App *a, const char *line_in) {
     app_continue(a, w ? atof(w) : 0.0);
   } else if (!strcmp(cmd, "set")) {
     cmd_set(a, rest);
-    if (a->needs_run) app_run(a);
+    if (a->needs_run) app_run_live(a);
   } else if (!strcmp(cmd, "get")) {
     char *n = next_word(&rest);
     double v = 0;
@@ -377,10 +368,7 @@ void app_command(App *a, const char *line_in) {
   } else if (!strcmp(cmd, "ic")) {
     char *w = next_word(&rest);
     if (w && !strcmp(w, "last")) {
-      bool live = a->live;
-      a->live = false;
-      cmd_ic_last(a);
-      a->live = live;
+      app_ic_last(a);
     } else {
       app_log(a, "Use 'ic last', or 'set x=...' for one variable.");
     }
@@ -391,6 +379,7 @@ void app_command(App *a, const char *line_in) {
     char *w = next_word(&rest);
     a->pp.nullclines = !(w && !strcmp(w, "off"));
     a->pp.nc_dirty = true;
+    a->echo.nc_written = false;
     a->show_phase = true;
   } else if (!strcmp(cmd, "dirfield") || !strcmp(cmd, "dd")) {
     char *w = next_word(&rest);
@@ -407,7 +396,7 @@ void app_command(App *a, const char *line_in) {
   } else if (!strcmp(cmd, "use")) {
     char *s = next_word(&rest);
     if (s) app_apply_set(a, s);
-    if (a->needs_run) app_run(a);
+    if (a->needs_run) app_run_live(a);
   } else if (!strcmp(cmd, "sets")) {
     int i;
     for (i = 0; i < a->nsets; i++) app_log(a, "  %s", a->sets[i]);
@@ -510,7 +499,8 @@ void app_command(App *a, const char *line_in) {
     else
       app_apply_editor(a);
   } else if (!strcmp(cmd, "export")) {
-    /* export FILE.csv | export FILE.svg|FILE.png [time|phase|auto|auto2] */
+    /* export FILE.csv [run|auto|range|analysis] |
+       export FILE.svg|FILE.png [time|phase|auto|auto2] */
     char *file = next_word(&rest), *which = next_word(&rest);
     size_t n = file ? strlen(file) : 0;
     if (!file) {
@@ -518,16 +508,39 @@ void app_command(App *a, const char *line_in) {
     } else if (n > 4 && (!SDL_strcasecmp(file + n - 4, ".svg") ||
                          !SDL_strcasecmp(file + n - 4, ".png"))) {
       FigureKind k = FIG_PHASE;
+      bool ok = true;
       if (which && !strcmp(which, "time")) k = FIG_TIME;
       if (which && !strcmp(which, "auto")) k = FIG_AUTO;
       if (which && !strcmp(which, "auto2")) k = FIG_AUTO2;
       if (!SDL_strcasecmp(file + n - 4, ".svg"))
-        export_svg(a, k, file);
+        ok = export_svg(a, k, file);
       else
         export_png(k, file);
+      if (ok) echo_figure(a, k, file);
+    } else if (which && !strcmp(which, "auto")) {
+      app_export_auto_csv(a, file);
+    } else if (which && !strcmp(which, "range")) {
+      app_export_range_csv(a, file);
+    } else if (which && !strcmp(which, "analysis")) {
+      app_export_analysis_csv(a, file);
+    } else if (which && strcmp(which, "run") != 0) {
+      app_log(a, "error: export FILE.csv takes run, auto, range or analysis, "
+                 "not '%s'", which);
     } else {
       app_export_csv(a, file);
     }
+  } else if (!strcmp(cmd, "script")) {
+    char *p = skip_space(rest);
+    if (*p)
+      echo_save(a, p);
+    else
+      app_log(a, "Write: script FILE.py (saves the session so far as a Python "
+                 "script that repeats it)");
+  } else if (!strcmp(cmd, "echo")) {
+    char *w = next_word(&rest);
+    if (w) a->echo.console = strcmp(w, "off") != 0;
+    app_log(a, "Actions are %sshown as Python in the command window.",
+            a->echo.console ? "" : "no longer ");
   } else if (!strcmp(cmd, "show")) {
     char *w = next_word(&rest);
     if (w) snprintf(a->focus, sizeof a->focus, "%s", w);

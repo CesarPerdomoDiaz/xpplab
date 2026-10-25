@@ -28,6 +28,12 @@ static void menu_file(App *a) {
   igSeparator();
   if (igMenuItem_Bool("Export data as CSV...", NULL, false, a->have_traj))
     ui_dialog_export_csv(a);
+  if (igMenuItem_Bool("Save session as Python script...", NULL, false,
+                      a->echo.len > 0))
+    ui_dialog_save_script(a);
+  if (igIsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+    igSetTooltip("A script that repeats what you have done, number for number, "
+                 "with Python and the xpplab package (pip install xpplab).");
   igSeparator();
   if (igMenuItem_Bool("Quit", MOD "Q  /  F Q", false, true)) a->quit = true;
 }
@@ -115,6 +121,10 @@ static void menu_view(App *a) {
     igEndMenu();
   }
   igMenuItem_BoolPtr("XPPAUT keyboard commands", NULL, &a->classic_keys, true);
+  igMenuItem_BoolPtr("Show actions as Python", NULL, &a->echo.console, true);
+  if (igIsItemHovered(0))
+    igSetTooltip("Write each action in the command window as the Python that "
+                 "does the same (lines starting with >>>).");
   igSeparator();
   igMenuItem_BoolPtr("ImGui/ImPlot demo (developers)", NULL, &a->show_demo,
                      true);

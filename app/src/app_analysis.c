@@ -87,6 +87,7 @@ bool app_bvp(App *a) {
   int i;
   char buf[256];
   size_t len = 0;
+  bool outer;
   if (!a->model_ok) return false;
   x = &a->eng->api;
   if (a->nbcs <= 0) {
@@ -95,11 +96,15 @@ bool app_bvp(App *a) {
                "name means the value at the end).");
     return false;
   }
+  outer = echo_begin(a);
   if (x->xppe_bvp(0, 0.0, 0.0) != XPPE_OK) {
     app_log(a, "error: %s", x->xppe_error());
     app_status(a, "Boundary-value problem: %s", x->xppe_error());
+    echo_end(a);
     return false;
   }
+  if (outer) echo_line(a, "sol = m.bvp()");
+  echo_end(a);
   app_refresh_values(a);
   app_fetch_current(a);
   for (i = 0; i < a->nvars && len < sizeof buf - 40; i++)
@@ -287,9 +292,14 @@ static double measure_period(const double *t, const double *v, int n) {
   used = nc - 1 < 5 ? nc - 1 : 5;
   for (k = nc - used; k < nc; k++) mean += tc[k] - tc[k - 1];
   mean /= used;
-  for (k = nc - used; k < nc; k++)
-    dev += fabs(tc[k] - tc[k - 1] - mean);
-  if (dev / used > 0.01 * mean) return 0;
+  for (k = nc - used; k < nc; k++) {
+    double d = tc[k] - tc[k - 1] - mean;
+    dev += d * d;
+  }
+  /* Steady when the periods' standard deviation is within 1% of their
+     mean: the test xpplab's Model.limit_cycle() makes, so that both find
+     the same period and a session's script repeats it. */
+  if (sqrt(dev / used) > 0.01 * mean) return 0;
   return mean;
 }
 
@@ -321,6 +331,9 @@ static int phase_response(App *a) {
     v = malloc(sizeof(double) * (size_t)(rows + 1));
     x->xppe_column(-1, t, rows);
     if (a->nvars < 1 || engine_column(a, a->vars[0], v, rows) != rows) break;
+    /* The next attempt, or the period below, starts at the end of this run,
+       as in Model.limit_cycle(). */
+    start_from_end(a);
     period = measure_period(t, v, rows);
     settle *= 2;
     length *= 2;
@@ -372,18 +385,137 @@ static bool file_shape(const char *path, int *rows, int *cols) {
 
 /* ---- Running a tool ------------------------------------------------------ */
 
+/* A list of names or numbers typed with commas or spaces, as Python: words
+   quoted, numbers as they are. */
+static void echo_list(const char *typed, bool quote, char *out, size_t len) {
+  char copy[512], *w, item[160];
+  size_t k = 0;
+  snprintf(copy, sizeof copy, "%s", typed);
+  out[0] = '\0';
+  for (w = strtok(copy, " ,"); w && k < len - 1; w = strtok(NULL, " ,"))
+    k += (size_t)snprintf(out + k, len - k, "%s%s", k ? ", " : "",
+                          quote ? echo_str(w, item, sizeof item) : w);
+}
+
+/* The tool's line, with every argument the engine was given. */
+static void echo_analysis(App *a, const char *c1, const char *c2, int spec_len,
+                          bool lyap_ok) {
+  static const char *windows[] = {"square", "parzen", "hamming", "bartlett", "hann"};
+  static const char *kinds[] = {"psd", "cross", "coherence"};
+  AnalysisUI *n = &a->an;
+  char s1[160], s2[160], v[4][64], extra[600], win[32];
+  const char *table = "";
+  int i;
+  echo_str(c1, s1, sizeof s1);
+  echo_str(c2, s2, sizeof s2);
+  switch (n->tool) {
+  case AN_SPECTRUM:
+    table = "spec";
+    if (n->spec_window >= 0 && n->spec_window <= 4)
+      snprintf(win, sizeof win, "\"%s\"", windows[n->spec_window]);
+    else
+      snprintf(win, sizeof win, "%d", n->spec_window);
+    if (n->spec_kind <= 0 || n->spec_kind > 2)
+      echo_line(a, "spec = m.spectrum(%s, length=%d, window=%s)", s1, spec_len, win);
+    else
+      echo_line(a, "spec = m.spectrum(%s, %s, kind=\"%s\", length=%d, window=%s)", s1,
+                s2, kinds[n->spec_kind], spec_len, win);
+    break;
+  case AN_FOURIER:
+    table = "fourier";
+    echo_line(a, "fourier = m.%s(%s)", n->polar ? "power" : "fourier", s1);
+    break;
+  case AN_HISTOGRAM:
+    table = "hist";
+    extra[0] = '\0';
+    if (n->condition[0]) {
+      char c[300];
+      snprintf(extra, sizeof extra, ", condition=%s",
+               echo_str(n->condition, c, sizeof c));
+    }
+    echo_line(a, "hist = m.histogram(%s, bins=%d, range=(%s, %s)%s)", s1, n->bins,
+              echo_num(n->lo, v[0], 64), echo_num(n->hi, v[1], 64), extra);
+    break;
+  case AN_HISTOGRAM2D:
+    table = "hist2d";
+    echo_line(a, "hist2d = m.histogram2d(%s, %s, bins=(%d, %d), range=((%s, %s), "
+                 "(%s, %s)))", s1, s2, n->bins, n->bins2, echo_num(n->lo, v[0], 64),
+              echo_num(n->hi, v[1], 64), echo_num(n->lo2, v[2], 64),
+              echo_num(n->hi2, v[3], 64));
+    break;
+  case AN_CORRELATION:
+    table = "corr";
+    if (n->col2 == n->col)
+      echo_line(a, "corr = m.correlation(%s, lags=%d%s)", s1, n->lags,
+                n->use_fft ? ", fft=True" : "");
+    else
+      echo_line(a, "corr = m.correlation(%s, %s, lags=%d%s)", s1, s2, n->lags,
+                n->use_fft ? ", fft=True" : "");
+    break;
+  case AN_STATISTICS:
+    echo_line(a, "stats = m.mean(%s)", s1);
+    if (lyap_ok) echo_line(a, "lyap = m.lyapunov()");
+    break;
+  case AN_PRC:
+  case AN_HFUNCTION:
+    table = n->tool == AN_PRC ? "prc" : "h";
+    if (n->transient > 0)
+      echo_line(a, "prc = m.phase_response(transient=%s)",
+                echo_num(n->transient, v[0], 64));
+    else
+      echo_line(a, "prc = m.phase_response()");
+    if (n->tool == AN_HFUNCTION) {
+      char list[1200], f[300];
+      size_t k = 0;
+      list[0] = '\0';
+      for (i = 0; i < a->nvars && k < sizeof list - 320; i++)
+        k += (size_t)snprintf(list + k, sizeof list - k, "%s%s", i ? ", " : "",
+                              echo_str(n->coupling[i], f, sizeof f));
+      echo_line(a, "h = m.h_function([%s])", list);
+    }
+    echo_line(a, "sol = m.last_run()");
+    break;
+  case AN_FIT: {
+    char p[2100], q[2200], vars[600], cols[300], pars[800];
+    echo_abs_path(n->fit_file, p, sizeof p);
+    echo_list(n->fit_vars, true, vars, sizeof vars);
+    echo_list(n->fit_cols, false, cols, sizeof cols);
+    echo_list(n->fit_pars, true, pars, sizeof pars);
+    echo_line(a, "fitted = m.fit(%s, variables=[%s], columns=[%s], parameters=[%s])",
+              echo_str(p, q, sizeof q), vars, cols, pars);
+    echo_line(a, "sol = m.run()");
+    break;
+  }
+  default:
+    break;
+  }
+  snprintf(a->echo.table, sizeof a->echo.table, "%s", table);
+}
+
+static bool analysis_run(App *a, bool outer);
+
 bool app_analysis_run(App *a) {
+  bool outer, ok;
+  if (!a->model_ok) return false;
+  outer = echo_begin(a);
+  ok = analysis_run(a, outer);
+  echo_end(a);
+  return ok;
+}
+
+static bool analysis_run(App *a, bool outer) {
   xpp_engine_api *x;
   AnalysisUI *n = &a->an;
   const char *c1, *c2;
-  int rc = XPPE_OK;
-  if (!a->model_ok) return false;
+  int rc = XPPE_OK, spec_len = 0;
   if (n->col < 0 || n->col >= a->ncols) n->col = 0;
   if (n->col2 < 0 || n->col2 >= a->ncols) n->col2 = n->col;
   x = &a->eng->api;
   if (!a->have_traj && n->tool != AN_FIT && n->tool != AN_PRC &&
-      n->tool != AN_HFUNCTION && !app_run(a))
-    return false;
+      n->tool != AN_HFUNCTION) {
+    if (!app_run(a)) return false;
+    if (outer) echo_line(a, "sol = m.run()");
+  }
   c1 = a->cols[n->col];
   c2 = a->cols[n->col2];
   n->summary[0] = '\0';
@@ -397,6 +529,7 @@ bool app_analysis_run(App *a) {
       app_log(a, "note: the run has %d points, so the window is %d points "
                  "instead of %d.", rows, len, n->spec_len);
     rc = x->xppe_spectrum(n->spec_kind, c1, c2, len, n->spec_window);
+    spec_len = len;
     break;
   }
   case AN_FOURIER:
@@ -429,6 +562,7 @@ bool app_analysis_run(App *a) {
     rc = x->xppe_mean(c1, &mean, &sd);
     if (rc == XPPE_OK) {
       int lr = x->xppe_lyapunov(&lyap);
+      if (outer) echo_analysis(a, c1, c2, 0, lr == XPPE_OK);
       if (lr == XPPE_OK)
         snprintf(n->summary, sizeof n->summary,
                  "%s: mean %.6g, standard deviation %.6g.   Largest "
@@ -468,6 +602,7 @@ bool app_analysis_run(App *a) {
     if (rc == XPPE_OK) {
       char *p, list[256];
       size_t len = 0;
+      if (outer) echo_analysis(a, c1, c2, 0, false);
       app_refresh_values(a);
       snprintf(list, sizeof list, "%s", n->fit_pars);
       len = (size_t)snprintf(n->summary, sizeof n->summary, "Fitted:");
@@ -501,6 +636,7 @@ bool app_analysis_run(App *a) {
   }
   fetch_result(a, n->tool == AN_PRC ? n->period : 0);
   n->res_tool = n->tool;
+  if (outer) echo_analysis(a, c1, c2, spec_len, false);
   if (n->tool == AN_PRC || n->tool == AN_HFUNCTION) {
     /* The run is now one period of the cycle: show it. */
     app_fetch_current(a);

@@ -203,6 +203,33 @@ class Model(AnalysisMixin):
         self._engine.call("xppe_run")
         return self._collect()
 
+    def continue_run(self, trajectory: "Trajectory",
+                     time: float | None = None) -> "Trajectory":
+        """XPPAUT's Continue (C C): integrate ``time`` more (default: the
+        total time) from where ``trajectory`` ended, and return it with the
+        new points appended. The initial conditions, T0 and the total time
+        are left as they were."""
+        if trajectory is None or not len(trajectory):
+            return self.run()
+        t0, total = float(self.get("T0")), float(self.get("TOTAL"))
+        ics = {v: float(self.get(v)) for v in self.variables}
+        more = float(time) if time is not None and time > 0 else total
+        self.set(T0=float(trajectory.t[-1]), TOTAL=more)
+        self.set(**{v: float(trajectory[v][-1]) for v in self.variables
+                    if v in trajectory})
+        try:
+            new = self.run()
+        finally:
+            self.set(T0=t0, TOTAL=total, **ics)
+        data = {k: np.concatenate([trajectory[k], new[k][1:]])
+                for k in trajectory.columns if k in new}
+        return Trajectory(data, log=new.log)
+
+    def last_run(self) -> "Trajectory":
+        """The engine's most recent run, such as the one period of the limit
+        cycle that :meth:`phase_response` leaves behind."""
+        return self._collect()
+
     def _collect(self) -> "Trajectory":
         """The engine's current run as a Trajectory."""
         rows = self._engine.call("xppe_rows", check=False)
@@ -490,6 +517,12 @@ class Trajectory:
     def save(self, path: str | os.PathLike) -> None:
         """Write the data in XPPAUT's output.dat format."""
         np.savetxt(path, self.to_numpy(), fmt="%.8g")
+
+    def to_csv(self, path: str | os.PathLike) -> None:
+        """Write the run as CSV with a header, every number exact (the
+        desktop app's ``export FILE.csv`` writes the same file)."""
+        from .analysis import write_csv
+        write_csv(path, self.columns, self.to_numpy())
 
     def plot(self, *y: str, x: str = "T", ax=None, **kw):
         """Plot columns against time (or against another column with x=)."""

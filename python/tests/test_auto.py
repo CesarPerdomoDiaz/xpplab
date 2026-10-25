@@ -155,3 +155,17 @@ def test_aux_quantity_beyond_bound_stops_integration():
 
 def test_raised_bound_lets_grabbed_orbit_run_to_total():
     assert _grab_periodic_and_run("@ bound=1000000") == pytest.approx(80)
+
+
+def test_diagram_csv(lecar_hopf, tmp_path):
+    d = lecar_hopf.auto.equilibria("iapp")
+    d.to_csv(tmp_path / "d.csv")
+    lines = (tmp_path / "d.csv").read_text().splitlines()
+    head = lines[0].split(",")
+    assert head[:7] == ["branch", "point", "type", "label", "stable", "periodic",
+                        "two_parameter"]
+    assert head[-4:] == ["V_max", "W_max", "V_min", "W_min"]
+    assert len(lines) == len(d) + 1
+    row = dict(zip(head, lines[1 + d.points.index(d.first("HB"))].split(",")))
+    assert row["type"] == "HB" and row["parameter"] == "iapp"
+    assert float(row["value"]) == d.first("HB").value

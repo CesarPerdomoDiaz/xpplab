@@ -53,6 +53,8 @@ jobs:
           ./xpplab.exe examples/lecar.ode --cmd "nullclines" --cmd "auto steady iapp" --screenshot shot.bmp --frames 10 || echo "exit code $?"
           cat shot.bmp.err 2>/dev/null || true
           test -s shot.bmp
+      - name: A session saved as Python repeats it bit for bit
+        run: python tests/replay.py --app build/app/xpplab.exe
       - name: If the app failed, show where (gdb)
         if: failure()
         run: |

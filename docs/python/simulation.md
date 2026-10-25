@@ -26,6 +26,18 @@ variables, then the auxiliary quantities declared with `aux`.
 The values are XPPAUT's stored data (single precision), the same numbers
 XPPAUT writes to `output.dat`.
 
+### Continuing a run, and saving it
+
+`m.continue_run(sol, 50)` is XPPAUT's Continue: it integrates 50 more time
+units from where `sol` ended and returns `sol` with the new points
+appended, leaving the initial conditions as they were. `m.last_run()` is
+the engine's most recent run, such as the one period of the limit cycle
+that `m.phase_response()` leaves behind.
+
+`sol.to_csv("run.csv")` writes a run with a header and every number exact;
+`Table` results and bifurcation diagrams (`m.auto.diagram.to_csv(...)`)
+have the same method. The files match the desktop app's CSV exports.
+
 ## Integrators
 
 `meth=` takes XPPAUT's names or friendlier aliases:

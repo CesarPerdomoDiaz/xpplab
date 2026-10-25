@@ -161,6 +161,30 @@ typedef struct {
   int ncomets;
 } AniUI;
 
+/* The session as Python (echo.c): each action that changes the model or
+   computes a result, written as the line of Python, with the xpplab
+   package, that does the same. */
+#define ECHO_NOPTS 21
+typedef struct {
+  bool console;       /* also show each line in the command window */
+  char *text;         /* the lines so far */
+  size_t len, cap;
+  bool loaded;        /* the lines have loaded the current model */
+  int depth;          /* actions in progress; only the outermost is written */
+  bool live;          /* a live rerun is in progress */
+  bool pending_run;   /* a live rerun not written yet */
+  bool dirty;         /* a value changed since the last line */
+  bool wrote;         /* the action in progress wrote a line */
+  bool nc_written;    /* the nullclines of this view are written */
+  bool plt;           /* the lines draw figures */
+  /* What the script's model holds after the lines so far. */
+  double *par, *ic, opt[ECHO_NOPTS];
+  int npar, nic;
+  char table[16];     /* the variable holding the last analysis result */
+  int sweep_mode;     /* what the variable 'sweep' holds: SWEEP_*, or -1 */
+  char sweep_name[APP_NAME_LEN], sweep_var[APP_NAME_LEN];
+} Echo;
+
 typedef struct App {
   /* engine */
   char engine_path[1024];
@@ -212,6 +236,7 @@ typedef struct App {
   View3D v3;
   AniUI ani;
   int nbcs;          /* the model's boundary conditions (bndry) */
+  Echo echo;
 
   /* console */
   char *log;
@@ -274,7 +299,12 @@ int app_find_par(App *a, const char *name);
 
 /* Computation */
 bool app_run(App *a);
+/* A rerun after a change in live mode: written to the session once the
+   mouse is let go, not once per frame of a drag. */
+bool app_run_live(App *a);
 bool app_continue(App *a, double more_time); /* 0: the current TOTAL */
+/* XPPAUT's Initial conds > Last, from the run as shown. */
+bool app_ic_last(App *a);
 void app_freeze(App *a);
 void app_clear_curves(App *a);
 bool app_equilibrium(App *a, const double *guess);
@@ -309,8 +339,13 @@ bool app_auto_push_settings(App *a);
 int app_auto_actions(App *a, int point, const char **labels, const char **keys,
                      int max);
 
-/* Files */
-bool app_export_csv(App *a, const char *path);
+/* Files. The CSV files hold every number exactly (the shortest text that
+   reads back as the same double). */
+bool app_export_csv(App *a, const char *path);          /* the last run */
+bool app_export_auto_csv(App *a, const char *path);     /* the diagram's points */
+bool app_export_analysis_csv(App *a, const char *path); /* the Analysis result */
+bool app_export_range_csv(App *a, const char *path);    /* a measuring Range */
+void app_format_double(char *buf, size_t len, double v);
 void app_add_recent(App *a, const char *path);
 /* The app's own folder (settings, layout, untitled models), ending in a
    separator, or NULL; free it with SDL_free(). */
@@ -321,5 +356,27 @@ void app_load_settings(App *a);
 /* Commands typed in the command window */
 void app_command(App *a, const char *line);
 const char *app_method_name(int index);
+
+/* The session as Python (echo.c). An action calls echo_begin() first: it
+   writes the values changed since the last line, and says whether this is
+   the outermost action, the one whose line to write. echo_end() closes the
+   action: the engine's state becomes the script's. */
+bool echo_begin(App *a);
+void echo_end(App *a);
+void echo_line(App *a, const char *fmt, ...);
+void echo_model_loaded(App *a); /* m = xs.load(...) */
+void echo_values(App *a);       /* write the values that changed */
+/* Once a frame: write what waits (a changed value, a live rerun) unless a
+   control is still held (busy). */
+void echo_frame(App *a, bool busy);
+void echo_figure(App *a, int figure, const char *path);
+bool echo_save(App *a, const char *path);
+/* Whether a name is a parameter, a variable or an option the echo follows. */
+bool echo_knows(App *a, const char *name);
+/* A number or a string as Python source; buf is returned. */
+const char *echo_num(double v, char *buf, size_t len);
+const char *echo_str(const char *s, char *buf, size_t len);
+/* The absolute form of a path, as the session should name it. */
+void echo_abs_path(const char *path, char *out, size_t len);
 
 #endif

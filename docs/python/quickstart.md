@@ -10,8 +10,12 @@ pip install "xpplab[all]"     # plus matplotlib and pandas
 The wheel contains the compiled XPPAUT engine. Nothing needs a compiler,
 and no X11 server is involved.
 
-> Until the first release is on PyPI, install from a clone of the
-> repository with `pip install .` (see the README for Windows notes).
+## Start from the desktop app
+
+The desktop app writes each action as the xpplab code that does the same,
+in its command window, and **File > Save session as Python script** turns a
+session into a script that repeats it number for number. Explore with the
+mouse, then carry on in Python from the saved script.
 
 ## Load a model and run it
 

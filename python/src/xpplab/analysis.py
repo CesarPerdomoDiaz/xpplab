@@ -30,6 +30,27 @@ def _b(s) -> bytes:
     return str(s).encode("latin-1")
 
 
+def _csv_cell(v) -> str:
+    if v is None:
+        return ""
+    if isinstance(v, str):
+        return v
+    if isinstance(v, (bool, np.bool_)):
+        return "1" if v else "0"
+    if isinstance(v, (int, np.integer)):
+        return str(int(v))
+    return repr(float(v))
+
+
+def write_csv(path, columns, rows) -> None:
+    """Write a header and rows as CSV with every number exact: the shortest
+    text that reads back as the same float, as the desktop app writes it."""
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        f.write(",".join(columns) + "\n")
+        for row in rows:
+            f.write(",".join(_csv_cell(v) for v in row) + "\n")
+
+
 class Table:
     """A table of results: named NumPy columns, the first one the x-axis."""
 
@@ -63,6 +84,12 @@ class Table:
         import pandas as pd
         df = pd.DataFrame(self._data)
         return df.set_index(self.columns[0])
+
+    def to_csv(self, path: str | os.PathLike) -> None:
+        """Write the table as CSV, every number exact (the desktop app's
+        ``export FILE.csv analysis`` writes the same file)."""
+        cols = [np.asarray(v, dtype=float) for v in self._data.values()]
+        write_csv(path, self.columns, zip(*cols))
 
     def plot(self, *y: str, ax=None, **kw):
         """Plot columns (by default the second) against the first."""

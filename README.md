@@ -71,7 +71,7 @@ Everything around the engine is new:
 | Look at spectra and statistics | One *stocHastic* dialog at a time; the result replaces your data | An Analysis window with every tool beside its plot; your run stays as it was |
 | Watch a model move | The Viewer, if your X server cooperates | The Animator plays the model's `.ani` file; the 3D view turns with the mouse |
 | Make a figure for a paper | PostScript, then replot elsewhere | PNG as shown, or a vector SVG, in one click |
-| Automate an analysis | Batch mode only (no AUTO) | A command window, and Python with AUTO included |
+| Automate an analysis | Batch mode only (no AUTO) | A command window, and Python with AUTO included; every action is shown as Python, and a session saves as a script |
 | Learn it | A book and old web pages | A built-in manual with live examples, and tooltips everywhere |
 
 ## Made for teaching
@@ -152,6 +152,10 @@ prc = m.phase_response()             # one period, the adjoint: the PRC
 m.run(total=2000)
 m.spectrum("V").plot()               # power spectral density of the run
 ```
+
+The desktop app writes each action as this kind of code in its command
+window, and **File > Save session as Python script** saves a session as a
+script that repeats it, number for number.
 
 The wheel includes the compiled engine, so nothing is compiled on your
 machine and AUTO works out of the box. Install it with the `pip` line under

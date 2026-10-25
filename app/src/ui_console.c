@@ -53,6 +53,8 @@ void ui_console(App *a) {
         igPushStyleColor_Vec4(ImGuiCol_Text, HEX(0xe53935));
       else if (strncmp(p, "warning", 7) == 0)
         igPushStyleColor_Vec4(ImGuiCol_Text, HEX(0xf9a825));
+      else if (strncmp(p, ">>> ", 4) == 0) /* an action as Python (echo.c) */
+        igPushStyleColor_Vec4(ImGuiCol_Text, a->dark ? HEX(0x81c784) : HEX(0x2e7d32));
       else if (strncmp(p, ">> ", 3) == 0)
         igPushStyleColor_Vec4(ImGuiCol_Text, a->dark ? HEX(0x64b5f6) : HEX(0x1565c0));
       else

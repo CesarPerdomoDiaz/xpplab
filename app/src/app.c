@@ -814,11 +814,9 @@ bool app_run(App *a) {
         const char *b = ob, *e;
         char who[96];
         size_t n;
-        while (b > log && b[-1] != '
-') b--;
+        while (b > log && b[-1] != '\n') b--;
         e = ob;
-        while (*e && *e != '
-') e++;
+        while (*e && *e != '\n') e++;
         n = (size_t)(e - b);
         if (n >= sizeof who) n = sizeof who - 1;
         memcpy(who, b, n);

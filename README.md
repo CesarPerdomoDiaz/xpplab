@@ -218,7 +218,7 @@ The manual, the Python guide and the developer notes are online at
 - **How it works:** [architecture](docs/development/architecture.md).
 - **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md). Some issues are
   worked on by the project's
-  [maintainer agent](CONTRIBUTING.md#the-maintainer-agent), which takes work
+  [maintainer agent](docs/development/maintainer-agent.md), which takes work
   only from the maintainer and opens pull requests for review.
 
 ## Building from source

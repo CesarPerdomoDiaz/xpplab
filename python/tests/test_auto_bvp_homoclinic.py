@@ -66,7 +66,8 @@ def _near_homoclinic_orbit(m, b):
     labelled = [p for p in orbits if p.label and p.period > 50]
     assert labelled[-1].period > 1e6
     assert labelled[0].period < labelled[-1].period
-    return orbits[len(orbits) - 1], labelled[0]
+    longest = max(orbits, key=lambda p: p.period)
+    return longest, labelled[0]
 
 
 def test_homoclinic_start_follows_the_homoclinic_curve(tmp_path):

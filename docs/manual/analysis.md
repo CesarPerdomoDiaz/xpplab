@@ -108,3 +108,25 @@ the fit converges, the fitted values replace the parameters and the model
 is run again to show the fitted solution.
 
 Command: `fitdata recording.dat V 2 gca,gk`.
+
+## Many noisy runs: the ensemble
+
+A model with noise (`wiener` variables, or `ran()` in its formulas) gives a
+different run each time. **Ensemble of noisy runs** is XPPAUT's
+*stocHastic > Compute*: it runs the model *Runs* times from the same
+initial values, the random numbers going on from run to run, and averages
+them. The plot shows a column's **mean** at each time with a band of one
+standard deviation; *Show* switches to another column, or to a variance.
+The numbers are XPPAUT's own: they equal what its batch mode writes with
+`@ stoch=1` (the mean) and `@ stoch=2` (the variance).
+
+The other windows keep the last of the runs. *Export > analysis* (or
+`export ens.csv analysis`) writes time and every column's mean and
+variance: `V_mean`, `V_var`, ...
+
+Try [the noisy FitzHugh-Nagumo model](example:fhn_noise.ode): set the total
+time to 100 and compute 50 runs. Each run spikes at slightly different
+times, so the mean's oscillations shrink as the runs fall out of step.
+
+Command: `ensemble 50`.
+

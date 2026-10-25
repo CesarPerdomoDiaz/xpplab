@@ -38,7 +38,13 @@ static const char *about[AN_COUNT] = {
     "Fit parameters and initial conditions to data with Levenberg-"
     "Marquardt. The file holds rows of numbers, time first; give the model "
     "variables to fit, their columns in the file (from 2) and the "
-    "parameters to vary. (stocHastic > fIt data)"};
+    "parameters to vary. (stocHastic > fIt data)",
+    "Run a noisy model (wiener or ran()) many times from the same initial "
+    "values, the random numbers going on from run to run, and average: the "
+    "mean of every column at each time, with a band of one standard "
+    "deviation. Choose a column's mean or variance under Show. The run "
+    "left in the other windows is the last one. (stocHastic > Compute, Mean, "
+    "Variance)"};
 
 static const char *spectra[] = {"Power (PSD)", "Cross spectrum", "Coherence"};
 
@@ -191,6 +197,12 @@ static void controls(App *a) {
       }
     }
     break;
+  case AN_ENSEMBLE:
+    igInputInt("Runs", &n->trials, 10, 100, 0);
+    if (n->trials < 2) n->trials = 2;
+    if (n->trials > 100000) n->trials = 100000;
+    Tooltip("How many runs to average.");
+    break;
   case AN_FIT:
     igPopItemWidth();
     igTextDisabled("Data file (time, then columns)");
@@ -293,13 +305,34 @@ static void plot_result(App *a) {
         s.FillColor = HEX(0x1f77b4);
         ImPlot_PlotBars_doublePtrdoublePtr("count", x, y, r->nrows, w * 0.9, s);
       } else {
+        /* A mean with its band of one standard deviation. */
+        if (n->res_tool == AN_ENSEMBLE && n->show_col % 2 == 1 && n->show_col + 1 < r->ncols) {
+          double *lo = malloc(sizeof(double) * (size_t)r->nrows);
+          double *hi = malloc(sizeof(double) * (size_t)r->nrows);
+          int i;
+          if (lo && hi) {
+            ImPlotSpec_c band = Spec(HEX(0xd62728), 0.0f);
+            for (i = 0; i < r->nrows; i++) {
+              double v = r->cols[n->show_col + 1][i], sd = v > 0 ? sqrt(v) : 0;
+              lo[i] = y[i] - sd;
+              hi[i] = y[i] + sd;
+            }
+            band.FillColor = HEX(0xd62728);
+            band.FillAlpha = 0.25f;
+            ImPlot_PlotShaded_doublePtrdoublePtrdoublePtr("one standard deviation", x, lo,
+                                                         hi, r->nrows, band);
+          }
+          free(lo);
+          free(hi);
+        }
         ImPlot_PlotLine_doublePtrdoublePtr(r->names[n->show_col], x, y, r->nrows,
                                            Spec(HEX(0xd62728), 2.0f));
         if (n->res_tool == AN_PRC || n->res_tool == AN_HFUNCTION ||
             n->res_tool == AN_CORRELATION) {
           double zero = 0;
-          ImPlot_PlotInfLines_doublePtr("##zero", &zero, 1,
-                                        Spec(V4(0.5f, 0.5f, 0.5f, 0.6f), 1.0f));
+          ImPlotSpec_c line = Spec(V4(0.5f, 0.5f, 0.5f, 0.6f), 1.0f);
+          line.Flags = ImPlotInfLinesFlags_Horizontal;
+          ImPlot_PlotInfLines_doublePtr("##zero", &zero, 1, line);
         }
       }
     }

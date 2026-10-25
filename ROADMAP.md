@@ -50,7 +50,7 @@ the app and Python as one environment; then analysis beyond XPPAUT; then
 scale. The other milestones (documentation, releases, coding agents) run
 alongside. The milestone in brackets is the one in progress.
 
-Path: M0 → M1 → M2 → M3 → M4 → [M10] → M9 → M7 → M11
+Path: M0 → M1 → M2 → M3 → M4 → M10 → [M9] → M7 → M11
 
 ## Milestones
 
@@ -182,7 +182,7 @@ To do:
 - [x] An MCP server and a Claude Code skill (`python -m xpplab.mcp`)
 - [ ] A coding agent drives the running app while the researcher watches
 
-### M10 XPPAUT parity sprint: the features the interface still lacked
+### M10 XPPAUT parity sprint: the features the interface still lacked: done
 - [x] Equilibria over a parameter (Sing pts > Range) and every equilibrium
       in a box (Sing pts > Monte Carlo), in the C API, Python and the app
 - [x] Save and reload AUTO diagrams (exactly, unlike XPPAUT's 6 digits); import an orbit
@@ -192,7 +192,7 @@ To do:
 - [x] Kinescope: capture a figure, play the frames, an animated GIF; film
       the Range (XPPAUT's Movie)
 - [x] A batch command-line tool (XPPAUT's -silent, with AUTO): `xpplab-batch`
-- [ ] Ensemble statistics over noisy runs (stocHastic > Compute)
+- [x] Ensemble statistics over noisy runs (stocHastic > Compute), equal to XPPAUT's batch @ stoch=1 and 2
 
 ### M9 The app and Python together
 - [x] Each action in the app written in the command window as the Python

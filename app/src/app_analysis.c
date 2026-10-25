@@ -13,7 +13,7 @@
 static const char *tool_names[AN_COUNT] = {
     "Spectrum",    "Fourier series", "Histogram",      "2-D histogram",
     "Correlation", "Statistics",     "Phase response", "H function",
-    "Fit to data"};
+    "Fit to data", "Ensemble of noisy runs"};
 
 static bool ani_load(App *a, const char *path, bool quiet);
 
@@ -41,6 +41,7 @@ void app_analysis_reset(App *a) {
   n->spec_len = 512;
   n->spec_window = 2; /* Hamming */
   n->bins = 50;
+  n->trials = 50;
   n->bins2 = 20;
   n->auto_range = true;
   n->lags = 100;
@@ -486,10 +487,58 @@ static void echo_analysis(App *a, const char *c1, const char *c2, int spec_len,
     echo_line(a, "sol = m.run()");
     break;
   }
+  case AN_ENSEMBLE:
+    table = "ens";
+    echo_line(a, "ens = m.ensemble(%d)", n->trials);
+    echo_line(a, "sol = m.last_run()");
+    break;
   default:
     break;
   }
   snprintf(a->echo.table, sizeof a->echo.table, "%s", table);
+}
+
+/* XPPAUT's stocHastic > Compute: the runs' mean and variance at each time,
+   as a table of time, then V_mean, V_var, ... (Ensemble.to_table()). */
+static bool ensemble(App *a, bool outer) {
+  AnalysisUI *n = &a->an;
+  xpp_engine_api *x = &a->eng->api;
+  Trajectory *r = &n->res;
+  int rows = x->xppe_ensemble(n->trials), j, w;
+  if (rows < 0) {
+    app_log(a, "error: %s", x->xppe_error());
+    app_status(a, "Ensemble failed: %s", x->xppe_error());
+    app_fetch_current(a);
+    return false;
+  }
+  app_free_trajectory(r);
+  r->nrows = rows;
+  r->ncols = 1 + 2 * (a->ncols - 1);
+  r->names = calloc((size_t)r->ncols, APP_NAME_LEN);
+  r->cols = calloc((size_t)r->ncols, sizeof(double *));
+  for (j = 0; j < r->ncols; j++)
+    r->cols[j] = malloc(sizeof(double) * (size_t)(rows > 0 ? rows : 1));
+  snprintf(r->names[0], APP_NAME_LEN, "T");
+  x->xppe_ensemble_column(-1, 0, r->cols[0], rows);
+  for (j = 1; j < a->ncols; j++)
+    for (w = 0; w < 2; w++) {
+      int k = 2 * j - 1 + w;
+      snprintf(r->names[k], APP_NAME_LEN, "%s_%s", a->cols[j], w ? "var" : "mean");
+      x->xppe_ensemble_column(a->time_missing ? j - 1 : j, w, r->cols[k], rows);
+    }
+  n->have = true;
+  n->res_tool = AN_ENSEMBLE;
+  n->show_col = 1;
+  n->refit = true;
+  app_fetch_current(a); /* the last of the runs */
+  if (outer) echo_analysis(a, a->cols[0], a->cols[0], 0, false);
+  snprintf(n->summary, sizeof n->summary,
+           "Mean and variance of %d runs at each of %d times; the band is one "
+           "standard deviation. The run shown elsewhere is the last of them.",
+           n->trials, rows);
+  app_log(a, "Ensemble of %d runs: %d times.", n->trials, rows);
+  app_status(a, "Ensemble computed");
+  return true;
 }
 
 static bool analysis_run(App *a, bool outer);
@@ -511,6 +560,7 @@ static bool analysis_run(App *a, bool outer) {
   if (n->col < 0 || n->col >= a->ncols) n->col = 0;
   if (n->col2 < 0 || n->col2 >= a->ncols) n->col2 = n->col;
   x = &a->eng->api;
+  if (n->tool == AN_ENSEMBLE) return ensemble(a, outer);
   if (!a->have_traj && n->tool != AN_FIT && n->tool != AN_PRC &&
       n->tool != AN_HFUNCTION) {
     if (!app_run(a)) return false;

@@ -79,6 +79,9 @@ static const char *usage =
     "  hist2d X Y [BINS]        two-dimensional histogram\n"
     "  xcorr COL [COL2] [LAGS]  auto- or cross-correlation\n"
     "  mean COL                 mean, deviation, Liapunov exponent\n"
+    "  ensemble [N]             N runs of a noisy model averaged: the mean\n"
+    "                           and variance at each time (stocHastic >\n"
+    "                           Compute; export F.csv analysis saves them)\n"
     "  prc                      phase response curves of the limit cycle\n"
     "  hfun F1; F2; ...         H function: one coupling per variable,\n"
     "                           primed names are the other cell (V'-V)\n"
@@ -182,7 +185,8 @@ static void cmd_kinescope(App *a, char *rest) {
   a->show_kine = true;
 }
 
-/* spectrum, fourier, power, hist, hist2d, xcorr, mean, prc, hfun, fitdata */
+/* spectrum, fourier, power, hist, hist2d, xcorr, mean, prc, hfun, fitdata,
+   ensemble */
 static void cmd_analysis(App *a, const char *cmd, char *rest) {
   AnalysisUI *n = &a->an;
   char *w = NULL;
@@ -190,7 +194,10 @@ static void cmd_analysis(App *a, const char *cmd, char *rest) {
     app_log(a, "error: open a model first");
     return;
   }
-  if (!strcmp(cmd, "prc")) {
+  if (!strcmp(cmd, "ensemble")) {
+    n->tool = AN_ENSEMBLE;
+    if ((w = next_word(&rest)) && is_number(w)) n->trials = atoi(w);
+  } else if (!strcmp(cmd, "prc")) {
     n->tool = AN_PRC;
     if ((w = next_word(&rest)) && is_number(w)) n->transient = atof(w);
   } else if (!strcmp(cmd, "hfun")) {
@@ -591,7 +598,8 @@ void app_command(App *a, const char *line_in) {
              !strcmp(cmd, "power") || !strcmp(cmd, "hist") ||
              !strcmp(cmd, "hist2d") || !strcmp(cmd, "xcorr") ||
              !strcmp(cmd, "mean") || !strcmp(cmd, "prc") ||
-             !strcmp(cmd, "hfun") || !strcmp(cmd, "fitdata")) {
+             !strcmp(cmd, "hfun") || !strcmp(cmd, "fitdata") ||
+             !strcmp(cmd, "ensemble")) {
     cmd_analysis(a, cmd, rest);
   } else if (!strcmp(cmd, "bvp")) {
     app_bvp(a);

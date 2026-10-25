@@ -103,6 +103,9 @@ CASES = [
         "export {out}/all.csv nullclines", "nullclines off",
         "export {out}/frozen.csv nullclines", "nullclines unfreeze",
         "nullclines freeze gk 1 3 3", "export {out}/again.csv nullclines"]),
+    ("ensemble", "fhn_noise.ode", [
+        "set total=50", "run", "ensemble 20", "export {out}/ens.csv analysis",
+        "export {out}/last.csv", "run", "export {out}/after.csv"]),
     ("analysis", "lecar.ode", [
         "set iapp=0.1 total=400", "run",
         "spectrum V 256", "export {out}/spectrum.csv analysis",

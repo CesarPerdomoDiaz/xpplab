@@ -160,6 +160,7 @@ enum {
   AN_PRC,         /* one period, adjoint: phase response curves */
   AN_HFUNCTION,   /* weak-coupling interaction function */
   AN_FIT,         /* fit parameters to data */
+  AN_ENSEMBLE,    /* mean and variance over many noisy runs */
   AN_COUNT
 };
 
@@ -180,6 +181,7 @@ typedef struct {
   char fit_file[1024];
   char fit_vars[128], fit_cols[64], fit_pars[256];
   bool log_y;
+  int trials;          /* runs of an ensemble */
   int show_col;        /* result column on the vertical axis */
   bool refit;          /* frame the next drawn result */
   /* the last result */

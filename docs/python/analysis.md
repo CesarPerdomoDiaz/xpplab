@@ -121,6 +121,22 @@ are returned as a dict. The model's initial conditions apply at the first
 data time, and XPPAUT integrates from each data time to the next with the
 current method, so the data need not be evenly spaced.
 
+## Many noisy runs: the ensemble
+
+```python
+ens = m.ensemble(50, total=100)    # XPPAUT's stocHastic > Compute
+ens.mean["V"], ens.variance["V"]   # at each time ens.t
+ens.std                            # the standard deviation
+ens.plot("V")                      # the mean with a band of one sd
+ens.to_csv("ens.csv")              # T, V_mean, V_var, W_mean, W_var
+```
+
+For models with noise (`wiener`, `ran()`): the runs start from the same
+initial conditions while the random numbers go on, so each is different.
+The mean and variance are computed by XPPAUT, in single precision, and
+equal what its batch mode writes with `@ stoch=1` and `@ stoch=2`. The
+last run stays as `m.last_run()`.
+
 ## Range: many runs over a parameter
 
 ```python

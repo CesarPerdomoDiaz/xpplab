@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 5
+#define XPPE_API_VERSION 6
 
 enum {
   XPPE_OK = 0,
@@ -107,6 +107,19 @@ XPPE_API int xppe_ic_file(const char *path);
    name that is not a variable, or a formula XPPAUT cannot evaluate,
    changes nothing. Since API version 5. */
 XPPE_API int xppe_ic_formula(const char *target, const char *formula);
+
+/* Numerics > stocHastic > Compute: run the model `trials` times (at least
+   2) from the same initial conditions, the random numbers of wiener and
+   ran() going on from run to run, and keep the mean and the variance of
+   every output column at each time, as XPPAUT's batch mode computes them
+   with @ stoch=1 (in single precision). Returns the number of rows; the
+   last run stays as the current run. It uses XPPAUT's range options
+   (RANGEOVER, RANGESTEP, ...), which keep the values it gives them. Since
+   API version 6. */
+XPPE_API int xppe_ensemble(int trials);
+/* Column col of the last ensemble, numbered as for xppe_column(): its mean
+   (which = 0) or its variance (which = 1). Since API version 6. */
+XPPE_API int xppe_ensemble_column(int col, int which, double *out, int n);
 
 /* Newton's method for an equilibrium starting from x (length = number of
    ODE variables). On success x holds the equilibrium and re/im the

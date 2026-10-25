@@ -272,6 +272,19 @@ static void sweep_tab(App *a) {
     s->mode = SWEEP_LYAPUNOV;
   Tooltip("The largest Liapunov exponent of each run: above zero means chaos "
           "(XPPAUT's Liapunov with a range).");
+  if (igRadioButton_Bool("Equilibria (no runs)", s->mode == SWEEP_EQUILIBRIA))
+    s->mode = SWEEP_EQUILIBRIA;
+  Tooltip("Follow the equilibrium as the parameter changes, each search "
+          "starting from the last one found (XPPAUT's Sing pts > Range): "
+          "steady states and their stability without AUTO. Red is stable, "
+          "black unstable.");
+  if (s->mode == SWEEP_EQUILIBRIA && s->over_ic)
+    igTextColored(HEX(0xe53935), "Choose a parameter: equilibria do not depend "
+                                 "on initial values.");
+  if (s->mode == SWEEP_EQUILIBRIA) {
+    igSetNextItemWidth(110);
+    Combo("Variable", &s->var, a->vars, a->nvars);
+  }
   if (s->mode == SWEEP_MAXMIN) {
     int pct = (int)(s->transient * 100 + 0.5);
     igSetNextItemWidth(110);
@@ -282,10 +295,39 @@ static void sweep_tab(App *a) {
                "count.");
   }
   if (ButtonW("Run range", -1)) app_sweep(a);
-  if (s->mode != SWEEP_OVERLAY && s->n > 0 &&
+  if (s->result_mode != SWEEP_OVERLAY && s->n > 0 &&
       ImPlot_BeginPlot("##sweep", V2(-1, -1), ImPlotFlags_NoTitle | ImPlotFlags_NoLegend)) {
     const char *xl = s->over_ic ? a->vars[s->par] : a->pars[s->par];
-    if (s->mode == SWEEP_LYAPUNOV) {
+    if (s->result_mode == SWEEP_EQUILIBRIA && s->eqt.ncols > a->nvars + 1) {
+      /* Recolour by stability; the variable shown can change afterwards. */
+      int col = s->var >= 0 && s->var < a->nvars ? s->var + 1 : 1, k, ns = 0, nu = 0;
+      double *sx = malloc(sizeof(double) * (size_t)(2 * s->n + 2)), *sy, *ux, *uy;
+      if (sx) {
+        sy = sx + s->n + 1;
+        ux = malloc(sizeof(double) * (size_t)(2 * s->n + 2));
+        uy = ux ? ux + s->n + 1 : NULL;
+        for (k = 0; ux && k < s->n; k++) {
+          double u = s->eqt.cols[a->nvars + 1][k];
+          if (isnan(u)) continue;
+          if (u > 0) {
+            ux[nu] = s->eqt.cols[0][k];
+            uy[nu++] = s->eqt.cols[col][k];
+          } else {
+            sx[ns] = s->eqt.cols[0][k];
+            sy[ns++] = s->eqt.cols[col][k];
+          }
+        }
+        ImPlot_SetupAxes(s->eqt.names[0], a->vars[col - 1], ImPlotAxisFlags_AutoFit,
+                         ImPlotAxisFlags_AutoFit);
+        ImPlot_PlotScatter_doublePtrdoublePtr("stable", sx, sy, ns,
+                                              SpecMarker(COL_STABLE_EQ, ImPlotMarker_Circle, 3.0f));
+        if (uy)
+          ImPlot_PlotScatter_doublePtrdoublePtr("unstable", ux, uy, nu,
+                                                SpecMarker(COL_UNSTABLE_EQ, ImPlotMarker_Circle, 3.0f));
+        free(ux);
+        free(sx);
+      }
+    } else if (s->result_mode == SWEEP_LYAPUNOV) {
       double zero = 0;
       ImPlot_SetupAxes(xl, "Liapunov exponent", ImPlotAxisFlags_AutoFit,
                        ImPlotAxisFlags_AutoFit);

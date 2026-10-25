@@ -39,7 +39,8 @@ Cyclist (the GitHub account `limit-cyclist`). It posts a plan on the issue,
 makes and tests the change, and opens a pull request. The maintainer reviews
 it, asks for changes in comments, which the agent answers point by point, and
 merges it. The agent works only on issues the maintainer gives it, and takes
-instructions only from the maintainer.
+instructions only from the maintainer. How to call it and talk to it:
+[Working with the maintainer agent](docs/development/maintainer-agent.md).
 
 Your issues and pull requests are read and answered by the maintainer, as
 in any project.

@@ -1584,6 +1584,8 @@ static const char *auto_action(const char *type, const char *key) {
       {"p", "periodic"}, {"t", "two-parameter"}, {"s", "switch"},
       {"d", "doubling"}, {"f", "fixed-period"},  {"e", "extend"}, {"n", "new"}};
   size_t i;
+  /* From a fold, AUTO follows it in two parameters whatever the key. */
+  if (strcmp(type, "LP") == 0) return "two-parameter";
   for (i = 0; i < sizeof names / sizeof names[0]; i++)
     if (strcmp(key, names[i].key) == 0) return names[i].name;
   /* "": a fold's two-parameter curve, or an ordinary point's branch */
@@ -1792,6 +1794,70 @@ void app_auto_reset(App *a) {
   a->au.selected = -1;
   app_auto_refresh(a);
   app_log(a, "AUTO: diagram cleared.");
+}
+
+/* AUTO > File > Save diagram, Load diagram and Import orbit (the engine's
+   xppe_auto_save, _load and _orbit). */
+bool app_auto_save(App *a, const char *path) {
+  char p[2100], q[2200];
+  bool outer;
+  if (!a->model_ok) return false;
+  echo_abs_path(path, p, sizeof p);
+  outer = echo_begin(a);
+  if (a->eng->api.xppe_auto_save(p) != XPPE_OK) {
+    app_log(a, "error: %s", a->eng->api.xppe_error());
+    echo_end(a);
+    return false;
+  }
+  if (outer) echo_line(a, "m.auto.save(%s)", echo_str(p, q, sizeof q));
+  echo_end(a);
+  app_log(a, "Saved the bifurcation diagram (%d points) to %s", a->au.count, p);
+  app_status(a, "Saved the diagram to %s", p);
+  return true;
+}
+
+bool app_auto_load(App *a, const char *path) {
+  char p[2100], q[2200];
+  bool outer;
+  if (!a->model_ok) return false;
+  echo_abs_path(path, p, sizeof p);
+  outer = echo_begin(a);
+  if (a->eng->api.xppe_auto_load(p) != XPPE_OK) {
+    app_log(a, "error: %s", a->eng->api.xppe_error());
+    echo_end(a);
+    return false;
+  }
+  if (outer) echo_line(a, "m.auto.load(%s)", echo_str(p, q, sizeof q));
+  echo_end(a);
+  a->au.selected = -1;
+  app_auto_refresh(a);
+  read_auto_settings(a); /* the file brings AUTO's settings too */
+  a->show_auto = true;
+  app_log(a, "Loaded a bifurcation diagram of %d points from %s; its labelled "
+             "points can be continued.", a->au.count, p);
+  app_status(a, "Loaded the diagram: %d points", a->au.count);
+  return true;
+}
+
+bool app_auto_orbit(App *a, int point) {
+  int label;
+  bool outer;
+  if (!a->model_ok || point < 0 || point >= a->au.count) return false;
+  label = a->au.info[point].label;
+  outer = echo_begin(a);
+  if (a->eng->api.xppe_auto_orbit(label) != XPPE_OK) {
+    app_log(a, "error: %s", a->eng->api.xppe_error());
+    echo_end(a);
+    return false;
+  }
+  if (outer) echo_line(a, "sol = m.auto.orbit(%d)", label);
+  echo_end(a);
+  if (a->keep_curves && a->have_traj) app_freeze(a);
+  app_fetch_current(a);
+  app_log(a, "The periodic orbit at point %d is now the run: one period, %d "
+             "points.", label, a->traj.nrows);
+  app_status(a, "Showing the orbit at point %d", label);
+  return true;
 }
 
 /* ---- Files and settings -------------------------------------------------- */

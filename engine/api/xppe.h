@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 3
+#define XPPE_API_VERSION 4
 
 enum {
   XPPE_OK = 0,
@@ -302,6 +302,17 @@ XPPE_API int xppe_auto_run(const char *choice);
 /* Select the point with this label as the start of the next run. */
 XPPE_API int xppe_auto_grab(int label);
 XPPE_API int xppe_auto_ungrab(void);
+
+/* XPPAUT's AUTO > File > Save diagram and Load diagram: an .auto file holds
+   AUTO's settings, the diagram and AUTO's restart data, so a loaded
+   diagram's labelled points can be grabbed and continued. Loading replaces
+   the diagram. Files open in XPPAUT both ways. Since API version 4. */
+XPPE_API int xppe_auto_save(const char *path);
+XPPE_API int xppe_auto_load(const char *path);
+/* Import orbit: the periodic orbit at a labelled point, one period from
+   AUTO's restart data, becomes the current run (read it with
+   xppe_column()). Since API version 4. */
+XPPE_API int xppe_auto_orbit(int label);
 
 /* AUTO works with up to 8 of the model's parameters ("slots"). */
 XPPE_API int xppe_auto_parameter_count(void);

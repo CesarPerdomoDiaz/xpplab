@@ -83,6 +83,9 @@ extern "C" {
   X(int, xppe_auto_run, (const char *))                                       \
   X(int, xppe_auto_grab, (int))                                               \
   X(int, xppe_auto_ungrab, (void))                                            \
+  X(int, xppe_auto_save, (const char *))                                      \
+  X(int, xppe_auto_load, (const char *))                                      \
+  X(int, xppe_auto_orbit, (int))                                              \
   X(int, xppe_auto_parameter_count, (void))                                   \
   X(const char *, xppe_auto_parameter_name, (int))                            \
   X(int, xppe_auto_main_slot, (int))                                          \

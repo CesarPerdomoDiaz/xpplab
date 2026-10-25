@@ -144,6 +144,8 @@ static void menu_help(App *a) {
     ui_show_help(a, "welcome");
   if (igMenuItem_Bool("Tutorial: your first model", NULL, false, true))
     ui_show_help(a, "tutorial");
+  if (igMenuItem_Bool("Tutorial: why does a neuron fire?", NULL, false, true))
+    ui_show_help(a, "neuron-tutorial");
   if (igMenuItem_Bool("Bifurcation analysis with AUTO", NULL, false, true))
     ui_show_help(a, "auto");
   if (igMenuItem_Bool("The .ode file format", NULL, false, true))

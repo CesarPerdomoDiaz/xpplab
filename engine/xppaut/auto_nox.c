@@ -2784,11 +2784,13 @@ void save_auto_numerics(fp)
  for(i=0;i<NAutoPar;i++)
    fprintf(fp,"%d ",AutoPar[i]);
   fprintf(fp,"%d\n",NAutoUzr);
+  /* XPP Lab fix: the numbers exactly (%g kept 6 digits), as in
+     save_diagram(). load_auto_numerics() reads both. */
   for(i=0;i<9;i++)
-    fprintf(fp,"%g %d\n",outperiod[i],UzrPar[i]);
+    fprintf(fp,"%.17g %d\n",outperiod[i],UzrPar[i]);
  fprintf(fp,"%d %d %d \n",Auto.ntst,Auto.nmx,Auto.npr);
- fprintf(fp,"%g %g %g \n",Auto.ds,Auto.dsmin,Auto.dsmax);
- fprintf(fp,"%g %g %g %g\n",Auto.rl0,Auto.rl1,Auto.a0,Auto.a1);
+ fprintf(fp,"%.17g %.17g %.17g \n",Auto.ds,Auto.dsmin,Auto.dsmax);
+ fprintf(fp,"%.17g %.17g %.17g %.17g\n",Auto.rl0,Auto.rl1,Auto.a0,Auto.a1);
  fprintf(fp,"%d %d %d %d %d %d %d\n",aauto.iad,aauto.mxbf,aauto.iid,aauto.itmx,aauto.itnw,aauto.nwtn,aauto.iads);
 }
 
@@ -2821,7 +2823,8 @@ void load_auto_numerics(fp)
 void save_auto_graph(fp)
      FILE *fp;
 {
-  fprintf(fp,"%g %g %g %g %d %d \n",Auto.xmin,Auto.ymin,Auto.xmax,Auto.ymax,
+  /* XPP Lab fix: exactly, as in save_auto_numerics(). */
+  fprintf(fp,"%.17g %.17g %.17g %.17g %d %d \n",Auto.xmin,Auto.ymin,Auto.xmax,Auto.ymax,
 	Auto.var,Auto.plot);
 }
 

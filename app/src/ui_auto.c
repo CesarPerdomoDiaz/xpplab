@@ -371,6 +371,18 @@ static void controls(App *a) {
           "it as the parameter changes, detecting folds, Hopf and branch "
           "points.");
   if (ButtonW("Clear diagram", -1)) app_auto_reset(a);
+  {
+    float w = (igGetContentRegionAvail().x - igGetStyle()->ItemSpacing.x) / 2;
+    igBeginDisabled(a->au.count == 0);
+    if (ButtonW("Save...", w)) ui_dialog_auto_file(a, true);
+    igEndDisabled();
+    Tooltip("Save the diagram as an .auto file, with AUTO's settings and its "
+            "restart data (XPPAUT's AUTO > File > Save diagram).");
+    igSameLine(0, -1);
+    if (ButtonW("Open...", w)) ui_dialog_auto_file(a, false);
+    Tooltip("Open a diagram saved here or by XPPAUT. It replaces the one "
+            "shown, and its labelled points can be continued.");
+  }
 }
 
 static void points_table(App *a) {
@@ -441,6 +453,12 @@ static void selected_actions(App *a) {
       app_auto_continue(a, sel, keys[i]);
     }
     igPopID();
+  }
+  if (p->periodic && p->label) {
+    if (ButtonW("Show this orbit as the run", -1)) app_auto_orbit(a, u->selected);
+    Tooltip("Make this periodic orbit, one period from AUTO's own solution, "
+            "the current run: see it in the phase plane and the time series, "
+            "or analyse it (XPPAUT's AUTO > File > Import orbit).");
   }
 }
 

@@ -35,6 +35,9 @@ static const char *usage =
     "  auto set DS=0.01 ...     AUTO numerics (ds, dsmin, dsmax, nmax, npr,\n"
     "                           parmin, parmax, ntst)\n"
     "  auto reset               clear the bifurcation diagram\n"
+    "  auto save FILE.auto      save the diagram, AUTO's settings and restart\n"
+    "                           data; auto load FILE.auto brings it back\n"
+    "  auto orbit LABEL         the periodic orbit at a point as the run\n"
     "  range NAME FROM TO N [VAR|lyap|eq] [continue]\n"
     "                           XPPAUT's Range: N runs over a parameter or\n"
     "                           initial value; with VAR plot its max and min\n"
@@ -247,6 +250,10 @@ static void cmd_whos(App *a) {
 
 static const char *action_key(App *a, int point, const char *word) {
   const xppe_auto_point_info *p = &a->au.info[point];
+  /* From a fold XPPAUT's AUTO always follows the fold in two parameters
+     (auto_run() in auto_nox.c), whatever else is asked. */
+  if (strcmp(p->type_name, "LP") == 0)
+    return !strcmp(word, "two") || !strcmp(word, "two-parameter") ? "" : NULL;
   if (!strcmp(word, "periodic")) return "p";
   if (!strcmp(word, "two") || !strcmp(word, "two-parameter"))
     return strcmp(p->type_name, "LP") == 0 ? "" : "t";
@@ -307,6 +314,11 @@ static void cmd_auto(App *a, char *rest) {
       return;
     }
     key = action_key(a, point, act ? act : "extend");
+    if (!key && strcmp(a->au.info[point].type_name, "LP") == 0) {
+      app_log(a, "error: from a fold (LP) AUTO can only follow the fold in two "
+                 "parameters: write auto from %d two", label);
+      return;
+    }
     if (!key) {
       app_log(a, "error: unknown action %s", act);
       return;
@@ -315,6 +327,25 @@ static void cmd_auto(App *a, char *rest) {
     app_auto_continue(a, point, key);
   } else if (!strcmp(w, "reset")) {
     app_auto_reset(a);
+  } else if (!strcmp(w, "save") || !strcmp(w, "load")) {
+    char *p = skip_space(rest);
+    if (!*p)
+      app_log(a, "Write: auto %s FILE.auto", w);
+    else if (w[0] == 's')
+      app_auto_save(a, p);
+    else
+      app_auto_load(a, p);
+  } else if (!strcmp(w, "orbit")) {
+    char *lab = next_word(&rest);
+    int i, label = lab ? atoi(lab) : 0, point = -1;
+    for (i = 0; i < a->au.count; i++)
+      if (a->au.info[i].label == label && label) point = i;
+    if (point < 0)
+      app_log(a, "error: no point labelled %s", lab ? lab : "?");
+    else {
+      a->au.selected = point;
+      app_auto_orbit(a, point);
+    }
   } else if (!strcmp(w, "set")) {
     char *tok = strtok(rest, " ,;");
     while (tok) {

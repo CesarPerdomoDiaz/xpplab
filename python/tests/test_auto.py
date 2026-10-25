@@ -130,3 +130,38 @@ def test_diagram_csv(lecar_hopf, tmp_path):
     row = dict(zip(head, lines[1 + d.points.index(d.first("HB"))].split(",")))
     assert row["type"] == "HB" and row["parameter"] == "iapp"
     assert float(row["value"]) == d.first("HB").value
+
+
+def test_a_saved_diagram_comes_back_and_can_be_continued(lecar_hopf, tmp_path):
+    a = lecar_hopf.auto
+    a.set(parmax=0.6, nmax=220)
+    a.equilibria("iapp")
+    a.continue_from(a.diagram.first("HB"), "periodic")
+    before = a.diagram
+    a.save(tmp_path / "d.auto")
+    a.reset()
+    assert len(a.diagram) == 0
+    after = a.load(tmp_path / "d.auto")
+    # Exactly: XPPAUT itself wrote 6 digits (see docs/upstream-issues.md).
+    assert [(p.value, p.norm, p.umax, p.stable) for p in after] == \
+           [(p.value, p.norm, p.umax, p.stable) for p in before]
+    assert a.get("parmax") == 0.6
+    periodic = [p for p in after.labelled() if p.periodic]
+    more = a.continue_from(periodic[-1], "extend")    # AUTO's restart data came too
+    assert len(more) > 0
+    with xs.load(ODE / "lecar.ode") as fresh:
+        assert len(fresh.auto.load(tmp_path / "d.auto")) == len(before)
+
+
+def test_the_orbit_at_a_point(lecar_hopf):
+    a = lecar_hopf.auto
+    a.set(parmax=0.6, nmax=220)
+    a.equilibria("iapp")
+    orbits = a.continue_from(a.diagram.first("HB"), "periodic")
+    p = [q for q in orbits.labelled() if q.periodic][1]
+    sol = a.orbit(p)
+    assert len(sol) > 10 and sol.t[0] == 0
+    assert sol.t[-1] == pytest.approx(p.period, rel=1e-6)
+    assert sol["V"].max() == pytest.approx(p.umax["V"], abs=1e-3)
+    with pytest.raises(xs.EngineError, match="steady state"):
+        a.orbit(a.diagram.first("HB"))

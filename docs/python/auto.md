@@ -81,3 +81,19 @@ m.auto.reset()              # start over
 Plots use XPPAUT's colours: red and black for stable and unstable steady
 states, green and blue for stable and unstable periodic orbits. Unstable
 branches are dashed, and special points are labelled.
+
+## Saving a diagram, and its orbits
+
+```python
+m.auto.save("lecar.auto")        # settings, points and AUTO's restart data
+m.auto.load("lecar.auto")        # later, or in another session: replaces the diagram
+m.auto.continue_from(17, "extend")   # its labelled points carry on as before
+
+sol = m.auto.orbit(6)            # the periodic orbit at point 6, one period
+sol.plot("V")
+```
+
+The file is XPPAUT's `.auto` format (*AUTO > File > Save diagram*), so
+XPPAUT and the desktop app open it too. Numbers are written in full, so a
+loaded diagram is the one saved. `orbit()` is XPPAUT's *Import orbit*: the
+orbit becomes the model's last run, and the analysis methods use it.

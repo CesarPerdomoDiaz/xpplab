@@ -70,6 +70,23 @@ where the last ended* to follow one branch as the parameter moves.
 | Label every (NPR) | Also label a point every N steps. | Labelled points can be continued from. |
 | Mesh NTST | Mesh intervals for periodic orbits. | Increase it (to 50 or 100) for spiky orbits such as action potentials. |
 
+## Saving a diagram and coming back to it
+
+**Save...** under the buttons saves the diagram as an `.auto` file, the
+format of XPPAUT's *AUTO > File > Save diagram*. The file holds AUTO's
+settings, every point, and AUTO's restart data. **Open...** brings it back
+in place of the diagram shown, so the next day you can pick a labelled
+point and carry on where you stopped. XPPAUT opens these files too, and
+XPP Lab opens XPPAUT's. (XPPAUT wrote the numbers with 6 digits; XPP Lab
+writes them in full, so a diagram comes back exactly as saved.)
+
+To see one of the periodic orbits, select a point on a periodic branch and
+press **Show this orbit as the run** (XPPAUT's *Import orbit*). One period
+of the orbit, from AUTO's own solution, becomes the current run: it shows
+in the phase plane and the time series, and the Analysis tools work on it.
+
+Commands: `auto save fold.auto`, `auto load fold.auto`, `auto orbit 6`.
+
 ## When things go wrong
 
 - **"AUTO computed no points"**: the start point is probably not an

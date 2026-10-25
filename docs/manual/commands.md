@@ -50,6 +50,8 @@ commands. `help` lists them all.
 | `auto from 2 periodic` | Continue from labelled point 2. Actions: `periodic`, `two`, `extend`, `switch`, `doubling`, `fixed`. |
 | `auto set ds=0.01 nmax=300` | AUTO numerics. |
 | `auto reset` | Clear the diagram. |
+| `auto save d.auto`, `auto load d.auto` | Save the diagram, with AUTO's settings and restart data, as XPPAUT's `.auto` file; load one back to continue from its points. |
+| `auto orbit 6` | Make the periodic orbit at point 6 the current run (one period). |
 | `range I 0 1.6 50 V` | Run 50 times with I from 0 to 1.6 and plot the max and min of V (XPPAUT's Range). Leave out `V` to keep each trajectory, write `lyap` for the Liapunov exponent, add `continue` to start each run where the last ended, or `eq` to follow the equilibrium instead of running (XPPAUT's Sing pts > Range). The name can also be a variable (its initial value). `sweep` does the same. |
 | `bvp` | Solve the boundary-value problem given by the model's `bndry` statements. |
 | `view3d X Y Z` | Show three columns in the 3D view. `view3d spin` turns it slowly (`view3d spin 60` at 60 degrees a second, `view3d spin off` stops it); `view3d angles 30 60` sets theta and phi. |

@@ -4,6 +4,7 @@ the agent and its Claude runs never see."""
 from __future__ import annotations
 
 import json
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -30,13 +31,23 @@ query($owner: String!, $name: String!) {
         commits(last: 1) { nodes { commit { oid } } }
       }
     }
-    merged: pullRequests(states: MERGED, first: 12, orderBy: {field: UPDATED_AT, direction: DESC}) {
-      nodes { number title url mergedAt author { login } mergedBy { login } }
+    merged: pullRequests(states: MERGED, first: 40, orderBy: {field: UPDATED_AT, direction: DESC}) {
+      nodes { number title url mergedAt author { login } mergedBy { login }
+              mergeCommit { oid } }
     }
     milestones(states: OPEN, first: 20, orderBy: {field: NUMBER, direction: ASC}) {
       nodes { number title description url progressPercentage }
     }
     roadmap: object(expression: "HEAD:ROADMAP.md") { ... on Blob { text } }
+    roadmapHistory: defaultBranchRef {
+      target { ... on Commit {
+        history(first: 40, path: "ROADMAP.md") {
+          nodes { oid committedDate messageHeadline url
+                  parents(first: 1) { nodes { oid } }
+                  associatedPullRequests(first: 1) { nodes { number title url } } }
+        }
+      } }
+    }
   }
 }
 """
@@ -90,6 +101,21 @@ class GitHubAPI:
         data = out["data"]
         data["warnings"] = sorted({e.get("message", "?") for e in errors})
         return data
+
+    def roadmap_texts(self, oids: list[str]) -> dict[str, str]:
+        """ROADMAP.md as it was at each of these commits, in one query ("" where
+        the file did not exist yet)."""
+        oids = [o for o in oids if re.fullmatch(r"[0-9a-f]{40}", o or "")]
+        if not oids:
+            return {}
+        parts = " ".join(f'r{i}: object(expression: "{oid}:ROADMAP.md") {{ ... on Blob {{ text }} }}'
+                         for i, oid in enumerate(oids))
+        query = ("query($owner: String!, $name: String!) { repository(owner: $owner, "
+                 f"name: $name) {{ {parts} }} }}")
+        out = self._request("POST", "/graphql", {
+            "query": query, "variables": {"owner": self.owner, "name": self.name}})
+        repo = ((out or {}).get("data") or {}).get("repository") or {}
+        return {oid: (repo.get(f"r{i}") or {}).get("text") or "" for i, oid in enumerate(oids)}
 
     def workflow_jobs(self, sha: str) -> list[dict]:
         """CI for a commit: the jobs of its newest run of each workflow.

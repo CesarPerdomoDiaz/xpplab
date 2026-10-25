@@ -437,6 +437,287 @@ $("ask").addEventListener("submit", async (ev) => {
   if (out) f.reset();
 });
 
+// -- the path: the roadmap's main path as a graph ------------------------------
+// Each milestone is a hub on the path, left to right in the order ROADMAP.md's
+// "Path:" line gives; side tracks hang below. Its items circle it, filled when
+// done; the merges that ticked them sit just outside. The strip below is the
+// last merges in order: green moved the path, grey ticked nothing.
+
+const SVGNS = "http://www.w3.org/2000/svg";
+let evoKey = "";      // the data last drawn: redraw only when it changes
+let evoView = null;   // the viewBox, kept across redraws
+let evoBox = null;    // the drawing's extent, for Fit
+let evoNodes = [];    // what a click can select: {el, info}
+
+function svgEl(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+function svgText(parent, x, y, cls, text) {
+  const t = svgEl("text", { x, y, class: cls }, parent);
+  t.textContent = text;
+  return t;
+}
+
+function shortTitle(t) {
+  return t.replace(/\s*\(.*?\)/g, "").replace(/:.*$/, "").replace(/`/g, "").trim();
+}
+
+// Two lines of at most n characters, cut at words.
+function twoLines(text, n) {
+  const words = text.split(/\s+/);
+  const lines = [""];
+  for (const w of words) {
+    const cur = lines[lines.length - 1];
+    if ((cur + " " + w).trim().length > n && cur) {
+      if (lines.length === 2) { lines[1] = lines[1].slice(0, n - 1) + "…"; break; }
+      lines.push(w);
+    } else lines[lines.length - 1] = (cur + " " + w).trim();
+  }
+  return lines;
+}
+
+function day(iso) {
+  return iso ? new Date(iso).toLocaleDateString([], { day: "numeric", month: "short" }) : "";
+}
+
+function setView(v) {
+  evoView = v;
+  $("evo").setAttribute("viewBox", `${v.x} ${v.y} ${v.w} ${v.h}`);
+}
+
+function fitView() {
+  if (!evoBox) return;
+  const svg = $("evo");
+  const W = svg.clientWidth || 1000, H = svg.clientHeight || 480, pad = 30;
+  let w = evoBox.w + 2 * pad, h = evoBox.h + 2 * pad;
+  if (w / h < W / H) w = (h * W) / H; else h = (w * H) / W;
+  setView({ x: evoBox.x + evoBox.w / 2 - w / 2, y: evoBox.y + evoBox.h / 2 - h / 2, w, h });
+}
+
+function evoInfo(html) {
+  const box = $("evo-info");
+  box.innerHTML = html ? `<button class="link evo-close" type="button">Close</button>${html}` : "";
+  box.classList.toggle("hidden", !html);
+}
+
+function stepLinks(steps) {
+  return steps.length ? `<ul class="plain small">${steps.map((s) =>
+    `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${s.pr ? `#${s.pr}` : esc(s.oid.slice(0, 7))}</a>
+      ${esc(s.title)} <span class="muted">· ${esc(day(s.date))}</span></li>`).join("")}</ul>`
+    : '<p class="small muted">No merge in the recent history ticked it.</p>';
+}
+
+function drawEvolution(p) {
+  const ev = p.evolution;
+  const key = JSON.stringify(ev || null);
+  if (key === evoKey) return;
+  evoKey = key;
+  const svg = $("evo");
+  svg.replaceChildren();
+  evoNodes = [];
+  if (!ev || !ev.path.length) {
+    $("evo-meta").textContent = "ROADMAP.md has no \"Path:\" line yet.";
+    return;
+  }
+  const byId = Object.fromEntries(ev.milestones.map((m) => [m.id, m]));
+  const orbit = (m) => Math.max(48, 3.3 * m.items.length + 12);
+  const hubs = new Map();
+  let x = 0;
+  ev.path.forEach((id, i) => {
+    const r = orbit(byId[id]);
+    if (i > 0) x += hubs.get(ev.path[i - 1]).r + r + 64;
+    hubs.set(id, { m: byId[id], x, y: 0, r, onPath: true, i });
+  });
+  const maxR = Math.max(60, ...[...hubs.values()].map((h) => h.r));
+  ev.side.forEach((id, k) => {
+    const sx = (x * (k + 0.5)) / ev.side.length;
+    hubs.set(id, { m: byId[id], x: sx, y: maxR * 2 + 170, r: orbit(byId[id]), onPath: false });
+  });
+  // Items round the hub from the bottom left, over the top, to the bottom
+  // right, in the roadmap's order: done ones (listed first) on the left, what
+  // is to come on the right, and a gap below for the hub's name.
+  const GAP = 1.5;
+  for (const h of hubs.values()) {
+    const n = h.m.items.length;
+    h.sats = h.m.items.map((it, k) => {
+      const a = n === 1 ? -Math.PI / 2 : Math.PI / 2 + GAP / 2 + ((2 * Math.PI - GAP) * k) / (n - 1);
+      return { it, k, a, x: h.x + h.r * Math.cos(a), y: h.y + h.r * Math.sin(a) };
+    });
+  }
+  // the steps that ticked each item (newest first), and those whose item is gone
+  const ticked = new Map();
+  for (const s of ev.steps) {
+    for (const d of s.done) {
+      const k = `${d.milestone}/${d.item ?? "?"}`;
+      if (!ticked.has(k)) ticked.set(k, []);
+      ticked.get(k).push(s);
+    }
+  }
+  const nextKey = ev.next ? `${ev.next.milestone}/${ev.next.item}` : "";
+  const gBack = svgEl("g", {}, svg), gMid = svgEl("g", {}, svg), gTop = svgEl("g", {}, svg);
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  const grow = (px, py, m = 0) => {
+    minX = Math.min(minX, px - m); maxX = Math.max(maxX, px + m);
+    minY = Math.min(minY, py - m); maxY = Math.max(maxY, py + m);
+  };
+  // the path itself, then the side tracks' links to it
+  const pathHubs = ev.path.map((id) => hubs.get(id));
+  pathHubs.forEach((h, i) => {
+    if (i === 0) return;
+    const prev = pathHubs[i - 1], left = prev.m.total && prev.m.done === prev.m.total;
+    svgEl("line", { x1: prev.x, y1: 0, x2: h.x, y2: 0,
+      class: `e-spine ${left ? "travelled" : "ahead"}` }, gBack);
+  });
+  for (const id of ev.side) {
+    const h = hubs.get(id);
+    svgEl("line", { x1: h.x, y1: h.y - 30, x2: h.x, y2: maxR + 70, class: "e-side" }, gBack);
+  }
+  for (const h of hubs.values()) {
+    const m = h.m, complete = m.total && m.done === m.total, current = m.id === ev.current;
+    const behind = (ev.behind || []).includes(m.id);
+    svgEl("circle", { cx: h.x, cy: h.y, r: h.r, class: "e-orbit" }, gBack);
+    for (const s of h.sats) svgEl("line", { x1: h.x, y1: h.y, x2: s.x, y2: s.y, class: "e-link" }, gBack);
+    // merges, just outside the items they ticked
+    h.sats.forEach((s) => {
+      (ticked.get(`${m.id}/${s.k}`) || []).forEach((st, j) => {
+        const rr = h.r + 20 + 13 * j, px = h.x + rr * Math.cos(s.a), py = h.y + rr * Math.sin(s.a);
+        svgEl("line", { x1: s.x, y1: s.y, x2: px, y2: py, class: "e-steplink" }, gMid);
+        const d = svgEl("rect", { x: px - 4, y: py - 4, width: 8, height: 8,
+          transform: `rotate(45 ${px} ${py})`, class: "e-step e-hit" }, gTop);
+        svgEl("title", {}, d).textContent = `${st.pr ? "#" + st.pr + " " : ""}${st.title} · ${day(st.date)}`;
+        evoNodes.push({ el: d, info: () => `<h3>${st.pr ? `#${st.pr} ` : ""}${esc(st.title)}</h3>
+          <p class="small muted">Merged ${esc(day(st.date))}; ticked ${st.done.length} item${st.done.length === 1 ? "" : "s"}.</p>
+          <p><a href="${esc(st.url)}" target="_blank" rel="noopener">Open on GitHub</a></p>` });
+        grow(px, py, 6);
+      });
+    });
+    const lost = ticked.get(`${m.id}/?`) || [];
+    lost.forEach((st, j) => {
+      const py = h.y - h.r - 20 - 13 * j;
+      const d = svgEl("rect", { x: h.x - 4, y: py - 4, width: 8, height: 8,
+        transform: `rotate(45 ${h.x} ${py})`, class: "e-step e-hit" }, gTop);
+      svgEl("title", {}, d).textContent = `${st.pr ? "#" + st.pr + " " : ""}${st.title} (an item since reworded)`;
+    });
+    // the items
+    h.sats.forEach((s) => {
+      const k = `${m.id}/${s.k}`, isNext = k === nextKey;
+      const c = svgEl("circle", { cx: s.x, cy: s.y, r: isNext ? 8 : 6,
+        class: `e-sat e-hit ${isNext ? "next" : s.it.done ? "done" : "open"}` }, gTop);
+      svgEl("title", {}, c).textContent = s.it.text;
+      evoNodes.push({ el: c, info: () => `<p class="small muted">${esc(m.id)} · ${esc(shortTitle(m.title))}</p>
+        <h3>${esc(s.it.text)}</h3>
+        <p class="small"><b>${isNext ? "The next step" : s.it.done ? "Done" : "To do"}</b></p>
+        ${s.it.done ? stepLinks(ticked.get(k) || []) : ""}` });
+      grow(s.x, s.y, 10);
+    });
+    // the hub: progress round it, its number inside, its name below
+    const pct = m.total ? (100 * m.done) / m.total : 0;
+    svgEl("circle", { cx: h.x, cy: h.y, r: 31, class: "e-ringbg" }, gTop);
+    svgEl("circle", { cx: h.x, cy: h.y, r: 31, class: "e-ring", pathLength: 100,
+      "stroke-dasharray": `${pct} 100`, transform: `rotate(-90 ${h.x} ${h.y})` }, gTop);
+    const hub = svgEl("circle", { cx: h.x, cy: h.y, r: 25,
+      class: `e-hub e-hit${complete ? " complete" : ""}${current ? " current" : ""}${behind ? " behind" : ""}${h.onPath ? "" : " side"}` }, gTop);
+    svgEl("title", {}, hub).textContent = `${m.id} ${m.title}: ${m.done} of ${m.total} done`;
+    svgText(gTop, h.x, h.y, "e-id", m.id);
+    const lines = twoLines(shortTitle(m.title), 22);
+    lines.forEach((l, j) => svgText(gTop, h.x, h.y + h.r + 28 + 17 * j, "e-label", l));
+    svgText(gTop, h.x, h.y + h.r + 28 + 17 * lines.length, behind ? "e-sub e-behind" : "e-sub",
+      behind ? `${m.total - m.done} left behind`
+        : `${m.done} of ${m.total} done${h.onPath ? "" : " · alongside"}`);
+    // above everything round the hub: its items and their merges
+    const stack = Math.max(lost.length, ...h.sats.map((s) => (ticked.get(`${m.id}/${s.k}`) || []).length), 0);
+    const above = h.y - h.r - (stack ? 20 + 13 * (stack - 1) : 0) - 18;
+    if (current) svgText(gTop, h.x, above, "e-here", "▼ you are here");
+    const open = m.items.filter((i) => !i.done);
+    evoNodes.push({ el: hub, info: () => `<p class="small muted">${h.onPath ? `Step ${h.i + 1} of ${ev.path.length} on the path${current ? ", in progress" : behind ? ", passed with items left" : ""}` : "Alongside the path"}</p>
+      <h3>${esc(m.id)} ${esc(m.title.replace(/:\s*done$/i, ""))}</h3>
+      <p class="small">${m.done} of ${m.total} done.</p>
+      ${open.length ? `<p class="small"><b>Still to do</b></p><ul class="plain small">${open.map((i) => `<li>${esc(i.text)}</li>`).join("")}</ul>` : ""}` });
+    grow(h.x, h.y, h.r + 30);
+    grow(h.x, h.y + h.r + 28 + 17 * (lines.length + 1), 80);
+    grow(h.x, above - 16, 0);
+  }
+  evoBox = { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  if (!evoView) fitView(); else setView(evoView);
+  // the line above: where the work stands
+  const cur = byId[ev.current];
+  let nextItem = ev.next ? byId[ev.next.milestone].items[ev.next.item].text.replace(/\s*\(.*$/, "") : "";
+  if (nextItem.length > 90) nextItem = nextItem.slice(0, 89) + "…";
+  const left = (ev.behind || []).reduce((n, id) => n + byId[id].total - byId[id].done, 0);
+  $("evo-meta").textContent = (cur
+    ? `Now: ${cur.id} ${shortTitle(cur.title)}${nextItem ? ` · next: ${nextItem}` : ""}`
+    : "Every milestone on the path is done.")
+    + (left ? ` · ${left} item${left === 1 ? "" : "s"} left behind` : "");
+  // the drift strip
+  const d = ev.drift.slice(-40);
+  const name = { path: "moved the path forward", side: "advanced a side track", planned: "planned the path",
+                 other: "ticked nothing on the roadmap" };
+  $("drift").innerHTML = d.map((r) => `<a class="d-${r.kind}" href="${esc(r.url)}" target="_blank" rel="noopener"
+      title="#${r.number} ${esc(r.title)} · ${esc(day(r.merged))}: ${name[r.kind]}"></a>`).join("");
+  const count = (k) => d.filter((r) => r.kind === k).length;
+  const parts = [`${count("path")} of the last ${d.length} merges moved the path forward`];
+  if (count("side")) parts.push(`${count("side")} a side track`);
+  if (count("planned")) parts.push(`${count("planned")} planned it`);
+  parts.push(`${count("other")} ticked nothing (fixes, upkeep or detours)`);
+  $("drift-text").textContent = d.length ? parts.join(", ") + "." : "";
+}
+
+// pan, zoom, click
+(function evoControls() {
+  const svg = $("evo");
+  if (!svg) return;
+  let drag = null;
+  const world = (ev) => {
+    const r = svg.getBoundingClientRect();
+    return { x: evoView.x + ((ev.clientX - r.left) / r.width) * evoView.w,
+             y: evoView.y + ((ev.clientY - r.top) / r.height) * evoView.h, r };
+  };
+  svg.addEventListener("wheel", (ev) => {
+    if (!evoView) return;
+    ev.preventDefault();
+    const f = ev.deltaY > 0 ? 1.15 : 1 / 1.15, w = world(ev);
+    setView({ x: w.x - (w.x - evoView.x) * f, y: w.y - (w.y - evoView.y) * f,
+              w: evoView.w * f, h: evoView.h * f });
+  }, { passive: false });
+  svg.addEventListener("pointerdown", (ev) => {
+    if (!evoView) return;
+    drag = { x: ev.clientX, y: ev.clientY, view: { ...evoView }, moved: false };
+    svg.setPointerCapture(ev.pointerId);
+  });
+  svg.addEventListener("pointermove", (ev) => {
+    if (!drag) return;
+    const r = svg.getBoundingClientRect(), dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+    if (drag.moved) {
+      svg.classList.add("dragging");
+      setView({ ...drag.view, x: drag.view.x - (dx / r.width) * drag.view.w,
+                y: drag.view.y - (dy / r.height) * drag.view.h });
+    }
+  });
+  svg.addEventListener("pointerup", (ev) => {
+    svg.classList.remove("dragging");
+    const wasDrag = drag && drag.moved;
+    drag = null;
+    if (wasDrag) return;
+    const hit = document.elementFromPoint(ev.clientX, ev.clientY);
+    const node = evoNodes.find((n) => n.el === hit);
+    svg.querySelectorAll(".e-sel").forEach((e) => e.classList.remove("e-sel"));
+    if (node) {
+      node.el.classList.add("e-sel");
+      evoInfo(node.info());
+    } else evoInfo("");
+  });
+  $("evo-fit").addEventListener("click", fitView);
+  $("evo-info").addEventListener("click", (ev) => {
+    if (ev.target.classList.contains("evo-close")) evoInfo("");
+  });
+  window.addEventListener("resize", () => { if (evoView) fitView(); });
+})();
+
 // -- the loop -------------------------------------------------------------------
 
 // <details> remember being opened or closed, across redraws
@@ -479,6 +760,7 @@ async function refresh() {
     drawBoard(page);
     drawRuns(page);
     drawSide(page);
+    drawEvolution(page);
     restoreOpen();
     restoreTyping(focused);
   } catch (e) {

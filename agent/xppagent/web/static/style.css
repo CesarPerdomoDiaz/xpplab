@@ -254,3 +254,67 @@ p.explained.notok { background: var(--red-soft); }
 button.link { padding: 0; border: 0; background: none; color: var(--blue); font-size: inherit; }
 button.link:hover { text-decoration: underline; }
 .ticket .explained { font-size: 12.5px; padding: 6px 8px; }
+
+/* the path: the roadmap's main path as a graph */
+.evo { max-width: 1392px; margin: 20px auto 0; width: calc(100% - 48px); }
+.evo-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.evo-spacer { flex: 1; }
+.evo-wrap { position: relative; }
+#evo {
+  display: block; width: 100%; height: 480px; background: var(--bg); border-radius: 10px;
+  cursor: grab; touch-action: none; user-select: none;
+}
+#evo.dragging { cursor: grabbing; }
+.evo-info {
+  position: absolute; right: 12px; top: 12px; width: 330px; max-height: calc(100% - 24px);
+  overflow: auto; background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px 14px; box-shadow: var(--shadow); font-size: 14px;
+}
+.evo-info h3 { font-size: 14px; margin: 4px 0 6px; }
+.evo-info ul { margin: 4px 0; }
+.evo-close { float: right; }
+.e-spine { stroke-width: 6; stroke-linecap: round; }
+.e-spine.travelled { stroke: var(--green); }
+.e-spine.ahead { stroke: var(--muted); stroke-dasharray: 12 10; opacity: .6; }
+.e-side { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 3 7; opacity: .6; }
+.e-orbit { fill: none; stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 2 5; }
+.e-link { stroke: var(--line); stroke-width: 1; }
+.e-hub { fill: var(--card); stroke: var(--navy); stroke-width: 2.5; }
+.e-hub.complete { fill: var(--green-soft); stroke: var(--green); }
+.e-hub.current { fill: var(--gold-soft); stroke: var(--gold); stroke-width: 3.5; }
+.e-hub.side { stroke-dasharray: 4 3; }
+.e-hub.behind { stroke: var(--amber); stroke-width: 3; }
+.e-behind { fill: var(--amber); font-weight: 600; }
+.e-ringbg { fill: none; stroke: var(--line); stroke-width: 4; }
+.e-ring { fill: none; stroke: var(--green); stroke-width: 4; stroke-linecap: round; }
+.e-sat { stroke-width: 2; }
+.e-sat.done { fill: var(--green); stroke: var(--green); }
+.e-sat.open { fill: var(--card); stroke: var(--muted); }
+.e-sat.next { fill: var(--gold); stroke: var(--amber); stroke-width: 2.5; }
+.e-step { fill: var(--blue); }
+.e-steplink { stroke: var(--blue); stroke-opacity: .4; stroke-width: 1; }
+.e-hit { cursor: pointer; }
+.e-sel { stroke: var(--blue) !important; stroke-width: 4 !important; }
+.e-id { font: 700 14px system-ui, sans-serif; fill: var(--ink); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.e-label { font: 600 15px system-ui, sans-serif; fill: var(--ink); text-anchor: middle; pointer-events: none; }
+.e-sub { font: 13px system-ui, sans-serif; fill: var(--muted); text-anchor: middle; pointer-events: none; }
+.e-here { font: 700 12px system-ui, sans-serif; fill: var(--amber); text-anchor: middle; pointer-events: none; }
+.drift { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.drift-cells { display: flex; gap: 3px; flex-wrap: wrap; }
+.drift-cells a { display: block; width: 14px; height: 14px; border-radius: 3px; }
+.d-path { background: var(--green); }
+.d-side { background: var(--amber); }
+.d-planned { background: var(--blue-soft); box-shadow: inset 0 0 0 1px var(--blue); }
+.d-other { background: var(--line); box-shadow: inset 0 0 0 1px var(--muted); }
+.evo-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+.evo-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.k { display: inline-block; width: 11px; height: 11px; border-radius: 50%; }
+.k-done { background: var(--green); }
+.k-open { background: var(--card); box-shadow: inset 0 0 0 2px var(--muted); }
+.k-next { background: var(--gold); box-shadow: inset 0 0 0 2px var(--amber); }
+.k-step { background: var(--blue); border-radius: 1px; transform: rotate(45deg) scale(.8); }
+.k-behind { background: var(--card); box-shadow: inset 0 0 0 2.5px var(--amber); }
+.k-sq { border-radius: 3px; }
+.evo-legend-gap { margin-left: 12px; font-weight: 600; }
+@media (max-width: 1080px) { .evo { width: calc(100% - 32px); } .evo-hint { display: none; } }
+@media (max-width: 640px) { #evo { height: 380px; } .evo-info { width: calc(100% - 24px); } }

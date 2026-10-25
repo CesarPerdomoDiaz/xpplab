@@ -292,6 +292,16 @@ ssh you@<workstation> "powershell -File C:\src\xpplab\agent\install\update-agent
 `python -m xppagent web` serves "mission control", a web page for
 supervising the bot from any of your devices. It shows:
 
+- **The path:** the roadmap as a graph, to check that the work stays on
+  course. Each milestone on `ROADMAP.md`'s "Path:" line is a hub, in order;
+  the one in brackets there is marked "you are here", earlier ones with
+  open items are marked as passed with items left, and the other
+  milestones hang below as side tracks. Each hub's items circle it, done
+  ones filled, and the merges that ticked them sit just outside. Click any
+  node for its details; drag and scroll to move and zoom. Below it, the
+  last merges in order: green moved the path, amber a side track, grey
+  ticked nothing (fixes, upkeep or detours). It reads the roadmap's history
+  from GitHub, each commit's version once.
 - **Right now:** the Claude run in progress, step by step (the files it
   reads and edits, the commands it runs, the errors it hits) as they
   happen, and otherwise what the bot is waiting for.

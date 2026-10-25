@@ -29,6 +29,37 @@
 </header>
 <div class="banner hidden" id="banner"></div>
 
+<section class="card evo" id="evo-card">
+  <div class="evo-head">
+    <h2>The path</h2>
+    <span class="small muted" id="evo-meta"></span>
+    <span class="evo-spacer"></span>
+    <span class="small muted evo-hint">Drag to move, scroll to zoom, click a node</span>
+    <button class="link" id="evo-fit" type="button">Fit</button>
+  </div>
+  <div class="evo-wrap">
+    <svg id="evo" role="img" aria-label="The roadmap's milestones along the main path, their items, and the pull requests that moved them"></svg>
+    <div class="evo-info hidden" id="evo-info"></div>
+  </div>
+  <div class="drift">
+    <span class="small muted">Last merges, oldest first</span>
+    <div class="drift-cells" id="drift"></div>
+    <span class="small" id="drift-text"></span>
+  </div>
+  <div class="evo-legend small muted">
+    <span><i class="k k-done"></i>done</span>
+    <span><i class="k k-open"></i>to do</span>
+    <span><i class="k k-next"></i>next step</span>
+    <span><i class="k k-step"></i>a merge that ticked it</span>
+    <span><i class="k k-behind"></i>passed with items left</span>
+    <span class="evo-legend-gap">Merges:</span>
+    <span><i class="k k-sq d-path"></i>moved the path</span>
+    <span><i class="k k-sq d-side"></i>a side track</span>
+    <span><i class="k k-sq d-planned"></i>planned it</span>
+    <span><i class="k k-sq d-other"></i>ticked nothing</span>
+  </div>
+</section>
+
 <main class="grid">
   <div class="col">
     <section class="card" id="inbox-card">

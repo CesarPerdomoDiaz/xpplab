@@ -133,7 +133,7 @@ function drawTop(p) {
     const c = a.current;
     kind = "working";
     text = `${KIND_NAME[c.kind] || c.kind}${c.issue ? " #" + c.issue : ""} · ${took(Date.now() / 1000 - c.started)}`;
-  } else if (/limit|budget|quiet|signed out/i.test(a.doing || "")) {
+  } else if (/limit|budget|quiet|signed out|holding back/i.test(a.doing || "")) {
     kind = "waiting"; text = `Waiting: ${a.doing}`;
   }
   if (a.alive && a.explaining) {
@@ -145,6 +145,14 @@ function drawTop(p) {
   const used = a.runs_used ?? 0, max = a.runs_per_window || 1;
   $("budget-text").textContent = `Claude runs: ${used} of ${max} in ${a.window_hours} h`;
   $("budget-bar").style.width = `${Math.min(100, (100 * used) / max)}%`;
+  // The subscription's own use (yours and the bot's), as the last run reported it.
+  const share = [], u = a.usage || {}, nowS = Date.now() / 1000;
+  for (const [key, name, limit] of [["five_hour", "5 h", a.max_five_hour_percent],
+                                    ["seven_day", "week", a.max_week_percent]]) {
+    const w = u[key];
+    if (w && w.resets_at > nowS) share.push(`${name} ${Math.round(100 * w.utilization)}% (bot stops at ${limit}%)`);
+  }
+  $("share-text").textContent = share.length ? `Subscription: ${share.join(" · ")}` : "";
   const pause = $("pause");
   pause.textContent = a.paused && !a.stop_file ? "Resume" : "Pause";
   pause.disabled = p.read_only || a.stop_file;

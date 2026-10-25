@@ -42,6 +42,7 @@ class Result:
     retry_at: float = 0.0          # when to try again, if known
     timed_out: bool = False
     raw: dict = field(default_factory=dict)
+    usage: dict = field(default_factory=dict)  # the subscription's use; see read_usage
 
     def json_block(self) -> dict | None:
         """The last ```json ... ``` block of the final message, parsed."""
@@ -93,6 +94,23 @@ def _kill_tree(proc: subprocess.Popen) -> None:
             os.killpg(proc.pid, signal.SIGKILL)
         except OSError:
             proc.kill()
+
+
+def read_usage(event: dict, now: float | None = None) -> dict:
+    """The subscription's own use, from Claude Code's rate_limit_event:
+    {"five_hour": {"utilization": 0.35, "resets_at": t}, "seven_day": {...},
+    "time": now}, utilization from 0 to 1. Empty if the event has none."""
+    info = event.get("rate_limit_info") or {}
+    windows = info.get("unifiedWindows") or {}
+    out: dict = {}
+    for name in ("five_hour", "seven_day"):
+        w = windows.get(name)
+        if isinstance(w, dict) and w.get("utilization") is not None:
+            out[name] = {"utilization": float(w["utilization"]),
+                         "resets_at": float(w.get("resetsAt") or 0)}
+    if out:
+        out["time"] = time.time() if now is None else now
+    return out
 
 
 def _retry_time(text: str, now: float | None = None) -> float:
@@ -206,12 +224,18 @@ class Claude:
         timer.daemon = True
         timer.start()
         last = collections.deque(maxlen=20)   # the result is the last line
+        usage: dict = {}
         try:
             for line in proc.stdout:
                 last.append(line)
                 if live:
                     live.write(line)
                     live.flush()
+                if '"rate_limit_event"' in line:  # early in the run, so read it now
+                    try:
+                        usage = read_usage(json.loads(line)) or usage
+                    except (json.JSONDecodeError, TypeError, ValueError):
+                        pass
         finally:
             timer.cancel()
             proc.wait()
@@ -223,8 +247,10 @@ class Claude:
         self._log(name, args, out, err, start)
         if timed_out:
             return Result(False, f"stopped after {self.minutes:g} minutes", session,
-                          timed_out=True)
-        return self._parse(out, err, session)
+                          timed_out=True, usage=usage)
+        res = self._parse(out, err, session)
+        res.usage = usage
+        return res
 
     def _current(self, info: dict | None) -> None:
         """runs/current.json names the run in progress, for the dashboard."""

@@ -63,10 +63,15 @@ comment, before they leave the workstation.
 ## How it stays within your Max subscription
 
 Claude Code runs under your Max subscription, which has usage limits per
-five-hour window, shared with your own use. The agent:
+five-hour window and per week, shared with your own use. The agent:
 
-- makes at most `runs_per_window` Claude runs (default 8) in any
+- makes at most `runs_per_window` Claude runs (default 16) in any
   `window_hours` (default 5);
+- leaves you the rest of the subscription: every run reports how much of
+  the five-hour window and of the week is used (by you and the agent
+  together), and above `max_five_hour_percent` (default 60) or
+  `max_week_percent` (default 75) the agent starts no run until that
+  window resets. The dashboard and the daily log show the last reading;
 - makes none during `quiet_hours`, if you set them (for example the hours
   you work);
 - stops until the reset time when Claude reports a usage limit, and then

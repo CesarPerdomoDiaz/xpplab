@@ -27,7 +27,12 @@ max_turns = 250
 # The Max subscription is shared with you. These keep the agent to a part
 # of each five-hour usage window and out of the hours you work.
 window_hours = 5
-runs_per_window = 8
+runs_per_window = 16
+# Each run reports how much of the subscription's five-hour window and of
+# its week is used, by you and the agent together. Above these percentages
+# the agent starts no run until that window resets; 100 turns a check off.
+max_five_hour_percent = 60
+max_week_percent = 75
 quiet_hours = []                  # e.g. ["09:00-14:00", "16:00-19:00"]
 
 [rounds]

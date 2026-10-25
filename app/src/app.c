@@ -807,9 +807,29 @@ bool app_run(App *a) {
   a->have_traj = true;
   {
     const char *log = x->xppe_log();
-    if (strstr(log, "not completed"))
-      app_log(a, "warning: the integration stopped early (see 'BOUND' and "
-                 "'DT', or try another method).");
+    if (strstr(log, "not completed")) {
+      /* Name the culprit: auxiliary quantities count towards BOUND too. */
+      const char *ob = strstr(log, "out of bounds at t");
+      if (ob) {
+        const char *b = ob, *e;
+        char who[96];
+        size_t n;
+        while (b > log && b[-1] != '
+') b--;
+        e = ob;
+        while (*e && *e != '
+') e++;
+        n = (size_t)(e - b);
+        if (n >= sizeof who) n = sizeof who - 1;
+        memcpy(who, b, n);
+        who[n] = 0;
+        app_log(a, "warning: the integration stopped early:%s. A variable "
+                   "or an 'aux' quantity is larger than BOUND; raise it "
+                   "(@ bound=1e6) if that is expected.", who);
+      } else
+        app_log(a, "warning: the integration stopped early (see 'BOUND' and "
+                   "'DT', or try another method).");
+    }
   }
   app_status(a, "Integrated %s: %d points to t = %g", a->model_name, rows,
              rows > 0 ? a->traj.cols[0][rows - 1] : 0.0);

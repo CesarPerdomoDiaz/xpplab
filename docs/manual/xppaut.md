@@ -47,9 +47,10 @@ page.
 | Data viewer | View > Data |
 | File > Write .set / Read .set | the `.ode` file keeps the values; `set` statements give named sets |
 
-Not yet in the new interface (in progress): animations (`.ani` files),
-array plots, the 3D view, Poincare map settings, curve fitting, and
-spectral tools. The engine supports them all, so they will come.
+Not yet in the new interface: the Kinescope, two-parameter ranges, several
+curves and labels on one figure (Graphic stuff, Text), formulas in the data
+browser, and reading saved AUTO diagrams back. The engine supports them, so
+they will come; the roadmap lists them.
 
 ## AUTO files
 

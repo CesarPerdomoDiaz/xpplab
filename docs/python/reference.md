@@ -6,6 +6,8 @@
 
 ::: xpplab.Equilibrium
 
+::: xpplab.Linearization
+
 ::: xpplab.Table
 
 ::: xpplab.Animation

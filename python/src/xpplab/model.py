@@ -243,6 +243,24 @@ class Model(AnalysisMixin):
         discrete = self.get("METH") == "discrete"
         return Equilibrium(values, eig, discrete)
 
+    def linearize(self, at: dict | None = None, inputs=(), *,
+                  step: float | None = None, tol: float | None = None):
+        """Linearise at an equilibrium and test controllability.
+
+        ``at`` is a dict of variable values (others keep their initial
+        value); by default the equilibrium found by :meth:`equilibrium`.
+        ``inputs`` lists the parameters that act as controls. A is the
+        Jacobian of the right-hand side and B the derivative with respect to
+        each input, both by central differences of :meth:`rhs` extrapolated to
+        zero step (Ridders' method, which picks its own step; ``step=`` sets
+        a fixed relative step instead). Returns a
+        :class:`~xpplab.control.Linearization` with ``A``, ``B``,
+        ``eigenvalues``, ``controllability`` (the matrix [B, AB, ...]),
+        ``rank`` and ``controllable``. ``tol`` is the singular-value cutoff
+        for the rank."""
+        from .control import linearize
+        return linearize(self, at, inputs, step=step, tol=tol)
+
     def manifolds(self, guess: dict | None = None):
         """Stable and unstable manifolds of a saddle, as XPPAUT draws them.
 

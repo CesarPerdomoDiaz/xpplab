@@ -42,6 +42,16 @@ The order is chosen so something useful ships early:
 - **License:** GPL-2.0-or-later, as XPPAUT is. AUTO's parts are BSD-3.
   Upstream authors are credited everywhere.
 
+## The main path
+
+The milestones in the order the work follows. The engine and the two front
+ends came first; then XPPAUT parity, so that its users lose nothing; then
+the app and Python as one environment; then analysis beyond XPPAUT; then
+scale. The other milestones (documentation, releases, coding agents) run
+alongside. The milestone in brackets is the one in progress.
+
+Path: M0 → M1 → M2 → M3 → M4 → [M10] → M9 → M7 → M11
+
 ## Milestones
 
 ### M0 Foundation: done
@@ -169,10 +179,10 @@ To do:
 - [ ] Codimension-two bifurcations through AUTO, explained in the manual
 
 ### M8 Working with coding agents
-- [ ] An MCP server and a Claude Code skill (`python -m xpplab.mcp`)
+- [x] An MCP server and a Claude Code skill (`python -m xpplab.mcp`)
 - [ ] A coding agent drives the running app while the researcher watches
 
-### Parity sprint (XPPAUT features the interface lacked)
+### M10 XPPAUT parity sprint: the features the interface still lacked
 - [x] Equilibria over a parameter (Sing pts > Range) and every equilibrium
       in a box (Sing pts > Monte Carlo), in the C API, Python and the app
 - [ ] Save and reload AUTO diagrams; import an orbit
@@ -192,3 +202,10 @@ To do:
       agent) drives the running app
 - [ ] A Python console inside the app, its objects listed in the Workspace
 - [ ] A Python runtime fetched the first time the console is used
+
+### M11 Scale and reach
+- [ ] A compiled engine for large models, checked against XPPAUT's
+- [ ] A model builder that writes the `.ode` file
+- [ ] SBML and NeuroML import
+- [ ] XPP Lab in the browser, with nothing to install
+- [ ] An index of toolboxes that install with pip and appear in the app

@@ -211,25 +211,22 @@ int xppe_auto_reset(void) {
   return XPPE_OK;
 }
 
-static DIAGRAM *nth_point(int i);
-
 /* AUTO evaluates the model at its trial parameter values, and XPPAUT keeps
-   the last of them as the model's parameters. When AUTO's Newton steps
-   diverge (it stops with MX), that last value can be NaN or infinite, and
-   every later run of the model is then garbage. Such a parameter goes back
-   to its value at the newest point AUTO computed, or else to the value it
-   had before the run. Finite values are left exactly as AUTO left them. */
-static void restore_nonfinite_parameters(const double *before, int points_before) {
-  DIAGRAM *last = xppe_auto_count() > points_before ? nth_point(xppe_auto_count() - 1)
-                                                     : NULL;
-  int i, k, changed = 0;
+   the last of them as the model's parameters. That value is whatever AUTO
+   tried last: NaN when its Newton steps diverged (coaster2D.ode, MX), or a
+   stray value far outside the window when a step jumped (6x6.ode left
+   a = -1.27e6). Either way the next run of the model, with Live on the next
+   frame, computes garbage. So the parameters go back to the values they had
+   before the run. The diagram and AUTO's restart data keep every point;
+   grabbing a point is how the model moves onto it, as in XPPAUT. */
+static void restore_parameters(const double *before) {
+  int i, changed = 0;
   for (i = 0; i < NUPAR && i < MAXPAR; i++) {
-    double v = 0.0, good = before[i];
-    if (get_val(upar_names[i], &v) != 1 || isfinite(v)) continue;
-    for (k = 0; last && k < NAutoPar; k++)
-      if (AutoPar[k] == i && isfinite(last->par[k])) good = last->par[k];
-    set_val(upar_names[i], good);
-    plintf("AUTO left %s at %g; it is back at %g\n", upar_names[i], v, good);
+    double v = 0.0;
+    if (get_val(upar_names[i], &v) != 1 || v == before[i]) continue;
+    if (!isfinite(v))
+      plintf("AUTO left %s at %g; it is back at %g\n", upar_names[i], v, before[i]);
+    set_val(upar_names[i], before[i]);
     changed = 1;
   }
   if (changed) redo_stuff();
@@ -251,7 +248,7 @@ int xppe_auto_run(const char *choice) {
   XPPE_GUARD_END;
   pop_workdir();
   if (saved) {
-    restore_nonfinite_parameters(saved, before);
+    restore_parameters(saved);
     free(saved);
   }
   xpps_answers_clear();

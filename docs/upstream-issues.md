@@ -49,6 +49,14 @@ Standalone builds behave exactly like XPPAUT.
 - `exit()` returns to the API call instead of ending the process. In
   XPPAUT itself, an AUTO failure such as the singular matrix in `ge()`
   closes the whole program.
+- Inside a continuation, `exit()` ends only that continuation
+  (`go_go_auto_guarded()` in `gogoauto.c`, called from `do_auto()`): AUTO's
+  files are closed, `close_auto()` runs as after a normal run, and the
+  points computed so far stay in the diagram. Before this guard, the
+  "Division by Zero, exiting" of `ge()` at a singular matrix left the engine
+  unusable until the model was loaded again. That happened in 7 example
+  models (`chemotax`, `forcpend`, `kohonen`, `phsmod`, `phssimp`, `torus`,
+  `waterwheel`), and in XPPAUT it closes the program.
 - The `@ logfile=...` option is ignored: the log goes to the API
   (`xppe_log()`, the app's Command Window) instead of a file.
 
@@ -65,18 +73,31 @@ equation, so XPPAUT finds 8 equations for 9 boundary conditions and stops.
 XPP Studio keeps this behaviour, since changing the continuation rule could
 change how other files parse; see [ModelDB models](development/modeldb.md).
 
-### A diverging AUTO run leaves a parameter at NaN
+### AUTO leaves the parameters at its last trial values
 
 XPPAUT's AUTO interface writes each of AUTO's trial parameter values into
 the model before evaluating it, and keeps the last one when AUTO stops.
-When AUTO's Newton steps diverge and it stops with MX, as it does at once
-for `coaster2D.ode`, whose steady states are not isolated (`X`, `Z` and `L`
-can rest at any value), that last value is NaN. The model's parameter
-stays NaN, so every later run, and a second continuation, is garbage (found
-from a user report, issue #8). XPP Studio leaves `auto_nox.c` alone: the
-engine API's `xppe_auto_run()` puts any parameter AUTO left non-finite back
-to its value at the newest computed point, or the value it had before the
-run. Finite values stay as AUTO left them, so no result changes.
+That value can be anything:
+
+- **NaN**, when AUTO's Newton steps diverge and it stops with MX. That
+  happens at once for `coaster2D.ode`, whose steady states are not isolated
+  (`X`, `Z` and `L` can rest at any value).
+- **A value far outside the window**, when a step jumps: `6x6.ode` left
+  `a = -1.27e6`, since AUTO checks Par min/max only after the step.
+
+Every later run of the model is then garbage, and a second continuation
+starts from it. Found from a user report (issue #8). Running AUTO on every
+example model and parameter, as the app's *Follow steady states* does,
+showed NaN or infinity left behind in 103 runs of 39 models: every roller
+coaster, `duck`, `kepler`, `mlvolt`, `pend-cart1`, the Rössler models and
+more.
+
+XPP Studio leaves `auto_nox.c` alone. The engine API's `xppe_auto_run()`
+puts the parameters back to the values they had before the run. The
+diagram and AUTO's restart data keep every point, and grabbing a point
+still moves the model onto it. The app's bifurcation plot fits its axes to
+the points inside the window AUTO was asked to cover, so a stray end point
+no longer sets the scale.
 
 ### The Volterra history has room for 50 variables
 

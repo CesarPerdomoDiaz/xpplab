@@ -741,15 +741,60 @@ void app_fetch_current(App *a) {
 
 void app_free_trajectory(Trajectory *t) { free_traj(t); }
 
+/* After a call that returned XPPE_ERR_FATAL: XPPAUT's code ended the
+   program (exit()), and the engine refuses all further work. Rather than
+   leave every button failing, open the model again in a fresh engine with
+   the parameters, initial values and AUTO settings it had. The bifurcation
+   diagram starts afresh. */
+static void recover_engine(App *a, const char *what) {
+  int np = a->npars, nv = a->nvars, i;
+  double *par = malloc(sizeof(double) * (size_t)(np + 1));
+  double *ic = malloc(sizeof(double) * (size_t)(nv + 1));
+  AutoUI keep = a->au; /* its settings; its point arrays are rebuilt */
+  if (!par || !ic) {
+    free(par);
+    free(ic);
+    return;
+  }
+  memcpy(par, a->par, sizeof(double) * (size_t)np);
+  memcpy(ic, a->ic, sizeof(double) * (size_t)nv);
+  app_log(a, "%s: XPPAUT's code stopped the engine. Reopening %s with your "
+             "values ...", what, a->model_name);
+  if (load_engine(a) && a->npars == np && a->nvars == nv) {
+    for (i = 0; i < np; i++) a->eng->api.xppe_set_number(a->pars[i], par[i]);
+    for (i = 0; i < nv; i++) a->eng->api.xppe_set_number(a->vars[i], ic[i]);
+    a->au.yvar = keep.yvar;
+    a->au.main_par = keep.main_par;
+    a->au.second_par = keep.second_par;
+    a->au.ds = keep.ds;
+    a->au.dsmin = keep.dsmin;
+    a->au.dsmax = keep.dsmax;
+    a->au.parmin = keep.parmin;
+    a->au.parmax = keep.parmax;
+    a->au.normmin = keep.normmin;
+    a->au.normmax = keep.normmax;
+    a->au.nmax = keep.nmax;
+    a->au.npr = keep.npr;
+    a->au.ntst = keep.ntst;
+    app_auto_refresh(a);
+    app_refresh_values(a);
+    app_log(a, "Reopened %s with your parameters, initial values and AUTO "
+               "settings; the bifurcation diagram starts afresh.", a->model_name);
+  }
+  free(par);
+  free(ic);
+}
+
 bool app_run(App *a) {
-  int rows;
+  int rows, rc;
   xpp_engine_api *x;
   a->needs_run = false;
   if (!a->model_ok) return false;
   x = &a->eng->api;
-  if (x->xppe_run() != XPPE_OK) {
+  if ((rc = x->xppe_run()) != XPPE_OK) {
     app_log(a, "error: %s", x->xppe_error());
     app_status(a, "Integration failed: %s", x->xppe_error());
+    if (rc == XPPE_ERR_FATAL) recover_engine(a, "Run");
     return false;
   }
   if (a->keep_curves && a->have_traj)
@@ -1082,6 +1127,12 @@ bool app_auto_push_settings(App *a) {
 
 static void report_auto(App *a, int before) {
   int i, specials = 0;
+  /* AUTO's code ended its run where XPPAUT itself would have closed (see
+     go_go_auto_guarded() in the engine): say so. */
+  if (strstr(a->eng->api.xppe_log(), "AUTO stopped here"))
+    app_log(a, "AUTO stopped early: it met a singular matrix (at a branch "
+               "point, or where steady states are not isolated), where "
+               "XPPAUT itself would have closed. The points so far are kept.");
   for (i = before; i < a->au.count; i++) {
     xppe_auto_point_info *p = &a->au.info[i];
     if (p->label && p->type_name[0] && strcmp(p->type_name, "EP") != 0) {
@@ -1099,7 +1150,7 @@ static void report_auto(App *a, int before) {
 
 bool app_auto_equilibria(App *a) {
   xpp_engine_api *x;
-  int before;
+  int before, rc;
   if (!a->model_ok || !app_auto_push_settings(a)) return false;
   x = &a->eng->api;
   /* Start from a nearby equilibrium, as one does in XPPAUT. */
@@ -1122,9 +1173,12 @@ bool app_auto_equilibria(App *a) {
   x->xppe_auto_ungrab();
   before = x->xppe_auto_count();
   app_log(a, "AUTO: steady states as %s varies ...", a->pars[a->au.main_par]);
-  if (x->xppe_auto_run("s") != XPPE_OK) {
+  if ((rc = x->xppe_auto_run("s")) != XPPE_OK) {
     app_log(a, "AUTO: %s", x->xppe_error());
-    app_auto_refresh(a);
+    if (rc == XPPE_ERR_FATAL)
+      recover_engine(a, "AUTO");
+    else
+      app_auto_refresh(a);
     return false;
   }
   app_auto_refresh(a);
@@ -1188,7 +1242,7 @@ int app_auto_actions(App *a, int point, const char **labels, const char **keys,
 bool app_auto_continue(App *a, int point, const char *key) {
   xpp_engine_api *x;
   xppe_auto_point_info *p;
-  int before;
+  int before, rc;
   if (!a->model_ok || point < 0 || point >= a->au.count) return false;
   p = &a->au.info[point];
   if (!p->label) {
@@ -1205,9 +1259,12 @@ bool app_auto_continue(App *a, int point, const char *key) {
   before = x->xppe_auto_count();
   app_log(a, "AUTO: continuing from %s #%d ...",
           p->type_name[0] ? p->type_name : "point", p->label);
-  if (x->xppe_auto_run(key) != XPPE_OK) {
+  if ((rc = x->xppe_auto_run(key)) != XPPE_OK) {
     app_log(a, "AUTO: %s", x->xppe_error());
-    app_auto_refresh(a);
+    if (rc == XPPE_ERR_FATAL)
+      recover_engine(a, "AUTO");
+    else
+      app_auto_refresh(a);
     return false;
   }
   app_auto_refresh(a);

@@ -31,6 +31,12 @@ void xpps_exit(int code)
 /* Where plintf() output goes while embedded. */
 FILE *xpps_log_stream(void);
 
+/* Run fn() so that an exit() inside it ends only fn(): returns 1 when fn()
+   returned, 0 when it called exit(). Used around one AUTO continuation,
+   whose code calls exit() on a singular matrix and a few other errors.
+   Outside the embedding API it simply calls fn(). */
+int xpps_call_guarded(int (*fn)(void));
+
 /* Headless answers for XPPAUT's dialogs. While embedded, every dialog
    (menus, yes/no questions, text prompts, forms) takes its answer from a
    queue filled by the API instead of waiting for the user, so no code path

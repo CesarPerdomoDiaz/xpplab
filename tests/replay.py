@@ -193,6 +193,8 @@ def main():
     ap.add_argument("--only", help="comma-separated case names")
     ap.add_argument("--timeout", type=int, default=120)
     args = ap.parse_args()
+    # Absolute: each script runs in its own case folder.
+    args.app, args.out = args.app.resolve(), args.out.resolve()
     if not args.app.exists():
         sys.exit("no app at %s (build it, or give --app)" % args.app)
     engine = engine_of(args.app)

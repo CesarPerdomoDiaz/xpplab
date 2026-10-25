@@ -181,7 +181,7 @@ static double option_value(App *a, int k) {
 static bool same(double x, double y) { return x == y || (isnan(x) && isnan(y)); }
 
 /* The engine's state becomes the script's. */
-static void sync(App *a) {
+static void sync_script(App *a) {
   Echo *e = &a->echo;
   int i;
   if (!a->model_ok || !e->loaded) return;
@@ -306,14 +306,14 @@ bool echo_begin(App *a) {
 void echo_end(App *a) {
   Echo *e = &a->echo;
   if (e->depth > 0) e->depth--;
-  if (e->depth == 0 && !e->live && e->wrote) sync(a);
+  if (e->depth == 0 && !e->live && e->wrote) sync_script(a);
 }
 
 void echo_frame(App *a, bool busy) {
   Echo *e = &a->echo;
   if (busy || e->depth > 0 || !(e->pending_run || e->dirty)) return;
   flush(a);
-  sync(a);
+  sync_script(a);
 }
 
 void echo_model_loaded(App *a) {
@@ -331,7 +331,7 @@ void echo_model_loaded(App *a) {
   e->sweep_mode = -1;
   e->loaded = e->par && e->ic;
   echo_line(a, "m = xs.load(%s)", echo_str(a->model_path, path, sizeof path));
-  sync(a);
+  sync_script(a);
 }
 
 /* Figures are drawn again with xpplab's matplotlib plots: the same data,
@@ -396,7 +396,7 @@ bool echo_save(App *a, const char *path) {
   FILE *f;
   if (e->depth == 0) {
     flush(a);
-    sync(a);
+    sync_script(a);
   }
   f = fopen(path, "wb");
   if (!f) {

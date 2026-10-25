@@ -1634,8 +1634,8 @@ bool app_export_range_csv(App *a, const char *path) {
     snprintf(names[1], APP_NAME_LEN, "lyapunov");
     t.ncols = 2;
   } else {
-    snprintf(names[1], APP_NAME_LEN, "%s_max", a->echo.sweep_var);
-    snprintf(names[2], APP_NAME_LEN, "%s_min", a->echo.sweep_var);
+    snprintf(names[1], APP_NAME_LEN, "%.56s_max", a->echo.sweep_var);
+    snprintf(names[2], APP_NAME_LEN, "%.56s_min", a->echo.sweep_var);
     t.ncols = 3;
   }
   t.nrows = s->n;

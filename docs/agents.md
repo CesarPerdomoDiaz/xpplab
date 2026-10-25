@@ -12,15 +12,14 @@ reads and writes only the files you point it at and its work folder.
 
 ## Install
 
-From a clone of the repository (see the README for Windows notes):
+From PyPI:
 
 ```
-pip install ".[mcp]"
+pip install "xppstudio[mcp]"
 ```
 
-From the first release that includes the server, the README's Python
-download line with `"xppstudio[mcp]"` in place of `xppstudio` does the same
-without a clone. The extra adds the official MCP SDK and matplotlib to the
+Or from a clone of the repository, with `pip install ".[mcp]"` (see the
+README for Windows notes). The extra adds the official MCP SDK and matplotlib to the
 package. The server needs Python 3.10 or later.
 
 Check that it starts:

@@ -14,7 +14,7 @@ desktop app (`app/`).
 The quickest route is the MCP server, which wraps the Python package:
 
 ```
-pip install ".[mcp]"          # from this clone
+pip install "xppstudio[mcp]"  # or ".[mcp]" from this clone
 python -m xppstudio.mcp       # stdio; Codex starts it for you
 ```
 

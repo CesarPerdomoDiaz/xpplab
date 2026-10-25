@@ -70,16 +70,18 @@ not start, run it from a terminal: the message says what is missing.
 ## Python
 
 The Python package runs the same engine, AUTO included, on Python 3.9 or
-later on all three systems. Each release has a ready-built wheel for each
-system, so nothing is compiled on your machine:
+later on all three systems. It is on [PyPI](https://pypi.org/project/xppstudio/),
+with a ready-built wheel for each system, so nothing is compiled on your
+machine:
 
 ```bash
-pip install xppstudio --find-links https://github.com/CesarPerdomoDiaz/xppstudio/releases/expanded_assets/v0.1.0
+pip install xppstudio
 ```
 
-`pip` picks the wheel for your system from that release. For plots and
-data frames, add the extras: `pip install "xppstudio[all]" --find-links ...`
-with the same link. Then follow the [Python quick start](python/quickstart.md).
+For plots and data frames, add the extras: `pip install "xppstudio[all]"`.
+The wheels are also attached to each
+[release](https://github.com/CesarPerdomoDiaz/xppstudio/releases). Then
+follow the [Python quick start](python/quickstart.md).
 
 ## Checking a download
 

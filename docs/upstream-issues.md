@@ -82,7 +82,7 @@ That value can be anything:
 - **NaN**, when AUTO's Newton steps diverge and it stops with MX. That
   happens at once for `coaster2D.ode`, whose steady states are not isolated
   (`X`, `Z` and `L` can rest at any value).
-- **A value far outside the window**, when a step jumps: `6x6.ode` left
+- **A value far outside the window**, when a step jumps: `6x6.ode` on Windows left
   `a = -1.27e6`, since AUTO checks Par min/max only after the step.
 
 Every later run of the model is then garbage, and a second continuation

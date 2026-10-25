@@ -96,11 +96,12 @@ def test_a_failed_continuation_leaves_the_parameters_usable():
 
 def test_auto_leaves_the_parameters_as_they_were():
     # AUTO evaluates the model at trial values and XPPAUT kept the last one:
-    # in 6x6.ode a step jumps from a = 0.26 to a = -1.3e6, which then stayed
-    # the model's parameter. The diagram keeps the point; the model does not.
+    # in 6x6.ode on x86-64 Windows and Linux a step jumps from a = 0.26 to
+    # a = -1.3e6, which then stayed the model's parameter (on Intel macOS the
+    # branch ends elsewhere). The diagram keeps the points; the model does not.
     with xs.load(ODE / "6x6.ode") as m:
         d = m.auto.equilibria("a")
-        assert min(p.value for p in d.points) < -1000      # the stray end point
+        assert any(p.value != 0.0 for p in d.points)      # AUTO moved a
         assert m.parameters["a"] == 0.0
 
 

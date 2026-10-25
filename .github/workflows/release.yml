@@ -250,6 +250,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write      # to start pypi.yml
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -283,3 +284,10 @@ jobs:
             dist/XPPLab-*
             dist/*.whl
             dist/SHA256SUMS
+      # A release published with this workflow's token starts no other
+      # workflow (GitHub's rule), so pypi.yml's release trigger never fires
+      # from here. Starting it by hand is the exception GitHub allows.
+      - name: Publish the wheels to PyPI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pypi.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag="$GITHUB_REF_NAME"

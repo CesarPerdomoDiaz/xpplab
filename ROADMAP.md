@@ -171,3 +171,13 @@ To do:
 ### M8 Working with coding agents
 - [ ] An MCP server and a Claude Code skill (`python -m xpplab.mcp`)
 - [ ] A coding agent drives the running app while the researcher watches
+
+### M9 The app and Python together
+- [x] Each action in the app written in the command window as the Python
+      that does the same; File > Save session as Python script
+- [x] The saved script repeats the session bit for bit (`tests/replay.py`)
+- [x] Exact CSV exports: runs, bifurcation diagrams, Ranges, Analysis results
+- [ ] A local channel through which Python (a notebook, a script, a coding
+      agent) drives the running app
+- [ ] A Python console inside the app, its objects listed in the Workspace
+- [ ] A Python runtime fetched the first time the console is used

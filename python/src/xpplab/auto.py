@@ -200,6 +200,28 @@ class Diagram:
             rows.append(r)
         return pd.DataFrame(rows)
 
+    def to_csv(self, path) -> None:
+        """Write the points as CSV, every number exact: branch, point, type,
+        label, stability, the parameters, norm, period, then the max and
+        min of every variable. The desktop app's ``export FILE.csv auto``
+        writes the same file."""
+        from .analysis import write_csv
+        cols = ["branch", "point", "type", "label", "stable", "periodic",
+                "two_parameter", "parameter", "value", "parameter2", "value2",
+                "norm", "period"]
+        cols += [f"{v}_max" for v in self.variables]
+        cols += [f"{v}_min" for v in self.variables]
+        rows = []
+        for p in self.points:
+            two = p.two_parameter and p.parameter2
+            rows.append([p.branch, p.point, p.type, p.label, p.stable, p.periodic,
+                         p.two_parameter, p.parameter, p.value,
+                         p.parameter2 if two else "", p.value2 if two else None,
+                         p.norm, p.period]
+                        + [p.umax[v] for v in self.variables]
+                        + [p.umin[v] for v in self.variables])
+        write_csv(path, cols, rows)
+
     def plot(self, y: str | None = None, *, ax=None, labels: bool = True, **kw):
         """Plot the diagram. Stable branches are solid, unstable dashed;
         periodic orbits show their max and min; special points are labelled.

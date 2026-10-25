@@ -30,7 +30,14 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 PYTHONPATH=python/src python -m pytest -q python/tests
 python tests/golden.py check --exe build/cli/xppaut-headless.exe
+python tests/replay.py --app build/app/xpplab.exe
 ```
+
+`tests/replay.py` runs app sessions, saves each as a Python script (the
+app's echo, `app/src/echo.c`) and checks that the script, run with the
+package, writes the same CSV files bit for bit. An action added to the app
+needs its line in the echo: call `echo_begin()`/`echo_end()` around it and
+write the line when it succeeds.
 
 Linux and macOS: the same, without `.exe`; golden checks there compare with
 unmodified XPPAUT (`tests/build_reference.sh`, `golden.py compare`).

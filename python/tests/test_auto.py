@@ -165,3 +165,14 @@ def test_the_orbit_at_a_point(lecar_hopf):
     assert sol["V"].max() == pytest.approx(p.umax["V"], abs=1e-3)
     with pytest.raises(xs.EngineError, match="steady state"):
         a.orbit(a.diagram.first("HB"))
+
+
+def test_diagram_and_point_html(lecar_hopf):
+    from html.parser import HTMLParser
+    d = lecar_hopf.auto.equilibria("iapp")
+    for obj in (d, d.first("HB"), d[:0]):
+        html = obj._repr_html_()
+        assert html.startswith("<")
+        HTMLParser().feed(html)
+    assert "HB" in d._repr_html_()
+    assert "Hopf bifurcation" in d.first("HB")._repr_html_()

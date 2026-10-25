@@ -71,6 +71,14 @@ orbits = m.auto.continue_from(d.first("HB"), "periodic")
 m.auto.diagram.plot("V")
 ```
 
+## Notebook display
+
+In Jupyter, a `Model`, a run (`Trajectory`), equilibria and AUTO diagrams
+display as HTML tables: variables with their initial values, parameters,
+equilibria with a stable or unstable label, and the special points of a
+diagram. Long tables are cut after 20 rows. Plain `repr` is unchanged in a
+terminal.
+
 ## Several models at once
 
 Each `Model` holds its own copy of the engine, so models are independent:

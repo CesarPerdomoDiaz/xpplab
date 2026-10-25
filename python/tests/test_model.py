@@ -1,4 +1,5 @@
 import subprocess
+from html.parser import HTMLParser
 import sys
 from pathlib import Path
 
@@ -240,3 +241,73 @@ def test_a_grid_as_a_table():
     assert list(t["a"]) == [1, 2, 1, 2, 1, 2]
     assert list(t["b"]) == [10, 10, 20, 20, 30, 30]
     assert list(t["z"]) == [1, 2, 3, 4, 5, 6]
+
+
+class _Balanced(HTMLParser):
+    """Fails on mismatched tags: the output must be well-formed."""
+
+    def __init__(self):
+        super().__init__()
+        self.stack = []
+        self.text = ""
+
+    def handle_starttag(self, tag, attrs):
+        self.stack.append(tag)
+
+    def handle_endtag(self, tag):
+        assert self.stack and self.stack.pop() == tag
+
+    def handle_data(self, data):
+        self.text += data
+
+
+def _check_html(html):
+    assert html.startswith("<")
+    p = _Balanced()
+    p.feed(html)
+    p.close()
+    assert not p.stack
+    return p.text
+
+
+def test_model_html(lecar):
+    text = _check_html(lecar._repr_html_())
+    assert "lecar.ode" in text and "iapp" in text and "initial value" in text
+    assert "-0.144" in text
+
+
+def test_model_html_escapes_names():
+    with xs.Model.from_text("x'=-x\ninit x=1\ndone\n", name="a&b'.ode") as m:
+        html = m._repr_html_()
+    assert "a&amp;b&#x27;.ode" in html and "a&b'" not in html
+    _check_html(html)
+
+
+def test_trajectory_html(lecar):
+    text = _check_html(lecar.run()._repr_html_())
+    assert "points" in text and "RATE" in text
+
+
+def test_trajectory_html_empty_and_escaped():
+    assert "empty" in _check_html(xs.Trajectory({"T": np.array([])})._repr_html_())
+    tr = xs.Trajectory({"T": np.array([0.0, 1.0]), "<&>": np.array([1.0, 2.0])})
+    html = tr._repr_html_()
+    assert "&lt;&amp;&gt;" in html and "<&>" not in html
+    _check_html(html)
+
+
+def test_equilibrium_html(lecar):
+    eq = lecar.find_equilibria()
+    text = _check_html(eq._repr_html_())
+    assert "stability" in text and ("stable" in text)
+    one = eq[0]
+    text = _check_html(one._repr_html_())
+    assert one.kind in text and "eigenvalue" in text
+
+
+def test_equilibrium_html_empty_and_escaped():
+    assert "0 equilibria" in _check_html(xs.EquilibriumList(["V"])._repr_html_())
+    e = xs.Equilibrium({"<&>": 1.0}, np.array([-1.0 + 2j, -1.0 - 2j]))
+    html = e._repr_html_()
+    assert "&lt;&amp;&gt;" in html and "stable" in html
+    _check_html(html)

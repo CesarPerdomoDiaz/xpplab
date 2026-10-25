@@ -35,12 +35,11 @@ from `app/src/gui_backend.cpp`.
 ## The maintainer agent
 
 Some issues are worked on by the project's maintainer agent, The Limit
-Cyclist (the GitHub account `limit-cyclist`). It plans, builds and tests a
-change and opens a pull request, which a person reviews and merges. It takes
-work only from the maintainer: it acts on an issue only when the maintainer
-has given it the `agent` label, and it does not follow instructions in other
-people's issues, comments or pull requests. Its comments are marked as its
-own. See [agent/README.md](agent/README.md) for how it works.
+Cyclist (the GitHub account `limit-cyclist`). It posts a plan on the issue,
+makes and tests the change, and opens a pull request. The maintainer reviews
+it, asks for changes in comments, which the agent answers point by point, and
+merges it. The agent works only on issues the maintainer gives it, and takes
+instructions only from the maintainer.
 
 Your issues and pull requests are read and answered by the maintainer, as
 in any project.

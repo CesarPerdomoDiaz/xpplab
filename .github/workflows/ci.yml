@@ -73,11 +73,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macOS minutes cost ten times as much on a private repository: the
-        # agent's pull requests skip macOS, which runs again after the merge,
-        # and so does everything while the repository variable XPPS_LIGHT_CI
-        # is 1 (a run started by hand always includes it).
-        os: ${{ fromJSON((startsWith(github.head_ref, 'agent/') || (vars.XPPS_LIGHT_CI == '1' && github.event_name != 'workflow_dispatch')) && '["ubuntu-latest"]' || '["ubuntu-latest", "macos-latest"]') }}
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -121,11 +117,6 @@ jobs:
           --reference build-reference/xppaut-reference
       - name: Python tests
         run: PYTHONPATH=python/src python -m pytest -q python/tests
-      - name: Maintainer agent tests
-        if: runner.os == 'Linux'
-        run: |
-          git config --global user.name ci && git config --global user.email ci@example.invalid
-          python -m pytest -q agent/tests
       - name: Desktop app starts and renders (macOS)
         if: runner.os == 'macOS'
         run: |

@@ -110,27 +110,11 @@ cannot show Retina problems.*
 
 ## The work, in order of impact for students
 
-Costs are given in three currencies: money, working time and CI minutes.
-macOS runners bill tenfold on this private repository, and GitHub rounds
-each job up to a whole minute. Timings measured on 24 October 2026:
-
-| Run | Wall-clock | Billed minutes |
-|---|---|---|
-| CI, macOS job | 2 min 37 s | 30 |
-| CI, whole run (Windows ×2, four Linux jobs, macOS ×10) | 9 min | about 67 |
-| Release, macOS job | 3 min 13 s | 40 |
-| Release, whole run | 6 min 30 s | about 61 |
-
-So each push that touches code costs about 67 billed minutes, nearly half
-of it macOS; GitHub Free includes 2,000 a month. On a public repository
-standard runners are free, which ends this cost.
-
 ### 1. Draw correctly on Retina — done
 
 The two fixes described above, confirmed on the MacBook Air. CI passed
 on the branch.
 
-- **Cost:** one CI run (about 67 billed minutes, 30 of them macOS).
 
 ### 2. Open without a warning: Developer ID and notarization
 
@@ -138,7 +122,7 @@ This is the biggest obstacle in a classroom. On macOS 15 and later the way
 past the warning is hidden in *System Settings*, and a lab handout that
 says "ignore the security warning" is a poor start.
 
-1. **Join the Apple Developer Program:** US$99 (99 €) a year. Enrolment
+1. **Join the Apple Developer Program.** Enrolment
    as an individual takes a day or two, and users then see the member's
    legal name as the developer. An organization
    account shows the organization's name but needs a D-U-N-S number.
@@ -163,18 +147,11 @@ says "ignore the security warning" is a poor start.
    libraries that are not signed by the same team, and a student's own
    library never is. The app's private engine copies would pass: they are
    byte-for-byte copies of the signed library.
-6. **Optional saving:** do the signing and notarization on a Linux runner
-   with `rcodesign` (apple-codesign), which implements both. Apple's
-   notarization queue (usually a few minutes, sometimes much longer) is
-   then billed at 1× instead of 10×.
 
 Fix the bundle at the same time: name it `XPP Lab.app` rather than
 `xpplab.app`, and ship SDL once (it is in both `Contents/MacOS` and
 `Contents/Frameworks`, 3 MB of a 10 MB download).
 
-- **Cost:** US$99 a year, plus about a day of work. Expect a few release
-  runs to get it right, each 40 billed minutes plus the notarization wait
-  if it runs on macOS. Only releases pay this, not every push.
 - Until then, TESTING.md's instructions stay.
 
 ### 3. Fit a 13-inch laptop
@@ -188,8 +165,6 @@ wide, the CI screenshot shows the toolbar cut off at the right.
 - When the window is narrower than about 1300 points, start with the
   Help panel closed (F1 opens it) and give the plots its column.
 - This helps Windows laptops at 150% too.
-- **Cost:** half a day to a day. Testable on Windows with `--size`; no
-  macOS minutes.
 
 ### 4. Things a Mac user notices in the first minutes
 
@@ -218,8 +193,6 @@ wide, the CI screenshot shows the toolbar cut off at the right.
   *Preferences…* item that does nothing. Menus say "Cmd+O"; the Mac
   convention is "⌘O", but neither Roboto nor Cousine has the ⌘ glyph, so
   one must be merged into the font atlas from a symbol font.
-- **Cost:** one to two days in all. Everything except the ⌘ glyph can be
-  tested on Windows and Linux.
 
 ### 5. Trackpad gestures in plots
 
@@ -236,8 +209,6 @@ SDL does not say whether a scroll came from a trackpad or a wheel, so the
 honest design is a setting, *Scroll pans plots (trackpad)*, on by default
 on macOS. The 3D view gets the same treatment: drag rotates, pinch zooms.
 
-- **Cost:** one to two days, and someone has to tune it on a real
-  trackpad. CI can only check that it builds.
 
 ### 6. The Mac menu bar
 
@@ -261,8 +232,6 @@ application and Window menus.
 - ***File > Open Recent*** goes through `NSDocumentController`, so recent
   models also appear in the Dock icon's menu, and the Help menu gets
   macOS's search field.
-- **Cost:** two to three days. Each try needs a Mac: CI can only build it
-  and check that the app still starts.
 
 ### 7. Remember the window and the session
 
@@ -274,7 +243,6 @@ the panels.
   platforms. Check that the saved position is still on a connected
   display. macOS's own state restoration (`NSWindowRestoration`) is not
   needed for this.
-- **Cost:** half a day. Testable on Windows.
 
 ### 8. Finder: declared, not yet tried
 
@@ -290,7 +258,6 @@ as drop events. No person has tried it yet. Things to check:
   file arrives in the first frames.
 - that Quick Look shows `.ode` files as text: the type conforms to
   `public.plain-text`.
-- **Cost:** an hour of code, plus a tester.
 
 ### 9. Distribution: Homebrew and Python
 
@@ -303,7 +270,6 @@ as drop events. No person has tried it yet. Things to check:
     `Casks/xpplab.rb` with the version, URL and SHA-256. The release
     workflow updates it on a Linux runner.
   - Move to homebrew/cask once the project meets its notability rules.
-  - **Cost:** an hour, after step 2. No macOS minutes.
 - **The Python wheel is a separate route.** `pip install xpplab` gives
   the engine, AUTO and the Python API for scripts and Jupyter, not the
   desktop app. The macOS wheel is universal2, built by cibuildwheel, which
@@ -314,7 +280,6 @@ as drop events. No person has tried it yet. Things to check:
   - Publish it to PyPI with the first public release, after a test on an
     Intel Mac.
   - Later, conda-forge, for courses that use Anaconda.
-  - **Cost:** one macOS wheel job per release.
 - **Not the Mac App Store.** Its sandbox forbids loading user-compiled
   libraries (`export`). Developer ID and notarization give the same smooth
   install without that limit.
@@ -346,22 +311,12 @@ The plan:
    screenshot under it in the Linux app job would have caught both bugs.
    The check is the interface scale in the app's stderr line, and the
    screenshot's size against the window's.
-   - **Cost:** an hour or two to set up, about a Linux minute per push.
 2. **Try a 2× screen on the macOS runner, once, by hand.** List the
    virtual display's modes (`displayplacer list`) and switch to a HiDPI
    one. If one exists, the macOS job takes a second screenshot at 2×.
-   - **Cost:** the experiment is about 5 minutes (50 billed). Afterwards,
-     about one more minute (10 billed) per push.
 3. **Make CI's screenshots easy to read.** Save them as PNG and keep the
    app's scale line in the log.
-4. **Spend fewer macOS minutes.**
-   - A push to a branch that has an open pull request runs CI twice
-     (`push` and `pull_request` are different concurrency groups). Limit
-     `push` to `main` and let pull requests cover branches. That saves 30
-     billed macOS minutes per push to a PR branch.
-   - Run the macOS job only when `engine/`, `app/`, `cli/`, `tests/`, a
-     CMake file or the workflow changes.
-5. **A person with a Mac.** The maintainer's MacBook Air is the test machine.
+4. **A person with a Mac.**
    `tests/macos/TEST-PROMPT.md` in the repository is a
    prompt for Claude Code on the Mac. It checks the download and the first
    run, takes screenshots at full Retina resolution, builds from source,
@@ -395,25 +350,24 @@ The plan:
 
 ## Summary
 
-| Step | For students | Work | Money | Billed CI minutes |
-|---|---|---|---|---|
-| 1. Retina drawing and scale | the app is usable at all | done, confirmed on a Mac | – | one CI run, about 67 (30 macOS) |
-| 2. Developer ID, notarization | opens without a warning | about 1 day | US$99 a year | a few release runs of 40+; then per release |
-| 3. Fit a 13-inch screen | nothing cut off | 0.5–1 day | – | Windows and Linux only |
-| 4. Appearance, quit prompt, save copies, ⌘W ⌘, | no lost work, looks right | 1–2 days | – | Windows and Linux mostly |
-| 5. Trackpad | plots move as expected | 1–2 days | – | needs a tester |
-| 6. Mac menu bar | menus where Mac users look | 2–3 days | – | needs a tester |
-| 7. Window restoration | picks up where it left | 0.5 day | – | Windows |
-| 8. Finder | double-click a model | 1 hour | – | needs a tester |
-| 9. Homebrew, PyPI | one-line installs | 1 hour each | – | Linux; one wheel job per release |
-| CI: Linux 2× screenshot | stops this bug class | 1–2 hours | – | about 1 Linux minute per push |
+| Step | For students | Work |
+|---|---|---|
+| 1. Retina drawing and scale | the app is usable at all | done, confirmed on a Mac |
+| 2. Developer ID, notarization | opens without a warning | about 1 day |
+| 3. Fit a 13-inch screen | nothing cut off | 0.5–1 day |
+| 4. Appearance, quit prompt, save copies, ⌘W ⌘, | no lost work, looks right | 1–2 days |
+| 5. Trackpad | plots move as expected | 1–2 days |
+| 6. Mac menu bar | menus where Mac users look | 2–3 days |
+| 7. Window restoration | picks up where it left | 0.5 day |
+| 8. Finder | double-click a model | 1 hour |
+| 9. Homebrew, PyPI | one-line installs | 1 hour each |
+| CI: Linux 2× screenshot | stops this bug class | 1–2 hours |
 
 ## What is needed from people
 
 - **A Mac the developers can reach**, to build and take screenshots there.
   A person is needed for anything on the screen itself: Gatekeeper, Finder,
   the trackpad.
-- **An Apple Developer account** (step 2), and then the certificate
-  and API key as repository secrets.
+- **An Apple Developer account** (step 2).
 - **One or two more Mac testers**, ideally one with an Intel Mac. CI runs
   only on Apple Silicon, so no automated check covers Intel.

@@ -217,8 +217,9 @@ The manual, the Python guide and the developer notes are online at
 - **Coding agents:** the [MCP server and Claude Code plugin](docs/agents.md).
 - **How it works:** [architecture](docs/development/architecture.md).
 - **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md). Some issues are
-  worked on by the project's [maintainer agent](agent/README.md), which
-  takes work only from the maintainer and opens pull requests for review.
+  worked on by the project's
+  [maintainer agent](CONTRIBUTING.md#the-maintainer-agent), which takes work
+  only from the maintainer and opens pull requests for review.
 
 ## Building from source
 

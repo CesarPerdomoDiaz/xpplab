@@ -15,8 +15,8 @@ Examples of what to report:
   exploitable;
 - a release download or a Python wheel that does not match its published
   checksum;
-- the maintainer agent (`agent/`) acting on someone other than the
-  maintainer, or exposing a secret.
+- the maintainer agent acting on instructions from anyone other than the
+  maintainer.
 
 ## Opening models from others
 

@@ -73,7 +73,6 @@ The example models are in `engine/xppaut/ode/`.
 - `docs/` the MkDocs site; `docs/manual/*.md` is also the app's help.
 - `tests/` golden tests and API checks; `python/tests/` the package's.
 - `skills/`, `.claude-plugin/`, `.mcp.json` the Claude Code plugin.
-- `agent/` the maintainer agent that works on issues labelled `agent`.
 
 ### Build and test
 

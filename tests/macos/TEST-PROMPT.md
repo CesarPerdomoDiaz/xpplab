@@ -70,7 +70,6 @@ sh tests/build_reference.sh build-reference
 python3 tests/golden.py compare --exe build/cli/xppaut-headless --reference build-reference/xppaut-reference
 python3 -m venv .venv && . .venv/bin/activate && pip install numpy pytest matplotlib pandas
 PYTHONPATH=python/src python -m pytest -q python/tests
-python -m pytest -q agent/tests
 pip install . && python -c "import xpplab as xs, os; m = xs.load(os.path.abspath('engine/xppaut/ode/lecar.ode')); print(m.run(total=50))"
 ```
 

@@ -176,3 +176,22 @@ def test_find_equilibria_finds_all_three(lecar, tmp_path):
     lines = (tmp_path / "eqs.csv").read_text().splitlines()
     assert lines[0] == "V,W,unstable,re1,im1,re2,im2"
     assert len(lines) == 4
+
+
+def test_two_values_together_and_on_a_grid(lecar):
+    peak = lambda s: s["V"][len(s) // 2:].max()   # noqa: E731
+    gca = lecar.get("gca")
+    line = lecar.sweep(("iapp", "gca"), [(0.1, 0.9), (0.3, 1.2)], measure=peak)
+    grid = lecar.sweep_grid("iapp", [0.1, 0.3], "gca", [0.9, 1.0, 1.2], measure=peak)
+    assert line.shape == (2,) and grid.shape == (3, 2)
+    assert grid[0, 0] == line[0] and grid[2, 1] == line[1]   # the same runs
+    assert lecar.get("iapp") == pytest.approx(0.05) and lecar.get("gca") == gca
+    lecar.set(iapp=0.3, gca=1.0)
+    assert peak(lecar.run()) == grid[1, 1]
+
+
+def test_a_grid_as_a_table():
+    t = xs.Table.from_grid("a", [1, 2], "b", [10, 20, 30], {"z": [[1, 2], [3, 4], [5, 6]]})
+    assert list(t["a"]) == [1, 2, 1, 2, 1, 2]
+    assert list(t["b"]) == [10, 10, 20, 20, 30, 30]
+    assert list(t["z"]) == [1, 2, 3, 4, 5, 6]

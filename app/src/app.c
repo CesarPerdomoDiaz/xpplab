@@ -217,6 +217,7 @@ void app_shutdown(App *a) {
   free(a->sw.x);
   free(a->sw.ymax);
   free(a->sw.ymin);
+  free(a->sw.x2);
   free_traj(&a->sw.eqt);
   free_found(a);
   app_analysis_free(a);
@@ -436,6 +437,7 @@ static bool load_engine(App *a) {
   free(a->sw.x);
   free(a->sw.ymax);
   free(a->sw.ymin);
+  free(a->sw.x2);
   free_traj(&a->sw.eqt);
   memset(&a->sw, 0, sizeof a->sw);
   free_found(a);
@@ -994,23 +996,49 @@ bool app_continue(App *a, double more) {
 
 static bool sweep_equilibria(App *a);
 
+static void set_swept(App *a, bool over_ic, int i, double v) {
+  if (over_ic)
+    app_set_ic(a, i, v);
+  else
+    app_set_param(a, i, v);
+}
+
+/* The runs go through the first value's steps for each of the second's
+   (a grid, row by row), or through both together (a line), setting the
+   first value then the second, as XPPAUT's do_range() does. */
 bool app_sweep(App *a) {
   SweepUI *s = &a->sw;
-  double old, *ics;
-  bool live = a->live, keep = a->keep_curves, outer;
-  int k, n, col = -1, j;
-  const char *what;
+  double old, old2 = 0, *ics;
+  bool live = a->live, keep = a->keep_curves, outer, two, grid;
+  int k, n, n1, n2, col = -1, j;
+  const char *what, *what2 = NULL;
   if (!a->model_ok) return false;
   if (s->mode == SWEEP_EQUILIBRIA) return sweep_equilibria(a);
   if (s->over_ic ? (s->par < 0 || s->par >= a->nvars)
                  : (s->par < 0 || s->par >= a->npars))
     return false;
+  two = s->two && (s->over_ic2 ? s->par2 >= 0 && s->par2 < a->nvars
+                               : s->par2 >= 0 && s->par2 < a->npars) &&
+        !(s->over_ic2 == s->over_ic && s->par2 == s->par);
+  grid = two && s->grid;
   what = s->over_ic ? a->vars[s->par] : a->pars[s->par];
-  outer = echo_begin(a);
+  if (two) what2 = s->over_ic2 ? a->vars[s->par2] : a->pars[s->par2];
   s->overlay = s->mode == SWEEP_OVERLAY;
-  n = s->steps < 2 ? 2 : s->steps;
-  if (s->overlay && n > APP_MAX_FROZEN) n = APP_MAX_FROZEN;
+  n1 = s->steps < 2 ? 2 : s->steps;
+  n2 = grid ? (s->steps2 < 2 ? 2 : s->steps2) : 1;
+  if (s->overlay && n1 * n2 > APP_MAX_FROZEN) {
+    if (grid) {
+      app_log(a, "error: a grid that keeps each run holds at most %d runs: use "
+                 "fewer steps, or measure a variable or the Liapunov exponent",
+              APP_MAX_FROZEN);
+      return false;
+    }
+    n1 = APP_MAX_FROZEN;
+  }
+  n = n1 * n2;
+  outer = echo_begin(a);
   old = s->over_ic ? a->ic[s->par] : a->par[s->par].value;
+  if (two) old2 = s->over_ic2 ? a->ic[s->par2] : a->par[s->par2].value;
   ics = malloc(sizeof(double) * (size_t)(a->nvars + 1));
   memcpy(ics, a->ic, sizeof(double) * (size_t)a->nvars);
   a->live = false;
@@ -1021,31 +1049,39 @@ bool app_sweep(App *a) {
     a->keep_curves = true;
   } else {
     free(s->x);
+    free(s->x2);
     free(s->ymax);
     free(s->ymin);
     s->x = malloc(sizeof(double) * (size_t)n);
+    s->x2 = malloc(sizeof(double) * (size_t)n);
     s->ymax = malloc(sizeof(double) * (size_t)n);
     s->ymin = malloc(sizeof(double) * (size_t)n);
     s->n = 0;
+    s->n1 = n1;
+    s->n2 = n2;
     s->result_mode = s->mode;
+    s->result_kind = grid ? 2 : two ? 1 : 0;
   }
   for (k = 0; k < n; k++) {
-    double v = s->from + (s->to - s->from) * k / (n - 1);
+    int i1 = k % n1, j2 = k / n1;
+    double v = s->from + (s->to - s->from) * i1 / (n1 - 1), v2 = 0;
+    if (two)
+      v2 = grid ? s->from2 + (s->to2 - s->from2) * j2 / (n2 - 1)
+                : s->from2 + (s->to2 - s->from2) * i1 / (n1 - 1);
     /* "Use old ICs" = No: start where the last run ended (Initial conds >
        Last, in full precision). */
     if (s->continue_runs && k > 0) {
       a->eng->api.xppe_ic_last();
       app_refresh_values(a);
     }
-    if (s->over_ic)
-      app_set_ic(a, s->par, v);
-    else
-      app_set_param(a, s->par, v);
+    set_swept(a, s->over_ic, s->par, v);
+    if (two) set_swept(a, s->over_ic2, s->par2, v2);
     if (!app_run(a)) break;
     if (s->mode == SWEEP_LYAPUNOV) {
       double z = 0;
       if (a->eng->api.xppe_lyapunov(&z) != XPPE_OK) z = NAN;
       s->x[s->n] = v;
+      s->x2[s->n] = v2;
       s->ymax[s->n] = s->ymin[s->n] = z;
       s->n++;
     } else if (!s->overlay) {
@@ -1062,6 +1098,7 @@ bool app_sweep(App *a) {
         if (y < lo) lo = y;
       }
       s->x[s->n] = v;
+      s->x2[s->n] = v2;
       s->ymax[s->n] = hi;
       s->ymin[s->n] = lo;
       s->n++;
@@ -1069,10 +1106,8 @@ bool app_sweep(App *a) {
   }
   for (j = 0; j < a->nvars; j++) app_set_ic(a, j, ics[j]);
   free(ics);
-  if (s->over_ic)
-    app_set_ic(a, s->par, old);
-  else
-    app_set_param(a, s->par, old);
+  set_swept(a, s->over_ic, s->par, old);
+  if (two) set_swept(a, s->over_ic2, s->par2, old2);
   a->live = live;
   a->keep_curves = keep;
   if (!s->overlay) {
@@ -1081,40 +1116,66 @@ bool app_sweep(App *a) {
     a->show_workspace = true;
     snprintf(a->focus, sizeof a->focus, "workspace");
   }
-  /* The values as the loop above makes them, then Model.sweep(), whose
-     measure takes the max and min over the same rows. */
+  /* The values as the loop above makes them, then Model.sweep() (both
+     values together: a tuple of names) or Model.sweep_grid(), whose measure
+     takes the max and min over the same rows. */
   if (outer && k == n) {
-    char nm[160], var[160], f[64], t[64], tr[64];
+    char nm[160], nm2[160], var[160], f[64], t[64], tr[64], call[512], meas[400];
     const char *cont = s->continue_runs ? ", continue_runs=True" : "";
     echo_str(what, nm, sizeof nm);
     echo_line(a, "sweep_values = [%s + (%s - %s) * k / %d for k in range(%d)]",
               echo_num(s->from, f, sizeof f), echo_num(s->to, t, sizeof t), f,
-              n - 1, n);
-    if (s->overlay) {
-      echo_line(a, "runs = m.sweep(%s, sweep_values%s)", nm, cont);
-      echo_line(a, "sol = runs[-1]");
-    } else if (s->mode == SWEEP_LYAPUNOV) {
-      echo_line(a, "sweep = m.sweep(%s, sweep_values, measure=lambda s: "
-                   "m.lyapunov()%s)", nm, cont);
-      echo_line(a, "sol = m.run()");
-    } else {
+              n1 - 1, n1);
+    if (two) {
+      echo_str(what2, nm2, sizeof nm2);
+      echo_line(a, "sweep_values2 = [%s + (%s - %s) * k / %d for k in range(%d)]",
+                echo_num(s->from2, f, sizeof f), echo_num(s->to2, t, sizeof t), f,
+                (grid ? n2 : n1) - 1, grid ? n2 : n1);
+    }
+    meas[0] = '\0';
+    if (s->mode == SWEEP_LYAPUNOV) {
+      snprintf(meas, sizeof meas, ", measure=lambda s: m.lyapunov()");
+    } else if (!s->overlay) {
       echo_str(a->vars[s->var], var, sizeof var);
       echo_num(s->transient, tr, sizeof tr);
-      echo_line(a, "sweep = m.sweep(%s, sweep_values, measure=lambda s: "
-                   "(s[%s][int(len(s) * %s):].max(), s[%s][int(len(s) * %s):].min())%s)",
-                nm, var, tr, var, tr, cont);
+      snprintf(meas, sizeof meas, ", measure=lambda s: (s[%s][int(len(s) * %s):].max(), "
+                                  "s[%s][int(len(s) * %s):].min())", var, tr, var, tr);
+    }
+    if (!two)
+      snprintf(call, sizeof call, "m.sweep(%s, sweep_values%s%s)", nm, meas, cont);
+    else if (grid)
+      snprintf(call, sizeof call, "m.sweep_grid(%s, sweep_values, %s, sweep_values2%s%s)",
+               nm, nm2, meas, cont);
+    else
+      snprintf(call, sizeof call, "m.sweep((%s, %s), list(zip(sweep_values, sweep_values2))%s%s)",
+               nm, nm2, meas, cont);
+    if (s->overlay) {
+      echo_line(a, "runs = %s", call);
+      echo_line(a, grid ? "sol = runs[-1][-1]" : "sol = runs[-1]");
+    } else {
+      echo_line(a, "sweep = %s", call);
       echo_line(a, "sol = m.run()");
     }
     a->echo.sweep_mode = s->overlay ? -1 : s->mode;
+    a->echo.sweep_kind = grid ? 2 : two ? 1 : 0;
     snprintf(a->echo.sweep_name, sizeof a->echo.sweep_name, "%s", what);
+    snprintf(a->echo.sweep_name2, sizeof a->echo.sweep_name2, "%s", two ? what2 : "");
     snprintf(a->echo.sweep_var, sizeof a->echo.sweep_var, "%s",
              s->mode == SWEEP_MAXMIN ? a->vars[s->var] : "");
   }
   echo_end(a);
-  app_log(a, "Range over %s from %g to %g in %d runs%s%s.", what, s->from,
-          s->to, n, s->continue_runs ? ", each starting where the last ended" : "",
-          s->overlay ? " (trajectories kept on the plots)"
-                     : s->mode == SWEEP_LYAPUNOV ? " (Liapunov exponents)" : "");
+  if (grid)
+    app_log(a, "Range over %s from %g to %g and %s from %g to %g: a grid of %d "
+               "runs%s%s.", what, s->from, s->to, what2, s->from2, s->to2, n,
+            s->continue_runs ? ", each starting where the last ended" : "",
+            s->overlay ? " (trajectories kept on the plots)"
+                       : s->mode == SWEEP_LYAPUNOV ? " (Liapunov exponents)" : "");
+  else
+    app_log(a, "Range over %s from %g to %g%s%s%s%s in %d runs%s%s.", what, s->from,
+            s->to, two ? ", with " : "", two ? what2 : "", two ? " moving with it" : "",
+            "", n, s->continue_runs ? ", each starting where the last ended" : "",
+            s->overlay ? " (trajectories kept on the plots)"
+                       : s->mode == SWEEP_LYAPUNOV ? " (Liapunov exponents)" : "");
   app_status(a, "Range over %s done", what);
   return true;
 }
@@ -1166,6 +1227,7 @@ static bool sweep_equilibria(App *a) {
   }
   s->overlay = false;
   s->result_mode = SWEEP_EQUILIBRIA;
+  s->result_kind = 0;
   s->reveal = true;
   a->show_workspace = true;
   snprintf(a->focus, sizeof a->focus, "workspace");
@@ -1922,9 +1984,10 @@ bool app_export_analysis_csv(App *a, const char *path) {
 bool app_export_range_csv(App *a, const char *path) {
   SweepUI *s = &a->sw;
   Trajectory t;
-  char names[3][APP_NAME_LEN], cols[2][160], p[2100], q[2200], nm[160];
-  double *c[3];
+  char names[4][APP_NAME_LEN], p[2100], q[2200], nm[160];
+  double *c[4];
   bool ok;
+  int kind;
   if (s->overlay || s->n <= 0 || a->echo.sweep_mode < 0) {
     app_log(a, "error: export a Range that measures a variable or the "
                "Liapunov exponent (a Range that keeps the runs has no table)");
@@ -1935,33 +1998,53 @@ bool app_export_range_csv(App *a, const char *path) {
     echo_export(a, "eq_sweep", path);
     return true;
   }
+  /* One row per run, in the order run: the swept value or values, then
+     the measure. A grid's rows go through the first value for each of the
+     second's. */
   memset(&t, 0, sizeof t);
+  kind = s->result_kind;
   snprintf(names[0], APP_NAME_LEN, "%s", a->echo.sweep_name);
   c[0] = s->x;
-  c[1] = s->ymax;
-  c[2] = s->ymin;
-  if (a->echo.sweep_mode == SWEEP_LYAPUNOV) {
-    snprintf(names[1], APP_NAME_LEN, "lyapunov");
+  t.ncols = 1;
+  if (kind) {
+    snprintf(names[1], APP_NAME_LEN, "%s", a->echo.sweep_name2);
+    c[1] = s->x2;
     t.ncols = 2;
+  }
+  if (a->echo.sweep_mode == SWEEP_LYAPUNOV) {
+    snprintf(names[t.ncols], APP_NAME_LEN, "lyapunov");
+    c[t.ncols++] = s->ymax;
   } else {
-    snprintf(names[1], APP_NAME_LEN, "%.56s_max", a->echo.sweep_var);
-    snprintf(names[2], APP_NAME_LEN, "%.56s_min", a->echo.sweep_var);
-    t.ncols = 3;
+    snprintf(names[t.ncols], APP_NAME_LEN, "%.56s_max", a->echo.sweep_var);
+    c[t.ncols++] = s->ymax;
+    snprintf(names[t.ncols], APP_NAME_LEN, "%.56s_min", a->echo.sweep_var);
+    c[t.ncols++] = s->ymin;
   }
   t.nrows = s->n;
   t.names = names;
   t.cols = c;
   if (!(ok = write_table(a, path, &t))) return false;
   if (echo_begin(a)) {
+    const bool lyap = a->echo.sweep_mode == SWEEP_LYAPUNOV;
+    char cols[600], n2[160];
     echo_abs_path(path, p, sizeof p);
     echo_str(names[0], nm, sizeof nm);
-    if (t.ncols == 2)
-      echo_line(a, "xs.Table({%s: sweep_values, \"lyapunov\": sweep}).to_csv(%s)",
-                nm, echo_str(p, q, sizeof q));
+    echo_str(a->echo.sweep_name2, n2, sizeof n2);
+    if (lyap)
+      snprintf(cols, sizeof cols, "\"lyapunov\": sweep");
     else
-      echo_line(a, "xs.Table({%s: sweep_values, %s: sweep[:, 0], %s: sweep[:, 1]})"
-                   ".to_csv(%s)", nm, echo_str(names[1], cols[0], sizeof cols[0]),
-                echo_str(names[2], cols[1], sizeof cols[1]), echo_str(p, q, sizeof q));
+      snprintf(cols, sizeof cols, "%s: sweep[..., 0], %s: sweep[..., 1]",
+               echo_str(names[kind ? 2 : 1], q, sizeof q),
+               echo_str(names[kind ? 3 : 2], q + 1100, sizeof q - 1100));
+    if (kind == 2)
+      echo_line(a, "xs.Table.from_grid(%s, sweep_values, %s, sweep_values2, {%s}).to_csv(%s)",
+                nm, n2, cols, echo_str(p, q, sizeof q));
+    else if (kind == 1)
+      echo_line(a, "xs.Table({%s: sweep_values, %s: sweep_values2, %s}).to_csv(%s)", nm, n2,
+                cols, echo_str(p, q, sizeof q));
+    else
+      echo_line(a, "xs.Table({%s: sweep_values, %s}).to_csv(%s)", nm, cols,
+                echo_str(p, q, sizeof q));
   }
   echo_end(a);
   return true;

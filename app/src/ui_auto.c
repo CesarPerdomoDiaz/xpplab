@@ -258,7 +258,7 @@ static void diagram_plot(App *a, bool two_param) {
        over the scale. */
     double xlo, xhi, ylo, yhi;
     diagram_extent(a, two_param, &xlo, &xhi, &ylo, &yhi);
-    if (!two_param && a->sw.n > 0 && a->sw.result_mode == SWEEP_MAXMIN && !a->sw.over_ic &&
+    if (!two_param && a->sw.n > 0 && a->sw.result_mode == SWEEP_MAXMIN && a->sw.result_kind == 0 && !a->sw.over_ic &&
         a->sw.par == u->main_par && u->yvar == a->sw.var) {
       int k;
       for (k = 0; k < a->sw.n; k++) {
@@ -275,7 +275,7 @@ static void diagram_plot(App *a, bool two_param) {
     fit_axis(ImAxis_Y1, ylo, yhi);
     /* A brute-force sweep of the same parameter and variable, for
        comparison: simulations should sit on the stable branches. */
-    if (!two_param && a->sw.n > 0 && a->sw.result_mode == SWEEP_MAXMIN &&
+    if (!two_param && a->sw.n > 0 && a->sw.result_mode == SWEEP_MAXMIN && a->sw.result_kind == 0 &&
         !a->sw.over_ic && a->sw.par == u->main_par && u->yvar == a->sw.var) {
       ImPlotSpec_c s = SpecMarker(V4(0.5f, 0.5f, 0.5f, 0.7f), ImPlotMarker_Circle, 2.2f);
       ImPlot_PlotScatter_doublePtrdoublePtr("##swmax", a->sw.x, a->sw.ymax, a->sw.n, s);

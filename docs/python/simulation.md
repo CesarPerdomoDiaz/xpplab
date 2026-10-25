@@ -77,6 +77,26 @@ amp = m.sweep("I", np.linspace(0, 2, 100),    # an array: a brute-force
 
 The parameter is restored after the sweep.
 
+Two parameters move together when `sweep` gets a pair of names and a list
+of pairs, or over every combination with `sweep_grid` (XPPAUT's 2par
+range):
+
+```python
+peak = lambda s: s["V"][len(s) // 2:].max()
+line = m.sweep(("I", "gk"), [(0.1, 1.0), (0.2, 1.5)], measure=peak)
+grid = m.sweep_grid("I", np.linspace(0, 2, 40),     # across
+                    "gk", np.linspace(1, 3, 20),    # up
+                    measure=peak)                   # shape (20, 40)
+xs.Table.from_grid("I", np.linspace(0, 2, 40), "gk", np.linspace(1, 3, 20),
+                   {"peak": grid}).to_csv("grid.csv")
+```
+
+Row `j` of the grid holds the runs at the second parameter's `j`-th value.
+A measure that returns several numbers adds a last axis. Without a
+measure, `sweep_grid` returns the trajectories as a list of rows.
+`continue_runs=True` starts each run where the previous one ended, going
+through the grid row by row. Both parameters are restored afterwards.
+
 ## Interactive sliders in Jupyter
 
 ```python

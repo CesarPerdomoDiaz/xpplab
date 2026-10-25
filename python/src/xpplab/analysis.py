@@ -85,6 +85,19 @@ class Table:
         df = pd.DataFrame(self._data)
         return df.set_index(self.columns[0])
 
+    @classmethod
+    def from_grid(cls, name: str, values, name2: str, values2, columns: dict,
+                  title: str = "") -> "Table":
+        """A table of results on a grid (see :meth:`Model.sweep_grid`): one
+        row per point, going through ``values`` for each of ``values2``, the
+        two values first and then each of ``columns``, arrays of shape
+        ``(len(values2), len(values))``."""
+        v1, v2 = np.asarray(values, dtype=float), np.asarray(values2, dtype=float)
+        data = {name: np.tile(v1, len(v2)), name2: np.repeat(v2, len(v1))}
+        for key, arr in columns.items():
+            data[key] = np.asarray(arr, dtype=float).reshape(len(v2), len(v1)).ravel()
+        return cls(data, title=title)
+
     def to_csv(self, path: str | os.PathLike) -> None:
         """Write the table as CSV, every number exact (the desktop app's
         ``export FILE.csv analysis`` writes the same file)."""

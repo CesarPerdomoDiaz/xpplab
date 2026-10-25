@@ -220,6 +220,81 @@ static void sets_tab(App *a) {
   }
 }
 
+/* Blue below zero, white at zero, red above: ImPlot's RdBu the other way
+   round, so that chaotic runs (a positive Liapunov exponent) show red. */
+static ImPlotColormap blue_red(void) {
+#define RGB(r, g, b) (0xFF000000u | (ImU32)(b) << 16 | (ImU32)(g) << 8 | (ImU32)(r))
+  static const ImU32 cols[] = {
+      RGB(5, 48, 97),     RGB(33, 102, 172),  RGB(67, 147, 195), RGB(146, 197, 222),
+      RGB(209, 229, 240), RGB(247, 247, 247), RGB(253, 219, 199), RGB(244, 165, 130),
+      RGB(214, 96, 77),   RGB(178, 24, 43),   RGB(103, 0, 31)};
+#undef RGB
+  ImPlotColormap c = ImPlot_GetColormapIndex("BlueRed");
+  return c >= 0 ? c : ImPlot_AddColormap_U32Ptr("BlueRed", cols, 11, false);
+}
+
+/* A grid of measures as a map: the first value across, the second up, a
+   colour for the measure (max - min, max or min of the variable, or the
+   Liapunov exponent). */
+static void grid_map(App *a) {
+  SweepUI *s = &a->sw;
+  const bool lyap = s->result_mode == SWEEP_LYAPUNOV;
+  int n1 = s->n1, n2 = s->n2, i, j;
+  double *z, lo = INFINITY, hi = -INFINITY, dx, dy;
+  float h;
+  ImPlotPoint_c b0, b1;
+  if (!lyap) {
+    static const char *shows[] = {"max - min", "max", "min"};
+    igSetNextItemWidth(130);
+    igCombo_Str_arr("Show", &s->show, shows, 3, -1);
+  }
+  z = malloc(sizeof(double) * (size_t)(n1 * n2));
+  if (!z) return;
+  /* Row 0 of a heatmap is drawn at the top: the second value's last row. */
+  for (j = 0; j < n2; j++)
+    for (i = 0; i < n1; i++) {
+      int k = j * n1 + i;
+      double v = lyap || s->show == 1 ? s->ymax[k] : s->show == 2 ? s->ymin[k]
+                                                                : s->ymax[k] - s->ymin[k];
+      z[(n2 - 1 - j) * n1 + i] = v;
+      if (isfinite(v)) {
+        lo = fmin(lo, v);
+        hi = fmax(hi, v);
+      }
+    }
+  if (lyap && isfinite(lo)) { /* zero in the middle, white */
+    hi = fmax(fabs(lo), fabs(hi));
+    lo = -hi;
+  }
+  if (!(hi > lo)) {
+    lo = isfinite(lo) ? lo - 0.5 : 0;
+    hi = lo + 1;
+  }
+  dx = n1 > 1 ? (s->x[n1 - 1] - s->x[0]) / (n1 - 1) : 1;
+  dy = n2 > 1 ? (s->x2[(n2 - 1) * n1] - s->x2[0]) / (n2 - 1) : 1;
+  b0.x = s->x[0] - dx / 2;
+  b0.y = s->x2[0] - dy / 2;
+  b1.x = s->x[n1 - 1] + dx / 2;
+  b1.y = s->x2[(n2 - 1) * n1] + dy / 2;
+  /* At least a readable square, the tab scrolling if the panel is short. */
+  h = igGetContentRegionAvail().y;
+  if (h < 300) h = 300;
+  ImPlot_PushColormap_PlotColormap(lyap ? blue_red() : ImPlotColormap_Viridis);
+  if (ImPlot_BeginPlot("##grid", V2(-70, h), ImPlotFlags_NoTitle | ImPlotFlags_NoLegend)) {
+    ImPlot_SetupAxes(a->echo.sweep_name, a->echo.sweep_name2[0] ? a->echo.sweep_name2 : "",
+                     ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
+    ImPlot_PlotHeatmap_doublePtr("##map", z, n2, n1, lo, hi, NULL, b0, b1,
+                                 Spec(V4(0, 0, 0, -1), 1.0f));
+    ImPlot_EndPlot();
+  }
+  igSameLine(0, -1);
+  ImPlot_ColormapScale(lyap ? "Liapunov" : s->show == 1 ? "max" : s->show == 2 ? "min"
+                                                                             : "max - min",
+                       lo, hi, V2(60, h), "%.3g", 0, -1);
+  ImPlot_PopColormap(1);
+  free(z);
+}
+
 static void sweep_tab(App *a) {
   SweepUI *s = &a->sw;
   char label[APP_NAME_LEN + 16];
@@ -259,6 +334,54 @@ static void sweep_tab(App *a) {
   igInputInt("Steps", &s->steps, 1, 10, 0);
   if (s->steps < 2) s->steps = 2;
   if (s->steps > 1000) s->steps = 1000;
+  igCheckbox("Vary a second value too", &s->two);
+  Tooltip("XPPAUT's 2par range: both values on a grid, every pair run once, "
+          "or both together along a line.");
+  if (s->two) {
+    char label2[APP_NAME_LEN + 16];
+    snprintf(label2, sizeof label2, "%s%s",
+             s->over_ic2 ? (s->par2 < a->nvars ? a->vars[s->par2] : "")
+                         : (s->par2 < a->npars ? a->pars[s->par2] : ""),
+             s->over_ic2 ? " (initial)" : "");
+    igSetNextItemWidth(140);
+    if (igBeginCombo("And over", label2, 0)) {
+      for (i = 0; i < a->npars; i++)
+        if (igSelectable_Bool(a->pars[i], !s->over_ic2 && s->par2 == i, 0, V2(0, 0))) {
+          s->over_ic2 = false;
+          s->par2 = i;
+          s->from2 = a->par[i].lo;
+          s->to2 = a->par[i].hi;
+        }
+      igSeparator();
+      for (i = 0; i < a->nvars; i++) {
+        snprintf(label2, sizeof label2, "%s (initial)", a->vars[i]);
+        if (igSelectable_Bool(label2, s->over_ic2 && s->par2 == i, 0, V2(0, 0))) {
+          s->over_ic2 = true;
+          s->par2 = i;
+          s->from2 = a->ic[i] - 1;
+          s->to2 = a->ic[i] + 1;
+        }
+      }
+      igEndCombo();
+    }
+    igSetNextItemWidth(110);
+    igInputDouble("From##2", &s->from2, 0, 0, "%.6g", 0);
+    igSetNextItemWidth(110);
+    igInputDouble("To##2", &s->to2, 0, 0, "%.6g", 0);
+    if (igRadioButton_Bool("On a grid", s->grid)) s->grid = true;
+    igSameLine(0, -1);
+    if (igRadioButton_Bool("Together, along a line", !s->grid)) s->grid = false;
+    if (s->grid) {
+      if (s->steps2 < 2) s->steps2 = 10;
+      igSetNextItemWidth(110);
+      igInputInt("Steps##2", &s->steps2, 1, 10, 0);
+      if (s->steps2 < 2) s->steps2 = 2;
+      if (s->steps2 > 400) s->steps2 = 400;
+      igTextDisabled("%d runs", s->steps * s->steps2);
+    }
+    if (s->mode == SWEEP_EQUILIBRIA)
+      igTextColored(HEX(0xc96f00), "Equilibria follow the first value only.");
+  }
   igCheckbox("Start each run where the last ended", &s->continue_runs);
   Tooltip("XPPAUT's \"Use old ICs\" = No: follow an attractor as the value "
           "changes, instead of starting every run from the initial values.");
@@ -296,6 +419,10 @@ static void sweep_tab(App *a) {
                "count.");
   }
   if (ButtonW("Run range", -1)) app_sweep(a);
+  if (s->result_kind == 2 && s->n == s->n1 * s->n2 && s->result_mode != SWEEP_OVERLAY) {
+    grid_map(a);
+    return;
+  }
   if (s->result_mode != SWEEP_OVERLAY && s->n > 0 &&
       ImPlot_BeginPlot("##sweep", V2(-1, -1), ImPlotFlags_NoTitle | ImPlotFlags_NoLegend)) {
     const char *xl = s->over_ic ? a->vars[s->par] : a->pars[s->par];
@@ -330,10 +457,11 @@ static void sweep_tab(App *a) {
       }
     } else if (s->result_mode == SWEEP_LYAPUNOV) {
       double zero = 0;
+      ImPlotSpec_c line = Spec(V4(0.5f, 0.5f, 0.5f, 0.6f), 1.0f);
+      line.Flags = ImPlotInfLinesFlags_Horizontal;
       ImPlot_SetupAxes(xl, "Liapunov exponent", ImPlotAxisFlags_AutoFit,
                        ImPlotAxisFlags_AutoFit);
-      ImPlot_PlotInfLines_doublePtr("##zero", &zero, 1,
-                                    Spec(V4(0.5f, 0.5f, 0.5f, 0.6f), 1.0f));
+      ImPlot_PlotInfLines_doublePtr("##zero", &zero, 1, line);
       ImPlot_PlotLine_doublePtrdoublePtr("lyap", s->x, s->ymax, s->n,
                                          SpecMarker(HEX(0xd62728), ImPlotMarker_Circle, 2.5f));
     } else {

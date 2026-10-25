@@ -144,6 +144,8 @@ static void fetch_table(App *a, Trajectory *t) {
   }
 }
 
+static void free_frozen_nullclines(PhasePlane *p);
+
 static void free_model_cache(App *a) {
   int i;
   free(a->vars);
@@ -166,6 +168,7 @@ static void free_model_cache(App *a) {
   free(a->pp.ncy);
   a->pp.ncx = a->pp.ncy = NULL;
   a->pp.ncx_n = a->pp.ncy_n = 0;
+  free_frozen_nullclines(&a->pp);
   free(a->au.info);
   free(a->au.umax);
   free(a->au.umin);
@@ -413,6 +416,7 @@ static bool load_engine(App *a) {
   a->pp.xvar = 0;
   a->pp.yvar = a->nvars > 1 ? 1 : 0;
   a->pp.nc_dirty = true;
+  a->pp.fr_steps = 0; /* the Freeze form starts afresh for this model */
   /* Start the phase plane where the model file says (@ xp, yp, xlo, ...),
      as XPPAUT does. XP and YP count columns from 1; 0 means time. */
   {
@@ -1467,6 +1471,37 @@ static bool equilibrium(App *a, const double *guess) {
   return true;
 }
 
+/* The phase plane's window as it is shown, or as the model file set it
+   when the plot has not been drawn yet. */
+static bool shown_window(App *a, double w[4]) {
+  const FigureState *g = &g_figures[FIG_PHASE];
+  w[0] = a->pp.xlo;
+  w[1] = a->pp.xhi;
+  w[2] = a->pp.ylo;
+  w[3] = a->pp.yhi;
+  if (g->valid) {
+    w[0] = g->xmin;
+    w[1] = g->xmax;
+    w[2] = g->ymin;
+    w[3] = g->ymax;
+  } else if (a->pp.set_window || !(w[1] > w[0] && w[3] > w[2])) {
+    w[0] = a->pp.win_xlo;
+    w[1] = a->pp.win_xhi;
+    w[2] = a->pp.win_ylo;
+    w[3] = a->pp.win_yhi;
+  }
+  return w[1] > w[0] && w[3] > w[2];
+}
+
+bool app_phase_window(App *a, double w[4]) {
+  if (shown_window(a, w)) return true;
+  w[0] = get_value(a, "XLO"); /* XPPAUT's plot window */
+  w[1] = get_value(a, "XHI");
+  w[2] = get_value(a, "YLO");
+  w[3] = get_value(a, "YHI");
+  return w[1] > w[0] && w[3] > w[2];
+}
+
 bool app_find_equilibria(App *a, int guesses) {
   xpp_engine_api *x;
   FoundEquilibria *f = &a->found;
@@ -1508,20 +1543,8 @@ bool app_find_equilibria(App *a, int guesses) {
     }
   }
   if (n > 1 && a->pp.xvar != a->pp.yvar) {
-    const FigureState *g = &g_figures[FIG_PHASE];
-    double w[4] = {a->pp.xlo, a->pp.xhi, a->pp.ylo, a->pp.yhi};
-    if (g->valid) {
-      w[0] = g->xmin;
-      w[1] = g->xmax;
-      w[2] = g->ymin;
-      w[3] = g->ymax;
-    } else if (a->pp.set_window || !(w[1] > w[0] && w[3] > w[2])) {
-      w[0] = a->pp.win_xlo;
-      w[1] = a->pp.win_xhi;
-      w[2] = a->pp.win_ylo;
-      w[3] = a->pp.win_yhi;
-    }
-    if (w[1] > w[0] && w[3] > w[2]) {
+    double w[4];
+    if (shown_window(a, w)) {
       lo[a->pp.xvar] = w[0];
       hi[a->pp.xvar] = w[1];
       lo[a->pp.yvar] = w[2];
@@ -1629,6 +1652,207 @@ bool app_nullclines(App *a, double xlo, double xhi, double ylo, double yhi) {
   p->ylo = ylo;
   p->yhi = yhi;
   p->nc_dirty = false;
+  return true;
+}
+
+/* ---- Frozen nullclines ------------------------------------------------------- */
+
+static void free_frozen_nullclines(PhasePlane *p) {
+  int k;
+  for (k = 0; k < p->nfrozen; k++) {
+    free(p->frozen[k].x);
+    free(p->frozen[k].y);
+  }
+  free(p->frozen);
+  p->frozen = NULL;
+  p->nfrozen = 0;
+  p->show_frozen = 0;
+  p->play = false;
+}
+
+/* Both nullclines over window w, as XPPAUT computes them, kept as set k. */
+static bool freeze_at(App *a, const double w[4], const char *label) {
+  PhasePlane *p = &a->pp;
+  FrozenNullclines *f;
+  const int max = 40000;
+  float *buf;
+  int nx, ny;
+  if (p->nfrozen >= APP_MAX_FROZEN_NC) {
+    app_log(a, "error: %d frozen nullclines are the most kept; delete them first.",
+            APP_MAX_FROZEN_NC);
+    return false;
+  }
+  if (!p->frozen) p->frozen = calloc(APP_MAX_FROZEN_NC, sizeof *p->frozen);
+  buf = malloc(sizeof(float) * 8 * max);
+  if (!p->frozen || !buf) {
+    free(buf);
+    return false;
+  }
+  nx = a->eng->api.xppe_nullcline(0, p->xvar, p->yvar, w[0], w[1], w[2], w[3], p->grid,
+                                  buf, max);
+  ny = a->eng->api.xppe_nullcline(1, p->xvar, p->yvar, w[0], w[1], w[2], w[3], p->grid,
+                                  buf + 4 * max, max);
+  if (nx < 0) nx = 0;
+  if (ny < 0) ny = 0;
+  f = &p->frozen[p->nfrozen];
+  f->x = malloc(sizeof(float) * 4 * (size_t)(nx + 1));
+  f->y = malloc(sizeof(float) * 4 * (size_t)(ny + 1));
+  if (!f->x || !f->y) {
+    free(f->x);
+    free(f->y);
+    free(buf);
+    return false;
+  }
+  memcpy(f->x, buf, sizeof(float) * 4 * (size_t)nx);
+  memcpy(f->y, buf + 4 * max, sizeof(float) * 4 * (size_t)ny);
+  f->nx = nx;
+  f->ny = ny;
+  snprintf(f->label, sizeof f->label, "%s", label);
+  p->nfrozen++;
+  free(buf);
+  return true;
+}
+
+/* The script's list of frozen nullclines, started once. */
+static void echo_frozen_list(App *a) {
+  if (!a->echo.frozen_list) echo_line(a, "frozen = []");
+  a->echo.frozen_list = true;
+}
+
+static void echo_plane(App *a, const double w[4], char *buf, size_t len) {
+  char x[160], y[160], n[4][64];
+  snprintf(buf, len, "%s, %s, (%s, %s), (%s, %s), grid=%d",
+           echo_str(a->vars[a->pp.xvar], x, sizeof x),
+           echo_str(a->vars[a->pp.yvar], y, sizeof y), echo_num(w[0], n[0], 64),
+           echo_num(w[1], n[1], 64), echo_num(w[2], n[2], 64), echo_num(w[3], n[3], 64),
+           a->pp.grid);
+}
+
+bool app_freeze_nullclines(App *a) {
+  char label[64], args[800];
+  double w[4];
+  bool outer, ok;
+  if (!a->model_ok || a->nvars < 2 || a->pp.xvar == a->pp.yvar) return false;
+  if (!app_phase_window(a, w)) return false;
+  outer = echo_begin(a);
+  snprintf(label, sizeof label, "#%d", a->pp.nfrozen + 1);
+  ok = freeze_at(a, w, label);
+  if (ok && outer) {
+    echo_frozen_list(a);
+    echo_plane(a, w, args, sizeof args);
+    echo_line(a, "frozen.append(m.nullclines(%s))", args);
+  }
+  echo_end(a);
+  if (ok) {
+    a->pp.nullclines = true; /* to see them against the live ones */
+    a->pp.nc_dirty = true;
+    app_status(a, "Froze the nullclines (%d kept).", a->pp.nfrozen);
+  }
+  return ok;
+}
+
+bool app_freeze_nullcline_range(App *a, int par, double from, double to, int n) {
+  char label[64], args[800], nm[160], num[2][64];
+  double w[4], old;
+  bool outer, ok = true;
+  int k;
+  if (!a->model_ok || a->nvars < 2 || a->pp.xvar == a->pp.yvar) return false;
+  if (par < 0 || par >= a->npars || n < 1) return false;
+  if (a->pp.nfrozen + n > APP_MAX_FROZEN_NC) {
+    app_log(a, "error: at most %d frozen nullclines are kept.", APP_MAX_FROZEN_NC);
+    return false;
+  }
+  if (!app_phase_window(a, w)) return false;
+  outer = echo_begin(a);
+  old = get_value(a, a->pars[par]);
+  for (k = 0; k < n && ok; k++) {
+    /* As Python computes the values the script lists. */
+    double v = n > 1 ? from + (to - from) * k / (n - 1) : from;
+    a->eng->api.xppe_set_number(a->pars[par], v);
+    snprintf(label, sizeof label, "%s = %g", a->pars[par], v);
+    ok = freeze_at(a, w, label);
+  }
+  a->eng->api.xppe_set_number(a->pars[par], old);
+  if (ok && outer) {
+    echo_frozen_list(a);
+    echo_line(a, "nc_values = [%s + (%s - %s) * k / %d for k in range(%d)]",
+              echo_num(from, num[0], 64), echo_num(to, num[1], 64), num[0],
+              n > 1 ? n - 1 : 1, n);
+    echo_plane(a, w, args, sizeof args);
+    echo_line(a, "frozen += m.nullcline_sweep(%s, nc_values, %s)",
+              echo_str(a->pars[par], nm, sizeof nm), args);
+  }
+  echo_end(a);
+  if (ok) {
+    a->pp.nullclines = true;
+    a->pp.nc_dirty = true;
+    app_status(a, "Froze the nullclines for %d values of %s.", n, a->pars[par]);
+  }
+  return ok;
+}
+
+void app_unfreeze_nullclines(App *a) {
+  bool outer;
+  if (a->pp.nfrozen == 0) return;
+  free_frozen_nullclines(&a->pp);
+  outer = echo_begin(a);
+  if (outer && a->echo.frozen_list) echo_line(a, "frozen = []");
+  echo_end(a);
+}
+
+/* One row per segment: the set (0 the nullclines shown, 1, 2, ... those
+   frozen), which nullcline (1 the x variable's, 2 the y variable's, as
+   XPPAUT's Nullcline > Save numbers them), and its two ends. */
+bool app_export_nullclines_csv(App *a, const char *path) {
+  PhasePlane *p = &a->pp;
+  char pa[2100], args[800], num[64];
+  double w[4];
+  bool outer, now;
+  int k, s, i;
+  FILE *f;
+  if (!a->model_ok || a->nvars < 2 || p->xvar == p->yvar) return false;
+  now = p->nullclines && app_phase_window(a, w);
+  if (!now && p->nfrozen == 0) {
+    app_log(a, "error: no nullclines to save; switch them on or freeze some.");
+    return false;
+  }
+  /* The ones shown, computed afresh over the window as the script will
+     (its line is written below). */
+  if (now) {
+    a->echo.nc_written = true;
+    app_nullclines(a, w[0], w[1], w[2], w[3]);
+  }
+  if ((f = fopen(path, "w")) == NULL) {
+    app_log(a, "error: cannot write %s", path);
+    return false;
+  }
+  fprintf(f, "set,nullcline,x1,y1,x2,y2\n");
+  for (k = now ? -1 : 0; k < p->nfrozen; k++) {
+    const float *seg[2] = {k < 0 ? p->ncx : p->frozen[k].x, k < 0 ? p->ncy : p->frozen[k].y};
+    int cnt[2] = {k < 0 ? p->ncx_n : p->frozen[k].nx, k < 0 ? p->ncy_n : p->frozen[k].ny};
+    for (s = 0; s < 2; s++)
+      for (i = 0; i < 4 * cnt[s]; i++) {
+        if (i % 4 == 0) fprintf(f, "%d.0,%d.0", k + 1, s + 1);
+        app_format_double(num, sizeof num, (double)seg[s][i]);
+        fprintf(f, ",%s%s", num, i % 4 == 3 ? "\n" : "");
+      }
+  }
+  fclose(f);
+  outer = echo_begin(a);
+  if (outer) {
+    echo_abs_path(path, pa, sizeof pa);
+    if (now) {
+      echo_plane(a, w, args, sizeof args);
+      echo_line(a, "nc = m.nullclines(%s)", args);
+    } else {
+      echo_frozen_list(a);
+    }
+    echo_line(a, "xs.Table.from_nullclines(%s%s).to_csv(%s)",
+              now ? "[nc] + frozen" : "frozen", now ? "" : ", first=1",
+              echo_str(pa, args, sizeof args));
+  }
+  echo_end(a);
+  app_log(a, "Wrote %s.", path);
   return true;
 }
 

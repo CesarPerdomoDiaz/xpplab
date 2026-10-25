@@ -98,6 +98,24 @@ class Table:
             data[key] = np.asarray(arr, dtype=float).reshape(len(v2), len(v1)).ravel()
         return cls(data, title=title)
 
+    @classmethod
+    def from_nullclines(cls, sets, first: int = 0, title: str = "") -> "Table":
+        """Nullclines as a table, one row per line segment, as the desktop
+        app's ``export FILE.csv nullclines`` writes them: the set (``first``
+        for the first pair in ``sets``, then counting up), which nullcline
+        (1 the x variable's, 2 the y variable's) and the segment's ends
+        x1, y1, x2, y2. ``sets`` holds ``(x_nullcline, y_nullcline)`` pairs
+        from :meth:`Model.nullclines` or :meth:`Model.nullcline_sweep`."""
+        rows = []
+        for k, pair in enumerate(sets):
+            for which, segs in enumerate(pair, start=1):
+                segs = np.asarray(segs, dtype=float).reshape(-1, 4)
+                rows.append(np.column_stack([np.full(len(segs), first + k, float),
+                                             np.full(len(segs), which, float), segs]))
+        table = np.vstack(rows) if rows else np.zeros((0, 6))
+        names = ["set", "nullcline", "x1", "y1", "x2", "y2"]
+        return cls({n: table[:, i] for i, n in enumerate(names)}, title=title)
+
     def to_csv(self, path: str | os.PathLike) -> None:
         """Write the table as CSV, every number exact (the desktop app's
         ``export FILE.csv analysis`` writes the same file)."""

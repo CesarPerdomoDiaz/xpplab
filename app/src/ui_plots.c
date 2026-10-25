@@ -221,6 +221,95 @@ static void draw_nullclines(App *a) {
   }
 }
 
+/* Frozen nullclines: all faded, or one of them as strong as the live ones,
+   its label in the legend. */
+static void draw_frozen_nullclines(App *a) {
+  PhasePlane *p = &a->pp;
+  int k;
+  for (k = 0; k < p->nfrozen; k++) {
+    FrozenNullclines *f = &p->frozen[k];
+    bool one = p->show_frozen == k + 1;
+    ImPlotSpec_c s;
+    char label[200];
+    if (p->show_frozen && !one) continue;
+    s = Spec(one ? COL_XNULL : faded(COL_XNULL), one ? 2.0f : 1.2f);
+    s.Flags = ImPlotLineFlags_Segments;
+    s.Stride = (int)(2 * sizeof(float));
+    if (one)
+      snprintf(label, sizeof label, "%s nullcline, %s", a->vars[p->xvar], f->label);
+    else
+      snprintf(label, sizeof label, "frozen %s nullclines", a->vars[p->xvar]);
+    if (f->nx > 0) ImPlot_PlotLine_FloatPtrFloatPtr(label, f->x, f->x + 1, 2 * f->nx, s);
+    s.LineColor = one ? COL_YNULL : faded(COL_YNULL);
+    if (one)
+      snprintf(label, sizeof label, "%s nullcline, %s", a->vars[p->yvar], f->label);
+    else
+      snprintf(label, sizeof label, "frozen %s nullclines", a->vars[p->yvar]);
+    if (f->ny > 0) ImPlot_PlotLine_FloatPtrFloatPtr(label, f->y, f->y + 1, 2 * f->ny, s);
+  }
+}
+
+/* XPPAUT's Nullcline > Freeze: keep these, keep them over a parameter
+   range, show them one at a time, delete them. */
+static void freeze_menu(App *a) {
+  PhasePlane *p = &a->pp;
+  if (Button("Freeze...")) igOpenPopup_Str("freeze", 0);
+  Tooltip("Keep nullclines on the plot while you change a parameter, to see "
+          "how they move (XPPAUT's Nullcline > Freeze).");
+  if (!igBeginPopup("freeze", 0)) return;
+  if (igMenuItem_Bool("Freeze these nullclines", NULL, false, true))
+    app_command(a, "nullclines freeze");
+  igSeparatorText("For several values of a parameter");
+  if (a->npars > 0) {
+    if (p->fr_par < 0 || p->fr_par >= a->npars) p->fr_par = 0;
+    if (p->fr_steps < 1) {
+      p->fr_steps = 5;
+      p->fr_from = a->par[p->fr_par].lo;
+      p->fr_to = a->par[p->fr_par].hi;
+    }
+    igSetNextItemWidth(120);
+    if (Combo("Parameter", &p->fr_par, a->pars, a->npars)) {
+      p->fr_from = a->par[p->fr_par].lo;
+      p->fr_to = a->par[p->fr_par].hi;
+    }
+    igSetNextItemWidth(120);
+    igInputDouble("From", &p->fr_from, 0, 0, "%.6g", 0);
+    igSetNextItemWidth(120);
+    igInputDouble("To", &p->fr_to, 0, 0, "%.6g", 0);
+    igSetNextItemWidth(120);
+    igInputInt("Values", &p->fr_steps, 1, 5, 0);
+    if (p->fr_steps < 1) p->fr_steps = 1;
+    if (p->fr_steps > 100) p->fr_steps = 100;
+    if (Button("Freeze them")) {
+      char cmd[256], n[2][64];
+      app_format_double(n[0], sizeof n[0], p->fr_from);
+      app_format_double(n[1], sizeof n[1], p->fr_to);
+      snprintf(cmd, sizeof cmd, "nullclines freeze %s %s %s %d", a->pars[p->fr_par], n[0],
+               n[1], p->fr_steps);
+      app_command(a, cmd);
+    }
+    Tooltip("XPPAUT's Freeze > Range: the parameter takes each value in turn, "
+            "from From to To, and the nullclines for each are kept. The "
+            "parameter is put back afterwards.");
+  }
+  if (p->nfrozen > 0) {
+    char fmt[96];
+    igSeparatorText("Frozen");
+    if (p->show_frozen > 0 && p->show_frozen <= p->nfrozen)
+      snprintf(fmt, sizeof fmt, "%%d of %d: %s", p->nfrozen, p->frozen[p->show_frozen - 1].label);
+    else
+      snprintf(fmt, sizeof fmt, "all %d", p->nfrozen);
+    igSetNextItemWidth(200);
+    if (igSliderInt("Show", &p->show_frozen, 0, p->nfrozen, fmt, 0)) p->play = false;
+    Tooltip("Show one set alone, or all of them (0).");
+    igSameLine(0, -1);
+    if (igCheckbox("Play", &p->play)) p->play_last = 0;
+    Tooltip("Step through them one at a time (XPPAUT's Freeze > Animate).");
+    if (Button("Delete them")) app_command(a, "nullclines unfreeze");
+  }
+  igEndPopup();
+}
+
 static void draw_manifolds(App *a, Equilibrium *e) {
   int k, j, jx, jy;
   for (k = 0; k < e->nmanifolds; k++) {
@@ -274,10 +363,16 @@ void ui_phase_plot(App *a) {
     return;
   }
   igSetNextItemWidth(90);
-  if (Combo("x", &p->xvar, a->vars, a->nvars)) p->nc_dirty = true;
+  if (Combo("x", &p->xvar, a->vars, a->nvars)) {
+    p->nc_dirty = true;
+    app_unfreeze_nullclines(a); /* they belong to the other plane */
+  }
   igSameLine(0, -1);
   igSetNextItemWidth(90);
-  if (Combo("y", &p->yvar, a->vars, a->nvars)) p->nc_dirty = true;
+  if (Combo("y", &p->yvar, a->vars, a->nvars)) {
+    p->nc_dirty = true;
+    app_unfreeze_nullclines(a);
+  }
   igSameLine(0, 14);
   if (igCheckbox("Nullclines", &p->nullclines)) {
     p->nc_dirty = true;
@@ -285,6 +380,8 @@ void ui_phase_plot(App *a) {
   }
   Tooltip("Red: where dx/dt = 0. Green: where dy/dt = 0. Equilibria are where "
           "they cross (N N).");
+  igSameLine(0, -1);
+  freeze_menu(a);
   igSameLine(0, -1);
   igCheckbox("Flow", &p->dirfield);
   Tooltip("The direction field (D D).");
@@ -325,6 +422,14 @@ void ui_phase_plot(App *a) {
     ImPlot_SetupFinish();
     lim = ImPlot_GetPlotLimits(ImAxis_X1, ImAxis_Y1);
 
+    if (p->play && p->nfrozen > 1) {
+      p->play_last += igGetIO_Nil()->DeltaTime;
+      if (p->play_last >= 0.5) {
+        p->play_last = 0;
+        p->show_frozen = p->show_frozen % p->nfrozen + 1;
+      }
+    }
+    draw_frozen_nullclines(a);
     if (p->nullclines) {
       if (p->nc_dirty || lim.X.Min != p->xlo || lim.X.Max != p->xhi ||
           lim.Y.Min != p->ylo || lim.Y.Max != p->yhi)

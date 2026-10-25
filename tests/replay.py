@@ -98,6 +98,11 @@ CASES = [
     ("initial_array", "amari.ode", [
         "set total=5", "ic u[0..199] = 0.8*exp(-([j]-100)^2/50)", "run",
         "export {out}/bump.csv"]),
+    ("nullclines", "lecar.ode", [
+        "nullclines freeze", "nullclines freeze iapp 0 0.3 4", "set gca=1.2",
+        "export {out}/all.csv nullclines", "nullclines off",
+        "export {out}/frozen.csv nullclines", "nullclines unfreeze",
+        "nullclines freeze gk 1 3 3", "export {out}/again.csv nullclines"]),
     ("analysis", "lecar.ode", [
         "set iapp=0.1 total=400", "run",
         "spectrum V 256", "export {out}/spectrum.csv analysis",

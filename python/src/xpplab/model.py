@@ -415,6 +415,22 @@ class Model(AnalysisMixin):
                                      count=4 * n).reshape(n, 4).astype(float))
         return out[0], out[1]
 
+    def nullcline_sweep(self, parameter: str, values, x: str, y: str, xlim, ylim,
+                        grid: int = 100) -> list:
+        """The nullclines for each value of a parameter (XPPAUT's Nullcline
+        > Freeze > Range): a list of ``(x_nullcline, y_nullcline)`` pairs as
+        :meth:`nullclines` returns them, one per value. The parameter is
+        put back afterwards."""
+        old = float(self.get(parameter))
+        out = []
+        try:
+            for v in values:
+                self.set(**{parameter: float(v)})
+                out.append(self.nullclines(x, y, xlim, ylim, grid=grid))
+        finally:
+            self.set(**{parameter: old})
+        return out
+
     def vector_field(self, x: str, y: str, xlim, ylim, n: int = 20):
         """The vector field on an n x n grid: returns X, Y, U, V for
         matplotlib's quiver. Other variables keep their initial values."""
@@ -437,15 +453,19 @@ class Model(AnalysisMixin):
     def phase_plane(self, x: str | None = None, y: str | None = None, *,
                     xlim=None, ylim=None, trajectory: bool = True,
                     nullclines: bool = True, field: bool = True,
-                    equilibrium: bool = True, ax=None):
+                    equilibrium: bool = True, frozen=None, ax=None):
         """Draw the phase plane: trajectory, nullclines, direction field and
-        the nearby equilibrium, in one call. Returns the matplotlib axes."""
+        the nearby equilibrium, in one call. Returns the matplotlib axes.
+
+        ``frozen`` is a list of earlier nullclines to draw faded, such as
+        :meth:`nullcline_sweep` returns."""
         from .plotting import plot_phase_plane
         x = x or self.variables[0]
         y = y or self.variables[1]
         return plot_phase_plane(self, x, y, xlim=xlim, ylim=ylim,
                                 trajectory=trajectory, nullclines=nullclines,
-                                field=field, equilibrium=equilibrium, ax=ax)
+                                field=field, equilibrium=equilibrium,
+                                frozen=frozen, ax=ax)
 
     def ic_last(self, *, shift: bool = False) -> "Model":
         """Start the next run where the last one ended (XPPAUT's Initial

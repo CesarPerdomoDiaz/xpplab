@@ -20,8 +20,10 @@ under **View > XPPAUT keyboard commands**.
 |---|---|---|
 | I G | Initial conds > Go | Integrate |
 | I L | Initial conds > Last | Start from the end of the last run |
+| I S | Initial conds > Shift | The same, and the time goes on |
 | N N | Nullcline > New | Draw nullclines |
 | N E | Nullcline > Erase | Hide nullclines |
+| N F | Nullcline > Freeze | Keep the nullclines drawn |
 | D D | Dir.field > Direct field | Toggle the direction field |
 | S G | Sing pts > Go | Find an equilibrium |
 | E | Erase | Clear kept curves |
@@ -47,6 +49,7 @@ commands. `help` lists them all.
 | `eq` | Find an equilibrium and report its stability. |
 | `eq all 200` | Every equilibrium Newton's method finds from 200 random points (100 if left out) in the phase plane's window: XPPAUT's Sing pts > Monte Carlo. |
 | `nullclines`, `nullclines off` | Show or hide nullclines. |
+| `nullclines freeze`, `nullclines freeze iapp 0 0.4 6` | Keep the nullclines drawn, or those for 6 values of iapp from 0 to 0.4 (XPPAUT's Freeze, Freeze > Range). `nullclines show 3` shows the third set alone (0: all), `nullclines play` steps through them, `nullclines unfreeze` deletes them. |
 | `dirfield` | Toggle the direction field. |
 | `erase` | Remove kept curves. |
 | `use hopf` | Apply a named parameter set. |
@@ -71,7 +74,7 @@ commands. `help` lists them all.
 | `fitdata v.dat V 2 gca,gk` | Fit gca and gk so that V matches column 2 of v.dat. |
 | `open file.ode`, `new`, `save` | Model files. |
 | `export run.csv` | Save the last run as CSV. Every number is written exactly. |
-| `export d.csv auto` | Save the points of the bifurcation diagram as CSV (`range`: the last Range that measures or follows equilibria; `analysis`: the Analysis result; `equilibria`: the last `eq all`). |
+| `export d.csv auto` | Save the points of the bifurcation diagram as CSV (`range`: the last Range that measures or follows equilibria; `analysis`: the Analysis result; `equilibria`: the last `eq all`; `nullclines`: those shown and frozen). |
 | `export fig.svg phase` | Save a figure (`time`, `phase`, `auto`, `auto2`) as SVG; `.png` saves it as shown. |
 | `script session.py` | Save the session as a Python script that repeats it (see below). |
 | `echo off`, `echo on` | Hide or show each action as Python in the command window. |

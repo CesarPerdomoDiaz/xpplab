@@ -106,6 +106,34 @@ unstable focus. The random points come from XPPAUT's generator, which
 repeats from one session to the next, so the same search finds the same
 equilibria every time.
 
+## Frozen nullclines
+
+**Freeze...** in the Phase Plane is XPPAUT's *Nullcline > Freeze*: it keeps
+nullclines on the plot, drawn faded, while the live ones follow your
+changes. Freeze them, move a slider, and you see how they shift and where
+the equilibria go.
+
+- **Freeze these nullclines** (N F) keeps the ones for the current values.
+- **For several values of a parameter** (*Freeze > Range*) gives the
+  parameter each of *Values* values from *From* to *To* in turn and keeps
+  the nullclines for each; the parameter is put back afterwards. In the
+  Morris-Lecar model, iapp from 0 to 0.4 lifts the V nullcline step by step
+  while the W nullcline stays put.
+- **Show** picks one set to show alone, with its value in the legend, and
+  **Play** steps through them (*Freeze > Animate*). **Delete them** clears
+  the list. Choosing other variables for the axes clears it too: frozen
+  nullclines belong to their plane.
+
+**Export... > Nullclines as CSV...** (XPPAUT's *Nullcline > Save*) writes
+one row per line segment: the set (0 for the nullclines shown, then 1, 2,
+... for those frozen), which nullcline (1 for the horizontal variable's,
+2 for the vertical one's, as XPPAUT numbers them) and the segment's ends
+x1, y1, x2, y2. SVG figures include the frozen nullclines.
+
+Commands: `nullclines freeze`, `nullclines freeze iapp 0 0.4 6`,
+`nullclines show 3` (0: all), `nullclines play`, `nullclines unfreeze`,
+`export nc.csv nullclines`.
+
 ## Boundary-value problems
 
 A model with `bndry` statements is a boundary-value problem: instead of

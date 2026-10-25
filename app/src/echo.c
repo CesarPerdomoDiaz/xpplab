@@ -327,6 +327,7 @@ void echo_model_loaded(App *a) {
   e->ic = calloc((size_t)e->nic + 1, sizeof(double));
   e->pending_run = false;
   e->nc_written = false;
+  e->frozen_list = false;
   e->table[0] = '\0';
   e->sweep_mode = -1;
   e->loaded = e->par && e->ic;
@@ -365,16 +366,17 @@ void echo_figure(App *a, int figure, const char *path) {
         lim[2] = g->ymin;
         lim[3] = g->ymax;
       }
+      const char *fr = a->pp.nfrozen > 0 && a->echo.frozen_list ? ", frozen=frozen" : "";
       echo_str(a->vars[a->pp.xvar], x, sizeof x);
       echo_str(a->vars[a->pp.yvar], y, sizeof y);
       if (lim[1] > lim[0] && lim[3] > lim[2])
         echo_line(a, "ax = m.phase_plane(%s, %s, xlim=(%s, %s), ylim=(%s, %s), "
-                     "trajectory=False, equilibrium=False)",
+                     "trajectory=False, equilibrium=False%s)",
                   x, y, echo_num(lim[0], n[0], 64), echo_num(lim[1], n[1], 64),
-                  echo_num(lim[2], n[2], 64), echo_num(lim[3], n[3], 64));
+                  echo_num(lim[2], n[2], 64), echo_num(lim[3], n[3], 64), fr);
       else
         echo_line(a, "ax = m.phase_plane(%s, %s, trajectory=False, "
-                     "equilibrium=False)", x, y);
+                     "equilibrium=False%s)", x, y, fr);
       echo_line(a, "ax.plot(sol[%s], sol[%s])", x, y);
       echo_line(a, "ax.figure.savefig(%s)", q);
     } else if (figure == FIG_AUTO) {

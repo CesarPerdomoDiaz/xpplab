@@ -37,7 +37,8 @@ def plot_trajectory(traj, y, x="T", ax=None, **kw):
 
 
 def plot_phase_plane(model, x, y, xlim=None, ylim=None, trajectory=True,
-                     nullclines=True, field=True, equilibrium=True, ax=None):
+                     nullclines=True, field=True, equilibrium=True, frozen=None,
+                     ax=None):
     from matplotlib.collections import LineCollection
     import numpy as np
     ax = _axes(ax)
@@ -58,6 +59,12 @@ def plot_phase_plane(model, x, y, xlim=None, ylim=None, trajectory=True,
         M[M == 0] = 1
         ax.quiver(X, Y, U / (xlim[1] - xlim[0]) / M, V / (ylim[1] - ylim[0]) / M,
                   color="0.6", angles="xy", scale=30, width=0.0025)
+    for i, (fx, fy) in enumerate(frozen or []):
+        for segs, color, name in ((fx, COLORS[(False, True)], x), (fy, "#2ca02c", y)):
+            if len(segs):
+                ax.add_collection(LineCollection(
+                    np.asarray(segs).reshape(-1, 2, 2), colors=color, alpha=0.35,
+                    linewidths=1.2, label=f"frozen {name} nullclines" if i == 0 else None))
     if nullclines:
         xn, yn = model.nullclines(x, y, xlim, ylim)
         for segs, color, name in ((xn, COLORS[(False, True)], x),

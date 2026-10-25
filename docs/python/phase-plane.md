@@ -35,6 +35,22 @@ f = m.rhs({"v": 0.5, "w": 0.2})     # dv/dt and dw/dt at a point
 In models with more than two variables, the variables not on the axes keep
 their initial values.
 
+### Nullclines as a parameter changes
+
+```python
+values = np.linspace(0, 0.4, 6)
+frozen = m.nullcline_sweep("iapp", values, "V", "W", (-0.6, 1.2), (-0.25, 1.2))
+m.phase_plane("V", "W", xlim=(-0.6, 1.2), ylim=(-0.25, 1.2), frozen=frozen)
+xs.Table.from_nullclines(frozen, first=1).to_csv("nc.csv")
+```
+
+`nullcline_sweep` is XPPAUT's *Nullcline > Freeze > Range*: one
+`(x_nullcline, y_nullcline)` pair per value, the parameter put back
+afterwards. `phase_plane(frozen=...)` draws such pairs faded behind the
+live nullclines. `Table.from_nullclines` lists the segments, one row each
+(set, nullcline 1 or 2, x1, y1, x2, y2), as the desktop app's `export
+nc.csv nullclines` writes them.
+
 ## Equilibria
 
 ```python

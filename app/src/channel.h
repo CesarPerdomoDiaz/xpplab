@@ -14,5 +14,6 @@ void channel_poll(App *a);
 /* Close every connection and remove the file. */
 void channel_stop(App *a);
 int channel_clients(void);
+const char *channel_path(void); /* the port and token file, once started */
 
 #endif

@@ -48,6 +48,9 @@ commands. `help` lists them all.
 | `ic u[1..20] = sin([j]/3)` | Initial values from a formula: one variable (`ic V = vk + 0.1`) or a numbered range, `[j]` the index (XPPAUT's formUla). |
 | `click -0.3 0`, `click keep` | Start a run at that point of the phase plane, as a click does; `click keep` keeps each such run (`click keep off` stops). |
 | `kinescope capture phase`, `kinescope play 200`, `kinescope save film.gif` | XPPAUT's Kinescope: a picture of a figure (time, phase, auto, auto2) as it is shown; play the frames (200 ms each); write them as an animated GIF (`kinescope frames NAME`: PNG files). `kinescope show 3`, `kinescope stop`, `kinescope clear`. |
+| `py CODE`, `py` | Run a line of Python in the console (`py` alone: the command window takes Python; see below). |
+| `python use PATH`, `python stop` | Choose the console's Python (remembered), or stop it. |
+| `show python` | Bring the Workspace's Python tab forward. |
 | `serve`, `serve off` | Let Python drive the app (`app = xpplab.app.connect()` in a notebook or script), or stop it. The app lets Python connect from the start unless it was started with `--no-serve`. |
 | `ensemble 50` | Run a noisy model 50 times and average: the mean and variance of every column at each time (XPPAUT's stocHastic > Compute). `export ens.csv analysis` saves them. |
 | `range iapp 0 0.3 10 film` | Film the Range: each run drawn alone and captured by the Kinescope (XPPAUT's Range with Movie). |
@@ -117,6 +120,45 @@ Figures are drawn again with matplotlib: the same data, but not the same
 picture. Changes to the view (zoom, windows, colours) are not written.
 **View > Show actions as Python** (or `echo off`) hides the lines in the
 command window; the script keeps them either way.
+
+## Python in the command window
+
+Click the `>>` before the command line (it becomes `py>`), or type `py`,
+and the line takes Python instead of commands. Click again, or type
+`:cmd`, to go back. A single line of Python also runs from command mode as
+`py CODE`.
+
+```
+py> m.parameters["iapp"] = 0.1
+py> sol = m.run(total=200)
+py> np.max(sol["V"])
+np.float64(0.26150020956993103)
+py> eq = m.equilibrium(); eq.kind
+'unstable focus'
+```
+
+The Python runs in a process of its own, started the first time, with
+these names already defined:
+
+| Name | What it is |
+|---|---|
+| `m` | The model open here. `m.parameters`, `m.initial_conditions`, `m.set()`, `m.get()` and `m.run()` act in the app, so its sliders and plots follow, and the lines the app writes for your actions run here unchanged. Other methods (`m.equilibrium()`, `m.sweep()`, `m.nullclines()`, `m.ensemble()`, `m.auto`, ...) compute with a private copy of the model at the app's current values. |
+| `app` | The app itself: `app.command("auto steady iapp")` runs any command. |
+| `xs`, `np` | The xpplab package and NumPy. |
+
+A statement over several lines (`for`, `if`, `def`) shows `...` until an
+empty line ends it. Tab completes names. Output and errors appear in the
+command window, errors in red. While a line runs, **Stop** ends the
+process (its variables are lost) and the next line starts a fresh one; an
+endless loop or a crash in your code never stops the app. The
+**Workspace > Python** tab lists your variables with their types and
+values.
+
+The console uses the copy of the xpplab package that comes with the app,
+and a Python 3 with NumPy found on your computer: the one `python use
+C:/path/to/python.exe` chose (it is remembered), else `$XPPLAB_PYTHON`,
+else the first on the PATH. `python stop` ends it; `python` says which is
+in use.
 
 ## Command-line options
 

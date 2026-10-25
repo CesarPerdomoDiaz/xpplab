@@ -10,6 +10,7 @@
 #include "app.h"
 #include "channel.h"
 #include "export.h"
+#include "pyconsole.h"
 
 void ui_show_help(App *a, const char *page);
 
@@ -67,6 +68,10 @@ static const char *usage =
     "                           auto2) for the Kinescope [K C]; kinescope\n"
     "                           play [MS], stop, show K, clear, save F.gif\n"
     "                           [MS], frames BASE (PNG files), film [FIG]\n"
+    "  py CODE                  run a line of Python in the console (xs, np,\n"
+    "                           app and m, the model here, are defined);\n"
+    "                           py alone: the command window takes Python\n"
+    "  python [use PATH | stop] the console's Python: choose one, or stop it\n"
     "  serve [on|off]           let Python drive the app: in Python,\n"
     "                           app = xpplab.app.connect()\n"
     "  bvp                      solve the boundary-value problem (bndry)\n"
@@ -518,6 +523,38 @@ void app_command(App *a, const char *line_in) {
                  "the time goes on), ic read FILE, ic write FILE, or ic NAME = "
                  "FORMULA (NAME a variable or u[1..20], [j] the index)");
     }
+  } else if (!strcmp(cmd, "py")) {
+    /* py CODE: a line of Python (indented as typed); py alone ends a block
+       when one is open, else the command window takes Python. */
+    char *code = rest;
+    if (*code == ' ') code++; /* the space after py, not the indentation */
+    if (*skip_space(code)) {
+      pyconsole_send(a, code);
+    } else if (pyconsole_waiting()) {
+      pyconsole_send(a, ""); /* ends a block (and does nothing otherwise) */
+    } else {
+      a->py_mode = true;
+      app_log(a, "The command window now takes Python (click py> or type :cmd to "
+                 "go back to commands).");
+      pyconsole_start(a);
+    }
+  } else if (!strcmp(cmd, "python")) {
+    /* python [use PATH | stop]: the console's interpreter */
+    char *w = next_word(&rest);
+    if (w && !strcmp(w, "use")) {
+      char *p = skip_space(rest);
+      snprintf(a->python, sizeof a->python, "%s", p);
+      pyconsole_stop(a);
+      app_log(a, *p ? "The console will use %s." : "The console will look for Python "
+                                                   "on the PATH.", p);
+    } else if (w && (!strcmp(w, "stop") || !strcmp(w, "restart"))) {
+      pyconsole_stop(a);
+      app_log(a, "Python stopped; its variables are gone. The next Python line "
+                 "starts a fresh one.");
+    } else {
+      app_log(a, pyconsole_running() ? "Python is running: %s" : "Python is not running%s",
+              pyconsole_running() ? pyconsole_python() : " (py CODE starts it).");
+    }
   } else if (!strcmp(cmd, "serve")) {
     /* serve [on | off]: the channel through which Python drives the app */
     char *w = next_word(&rest);
@@ -804,7 +841,13 @@ void app_command(App *a, const char *line_in) {
             a->echo.console ? "" : "no longer ");
   } else if (!strcmp(cmd, "show")) {
     char *w = next_word(&rest);
-    if (w) snprintf(a->focus, sizeof a->focus, "%s", w);
+    if (w && !strcmp(w, "python")) { /* the Workspace's Python tab */
+      a->reveal_python = true;
+      a->show_workspace = true;
+      snprintf(a->focus, sizeof a->focus, "workspace");
+    } else if (w) {
+      snprintf(a->focus, sizeof a->focus, "%s", w);
+    }
   } else if (!strcmp(cmd, "hide")) {
     char *w = next_word(&rest);
     bool *shown = w ? window_flag(a, w) : NULL;

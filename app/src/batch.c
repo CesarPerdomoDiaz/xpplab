@@ -26,6 +26,7 @@
 #include "app.h"
 #include "channel.h"
 #include "export.h"
+#include "pyconsole.h"
 
 /* What the window would do. */
 void ui_show_help(App *a, const char *page) {
@@ -46,6 +47,21 @@ bool channel_start(App *a) {
 }
 void channel_stop(App *a) { (void)a; }
 int channel_clients(void) { return 0; }
+const char *channel_path(void) { return ""; }
+
+/* No console either: a script runs Python itself. */
+bool pyconsole_send(App *a, const char *line) {
+  (void)line;
+  app_log(a, "error: xpplab-batch has no Python console; run the Python with "
+             "the xpplab package instead");
+  return false;
+}
+void pyconsole_stop(App *a) { (void)a; }
+bool pyconsole_start(App *a) { return pyconsole_send(a, ""); }
+const char *pyconsole_prompt(void) { return "py>"; }
+bool pyconsole_running(void) { return false; }
+bool pyconsole_waiting(void) { return false; }
+const char *pyconsole_python(void) { return ""; }
 
 static size_t printed;
 static bool quiet;

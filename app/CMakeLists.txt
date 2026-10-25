@@ -106,6 +106,7 @@ set(APP_SOURCES
   src/ui_kinescope.c
   src/export.c
   src/channel.c
+  src/pyconsole.c
   ${GEN}/font_roboto.c
   ${GEN}/font_cousine.c
   ${GEN}/icon_rgba.c
@@ -191,7 +192,10 @@ add_custom_command(TARGET xpplab POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL3::SDL3>
           $<TARGET_FILE_DIR:xpplab>
   COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${PROJECT_SOURCE_DIR}/engine/xppaut/ode ${APP_DATA_DIR}/examples)
+          ${PROJECT_SOURCE_DIR}/engine/xppaut/ode ${APP_DATA_DIR}/examples
+  # The xpplab package, for the console's Python (pyconsole.c)
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${PROJECT_SOURCE_DIR}/python/src/xpplab ${APP_DATA_DIR}/python/xpplab)
 
 # Install a self-contained folder (or bundle) and package it with CPack.
 # Every package carries the licences: XPP Lab's, and the notices and
@@ -240,6 +244,9 @@ else()
           COMPONENT app
           PATTERN "*~" EXCLUDE PATTERN "*.o" EXCLUDE PATTERN "*.so" EXCLUDE
           PATTERN "*.bak" EXCLUDE PATTERN "a.out" EXCLUDE)
+  # The xpplab package beside the app, for the console's Python.
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/python/src/xpplab DESTINATION python
+          COMPONENT app PATTERN "__pycache__" EXCLUDE)
   install(FILES ${XPPS_LICENCE_FILES} ${PROJECT_SOURCE_DIR}/README.md
           DESTINATION . COMPONENT app)
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/licenses DESTINATION . COMPONENT app)

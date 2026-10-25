@@ -1,14 +1,56 @@
-/* The command window: a log of what happened and a command line. */
+/* The command window: a log of what happened and a command line, which
+   takes XPP commands or, in Python mode, Python (pyconsole.c). */
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "pyconsole.h"
 #include "ui.h"
 
-static char input[256];
+static char input[1024];
 static int history_pos = -1;
+static int comp_start = -1, comp_len; /* the word waiting for its completion */
+
+/* A line of a Python traceback's end: "NameError: ...", "Traceback ...". */
+static bool python_error(const char *p, const char *end) {
+  const char *q = p;
+  if (end - p >= 9 && strncmp(p, "Traceback", 9) == 0) return true;
+  while (q < end && (isalnum((unsigned char)*q) || *q == '_' || *q == '.')) q++;
+  if (q >= end || *q != ':' || q - p < 5) return false;
+  return (q - p >= 5 && strncmp(q - 5, "Error", 5) == 0) ||
+         (q - p >= 9 && strncmp(q - 9, "Exception", 9) == 0) ||
+         (q - p >= 9 && strncmp(q - 9, "Interrupt", 9) == 0);
+}
 
 static int history_callback(ImGuiInputTextCallbackData *d) {
   App *a = (App *)d->UserData;
+  /* Tab in Python mode: ask for the word before the cursor ... */
+  if (d->EventFlag == ImGuiInputTextFlags_CallbackCompletion && a->py_mode) {
+    int s = d->CursorPos;
+    char word[256];
+    while (s > 0 && (isalnum((unsigned char)d->Buf[s - 1]) || d->Buf[s - 1] == '_' ||
+                     d->Buf[s - 1] == '.'))
+      s--;
+    if (d->CursorPos - s > 0 && d->CursorPos - s < (int)sizeof word) {
+      snprintf(word, sizeof word, "%.*s", d->CursorPos - s, d->Buf + s);
+      comp_start = s;
+      comp_len = d->CursorPos - s;
+      pyconsole_complete(a, word);
+    }
+    return 0;
+  }
+  /* ... and put the answer in when it comes. */
+  if (d->EventFlag == ImGuiInputTextFlags_CallbackAlways && comp_start >= 0) {
+    char done[256];
+    if (pyconsole_completion(done, sizeof done)) {
+      if (comp_start + comp_len <= d->BufTextLen) {
+        ImGuiInputTextCallbackData_DeleteChars(d, comp_start, comp_len);
+        ImGuiInputTextCallbackData_InsertChars(d, comp_start, done, NULL);
+      }
+      comp_start = -1;
+    }
+    return 0;
+  }
   if (d->EventFlag == ImGuiInputTextFlags_CallbackHistory && a->nhistory > 0) {
     if (d->EventKey == ImGuiKey_UpArrow) {
       if (history_pos < 0)
@@ -49,13 +91,14 @@ void ui_console(App *a) {
     while (*p) {
       end = strchr(p, '\n');
       if (!end) end = p + strlen(p);
-      if (strncmp(p, "error", 5) == 0)
+      if (strncmp(p, "error", 5) == 0 || python_error(p, end))
         igPushStyleColor_Vec4(ImGuiCol_Text, HEX(0xe53935));
       else if (strncmp(p, "warning", 7) == 0)
         igPushStyleColor_Vec4(ImGuiCol_Text, HEX(0xf9a825));
       else if (strncmp(p, ">>> ", 4) == 0) /* an action as Python (echo.c) */
         igPushStyleColor_Vec4(ImGuiCol_Text, a->dark ? HEX(0x81c784) : HEX(0x2e7d32));
-      else if (strncmp(p, ">> ", 3) == 0)
+      else if (strncmp(p, ">> ", 3) == 0 || strncmp(p, "py> ", 4) == 0 ||
+               strncmp(p, "... ", 4) == 0)
         igPushStyleColor_Vec4(ImGuiCol_Text, a->dark ? HEX(0x64b5f6) : HEX(0x1565c0));
       else
         igPushStyleColor_Vec4(ImGuiCol_Text, igGetStyle()->Colors[ImGuiCol_Text]);
@@ -69,15 +112,44 @@ void ui_console(App *a) {
     }
   }
   igEndChild();
-  igTextColored(a->dark ? HEX(0x64b5f6) : HEX(0x1565c0), ">>");
+  /* The prompt says which language the line takes; a click switches. */
+  igPushStyleColor_Vec4(ImGuiCol_Text, a->dark ? HEX(0x64b5f6) : HEX(0x1565c0));
+  igPushStyleColor_Vec4(ImGuiCol_Button, V4(0, 0, 0, 0));
+  if (igSmallButton(a->py_mode ? pyconsole_prompt() : ">>")) {
+    a->py_mode = !a->py_mode;
+    reclaim = true;
+  }
+  igPopStyleColor(2);
+  Tooltip(a->py_mode ? "Python, run in its own process: xs, np, app and m (the model "
+                       "here) are defined. Click for XPP commands."
+                     : "XPP commands (help lists them). Click for Python, or type py "
+                       "followed by a line of Python.");
   igSameLine(0, -1);
+  if (a->py_mode && pyconsole_busy()) {
+    if (Button("Stop")) app_command(a, "python stop");
+    Tooltip("End the Python process (its variables are lost); the next line "
+            "starts a fresh one.");
+    igSameLine(0, -1);
+  }
   igSetNextItemWidth(-1);
-  if (igInputTextWithHint("##cmd", "type a command, e.g.  set I=1   run   eq   help",
+  if (igInputTextWithHint("##cmd",
+                          a->py_mode ? "Python, e.g.  sol = m.run(total=200)   "
+                                       "np.max(sol['V'])   (Tab completes)"
+                                     : "type a command, e.g.  set I=1   run   eq   help",
                           input, sizeof input,
                           ImGuiInputTextFlags_EnterReturnsTrue |
-                              ImGuiInputTextFlags_CallbackHistory,
+                              ImGuiInputTextFlags_CallbackHistory |
+                              (a->py_mode ? ImGuiInputTextFlags_CallbackCompletion |
+                                                ImGuiInputTextFlags_CallbackAlways
+                                          : 0),
                           history_callback, a)) {
-    if (input[0]) {
+    if (a->py_mode && strcmp(input, ":cmd") == 0) {
+      a->py_mode = false;
+    } else if (a->py_mode) {
+      /* An empty line ends a block (if, for, def). */
+      if (input[0]) remember(a, input);
+      if (input[0] || strcmp(pyconsole_prompt(), "...") == 0) pyconsole_send(a, input);
+    } else if (input[0]) {
       app_log(a, ">> %s", input);
       remember(a, input);
       app_command(a, input);

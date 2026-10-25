@@ -29,6 +29,16 @@ app.close()
 The run that comes back equals what `xs.load(...).run()` gives for the same
 values, bit for bit, since the app and the package share XPPAUT's engine.
 
+## In the app's own console
+
+The app's command window takes Python too (click its `>>` prompt). That
+Python runs in a process of its own with `app` already connected and `m =
+app.model()`: a Model whose `parameters`, `initial_conditions`, `set()`,
+`get()` and `run()` act in the app, so the lines the app writes for each
+action run there unchanged. `app.model()` works the same from a notebook.
+Other Model methods on it compute with a private copy of the model at the
+app's current values (`m.local()` returns that copy).
+
 ## How it connects
 
 When the app starts it listens on this computer only (127.0.0.1, a port

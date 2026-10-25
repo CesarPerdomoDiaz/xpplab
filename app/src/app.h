@@ -336,6 +336,9 @@ typedef struct App {
   bool quit;
   bool ephemeral; /* do not touch saved settings */
   bool batch;     /* xpplab-batch: no window */
+  char python[1024]; /* the console's Python, if the user chose one */
+  bool py_mode;      /* the command window takes Python */
+  bool reveal_python; /* bring the Workspace's Python tab forward */
   void *window;   /* SDL_Window */
   void *renderer; /* SDL_Renderer */
   Kinescope ks;

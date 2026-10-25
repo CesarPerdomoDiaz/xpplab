@@ -2698,6 +2698,7 @@ void app_save_settings(App *a) {
   fprintf(f, "dark=%d\nscale=%g\nclassic_keys=%d\nlive=%d\necho=%d\n", a->dark,
           (double)a->ui_scale, a->classic_keys, a->live, a->echo.console);
   for (i = a->nrecent - 1; i >= 0; i--) fprintf(f, "recent=%s\n", a->recent[i]);
+  if (a->python[0]) fprintf(f, "python=%s\n", a->python);
   fclose(f);
 }
 
@@ -2718,6 +2719,7 @@ void app_load_settings(App *a) {
     if (strcmp(line, "live") == 0) a->live = atoi(eq + 1) != 0;
     if (strcmp(line, "echo") == 0) a->echo.console = atoi(eq + 1) != 0;
     if (strcmp(line, "recent") == 0) app_add_recent(a, eq + 1);
+    if (strcmp(line, "python") == 0) snprintf(a->python, sizeof a->python, "%s", eq + 1);
   }
   fclose(f);
   if (a->ui_scale < 0.5f || a->ui_scale > 3.0f) a->ui_scale = 1.0f;

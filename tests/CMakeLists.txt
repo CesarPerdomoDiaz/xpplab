@@ -77,3 +77,12 @@ if(Python3_FOUND AND TARGET xpplab)
             $<TARGET_FILE:xpplab> ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode)
   set_tests_properties(app_channel PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 endif()
+
+if(Python3_FOUND AND TARGET xpplab)
+  # Python typed in the command window runs in its own process and drives
+  # the app.
+  add_test(NAME app_console
+    COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/console_check.py
+            $<TARGET_FILE:xpplab> ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode)
+  set_tests_properties(app_console PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+endif()

@@ -6,6 +6,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "pyconsole.h"
 #include "ui.h"
 
 static char filter[64];
@@ -524,6 +525,40 @@ static void sweep_tab(App *a) {
   }
 }
 
+/* The console's variables: what the Python in the command window holds. */
+static void python_tab(App *a) {
+  const PyVar *v;
+  int n, i;
+  ImGuiTableFlags tf = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
+                       ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable;
+  if (!pyconsole_running()) {
+    TextWrapped("Python is not running. Click >> in the command window (it becomes "
+                "py>), or type py, and type Python there: m.run() runs the model "
+                "here, and the variables you make are listed in this tab.");
+    if (Button("Start Python")) app_command(a, "py");
+    return;
+  }
+  v = pyconsole_vars(&n);
+  if (!v) pyconsole_request_vars(a); /* asked again after each line runs */
+  igTextDisabled("%s", pyconsole_python());
+  if (!igBeginTable("pyvars", 3, tf, V2(0, 0), 0)) return;
+  igTableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 80, 0);
+  igTableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 90, 0);
+  igTableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 0, 0);
+  igTableHeadersRow();
+  for (i = 0; v && i < n; i++) {
+    igTableNextRow(0, 0);
+    igTableSetColumnIndex(0);
+    igTextUnformatted(v[i].name, NULL);
+    igTableSetColumnIndex(1);
+    igTextDisabled("%s", v[i].type);
+    igTableSetColumnIndex(2);
+    igTextUnformatted(v[i].summary, NULL);
+    if (igIsItemHovered(0)) igSetTooltip("%s", v[i].summary);
+  }
+  igEndTable();
+}
+
 void ui_workspace(App *a) {
   if (!igBegin(WIN_WORKSPACE, &a->show_workspace, 0)) {
     igEnd();
@@ -556,8 +591,13 @@ void ui_workspace(App *a) {
       sweep_tab(a);
       igEndTabItem();
     }
+    if (igBeginTabItem("Python", NULL, a->reveal_python ? ImGuiTabItemFlags_SetSelected : 0)) {
+      python_tab(a);
+      igEndTabItem();
+    }
     a->sw.reveal = false;
     a->reveal_ics = false;
+    a->reveal_python = false;
     igEndTabBar();
   }
   igEnd();

@@ -118,6 +118,45 @@ def test_a_singular_matrix_stops_only_the_continuation():
         assert len(m.run(total=10)["t"]) > 10
 
 
+KITE = """
+par vw=8,lam=245,clmax=1.2,cd0=0.06,k=0.12
+number grav=9.81,len=100
+vwtilde=vw/sqrt(grav*len)
+vat=omg+vwtilde*sin(gamma)
+van=vwtilde*cos(gamma)
+va2=vat^2+van^2
+alpha=atan2(van,vat)
+cl=clmax*sin(2*alpha)
+cd=cd0+k*cl^2
+gamma'=omg
+omg'=-cos(gamma)+lam*va2*(cl*sin(alpha)-cd*cos(alpha))
+aux alpha_deg=180*alpha/pi
+init gamma=1.3089969389957472,omg=0
+@ meth=rungekutta,dt=0.02,total=80,maxstor=100000,xp=gamma,yp=omg
+@ parmin=0,parmax=8,ds=-0.02,dsmin=0.00001,dsmax=0.05,nmax=400,npr=10,ntst=60
+%s
+done
+"""
+
+
+def _grab_periodic_and_run(bound_line):
+    with xs.Model.from_text(KITE % bound_line, "kite.ode") as m:
+        d = m.auto.equilibria("vw")
+        m.auto.continue_from(d.first("HB"), "periodic")
+        orbit = next(p for p in m.auto.diagram.labelled() if p.periodic)
+        m.auto._eng.call("xppe_auto_grab", orbit.label)
+        return m.run().t[-1]
+
+
+def test_aux_quantity_beyond_bound_stops_integration():
+    # An aux in degrees passes the default bound of 100, and XPPAUT stops.
+    assert _grab_periodic_and_run("") < 80
+
+
+def test_raised_bound_lets_grabbed_orbit_run_to_total():
+    assert _grab_periodic_and_run("@ bound=1000000") == pytest.approx(80)
+
+
 def test_diagram_csv(lecar_hopf, tmp_path):
     d = lecar_hopf.auto.equilibria("iapp")
     d.to_csv(tmp_path / "d.csv")
@@ -130,6 +169,17 @@ def test_diagram_csv(lecar_hopf, tmp_path):
     row = dict(zip(head, lines[1 + d.points.index(d.first("HB"))].split(",")))
     assert row["type"] == "HB" and row["parameter"] == "iapp"
     assert float(row["value"]) == d.first("HB").value
+
+
+def test_homoclinic_tail_is_not_littered_with_limit_points():
+    # The kite's periodic branch runs into a homoclinic orbit: the period
+    # grows to 1e6 at a fixed parameter, and AUTO flags an LP almost every
+    # step. Those are noise and must not be reported as bifurcations.
+    with xs.Model.from_text(KITE % "", "kite.ode") as m:
+        d = m.auto.equilibria("vw")
+        orbits = m.auto.continue_from(d.first("HB"), "periodic")
+        assert max(p.period for p in orbits) > 1e5
+        assert len([p for p in orbits if p.type in ("LP", "BP", "PD", "TR")]) <= 2
 
 
 def test_a_saved_diagram_comes_back_and_can_be_continued(lecar_hopf, tmp_path):

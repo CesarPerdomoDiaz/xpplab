@@ -31,6 +31,9 @@ in **Workspace > Numerics**, or with `@ meth=...` in the model file.
 - **Transient**: drop output before this time.
 - **Bound**: stop when a variable grows larger than this, so a blow-up is
   caught instead of filling the screen with infinities.
+  `aux` quantities count too: an `aux` in degrees passes the default of 100
+  easily, and the run then ends early with "out of bounds". Raise it with
+  `@ bound=1000000` in that case.
 - **Tolerances** (tol, atol): accuracy of adaptive methods.
 
 ## Is my system stiff?

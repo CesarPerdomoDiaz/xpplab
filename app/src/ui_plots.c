@@ -292,6 +292,13 @@ void ui_phase_plot(App *a) {
   igCheckbox("Click to start", &p->click_to_start);
   Tooltip("Click anywhere in the plot to start a trajectory there, like "
           "XPPAUT's Initial conds > Mouse.");
+  if (p->click_to_start) {
+    igSameLine(0, -1);
+    igCheckbox("Keep each", &p->click_keep);
+    Tooltip("Every click adds a trajectory and the earlier ones stay, so a few "
+            "clicks sketch the phase portrait (XPPAUT's Initial conds > mIce). "
+            "Erase (E) clears them; up to 16 are kept.");
+  }
   igSameLine(0, -1);
   if (Button("All equilibria")) app_command(a, "eq all");
   Tooltip("Look for every equilibrium in this window from 100 random "
@@ -357,12 +364,7 @@ void ui_phase_plot(App *a) {
       ImVec2_c drag = igGetMouseDragDelta(ImGuiMouseButton_Left, 0);
       if (fabsf(drag.x) < 3 && fabsf(drag.y) < 3) {
         ImPlotPoint_c m = ImPlot_GetPlotMousePos(ImAxis_X1, ImAxis_Y1);
-        bool live = a->live;
-        a->live = false;
-        app_set_ic(a, p->xvar, m.x);
-        app_set_ic(a, p->yvar, m.y);
-        a->live = live;
-        app_run(a);
+        app_click_start(a, m.x, m.y);
       }
     }
     ui_figure_limits(FIG_PHASE);

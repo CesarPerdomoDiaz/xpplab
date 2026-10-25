@@ -41,6 +41,9 @@ extern "C" {
   X(int, xppe_rows, (void))                                                   \
   X(int, xppe_column, (int, double *, int))                                   \
   X(int, xppe_ic_last, (void))                                                \
+  X(int, xppe_ic_shift, (void))                                               \
+  X(int, xppe_ic_file, (const char *))                                        \
+  X(int, xppe_ic_formula, (const char *, const char *))                       \
   X(int, xppe_equilibrium, (double *, double *, double *))                    \
   X(int, xppe_rhs, (double, const double *, double *))                        \
   X(int, xppe_nullcline,                                                      \

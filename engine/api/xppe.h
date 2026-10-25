@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 4
+#define XPPE_API_VERSION 5
 
 enum {
   XPPE_OK = 0,
@@ -88,6 +88,25 @@ XPPE_API int xppe_column(int col, double *out, int n);
 /* Start the next run where the last one ended (Initial conds > Last): the
    final state, in double precision, becomes the initial condition. */
 XPPE_API int xppe_ic_last(void);
+/* Initial conds > Shift: as xppe_ic_last(), and T0 becomes the time the
+   last run ended, so that the time goes on (it matters for models that
+   depend on t). Since API version 5. */
+XPPE_API int xppe_ic_shift(void);
+/* Initial conds > File: read the initial conditions from a text file, the
+   first numbers in it, one per ODE variable in order (as XPPAUT reads
+   them; commas and semicolons may separate them too). Returns the number
+   of values read; a file with fewer numbers than variables changes nothing
+   and gives XPPE_ERR_RANGE, one that cannot be opened XPPE_ERR_LOAD. Since
+   API version 5. */
+XPPE_API int xppe_ic_file(const char *path);
+/* Initial conds > formUla: give a variable ("V") or a range of them in
+   XPPAUT's array form ("u[1..20]") the value of a formula in the model's
+   parameters and functions. In the array form, [j] in the formula stands
+   for the index ([j+1] and [j-1] work too), so "u[1..20]" with
+   "sin(2*pi*[j]/20)" sets u1 ... u20. Returns the number of values set; a
+   name that is not a variable, or a formula XPPAUT cannot evaluate,
+   changes nothing. Since API version 5. */
+XPPE_API int xppe_ic_formula(const char *target, const char *formula);
 
 /* Newton's method for an equilibrium starting from x (length = number of
    ODE variables). On success x holds the equilibrium and re/im the

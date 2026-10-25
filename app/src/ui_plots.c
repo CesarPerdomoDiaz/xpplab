@@ -23,8 +23,11 @@ static ImVec4_c faded(ImVec4_c c) {
 
 /* ---- Time series ---------------------------------------------------------- */
 
+static PlotView time_view;
+
 void ui_time_plot(App *a) {
   int j, k;
+  ImPlotAxisFlags fit;
   if (!igBegin(WIN_TIME, &a->show_time, 0)) {
     igEnd();
     return;
@@ -41,16 +44,20 @@ void ui_time_plot(App *a) {
     igEndPopup();
   }
   igSameLine(0, -1);
-  if (Button("Fit")) ImPlot_SetNextAxesToFit();
-  Tooltip("Fit the axes to the data (W F). Double-click the plot does the "
-          "same.");
+  if (Button("Fit")) {
+    time_view.zoomed = false;
+    ImPlot_SetNextAxesToFit();
+  }
+  Tooltip("Fit the axes to the data and keep them fitted as it changes "
+          "(W F). Double-click the plot does the same.");
   igSameLine(0, -1);
   ui_export_button(a, FIG_TIME);
-  igSameLine(0, -1);
-  igTextDisabled("Drag to pan, scroll to zoom, right-click for options.");
+  ui_view_hint(&time_view, "Drag to pan, scroll to zoom, right-click for options.");
 
   if (ImPlot_BeginPlot("##time", V2(-1, -1), ImPlotFlags_NoTitle)) {
-    ImPlot_SetupAxes("t", NULL, ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
+    /* The axes fit the data, run after run, until the user zooms in. */
+    fit = ui_view_follow(a, &time_view, "t", NULL) ? ImPlotAxisFlags_AutoFit : 0;
+    ImPlot_SetupAxes("t", NULL, fit, fit);
     ImPlot_SetupLegend(ImPlotLocation_NorthEast, 0);
     for (k = 0; k < a->nfrozen; k++) {
       Trajectory *t = &a->frozen[k];
@@ -71,6 +78,7 @@ void ui_time_plot(App *a) {
                                            Spec(palette[(j - 1) % NPAL], 2.0f));
       }
     ui_figure_limits(FIG_TIME);
+    ui_view_end(&time_view, false);
     ImPlot_EndPlot();
     ui_figure_rect(FIG_TIME);
   }
@@ -85,7 +93,9 @@ void ui_array_plot(App *a) {
   enum { MAXT = 800 };
   static double *grid;
   static size_t grid_cap;
+  static PlotView view;
   int first, last, rows, cols, i, j, step;
+  ImPlotAxisFlags fit;
   double lo = 1e300, hi = -1e300;
   if (!igBegin(WIN_ARRAY, &a->show_array, 0)) {
     igEnd();
@@ -104,6 +114,11 @@ void ui_array_plot(App *a) {
   igSameLine(0, -1);
   igSetNextItemWidth(110);
   Combo("to", &a->array_last, a->cols, a->ncols);
+  igSameLine(0, -1);
+  if (Button("Fit")) view.zoomed = false;
+  Tooltip("Fit the axes to the data and keep them fitted as it changes. "
+          "Double-click the plot does the same.");
+  ui_view_hint(&view, NULL);
   if (a->array_first < 1) a->array_first = 1;
   if (a->array_last < a->array_first) a->array_last = a->array_first;
   first = a->array_first;
@@ -132,11 +147,13 @@ void ui_array_plot(App *a) {
   if (ImPlot_BeginPlot("##array", V2(-90, -1), ImPlotFlags_NoTitle | ImPlotFlags_NoLegend)) {
     ImPlotPoint_c bmin = {a->traj.cols[0][0], first - 0.5};
     ImPlotPoint_c bmax = {a->traj.cols[0][a->traj.nrows - 1], last + 0.5};
-    ImPlot_SetupAxes("t", "variable", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
+    fit = ui_view_follow(a, &view, "t", "variable") ? ImPlotAxisFlags_AutoFit : 0;
+    ImPlot_SetupAxes("t", "variable", fit, fit);
     ImPlot_PushColormap_PlotColormap(ImPlotColormap_Viridis);
     ImPlot_PlotHeatmap_doublePtr("##heat", grid, rows, cols, lo, hi, NULL, bmin, bmax,
                                  Spec(V4(0, 0, 0, -1), 1.0f));
     ImPlot_PopColormap(1);
+    ui_view_end(&view, false);
     ImPlot_EndPlot();
   }
   igSameLine(0, -1);

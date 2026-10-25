@@ -358,6 +358,67 @@ void ui_figure_rect(int figure) {
   g_figures[figure].valid = true;
 }
 
+/* ---- Plots that follow their data --------------------------------------------- */
+
+/* Changes whenever another model is loaded: a view zoomed on the last
+   model's data means nothing for the new one. */
+static unsigned model_serial(App *a) {
+  static char seen[sizeof a->model_path];
+  static unsigned serial;
+  if (strcmp(seen, a->model_path) != 0) {
+    memcpy(seen, a->model_path, sizeof seen);
+    serial++;
+  }
+  return serial;
+}
+
+bool ui_view_follow(App *a, PlotView *v, const char *x, const char *y) {
+  ImGuiIO *io = igGetIO_Nil();
+  /* ImPlot ignores the mouse while Ctrl alone is held. */
+  bool ctrl = io->KeyMods == ImGuiMod_Ctrl;
+  const char *label[2] = {x ? x : "", y ? y : ""};
+  PlotInput in;
+  int b;
+  /* What the plot shows: FNV-1a of the labels, and the model. */
+  in.shows = 2166136261u;
+  for (b = 0; b < 2; b++) {
+    const char *c;
+    for (c = label[b]; *c; c++) in.shows = (in.shows ^ (unsigned char)*c) * 16777619u;
+    in.shows = (in.shows ^ '\n') * 16777619u;
+  }
+  in.shows = (in.shows ^ model_serial(a)) * 16777619u;
+  in.frame = igGetFrameCount();
+  in.wheel = !ctrl && io->MouseWheel != 0;
+  for (b = 0; b < 2; b++) {
+    in.clicked[b] = igIsMouseClicked_Bool(b, false);
+    in.down[b] = igIsMouseDown_Nil(b);
+    in.dragging[b] = !ctrl && igIsMouseDragging(b, -1.0f);
+  }
+  in.double_click = igIsMouseDoubleClicked_Nil(ImGuiMouseButton_Left);
+  return plot_view_update(v, &in);
+}
+
+void ui_view_end(PlotView *v, bool hint) {
+  v->over = ImPlot_IsPlotHovered() || ImPlot_IsAxisHovered(ImAxis_X1) ||
+            ImPlot_IsAxisHovered(ImAxis_Y1);
+  v->over_frame = igGetFrameCount();
+  if (hint && v->zoomed) {
+    ImVec2_c p = ImPlot_GetPlotPos();
+    ImPlot_PushPlotClipRect(0);
+    ImDrawList_AddText_Vec2(ImPlot_GetPlotDrawList(), V2(p.x + 6, p.y + 4),
+                            igGetColorU32_Col(ImGuiCol_TextDisabled, 1.0f),
+                            "Zoomed: double-click to see all.", NULL);
+    ImPlot_PopPlotClipRect();
+  }
+}
+
+void ui_view_hint(const PlotView *v, const char *otherwise) {
+  if (!v->zoomed && !otherwise) return;
+  igSameLine(0, -1);
+  igTextDisabled("%s", v->zoomed ? "Zoomed: double-click or Fit to see all."
+                                 : otherwise);
+}
+
 /* ---- Keyboard ------------------------------------------------------------------- */
 
 static bool chord(ImGuiKeyChord c) {

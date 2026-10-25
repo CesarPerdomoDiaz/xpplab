@@ -27,6 +27,11 @@ Stable parts are drawn solid, unstable parts dashed. The colours follow
 XPPAUT: steady states are red (stable) and black (unstable); periodic orbits
 are green (stable) and blue (unstable).
 
+To look closely at part of the diagram, scroll to zoom and drag to pan
+(right-drag zooms to a box). The view then stays where you put it while
+AUTO adds points; double-click the plot or press **Fit** to see the whole
+diagram again.
+
 ## A typical session
 
 1. **Start at an equilibrium.** Run the model until it settles, or press

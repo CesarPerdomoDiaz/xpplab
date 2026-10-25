@@ -40,6 +40,10 @@ static const char *about[AN_COUNT] = {
     "variables to fit, their columns in the file (from 2) and the "
     "parameters to vary. (stocHastic > fIt data)"};
 
+/* The result's view stays where the user zoomed it when the same result is
+   computed again; another one, or another scale, is shown whole. */
+static PlotView result_view;
+
 static const char *spectra[] = {"Power (PSD)", "Cross spectrum", "Coherence"};
 
 /* The part of a spectrum worth looking at: up to the last frequency with
@@ -137,7 +141,10 @@ static void controls(App *a) {
           n->spec_window = i;
       igEndCombo();
     }
-    if (igCheckbox("Log scale", &n->log_y)) n->refit = true;
+    if (igCheckbox("Log scale", &n->log_y)) {
+      n->refit = true;
+      result_view.zoomed = false;
+    }
     break;
   case AN_FOURIER:
     igCheckbox("Amplitude and phase", &n->polar);
@@ -250,11 +257,21 @@ static void plot_result(App *a) {
     }
     igSameLine(0, -1);
   }
-  igTextDisabled("%d rows. Right-click the plot for options.", r->nrows);
+  /* No Fit button: it is taller than this line of text and would move the
+     plot down. */
+  igTextDisabled("%d rows. %s", r->nrows,
+                 result_view.zoomed ? "Zoomed: double-click to see all."
+                                    : "Right-click the plot for options.");
   x = r->cols[0];
   if (ImPlot_BeginPlot("##analysis", V2(-1, -1), ImPlotFlags_NoTitle)) {
-    const char *xl = r->names[0];
-    if (n->res_tool == AN_HISTOGRAM2D && r->ncols >= 3) {
+    const bool map = n->res_tool == AN_HISTOGRAM2D && r->ncols >= 3;
+    const int show = n->show_col < r->ncols ? n->show_col : 1;
+    const char *xl = map ? a->cols[n->col] : r->names[0];
+    const char *yl = map ? a->cols[n->col2] : r->names[show];
+    bool was_zoomed = result_view.zoomed;
+    bool follow = ui_view_follow(a, &result_view, xl, yl);
+    if (follow && was_zoomed) n->refit = true; /* back to the framed view */
+    if (map) {
       /* cells are x-major: index i + j * nx */
       int nx = n->bins, ny = n->bins2, i, k;
       double *grid = malloc(sizeof(double) * (size_t)(nx * ny));
@@ -267,20 +284,19 @@ static void plot_result(App *a) {
           int src = i + j * nx;
           grid[(ny - 1 - j) * nx + i] = src < r->nrows ? r->cols[2][src] : 0;
         }
-      ImPlot_SetupAxes(a->cols[n->col], a->cols[n->col2], ImPlotAxisFlags_AutoFit,
-                       ImPlotAxisFlags_AutoFit);
+      ImPlotAxisFlags fit = follow ? ImPlotAxisFlags_AutoFit : 0;
+      ImPlot_SetupAxes(xl, yl, fit, fit);
       ImPlot_PushColormap_PlotColormap(ImPlotColormap_Viridis);
       ImPlot_PlotHeatmap_doublePtr("##h2", grid, ny, nx, 0, hi > 0 ? hi : 1, NULL,
                                    bmin, bmax, Spec(V4(0, 0, 0, -1), 1.0f));
       ImPlot_PopColormap(1);
       free(grid);
     } else {
-      const double *y = r->cols[n->show_col < r->ncols ? n->show_col : 1];
+      const double *y = r->cols[show];
       bool log_y = n->res_tool == AN_SPECTRUM && n->log_y;
-      ImPlot_SetupAxes(xl, r->names[n->show_col < r->ncols ? n->show_col : 1],
-                       0, 0);
+      ImPlot_SetupAxes(xl, yl, 0, 0);
       if (log_y) ImPlot_SetupAxisScale_PlotScale(ImAxis_Y1, ImPlotScale_Log10);
-      if (n->refit) {
+      if (n->refit && follow) {
         double xmax = n->res_tool == AN_SPECTRUM || n->res_tool == AN_FOURIER
                           ? spectrum_extent(x, y, r->nrows)
                           : x[r->nrows - 1];
@@ -303,6 +319,7 @@ static void plot_result(App *a) {
         }
       }
     }
+    ui_view_end(&result_view, false);
     ImPlot_EndPlot();
   }
 }

@@ -314,10 +314,14 @@ static void grid_map(App *a) {
   if (h < 300) h = 300;
   ImPlot_PushColormap_PlotColormap(lyap ? blue_red() : ImPlotColormap_Viridis);
   if (ImPlot_BeginPlot("##grid", V2(-70, h), ImPlotFlags_NoTitle | ImPlotFlags_NoLegend)) {
-    ImPlot_SetupAxes(a->echo.sweep_name, a->echo.sweep_name2[0] ? a->echo.sweep_name2 : "",
-                     ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
+    static PlotView view;
+    const char *xl = a->echo.sweep_name;
+    const char *yl = a->echo.sweep_name2[0] ? a->echo.sweep_name2 : "";
+    ImPlotAxisFlags fit = ui_view_follow(a, &view, xl, yl) ? ImPlotAxisFlags_AutoFit : 0;
+    ImPlot_SetupAxes(xl, yl, fit, fit);
     ImPlot_PlotHeatmap_doublePtr("##map", z, n2, n1, lo, hi, NULL, b0, b1,
                                  Spec(V4(0, 0, 0, -1), 1.0f));
+    ui_view_end(&view, true);
     ImPlot_EndPlot();
   }
   igSameLine(0, -1);
@@ -458,7 +462,9 @@ static void sweep_tab(App *a) {
   }
   if (s->result_mode != SWEEP_OVERLAY && s->n > 0 &&
       ImPlot_BeginPlot("##sweep", V2(-1, -1), ImPlotFlags_NoTitle | ImPlotFlags_NoLegend)) {
+    static PlotView view;
     const char *xl = s->over_ic ? a->vars[s->par] : a->pars[s->par];
+    ImPlotAxisFlags fit;
     if (s->result_mode == SWEEP_EQUILIBRIA && s->eqt.ncols > a->nvars + 1) {
       /* Recolour by stability; the variable shown can change afterwards. */
       int col = s->var >= 0 && s->var < a->nvars ? s->var + 1 : 1, k, ns = 0, nu = 0;
@@ -478,8 +484,9 @@ static void sweep_tab(App *a) {
             sy[ns++] = s->eqt.cols[col][k];
           }
         }
-        ImPlot_SetupAxes(s->eqt.names[0], a->vars[col - 1], ImPlotAxisFlags_AutoFit,
-                         ImPlotAxisFlags_AutoFit);
+        fit = ui_view_follow(a, &view, s->eqt.names[0], a->vars[col - 1])
+                  ? ImPlotAxisFlags_AutoFit : 0;
+        ImPlot_SetupAxes(s->eqt.names[0], a->vars[col - 1], fit, fit);
         ImPlot_PlotScatter_doublePtrdoublePtr("stable", sx, sy, ns,
                                               SpecMarker(COL_STABLE_EQ, ImPlotMarker_Circle, 3.0f));
         if (uy)
@@ -492,19 +499,20 @@ static void sweep_tab(App *a) {
       double zero = 0;
       ImPlotSpec_c line = Spec(V4(0.5f, 0.5f, 0.5f, 0.6f), 1.0f);
       line.Flags = ImPlotInfLinesFlags_Horizontal;
-      ImPlot_SetupAxes(xl, "Liapunov exponent", ImPlotAxisFlags_AutoFit,
-                       ImPlotAxisFlags_AutoFit);
+      fit = ui_view_follow(a, &view, xl, "Liapunov exponent") ? ImPlotAxisFlags_AutoFit : 0;
+      ImPlot_SetupAxes(xl, "Liapunov exponent", fit, fit);
       ImPlot_PlotInfLines_doublePtr("##zero", &zero, 1, line);
       ImPlot_PlotLine_doublePtrdoublePtr("lyap", s->x, s->ymax, s->n,
                                          SpecMarker(HEX(0xd62728), ImPlotMarker_Circle, 2.5f));
     } else {
-      ImPlot_SetupAxes(xl, a->vars[s->var], ImPlotAxisFlags_AutoFit,
-                       ImPlotAxisFlags_AutoFit);
+      fit = ui_view_follow(a, &view, xl, a->vars[s->var]) ? ImPlotAxisFlags_AutoFit : 0;
+      ImPlot_SetupAxes(xl, a->vars[s->var], fit, fit);
       ImPlot_PlotScatter_doublePtrdoublePtr("max", s->x, s->ymax, s->n,
                                             SpecMarker(HEX(0x1f77b4), ImPlotMarker_Circle, 2.5f));
       ImPlot_PlotScatter_doublePtrdoublePtr("min", s->x, s->ymin, s->n,
                                             SpecMarker(HEX(0xd62728), ImPlotMarker_Circle, 2.5f));
     }
+    ui_view_end(&view, true);
     ImPlot_EndPlot();
   }
 }

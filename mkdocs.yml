@@ -61,7 +61,7 @@ nav:
       - "Tutorial: why does a neuron fire?": manual/neuron-tutorial.md
       - Bifurcation analysis with AUTO: manual/auto.md
       - Data analysis: manual/analysis.md
-      - Initial values, Range, BVPs, 3D: manual/tools.md
+      - Initial values, Range, BVPs, 3D, Kinescope: manual/tools.md
       - Commands and shortcuts: manual/commands.md
       - Coming from XPPAUT: manual/xppaut.md
   - Python:

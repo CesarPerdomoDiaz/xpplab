@@ -54,12 +54,14 @@ page.
 | File > Auto | Bifurcation window |
 | AUTO > File > Save diagram, Load diagram | Bifurcation > Save..., Open..., `auto save`, `auto load` |
 | AUTO > File > Import orbit | Bifurcation > Show this orbit as the run, `auto orbit` |
+| Kinescope (Capture, Reset, Playback, Autoplay, Save, Make AniGif) | View > Kinescope; `kinescope capture`, `kinescope play`, `kinescope save film.gif` |
+| Initial conds > Range with Movie = Yes | Workspace > Range > Film it in the Kinescope, `range ... film` |
 | Data viewer | View > Data |
 | File > Write .set / Read .set | the `.ode` file keeps the values; `set` statements give named sets |
 
-Not yet in the new interface: the Kinescope, several curves and labels on
-one figure (Graphic stuff, Text) and formulas in the data browser. The
-engine supports them, so they will come; the roadmap lists them.
+Not yet in the new interface: several curves and labels on one figure
+(Graphic stuff, Text) and formulas in the data browser. The engine
+supports them, so they will come; the roadmap lists them.
 
 ## AUTO files
 

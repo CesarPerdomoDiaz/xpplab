@@ -80,6 +80,10 @@ static void menu_run(App *a) {
     a->show_ani = true;
     igSetWindowFocus_Str(WIN_ANI);
   }
+  if (igMenuItem_Bool("Kinescope...", NULL, false, true)) {
+    a->show_kine = true;
+    igSetWindowFocus_Str(WIN_KINE);
+  }
   if (igMenuItem_Bool("3D view", NULL, false, ok && a->ncols > 3)) {
     a->show_view3d = true;
     igSetWindowFocus_Str(WIN_VIEW3D);
@@ -109,6 +113,7 @@ static void menu_view(App *a) {
   igMenuItem_BoolPtr(WIN_ANALYSIS, NULL, &a->show_analysis, true);
   igMenuItem_BoolPtr(WIN_VIEW3D, NULL, &a->show_view3d, true);
   igMenuItem_BoolPtr(WIN_ANI, NULL, &a->show_ani, true);
+  igMenuItem_BoolPtr(WIN_KINE, NULL, &a->show_kine, true);
   igMenuItem_BoolPtr(WIN_HELP, "F1", &a->show_help, true);
   igSeparator();
   if (igMenuItem_Bool("Reset window layout", NULL, false, true))

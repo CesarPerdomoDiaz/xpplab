@@ -135,7 +135,7 @@ void ui_apply_theme(App *a) {
 
 enum { DLG_NONE, DLG_OPEN, DLG_SAVE_AS, DLG_EXPORT, DLG_PNG, DLG_SVG, DLG_ANI,
        DLG_SCRIPT, DLG_DATA, DLG_AUTO_SAVE, DLG_AUTO_OPEN, DLG_IC_READ, DLG_IC_WRITE,
-       DLG_NULLCLINES };
+       DLG_NULLCLINES, DLG_KINE_GIF, DLG_KINE_PNG };
 static SDL_Mutex *dlg_lock;
 static int dlg_kind;
 static char dlg_result[1024];
@@ -224,6 +224,18 @@ void ui_dialog_auto_file(App *a, bool save) {
                            (SDL_Window *)a->window, auto_filters, 2, NULL, false);
 }
 
+static const SDL_DialogFileFilter gif_filters[] = {
+    {"Animated GIF (*.gif)", "gif"}, {"All files", "*"}};
+static const SDL_DialogFileFilter png_base_filters[] = {
+    {"PNG images (*.png)", "png"}, {"All files", "*"}};
+
+void ui_dialog_kinescope(App *a, bool gif) {
+  if (!dlg_lock) dlg_lock = SDL_CreateMutex();
+  SDL_ShowSaveFileDialog(dialog_done, (void *)(intptr_t)(gif ? DLG_KINE_GIF : DLG_KINE_PNG),
+                         (SDL_Window *)a->window, gif ? gif_filters : png_base_filters, 2,
+                         NULL);
+}
+
 static const SDL_DialogFileFilter ic_filters[] = {
     {"Initial values (*.dat, *.txt)", "dat;txt"}, {"All files", "*"}};
 
@@ -275,6 +287,19 @@ void ui_dialog_poll(App *a) {
   }
   if (kind == DLG_AUTO_OPEN) app_auto_load(a, path);
   if (kind == DLG_IC_READ) app_ic_read(a, path);
+  if (kind == DLG_KINE_GIF) {
+    char p[1100];
+    with_extension(path, ".gif", p, sizeof p);
+    app_kine_save_gif(a, p, a->ks.ms);
+  }
+  if (kind == DLG_KINE_PNG) { /* the name without .png: NAME_001.png, ... */
+    char p[1100];
+    size_t n;
+    snprintf(p, sizeof p, "%s", path);
+    n = strlen(p);
+    if (n > 4 && SDL_strcasecmp(p + n - 4, ".png") == 0) p[n - 4] = '\0';
+    app_kine_save_frames(a, p);
+  }
   if (kind == DLG_IC_WRITE) {
     /* .dat unless the name has an extension of its own */
     const char *base = strrchr(path, '/'), *b2 = strrchr(path, '\\');
@@ -356,6 +381,12 @@ void ui_figure_rect(int figure) {
   g_figures[figure].x1 = hi.x;
   g_figures[figure].y1 = hi.y;
   g_figures[figure].valid = true;
+  g_figures[figure].frame = igGetFrameCount();
+}
+
+bool figure_on_screen(FigureKind kind) {
+  return kind >= 0 && kind < FIG_COUNT && g_figures[kind].valid &&
+         g_figures[kind].frame == igGetFrameCount();
 }
 
 /* ---- Keyboard ------------------------------------------------------------------- */
@@ -375,6 +406,8 @@ static void classic_keys(App *a) {
       {'n', 'e', "nullclines off"}, {'d', 'd', "dirfield"},
       {'s', 'g', "eq"},       {'e', 0, "erase"},      {'w', 'f', "fit"},
       {'f', 'q', "quit"},     {'c', 'c', "continue"},
+      {'k', 'c', "kinescope capture"}, {'k', 'r', "kinescope clear"},
+      {'k', 'a', "kinescope play"},
   };
   ImGuiIO *io = igGetIO_Nil();
   int i, k;
@@ -461,6 +494,7 @@ static void default_layout(App *a, ImGuiID dock, ImVec2_c size) {
   igDockBuilderDockWindow(WIN_EDITOR, center);
   igDockBuilderDockWindow(WIN_CONSOLE, bottom);
   igDockBuilderDockWindow(WIN_DATA, bottom);
+  igDockBuilderDockWindow(WIN_KINE, bottom);
   igDockBuilderDockWindow(WIN_HELP, right);
   igDockBuilderFinish(dock);
 }
@@ -477,6 +511,9 @@ void ui_draw(App *a) {
       ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoSavedSettings;
 
   ui_dialog_poll(a);
+  /* The Kinescope: the film's next run, drawn this frame and captured at
+     its end; playback. */
+  app_kine_frame(a, igGetIO_Nil()->DeltaTime);
   shortcuts(a);
   ui_menu_bar(a);
 
@@ -527,6 +564,7 @@ void ui_draw(App *a) {
   if (a->show_analysis) ui_analysis(a);
   if (a->show_view3d) ui_view3d(a);
   if (a->show_ani) ui_animator(a);
+  if (a->show_kine) ui_kinescope(a);
   if (a->show_demo) {
     igShowDemoWindow(&a->show_demo);
     ImPlot_ShowDemoWindow(&a->show_demo);
@@ -542,7 +580,7 @@ void ui_draw(App *a) {
                {"console", WIN_CONSOLE, NULL}, {"workspace", WIN_WORKSPACE, NULL},
                {"models", WIN_BROWSER, NULL}, {"array", WIN_ARRAY, NULL},
                {"analysis", WIN_ANALYSIS, NULL}, {"3d", WIN_VIEW3D, NULL},
-               {"animator", WIN_ANI, NULL}};
+               {"animator", WIN_ANI, NULL},   {"kinescope", WIN_KINE, NULL}};
     int i;
     for (i = 0; i < (int)(sizeof map / sizeof map[0]); i++)
       if (SDL_strncasecmp(a->focus, map[i].key, strlen(a->focus)) == 0) {
@@ -556,6 +594,7 @@ void ui_draw(App *a) {
         if (i == 10) a->show_analysis = true;
         if (i == 11) a->show_view3d = true;
         if (i == 12) a->show_ani = true;
+        if (i == 13) a->show_kine = true;
         igSetWindowFocus_Str(map[i].win);
         break;
       }

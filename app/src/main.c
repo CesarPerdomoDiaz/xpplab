@@ -258,6 +258,7 @@ int main(int argc, char **argv) {
   base = SDL_GetBasePath();
   app_init(&app, base ? base : "./", scripted);
   app.window = window;
+  app.renderer = renderer;
   app.reset_layout = reset_layout;
   dpi = interface_scale(window);
   apply_scale(&app, dpi);

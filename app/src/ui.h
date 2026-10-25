@@ -22,6 +22,7 @@
 #define WIN_ANALYSIS "Analysis"
 #define WIN_VIEW3D "3D View"
 #define WIN_ANI "Animator"
+#define WIN_KINE "Kinescope"
 
 /* The shortcut modifier as shown in menus. ImGui maps its Ctrl shortcuts
    to the Command key on macOS. */
@@ -92,6 +93,7 @@ void ui_data(App *a);
 void ui_analysis(App *a);
 void ui_view3d(App *a);
 void ui_animator(App *a);
+void ui_kinescope(App *a);
 void ui_dialog_open_ani(App *a);
 
 /* Native file dialogs (results arrive on a later frame). */
@@ -101,6 +103,7 @@ void ui_dialog_export_csv(App *a);
 void ui_dialog_save_script(App *a);
 void ui_dialog_auto_file(App *a, bool save); /* an .auto diagram */
 void ui_dialog_ics(App *a, bool save);       /* initial values */
+void ui_dialog_kinescope(App *a, bool gif);  /* an animated GIF, or PNG frames */
 void ui_dialog_poll(App *a);
 
 /* An "Export" button with PNG and SVG choices for a figure; and the

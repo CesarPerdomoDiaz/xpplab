@@ -32,28 +32,52 @@ void export_png(FigureKind kind, const char *path) {
   png_pending = true;
 }
 
-void export_process_pending(App *a, void *renderer, float scale) {
-  FigureState *f;
+static FigureKind capture_kind;
+static bool capture_pending;
+
+void export_capture(FigureKind kind) {
+  capture_kind = kind;
+  capture_pending = true;
+}
+
+bool export_capture_waiting(void) { return capture_pending; }
+
+/* The figure's pixels as drawn in this frame, RGB24; NULL if it is not on
+   the screen. */
+static SDL_Surface *read_figure(App *a, SDL_Renderer *renderer, FigureKind kind,
+                                float scale, const char *verb) {
+  FigureState *f = &g_figures[kind];
   SDL_Rect r;
   SDL_Surface *s, *rgb;
-  if (!png_pending) return;
-  png_pending = false;
-  f = &g_figures[png_kind];
-  if (!f->valid) {
-    app_log(a, "error: show the %s first, then export it.", figure_name(png_kind));
-    return;
+  if (!figure_on_screen(kind)) {
+    app_log(a, "error: show the %s first, then %s it.", figure_name(kind), verb);
+    return NULL;
   }
   r.x = (int)(f->x0 * scale);
   r.y = (int)(f->y0 * scale);
   r.w = (int)((f->x1 - f->x0) * scale);
   r.h = (int)((f->y1 - f->y0) * scale);
-  s = SDL_RenderReadPixels((SDL_Renderer *)renderer, &r);
+  s = SDL_RenderReadPixels(renderer, &r);
   if (!s) {
     app_log(a, "error: cannot read the screen: %s", SDL_GetError());
-    return;
+    return NULL;
   }
   rgb = SDL_ConvertSurface(s, SDL_PIXELFORMAT_RGB24);
   SDL_DestroySurface(s);
+  return rgb;
+}
+
+void export_process_pending(App *a, void *renderer, float scale) {
+  SDL_Surface *rgb;
+  if (capture_pending) {
+    capture_pending = false;
+    rgb = read_figure(a, (SDL_Renderer *)renderer, capture_kind, scale, "capture");
+    a->ks.failed = rgb == NULL;
+    if (rgb) app_kine_add(a, rgb);
+  }
+  if (!png_pending) return;
+  png_pending = false;
+  rgb = read_figure(a, (SDL_Renderer *)renderer, png_kind, scale, "export");
   if (!rgb) return;
   if (stbi_write_png(png_path, rgb->w, rgb->h, 3, rgb->pixels, rgb->pitch))
     app_log(a, "Saved %s (%d x %d pixels).", png_path, rgb->w, rgb->h);

@@ -86,6 +86,7 @@ set(APP_SOURCES
   src/main.c
   src/app.c
   src/app_analysis.c
+  src/app_kinescope.c
   src/echo.c
   src/commands.c
   src/docs.c
@@ -102,6 +103,7 @@ set(APP_SOURCES
   src/ui_analysis.c
   src/ui_view3d.c
   src/ui_animator.c
+  src/ui_kinescope.c
   src/export.c
   ${GEN}/font_roboto.c
   ${GEN}/font_cousine.c

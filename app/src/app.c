@@ -169,6 +169,12 @@ static void free_model_cache(App *a) {
   a->pp.ncx = a->pp.ncy = NULL;
   a->pp.ncx_n = a->pp.ncy_n = 0;
   free_frozen_nullclines(&a->pp);
+  if (a->ks.film.on) { /* a film of the model being closed stops */
+    free(a->ks.film.ics);
+    a->ks.film.ics = NULL;
+    a->ks.film.on = false;
+    echo_end(a);
+  }
   free(a->au.info);
   free(a->au.umax);
   free(a->au.umin);
@@ -198,6 +204,9 @@ void app_init(App *a, const char *base_dir, bool ephemeral) {
   a->classic_keys = true;
   a->pp.grid = 100;
   a->pp.click_to_start = true;
+  a->ks.ms = 250;
+  a->ks.loop = true;
+  a->ks.source = FIG_PHASE;
   a->pp.show_equilibria = true;
   a->au.selected = -1;
   a->au.yvar = 0;
@@ -217,6 +226,7 @@ void app_init(App *a, const char *base_dir, bool ephemeral) {
 void app_shutdown(App *a) {
   if (!a->ephemeral) app_save_settings(a);
   free_model_cache(a);
+  app_kine_clear(a);
   free(a->sw.x);
   free(a->sw.ymax);
   free(a->sw.ymin);
@@ -1115,6 +1125,58 @@ static void set_swept(App *a, bool over_ic, int i, double v) {
     app_set_param(a, i, v);
 }
 
+/* The Range's values as its loop makes them, then Model.sweep() (both
+   values together: a tuple of names) or Model.sweep_grid(), whose measure
+   takes the max and min over the same rows. overlay: the runs kept. */
+static void echo_sweep(App *a, bool overlay, bool two, bool grid, int n1, int n2,
+                       const char *what, const char *what2) {
+  SweepUI *s = &a->sw;
+  char nm[160], nm2[160], var[160], f[64], t[64], tr[64], call[512], meas[400];
+  const char *cont = s->continue_runs ? ", continue_runs=True" : "";
+  echo_str(what, nm, sizeof nm);
+  echo_line(a, "sweep_values = [%s + (%s - %s) * k / %d for k in range(%d)]",
+            echo_num(s->from, f, sizeof f), echo_num(s->to, t, sizeof t), f,
+            n1 - 1, n1);
+  if (two) {
+    echo_str(what2, nm2, sizeof nm2);
+    echo_line(a, "sweep_values2 = [%s + (%s - %s) * k / %d for k in range(%d)]",
+              echo_num(s->from2, f, sizeof f), echo_num(s->to2, t, sizeof t), f,
+              (grid ? n2 : n1) - 1, grid ? n2 : n1);
+  }
+  meas[0] = '\0';
+  if (overlay) {
+    /* the runs themselves */
+  } else if (s->mode == SWEEP_LYAPUNOV) {
+    snprintf(meas, sizeof meas, ", measure=lambda s: m.lyapunov()");
+  } else {
+    echo_str(a->vars[s->var], var, sizeof var);
+    echo_num(s->transient, tr, sizeof tr);
+    snprintf(meas, sizeof meas, ", measure=lambda s: (s[%s][int(len(s) * %s):].max(), "
+                                "s[%s][int(len(s) * %s):].min())", var, tr, var, tr);
+  }
+  if (!two)
+    snprintf(call, sizeof call, "m.sweep(%s, sweep_values%s%s)", nm, meas, cont);
+  else if (grid)
+    snprintf(call, sizeof call, "m.sweep_grid(%s, sweep_values, %s, sweep_values2%s%s)",
+             nm, nm2, meas, cont);
+  else
+    snprintf(call, sizeof call, "m.sweep((%s, %s), list(zip(sweep_values, sweep_values2))%s%s)",
+             nm, nm2, meas, cont);
+  if (overlay) {
+    echo_line(a, "runs = %s", call);
+    echo_line(a, grid ? "sol = runs[-1][-1]" : "sol = runs[-1]");
+  } else {
+    echo_line(a, "sweep = %s", call);
+    echo_line(a, "sol = m.run()");
+  }
+  a->echo.sweep_mode = overlay ? -1 : s->mode;
+  a->echo.sweep_kind = grid ? 2 : two ? 1 : 0;
+  snprintf(a->echo.sweep_name, sizeof a->echo.sweep_name, "%s", what);
+  snprintf(a->echo.sweep_name2, sizeof a->echo.sweep_name2, "%s", two ? what2 : "");
+  snprintf(a->echo.sweep_var, sizeof a->echo.sweep_var, "%s",
+           s->mode == SWEEP_MAXMIN ? a->vars[s->var] : "");
+}
+
 /* The runs go through the first value's steps for each of the second's
    (a grid, row by row), or through both together (a line), setting the
    first value then the second, as XPPAUT's do_range() does. */
@@ -1228,53 +1290,7 @@ bool app_sweep(App *a) {
     a->show_workspace = true;
     snprintf(a->focus, sizeof a->focus, "workspace");
   }
-  /* The values as the loop above makes them, then Model.sweep() (both
-     values together: a tuple of names) or Model.sweep_grid(), whose measure
-     takes the max and min over the same rows. */
-  if (outer && k == n) {
-    char nm[160], nm2[160], var[160], f[64], t[64], tr[64], call[512], meas[400];
-    const char *cont = s->continue_runs ? ", continue_runs=True" : "";
-    echo_str(what, nm, sizeof nm);
-    echo_line(a, "sweep_values = [%s + (%s - %s) * k / %d for k in range(%d)]",
-              echo_num(s->from, f, sizeof f), echo_num(s->to, t, sizeof t), f,
-              n1 - 1, n1);
-    if (two) {
-      echo_str(what2, nm2, sizeof nm2);
-      echo_line(a, "sweep_values2 = [%s + (%s - %s) * k / %d for k in range(%d)]",
-                echo_num(s->from2, f, sizeof f), echo_num(s->to2, t, sizeof t), f,
-                (grid ? n2 : n1) - 1, grid ? n2 : n1);
-    }
-    meas[0] = '\0';
-    if (s->mode == SWEEP_LYAPUNOV) {
-      snprintf(meas, sizeof meas, ", measure=lambda s: m.lyapunov()");
-    } else if (!s->overlay) {
-      echo_str(a->vars[s->var], var, sizeof var);
-      echo_num(s->transient, tr, sizeof tr);
-      snprintf(meas, sizeof meas, ", measure=lambda s: (s[%s][int(len(s) * %s):].max(), "
-                                  "s[%s][int(len(s) * %s):].min())", var, tr, var, tr);
-    }
-    if (!two)
-      snprintf(call, sizeof call, "m.sweep(%s, sweep_values%s%s)", nm, meas, cont);
-    else if (grid)
-      snprintf(call, sizeof call, "m.sweep_grid(%s, sweep_values, %s, sweep_values2%s%s)",
-               nm, nm2, meas, cont);
-    else
-      snprintf(call, sizeof call, "m.sweep((%s, %s), list(zip(sweep_values, sweep_values2))%s%s)",
-               nm, nm2, meas, cont);
-    if (s->overlay) {
-      echo_line(a, "runs = %s", call);
-      echo_line(a, grid ? "sol = runs[-1][-1]" : "sol = runs[-1]");
-    } else {
-      echo_line(a, "sweep = %s", call);
-      echo_line(a, "sol = m.run()");
-    }
-    a->echo.sweep_mode = s->overlay ? -1 : s->mode;
-    a->echo.sweep_kind = grid ? 2 : two ? 1 : 0;
-    snprintf(a->echo.sweep_name, sizeof a->echo.sweep_name, "%s", what);
-    snprintf(a->echo.sweep_name2, sizeof a->echo.sweep_name2, "%s", two ? what2 : "");
-    snprintf(a->echo.sweep_var, sizeof a->echo.sweep_var, "%s",
-             s->mode == SWEEP_MAXMIN ? a->vars[s->var] : "");
-  }
+  if (outer && k == n) echo_sweep(a, s->overlay, two, grid, n1, n2, what, what2);
   echo_end(a);
   if (grid)
     app_log(a, "Range over %s from %g to %g and %s from %g to %g: a grid of %d "
@@ -1290,6 +1306,125 @@ bool app_sweep(App *a) {
                        : s->mode == SWEEP_LYAPUNOV ? " (Liapunov exponents)" : "");
   app_status(a, "Range over %s done", what);
   return true;
+}
+
+/* ---- Filming the Range (XPPAUT's Range with Movie = Yes) ------------------------
+   The same runs as app_sweep() keeping each trajectory, one per frame: each
+   is drawn alone and the Kinescope captures the figure before the next. */
+
+static bool film_two(App *a) {
+  SweepUI *s = &a->sw;
+  return s->two &&
+         (s->over_ic2 ? s->par2 >= 0 && s->par2 < a->nvars : s->par2 >= 0 && s->par2 < a->npars) &&
+         !(s->over_ic2 == s->over_ic && s->par2 == s->par);
+}
+
+bool app_film_range(App *a, int figure) {
+  SweepUI *s = &a->sw;
+  Kinescope *k = &a->ks;
+  if (!a->model_ok || k->film.on) return false;
+  if (s->over_ic ? (s->par < 0 || s->par >= a->nvars) : (s->par < 0 || s->par >= a->npars))
+    return false;
+  k->film.two = film_two(a);
+  k->film.grid = k->film.two && s->grid;
+  k->film.n1 = s->steps < 2 ? 2 : s->steps;
+  k->film.n2 = k->film.grid ? (s->steps2 < 2 ? 2 : s->steps2) : 1;
+  k->film.n = k->film.n1 * k->film.n2;
+  if (k->film.n > APP_MAX_FRAMES) {
+    app_log(a, "error: a film holds at most %d frames: use fewer steps.", APP_MAX_FRAMES);
+    return false;
+  }
+  k->film.ics = malloc(sizeof(double) * (size_t)(a->nvars + 1));
+  if (!k->film.ics) return false;
+  memcpy(k->film.ics, a->ic, sizeof(double) * (size_t)a->nvars);
+  k->film.old = s->over_ic ? a->ic[s->par] : a->par[s->par].value;
+  k->film.old2 = !k->film.two ? 0 : s->over_ic2 ? a->ic[s->par2] : a->par[s->par2].value;
+  k->film.live = a->live;
+  k->film.keep = a->keep_curves;
+  /* The runs write no lines of their own: the sweep is written at the end. */
+  k->film.outer = echo_begin(a);
+  a->live = false;
+  a->keep_curves = false;
+  app_clear_curves(a);
+  app_kine_clear(a); /* XPPAUT starts the film afresh */
+  k->source = figure;
+  k->failed = false;
+  k->film.k = 0;
+  k->film.waiting = false;
+  k->film.on = true;
+  s->overlay = true;
+  a->show_kine = true;
+  return true;
+}
+
+static void film_end(App *a, bool done) {
+  SweepUI *s = &a->sw;
+  Kinescope *k = &a->ks;
+  const char *what = s->over_ic ? a->vars[s->par] : a->pars[s->par];
+  const char *what2 = !k->film.two ? NULL : s->over_ic2 ? a->vars[s->par2] : a->pars[s->par2];
+  int j;
+  for (j = 0; j < a->nvars; j++) app_set_ic(a, j, k->film.ics[j]);
+  free(k->film.ics);
+  k->film.ics = NULL;
+  set_swept(a, s->over_ic, s->par, k->film.old);
+  if (k->film.two) set_swept(a, s->over_ic2, s->par2, k->film.old2);
+  a->live = k->film.live;
+  a->keep_curves = k->film.keep;
+  k->film.on = false;
+  if (done && k->film.outer)
+    echo_sweep(a, true, k->film.two, k->film.grid, k->film.n1, k->film.n2, what, what2);
+  echo_end(a);
+  if (done) {
+    app_log(a, "Filmed %d runs over %s%s%s: %d frames in the Kinescope.", k->film.n, what,
+            what2 ? " and " : "", what2 ? what2 : "", k->n);
+    app_status(a, "Filmed %d runs over %s", k->film.n, what);
+    k->cur = 0;
+  } else {
+    app_log(a, "The film stopped after %d of %d runs.", k->n, k->film.n);
+    app_status(a, "The film stopped");
+    k->save_after[0] = k->frames_after[0] = '\0';
+  }
+}
+
+/* Once a frame: after the last run's picture is taken, the next run. */
+void app_film_step(App *a) {
+  SweepUI *s = &a->sw;
+  Kinescope *k = &a->ks;
+  int i1, j2;
+  double v, v2 = 0;
+  if (!k->film.on) return;
+  if (k->film.waiting) {
+    if (export_capture_waiting()) return;
+    k->film.waiting = false;
+    if (k->failed) {
+      film_end(a, false);
+      return;
+    }
+    k->film.k++;
+  }
+  if (k->film.k >= k->film.n) {
+    film_end(a, true);
+    return;
+  }
+  i1 = k->film.k % k->film.n1;
+  j2 = k->film.k / k->film.n1;
+  v = s->from + (s->to - s->from) * i1 / (k->film.n1 - 1);
+  if (k->film.two)
+    v2 = k->film.grid ? s->from2 + (s->to2 - s->from2) * j2 / (k->film.n2 - 1)
+                      : s->from2 + (s->to2 - s->from2) * i1 / (k->film.n1 - 1);
+  if (s->continue_runs && k->film.k > 0) {
+    a->eng->api.xppe_ic_last();
+    app_refresh_values(a);
+  }
+  set_swept(a, s->over_ic, s->par, v);
+  if (k->film.two) set_swept(a, s->over_ic2, s->par2, v2);
+  if (!app_run(a)) {
+    film_end(a, false);
+    return;
+  }
+  app_status(a, "Filming: run %d of %d", k->film.k + 1, k->film.n);
+  app_kine_capture(a, k->source);
+  k->film.waiting = true;
 }
 
 /* XPPAUT's Sing pts > Range over the Range tab's values: the equilibrium

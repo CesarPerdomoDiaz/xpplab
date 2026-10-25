@@ -116,6 +116,30 @@ typedef struct {
   bool reveal;         /* bring the Range tab forward next frame */
 } SweepUI;
 
+#define APP_MAX_FRAMES 200
+
+/* XPPAUT's Kinescope: pictures of a plot as it was shown, played back or
+   saved as an animated GIF. */
+typedef struct {
+  void *frame[APP_MAX_FRAMES]; /* SDL_Surface (RGB24), owned */
+  int n, cur;                  /* the frames, and the one shown (from 0) */
+  int source;                  /* the figure Capture takes (FigureKind) */
+  bool playing, loop;
+  int ms;                      /* between frames */
+  double acc;
+  void *tex;                   /* SDL_Texture of frame tex_frame */
+  int tex_frame;
+  bool failed;                 /* the last capture could not be made */
+  char save_after[1024];       /* a GIF to write, and PNG frames, once */
+  char frames_after[1024];     /* the film and the captures are done */
+  int save_ms;
+  struct {                     /* filming the Range: a run per frame */
+    bool on, waiting, outer, two, grid, live, keep;
+    int k, n, n1, n2;
+    double old, old2, *ics;
+  } film;
+} Kinescope;
+
 /* Every equilibrium found in a box (XPPAUT's Sing pts > Monte Carlo):
    n of them, nvars values each. */
 typedef struct {
@@ -293,7 +317,7 @@ typedef struct App {
   /* interface */
   bool show_browser, show_workspace, show_editor, show_time, show_phase,
       show_auto, show_console, show_help, show_data, show_demo, show_array,
-      show_analysis, show_view3d, show_ani;
+      show_analysis, show_view3d, show_ani, show_kine;
   int array_first, array_last; /* columns shown in the array plot */
   bool reset_layout;
   int layout; /* 0: the plots in tabs; 1: the phase plane beside the time series */
@@ -309,7 +333,9 @@ typedef struct App {
   int nrecent;
   bool quit;
   bool ephemeral; /* do not touch saved settings */
-  void *window; /* SDL_Window */
+  void *window;   /* SDL_Window */
+  void *renderer; /* SDL_Renderer */
+  Kinescope ks;
 } App;
 
 extern App *g_app;
@@ -373,6 +399,17 @@ bool app_export_nullclines_csv(App *a, const char *path);
 /* XPPAUT's Initial conds > Range: run once per value of a parameter, and
    either keep each trajectory or record the max and min of a variable. */
 bool app_sweep(App *a);
+/* Kinescope (app_kinescope.c). A capture is taken at the end of the frame,
+   once the figure is drawn. */
+void app_kine_capture(App *a, int figure);
+void app_kine_add(App *a, void *sdl_surface); /* takes the picture over */
+void app_kine_clear(App *a);
+bool app_kine_save_gif(App *a, const char *path, int ms);
+bool app_kine_save_frames(App *a, const char *base); /* base_001.png, ... */
+void app_kine_frame(App *a, float dt); /* each frame: the film, playback */
+/* Film the Range tab's runs, one per frame, each captured from figure. */
+bool app_film_range(App *a, int figure);
+void app_film_step(App *a);
 
 /* The engine's current run replaces a->traj (after an analysis changed it). */
 void app_fetch_current(App *a);

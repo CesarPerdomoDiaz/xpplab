@@ -8,6 +8,7 @@
 #include <SDL3/SDL.h>
 
 #include "app.h"
+#include "channel.h"
 #include "export.h"
 
 void ui_show_help(App *a, const char *page);
@@ -66,6 +67,8 @@ static const char *usage =
     "                           auto2) for the Kinescope [K C]; kinescope\n"
     "                           play [MS], stop, show K, clear, save F.gif\n"
     "                           [MS], frames BASE (PNG files), film [FIG]\n"
+    "  serve [on|off]           let Python drive the app: in Python,\n"
+    "                           app = xpplab.app.connect()\n"
     "  bvp                      solve the boundary-value problem (bndry)\n"
     "  ani FILE.ani             open an XPPAUT animation of the run;\n"
     "                           ani play, ani stop, ani row N\n"
@@ -514,6 +517,22 @@ void app_command(App *a, const char *line_in) {
       app_log(a, "Write: ic last (from the end of the last run), ic shift (and "
                  "the time goes on), ic read FILE, ic write FILE, or ic NAME = "
                  "FORMULA (NAME a variable or u[1..20], [j] the index)");
+    }
+  } else if (!strcmp(cmd, "serve")) {
+    /* serve [on | off]: the channel through which Python drives the app */
+    char *w = next_word(&rest);
+    if (w && !strcmp(w, "off")) {
+      channel_stop(a);
+      app_log(a, "Python can no longer connect (serve on lets it again).");
+    } else if (w && strcmp(w, "on")) {
+      app_log(a, "Write: serve, serve on or serve off");
+    } else if (a->batch) {
+      app_log(a, "error: xpplab-batch has no channel; drive the desktop app instead");
+    } else if (channel_start(a)) {
+      app_log(a, "Python can connect: import xpplab as xs; app = xs.app.connect() "
+                 "(%d connected now).", channel_clients());
+    } else {
+      app_log(a, "error: the channel for Python could not be opened");
     }
   } else if (!strcmp(cmd, "kinescope") || !strcmp(cmd, "ks")) {
     cmd_kinescope(a, rest);

@@ -105,6 +105,7 @@ set(APP_SOURCES
   src/ui_animator.c
   src/ui_kinescope.c
   src/export.c
+  src/channel.c
   ${GEN}/font_roboto.c
   ${GEN}/font_cousine.c
   ${GEN}/icon_rgba.c
@@ -137,6 +138,9 @@ set_target_properties(xpplab PROPERTIES
   BUILD_RPATH "$ORIGIN")
 target_include_directories(xpplab PRIVATE src ${PROJECT_SOURCE_DIR}/engine/api ${TP})
 target_link_libraries(xpplab PRIVATE xpps_gui SDL3::SDL3)
+if(WIN32)
+  target_link_libraries(xpplab PRIVATE ws2_32) # the local channel's socket
+endif()
 if(NOT WIN32)
   target_link_libraries(xpplab PRIVATE ${CMAKE_DL_LIBS} m)
 endif()

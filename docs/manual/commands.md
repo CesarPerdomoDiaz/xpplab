@@ -48,6 +48,7 @@ commands. `help` lists them all.
 | `ic u[1..20] = sin([j]/3)` | Initial values from a formula: one variable (`ic V = vk + 0.1`) or a numbered range, `[j]` the index (XPPAUT's formUla). |
 | `click -0.3 0`, `click keep` | Start a run at that point of the phase plane, as a click does; `click keep` keeps each such run (`click keep off` stops). |
 | `kinescope capture phase`, `kinescope play 200`, `kinescope save film.gif` | XPPAUT's Kinescope: a picture of a figure (time, phase, auto, auto2) as it is shown; play the frames (200 ms each); write them as an animated GIF (`kinescope frames NAME`: PNG files). `kinescope show 3`, `kinescope stop`, `kinescope clear`. |
+| `serve`, `serve off` | Let Python drive the app (`app = xpplab.app.connect()` in a notebook or script), or stop it. The app lets Python connect from the start unless it was started with `--no-serve`. |
 | `ensemble 50` | Run a noisy model 50 times and average: the mean and variance of every column at each time (XPPAUT's stocHastic > Compute). `export ens.csv analysis` saves them. |
 | `range iapp 0 0.3 10 film` | Film the Range: each run drawn alone and captured by the Kinescope (XPPAUT's Range with Movie). |
 | `eq` | Find an equilibrium and report its stability. |
@@ -141,6 +142,7 @@ starts.
 | `--script FILE` | Run commands at given frames of a recording. Each line is `FRAME command`; lines starting with `#` are comments. |
 | `--at FRAME "command"` | Run one command at a given frame of a recording. Repeatable. |
 | `--log FILE` | Write the command window's text to the file when the app exits. |
+| `--no-serve`, `--serve` | Start without the channel through which Python drives the app (the Python guide's *Driving the desktop app*); a screenshot or recording opens it only with `--serve`. |
 
 Frames for `--at` and `--script` count from the first saved frame, which is
 frame 0. A command written `@command` runs without being echoed in the

@@ -4,7 +4,7 @@
  *   xpplab [model.ode] [--cmd "command"]... [--then "command"]...
  *             [--screenshot out.bmp] [--frames N] [--size WxH] [--reset-layout]
  *             [--record DIR [--fps N] [--script FILE] [--at FRAME "command"]...]
- *             [--log FILE]
+ *             [--log FILE] [--serve | --no-serve]
  *
  * --cmd runs a command-window command after start-up (repeatable); --then
  * runs one after the first few frames, once the windows exist.
@@ -19,6 +19,8 @@
  * tools/make_demo.py turns recordings into the README's animations.
  * --log writes the command window to FILE when the app exits, so that a
  * script can check what the commands did (tests/parity.py).
+ * The app lets Python connect (channel.c) unless --no-serve is given; a
+ * screenshot or recording does so only with --serve.
  */
 #include <float.h>
 #include <stdio.h>
@@ -28,6 +30,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+#include "channel.h"
 #include "export.h"
 #include "gui_backend.h"
 #include "ui.h"
@@ -162,6 +165,7 @@ int main(int argc, char **argv) {
   int ncmds = 0, nlater = 0, frames = 12, width = 1500, height = 920, frame = 0, i;
   int fps = 20, saved = 0;
   bool reset_layout = false, applied_dark, shot_taken = false, scripted;
+  int serve = -1; /* -1: unless the run is scripted */
   const char *quit_reason = NULL;
   float applied_scale, dpi;
   char *pref;
@@ -192,6 +196,10 @@ int main(int argc, char **argv) {
       sscanf(argv[++i], "%dx%d", &width, &height);
     else if (!strcmp(argv[i], "--reset-layout"))
       reset_layout = true;
+    else if (!strcmp(argv[i], "--serve"))
+      serve = 1;
+    else if (!strcmp(argv[i], "--no-serve"))
+      serve = 0;
     else if (argv[i][0] != '-')
       model = argv[i];
   }
@@ -288,6 +296,7 @@ int main(int argc, char **argv) {
     app_log(&app, ">> %s", cmds[i]);
     app_command(&app, cmds[i]);
   }
+  if (serve == 1 || (serve == -1 && !scripted)) channel_start(&app);
 
   while (!app.quit) {
     SDL_Event ev;
@@ -323,6 +332,7 @@ int main(int argc, char **argv) {
 
     /* --then commands run once the windows have been drawn, so that, for
        example, figures exist and can be exported. */
+    channel_poll(&app);
     if (frame == 4)
       for (i = 0; i < nlater; i++) {
         app_log(&app, ">> %s", later[i]);
@@ -395,6 +405,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  channel_stop(&app);
   app_shutdown(&app);
   gui_backend_shutdown();
   ImPlot_DestroyContext(NULL);

@@ -24,6 +24,7 @@
 #include <SDL3/SDL.h>
 
 #include "app.h"
+#include "channel.h"
 #include "export.h"
 
 /* What the window would do. */
@@ -37,6 +38,14 @@ bool figure_on_screen(FigureKind kind) {
   (void)kind;
   return false;
 }
+
+/* No channel for Python without a window. */
+bool channel_start(App *a) {
+  (void)a;
+  return false;
+}
+void channel_stop(App *a) { (void)a; }
+int channel_clients(void) { return 0; }
 
 static size_t printed;
 static bool quiet;

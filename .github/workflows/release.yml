@@ -109,12 +109,16 @@ jobs:
             echo "::warning::no Rosetta on this runner: the Intel half was not started"
           fi
           hdiutil detach /tmp/xpps
+      # The disk image alone in its artifact: with the screenshots beside
+      # it, it landed in a build/ subfolder that publish did not look in.
       - uses: actions/upload-artifact@v4
         with:
           name: app-macos
-          path: |
-            build/XPPStudio-*.dmg
-            macos-release.bmp
+          path: build/XPPStudio-*.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-screenshots
+          path: macos-*.bmp
 
   linux:
     # The oldest supported runner: a program built against an older glibc
@@ -254,6 +258,11 @@ jobs:
           merge-multiple: true
       - name: Checksums and release notes
         run: |
+          # every file at the top of dist/, wherever its artifact put it
+          find dist -mindepth 2 -type f -exec mv -t dist {} +
+          for f in XPPStudio-Windows-x64.zip XPPStudio-macOS.dmg XPPStudio-Linux-x86_64.tar.gz; do
+            test -f "dist/$f" || { echo "::error::$f is missing"; exit 1; }
+          done
           (cd dist && sha256sum XPPStudio-* *.whl > SHA256SUMS && cat SHA256SUMS)
           version="${GITHUB_REF_NAME#v}"
           sed -e "s/@VERSION@/$version/g" -e "s/@TAG@/$GITHUB_REF_NAME/g" \

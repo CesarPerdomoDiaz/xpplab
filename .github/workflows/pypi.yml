@@ -1,0 +1,44 @@
+name: PyPI
+
+# Publishes a release's wheels to PyPI, so that `pip install xppstudio`
+# works. PyPI trusts this workflow itself (trusted publishing): no PyPI
+# token is stored anywhere. It runs when a release is published, and by
+# hand for a given tag (the first upload created the project on PyPI).
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The release whose wheels to publish, e.g. v0.1.0"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  pypi:
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/xppstudio/
+    permissions:
+      contents: read
+      id-token: write     # the identity PyPI checks, instead of a token
+    steps:
+      - name: The release's wheels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          # A release is created before its files are attached: wait for
+          # the three wheels (Windows, macOS, Linux).
+          for i in $(seq 1 30); do
+            rm -rf dist && mkdir dist
+            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.whl' --dir dist || true
+            [ "$(ls dist/*.whl 2>/dev/null | wc -l)" -ge 3 ] && break
+            sleep 20
+          done
+          ls -la dist
+          [ "$(ls dist/*.whl | wc -l)" -ge 3 ] || { echo "::error::$TAG has fewer than three wheels"; exit 1; }
+      - uses: pypa/gh-action-pypi-publish@release/v1

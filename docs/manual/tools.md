@@ -32,6 +32,33 @@ Command: `range iapp 0 0.2 40 V` (max and min of V),
 value, keeping the runs), `range iapp 0 0.3 31 eq V` (equilibria). `export
 range.csv range` saves the table.
 
+### Two values at once
+
+**Vary a second value too** is XPPAUT's *Initial conds > 2par range*. Pick
+the second parameter (or initial value) and its own *From* and *To*, then
+how the two move:
+
+- **On a grid** runs every pair: *Steps* values of the first times *Steps*
+  values of the second (XPPAUT's "Array"). With *Max / min* or *Liapunov
+  exponent* the result is a colour map over the two values, the first
+  across and the second up. *Show* picks what the colour means for max and
+  min: the swing (max - min, zero where the system settles to an
+  equilibrium), the max or the min. For the Liapunov exponent the colours
+  run from blue (negative) to red (positive), so chaotic regions stand out.
+- **Together, along a line** moves both at once, *Steps* runs from
+  (From, From) to (To, To) (XPPAUT's "Crv"); the result is plotted against
+  the first value, as with one.
+
+*Keep each trajectory* works for up to 16 runs. *Start each run where the
+last ended* goes through the grid row by row: the first value changes
+fastest. *Equilibria* follow the first value only.
+
+Command: `range iapp 0 0.5 21 gca 0.8 1.4 13 V` (a 21 by 13 grid),
+`range iapp 0 0.5 30 gca 0.8 1.2 lyap` (along a line: no second count),
+`range iapp 0 0.3 3 V -0.2 0.2 2` (over a parameter and V's initial value,
+keeping the runs). `export grid.csv range` writes one row per run with both
+values.
+
 ## Every equilibrium at once
 
 **All equilibria** in the Phase Plane (or **Run > Find all equilibria**,

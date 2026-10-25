@@ -82,6 +82,12 @@ CASES = [
         "range iapp 0 0.5 6 lyap", "export {out}/lyap.csv range",
         "range iapp 0.05 0.3 4 V continue", "export {out}/followed.csv range",
         "range iapp 0 0.3 4", "export {out}/last_of_kept.csv"]),
+    ("range_two", "lecar.ode", [
+        "range iapp 0 0.5 6 gca 0.8 1.2 5 V", "export {out}/grid.csv range",
+        "range iapp 0 0.5 6 gca 0.8 1.2 lyap", "export {out}/line.csv range",
+        "range iapp 0.05 0.3 4 gca 0.9 1.1 3 V continue",
+        "export {out}/grid_continued.csv range",
+        "range iapp 0 0.3 3 V -0.2 0.2 2", "export {out}/last_of_kept.csv"]),
     ("analysis", "lecar.ode", [
         "set iapp=0.1 total=400", "run",
         "spectrum V 256", "export {out}/spectrum.csv analysis",

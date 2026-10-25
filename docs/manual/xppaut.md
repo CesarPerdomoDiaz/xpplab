@@ -43,6 +43,7 @@ page.
 | Sing pts > Go | Equilibrium button |
 | Sing pts > Monte Carlo | Phase Plane > All equilibria, `eq all` |
 | Sing pts > Range | Workspace > Range > Equilibria, `range ... eq` |
+| Initial conds > 2par range | Workspace > Range > Vary a second value too, `range p1 ... p2 ...` |
 | Parameters, ICs, Numerics windows | Workspace tabs |
 | Erase | `erase` (E) |
 | File > Auto | Bifurcation window |
@@ -51,10 +52,9 @@ page.
 | Data viewer | View > Data |
 | File > Write .set / Read .set | the `.ode` file keeps the values; `set` statements give named sets |
 
-Not yet in the new interface: the Kinescope, two-parameter ranges, several
-curves and labels on one figure (Graphic stuff, Text), formulas in the data
-browser, and reading saved AUTO diagrams back. The engine supports them, so
-they will come; the roadmap lists them.
+Not yet in the new interface: the Kinescope, several curves and labels on
+one figure (Graphic stuff, Text) and formulas in the data browser. The
+engine supports them, so they will come; the roadmap lists them.
 
 ## AUTO files
 

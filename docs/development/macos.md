@@ -76,8 +76,8 @@ resolution.
 
 ![XPP Lab on a Retina MacBook Air](../images/macos-retina.png)
 
-*The fixed app on the M2 MacBook Air (macOS 26.6), shown at half its
-2940 × 1618 pixels.*
+*XPP Lab 0.1.1, from the release's `.dmg`, on the M2 MacBook Air (macOS
+26.6), shown at half its 2940 × 1612 pixels.*
 
 ## What already works
 
@@ -95,7 +95,7 @@ resolution.
   macOS 11 or later). SDL3 is compiled from source because Homebrew's is
   single-architecture. It mounts the `.dmg` and checks the architectures,
   that nothing links outside the bundle, the signature, and that the app
-  starts and runs AUTO. That build is on the preview release.
+  starts and runs AUTO. That build is the `.dmg` of each release.
 - **`Info.plist`** declares the `.ode` document type (UTI
   `org.xpplab.ode`), marks the app as Retina-capable and sets the
   minimum system version to 11.0.

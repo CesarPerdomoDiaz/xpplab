@@ -1,4 +1,34 @@
-# Range, boundary-value problems, 3D and animations
+# Initial values, Range, boundary-value problems, 3D and animations
+
+## Initial values
+
+**Workspace > Initial values** lists each variable's value at the start of
+a run. Type a value, or set them all at once (XPPAUT's *Initial conds*
+menu):
+
+- **From end of last run** (I L) starts the next run where the last one
+  ended. **From end, time goes on** (I S, *Shift*) also makes the start
+  time T0 the time the run ended, so the clock carries on. It matters when
+  the equations depend on t, as with a periodic forcing.
+- **From equilibrium** takes the last equilibrium found.
+- **From file...** (I F) reads one number per variable, in the order of the
+  table, from a text file; spaces, new lines or commas separate them.
+  **Save to file...** writes the current values exactly, one per line, so
+  they can be read back later.
+- **From a formula** (I U, *formUla*) gives a variable the value of a
+  formula in the parameters and the model's functions: `V` = `vk + 0.1`. For
+  numbered variables write a range, and `[j]` in the formula stands for the
+  index: `u[0..199]` = `0.8*exp(-([j]-100)^2/50)` puts a bump in the middle
+  of a 200-cell line (try the Amari model).
+
+In the Phase Plane, **Click to start** begins a run wherever you click
+(*Mouse*). Tick **Keep each** beside it and every click adds a trajectory
+while the earlier ones stay (*mIce*): a few clicks sketch the phase
+portrait. Erase (E) clears them.
+
+Commands: `ic last`, `ic shift`, `ic read ics.dat`, `ic write ics.dat`,
+`ic u[0..199] = 0.8*exp(-([j]-100)^2/50)`, `click -0.3 0` (a run from that
+point of the phase plane), `click keep`.
 
 ## Range: many runs over a parameter
 

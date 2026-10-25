@@ -187,7 +187,7 @@ To do:
       in a box (Sing pts > Monte Carlo), in the C API, Python and the app
 - [x] Save and reload AUTO diagrams (exactly, unlike XPPAUT's 6 digits); import an orbit
 - [x] Range over two parameters, on a grid (a colour map) or along a line
-- [ ] Initial values from a file, a formula, Shift, several clicks
+- [x] Initial values from a file, a formula, Shift, several clicks
 - [ ] Freeze and save nullclines
 - [ ] Kinescope
 - [ ] A batch command-line tool (XPPAUT's -silent, with AUTO)

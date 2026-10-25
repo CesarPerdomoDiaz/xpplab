@@ -43,7 +43,7 @@ typedef struct {
 
 typedef struct {
   int xvar, yvar; /* indices of state variables */
-  bool nullclines, dirfield, click_to_start, show_equilibria;
+  bool nullclines, dirfield, click_to_start, click_keep, show_equilibria;
   double xlo, xhi, ylo, yhi; /* the window the nullclines were computed for */
   float *ncx, *ncy;          /* segments (x1,y1,x2,y2) */
   int ncx_n, ncy_n;
@@ -251,6 +251,7 @@ typedef struct App {
   bool have_traj;
   bool live;      /* rerun after every parameter change */
   bool keep_curves;
+  bool reveal_ics; /* bring the Initial values tab forward next frame */
   bool needs_run;
   Equilibrium eq[APP_MAX_EQUILIBRIA];
   int neq;
@@ -329,9 +330,13 @@ bool app_run(App *a);
 /* A rerun after a change in live mode: written to the session once the
    mouse is let go, not once per frame of a drag. */
 bool app_run_live(App *a);
+bool app_click_start(App *a, double x, double y); /* phase-plane point */
 bool app_continue(App *a, double more_time); /* 0: the current TOTAL */
 /* XPPAUT's Initial conds > Last, from the run as shown. */
-bool app_ic_last(App *a);
+bool app_ic_last(App *a, bool shift); /* shift: T0 from the run's end too */
+bool app_ic_read(App *a, const char *path);  /* Initial conds > File */
+bool app_ic_write(App *a, const char *path);
+bool app_ic_formula(App *a, const char *target, const char *formula);
 void app_freeze(App *a);
 void app_clear_curves(App *a);
 bool app_equilibrium(App *a, const double *guess);

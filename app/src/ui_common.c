@@ -134,7 +134,7 @@ void ui_apply_theme(App *a) {
 /* ---- File dialogs ------------------------------------------------------------- */
 
 enum { DLG_NONE, DLG_OPEN, DLG_SAVE_AS, DLG_EXPORT, DLG_PNG, DLG_SVG, DLG_ANI,
-       DLG_SCRIPT, DLG_DATA, DLG_AUTO_SAVE, DLG_AUTO_OPEN };
+       DLG_SCRIPT, DLG_DATA, DLG_AUTO_SAVE, DLG_AUTO_OPEN, DLG_IC_READ, DLG_IC_WRITE };
 static SDL_Mutex *dlg_lock;
 static int dlg_kind;
 static char dlg_result[1024];
@@ -223,6 +223,19 @@ void ui_dialog_auto_file(App *a, bool save) {
                            (SDL_Window *)a->window, auto_filters, 2, NULL, false);
 }
 
+static const SDL_DialogFileFilter ic_filters[] = {
+    {"Initial values (*.dat, *.txt)", "dat;txt"}, {"All files", "*"}};
+
+void ui_dialog_ics(App *a, bool save) {
+  if (!dlg_lock) dlg_lock = SDL_CreateMutex();
+  if (save)
+    SDL_ShowSaveFileDialog(dialog_done, (void *)(intptr_t)DLG_IC_WRITE,
+                           (SDL_Window *)a->window, ic_filters, 2, NULL);
+  else
+    SDL_ShowOpenFileDialog(dialog_done, (void *)(intptr_t)DLG_IC_READ,
+                           (SDL_Window *)a->window, ic_filters, 2, NULL, false);
+}
+
 /* With a dot and an extension, or the one given. */
 static void with_extension(const char *path, const char *ext, char *out, size_t len) {
   size_t n = strlen(path), e = strlen(ext);
@@ -260,6 +273,15 @@ void ui_dialog_poll(App *a) {
     app_auto_save(a, p);
   }
   if (kind == DLG_AUTO_OPEN) app_auto_load(a, path);
+  if (kind == DLG_IC_READ) app_ic_read(a, path);
+  if (kind == DLG_IC_WRITE) {
+    /* .dat unless the name has an extension of its own */
+    const char *base = strrchr(path, '/'), *b2 = strrchr(path, '\\');
+    char p[1100];
+    if (b2 > base) base = b2;
+    snprintf(p, sizeof p, "%s%s", path, strchr(base ? base : path, '.') ? "" : ".dat");
+    app_ic_write(a, p);
+  }
   if (kind == DLG_DATA) {
     char p[1100];
     with_extension(path, ".csv", p, sizeof p);
@@ -338,7 +360,8 @@ static void classic_keys(App *a) {
     char k1, k2;
     const char *command;
   } map[] = {
-      {'i', 'g', "run"},      {'i', 'l', "ic last"},  {'n', 'n', "nullclines"},
+      {'i', 'g', "run"},      {'i', 'l', "ic last"},  {'i', 's', "ic shift"},
+      {'n', 'n', "nullclines"},
       {'n', 'e', "nullclines off"}, {'d', 'd', "dirfield"},
       {'s', 'g', "eq"},       {'e', 0, "erase"},      {'w', 'f', "fit"},
       {'f', 'q', "quit"},     {'c', 'c', "continue"},

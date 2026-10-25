@@ -73,6 +73,8 @@ static void initial_tab(App *a) {
   int i;
   ImGuiTableFlags tf = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
                        ImGuiTableFlags_ScrollY;
+  static char target[128], formula[512];
+  bool go;
   if (Button("From end of last run")) app_command(a, "ic last");
   Tooltip("Start the next run where the last one ended (XPPAUT: I L).");
   igSameLine(0, -1);
@@ -80,6 +82,37 @@ static void initial_tab(App *a) {
     for (i = 0; i < a->nvars; i++) app_set_ic(a, i, a->eq[a->neq - 1].x[i]);
   }
   Tooltip("Use the last equilibrium found as the initial value.");
+  if (Button("From end, time goes on")) app_command(a, "ic shift");
+  Tooltip("Start where the last run ended, and let the time go on from there: "
+          "the start time T0 becomes the time the run ended (XPPAUT's Initial "
+          "conds > Shift, I S). It matters for models that depend on t, such "
+          "as a periodic forcing.");
+  if (Button("From file...")) ui_dialog_ics(a, false);
+  Tooltip("Read the initial values from a text file: one number per variable, "
+          "in the order of the table (XPPAUT's Initial conds > File, I F).");
+  igSameLine(0, -1);
+  if (Button("Save to file...")) ui_dialog_ics(a, true);
+  Tooltip("Write these initial values to a text file, one per line, exactly.");
+  igSeparatorText("From a formula");
+  igSetNextItemWidth(90);
+  igInputTextWithHint("##target", "V, u[1..9]", target, sizeof target, 0, NULL, NULL);
+  igSameLine(0, 4);
+  igTextUnformatted("=", NULL);
+  igSameLine(0, 4);
+  igSetNextItemWidth(-50);
+  go = igInputTextWithHint("##formula", "vk + 0.1", formula, sizeof formula,
+                           ImGuiInputTextFlags_EnterReturnsTrue, NULL, NULL);
+  igSameLine(0, -1);
+  go = Button("Set") || go;
+  if (go && target[0] && formula[0]) {
+    char cmd[700];
+    snprintf(cmd, sizeof cmd, "ic %s = %s", target, formula);
+    app_command(a, cmd);
+  }
+  Tooltip("XPPAUT's Initial conds > formUla: a variable, or numbered variables "
+          "such as u[1..50], take the value of a formula in the parameters and "
+          "the model's functions. In a range, [j] is the index: u[1..50] = "
+          "exp(-([j]-25)^2/20) is a bump around u25.");
   if (!igBeginTable("ics", 2, tf, V2(0, 0), 0)) return;
   igTableSetupColumn("Variable", ImGuiTableColumnFlags_WidthFixed, 90, 0);
   igTableSetupColumn("Initial value", ImGuiTableColumnFlags_WidthStretch, 0, 0);
@@ -491,7 +524,8 @@ void ui_workspace(App *a) {
       parameters_tab(a);
       igEndTabItem();
     }
-    if (igBeginTabItem("Initial values", NULL, 0)) {
+    if (igBeginTabItem("Initial values", NULL,
+                       a->reveal_ics ? ImGuiTabItemFlags_SetSelected : 0)) {
       initial_tab(a);
       igEndTabItem();
     }
@@ -508,6 +542,7 @@ void ui_workspace(App *a) {
       igEndTabItem();
     }
     a->sw.reveal = false;
+    a->reveal_ics = false;
     igEndTabBar();
   }
   igEnd();

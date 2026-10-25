@@ -34,6 +34,24 @@ appended, leaving the initial conditions as they were. `m.last_run()` is
 the engine's most recent run, such as the one period of the limit cycle
 that `m.phase_response()` leaves behind.
 
+### Initial conditions
+
+```python
+m.ics["V"] = -0.3                       # one value (m.initial_conditions)
+m.ic_last()                             # from the end of the last run (I L)
+m.ic_last(shift=True)                   # and T0 from its end time (I S)
+m.write_ics("ics.dat")                  # one per line, exactly
+m.read_ics("ics.dat")                   # one number per variable (I F)
+m.ic_formula("V", "vk + 0.1")           # a formula, evaluated by XPPAUT
+m.ic_formula("u[0..199]", "0.8*exp(-([j]-100)^2/50)")   # [j]: the index
+```
+
+`read_ics` takes the first numbers in a text file, in the order of
+`m.variables`; a file with too few raises `EngineError` and changes
+nothing. `ic_formula` is XPPAUT's *Initial conds > formUla*: the formula
+may use the parameters and the model's functions, and a numbered range of
+variables gets one value per index.
+
 `sol.to_csv("run.csv")` writes a run with a header and every number exact;
 `Table` results and bifurcation diagrams (`m.auto.diagram.to_csv(...)`)
 have the same method. The files match the desktop app's CSV exports.

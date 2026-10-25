@@ -179,7 +179,7 @@ def test_homoclinic_tail_is_not_littered_with_limit_points():
         d = m.auto.equilibria("vw")
         orbits = m.auto.continue_from(d.first("HB"), "periodic")
         assert max(p.period for p in orbits) > 1e5
-        assert len([p for p in orbits if p.type in ("LP", "BP", "PD", "TR")]) <= 10
+        assert len([p for p in orbits if p.type in ("LP", "BP", "PD", "TR")]) <= 2
 
 
 def test_a_saved_diagram_comes_back_and_can_be_continued(lecar_hopf, tmp_path):

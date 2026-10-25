@@ -305,12 +305,12 @@ static const char *type_name(int itp) {
 }
 
 /* Near a homoclinic orbit the period of a periodic branch grows without
-   bound while the parameter stops moving (to about 1e-9 for the kite model),
+   bound while the parameter stops moving (to 1e-6 or so for the kite model),
    and AUTO's test functions then flag a limit point or branch point at nearly
    every step. Those labels are noise, not bifurcations: report such points
    as ordinary ones. A point counts as noise when it is a one-parameter
    LP/BP/PD/TR whose period is at least 10 times that of the branch's first
-   point and whose parameter equals the previous point's to 1e-7 (relative). */
+   point and whose parameter equals the previous point's to 1e-5 (relative). */
 static int is_period_tail_noise(const DIAGRAM *d) {
   const DIAGRAM *q, *first = NULL, *prev = NULL;
   double a, b;
@@ -328,7 +328,7 @@ static int is_period_tail_noise(const DIAGRAM *d) {
     return 0;
   a = d->par[d->icp1];
   b = prev->par[d->icp1];
-  return fabs(a - b) <= 1e-7 * (1.0 + fabs(a));
+  return fabs(a - b) <= 1e-5 * (1.0 + fabs(a));
 }
 
 int xppe_auto_point(int i, xppe_auto_point_info *info) {

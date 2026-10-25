@@ -15,14 +15,22 @@ typedef struct {
   float x0, y0, x1, y1;      /* in ImGui (window) coordinates */
   double xmin, xmax, ymin, ymax;
   bool valid;
+  int frame; /* the ImGui frame it was last drawn in */
 } FigureState;
 
 extern FigureState g_figures[FIG_COUNT];
+
+/* Whether the figure was drawn in this frame: on the screen now, not in a
+   tab behind another (ui_common.c). */
+bool figure_on_screen(FigureKind kind);
 
 const char *figure_name(FigureKind kind);
 
 /* Write a PNG of the figure at the end of the current frame. */
 void export_png(FigureKind kind, const char *path);
+/* Hand a picture of the figure to the Kinescope at the end of the frame. */
+void export_capture(FigureKind kind);
+bool export_capture_waiting(void);
 /* Called by the main loop after rendering, before presenting. */
 void export_process_pending(App *a, void *sdl_renderer, float fb_scale);
 /* Write an SDL_Surface as a PNG file. */

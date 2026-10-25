@@ -452,6 +452,13 @@ static void sweep_tab(App *a) {
                "count.");
   }
   if (ButtonW("Run range", -1)) app_sweep(a);
+  if (s->mode != SWEEP_EQUILIBRIA &&
+      ButtonW(a->ks.film.on ? "Filming..." : "Film it in the Kinescope", -1) &&
+      !a->ks.film.on)
+    app_command(a, "kinescope film");
+  Tooltip("XPPAUT's Range with Movie: run each value in turn, each run drawn "
+          "alone, and capture the Kinescope's figure (the Phase Plane unless "
+          "you choose another there) after each. Keep that figure in view.");
   if (s->result_kind == 2 && s->n == s->n1 * s->n2 && s->result_mode != SWEEP_OVERLAY) {
     grid_map(a);
     return;

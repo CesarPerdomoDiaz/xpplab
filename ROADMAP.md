@@ -137,8 +137,7 @@ Done:
       exponents, adjoints, phase response curves, H functions
 
 To do:
-- [ ] Kinescope; two-parameter ranges; nullclines and grab points in
-      animations
+- [ ] Nullclines and grab points in animations
 - [ ] Text, Make window, Graphic stuff (labels, arrows, several plots)
 - [ ] Command palette; MATLAB `.mat` export; PDF figures
 
@@ -189,7 +188,8 @@ To do:
 - [x] Range over two parameters, on a grid (a colour map) or along a line
 - [x] Initial values from a file, a formula, Shift, several clicks
 - [x] Freeze and save nullclines
-- [ ] Kinescope
+- [x] Kinescope: capture a figure, play the frames, an animated GIF; film
+      the Range (XPPAUT's Movie)
 - [ ] A batch command-line tool (XPPAUT's -silent, with AUTO)
 - [ ] Ensemble statistics over noisy runs (stocHastic > Compute)
 

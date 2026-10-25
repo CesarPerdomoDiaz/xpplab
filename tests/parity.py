@@ -81,6 +81,35 @@ def svg_ok(path):
     return None
 
 
+def gif_frames(at_least):
+    """An animated GIF whose blocks parse to the end, with enough frames."""
+    def check(path):
+        b = path.read_bytes()
+        if b[:6] not in (b"GIF89a", b"GIF87a"):
+            return "not a GIF"
+        i, frames = 13, 0
+        if b[10] & 0x80:
+            i += 3 * (2 << (b[10] & 7))
+        while i < len(b) and b[i] != 0x3B:
+            if b[i] == 0x21:            # an extension: its label, then blocks
+                i += 2
+            elif b[i] == 0x2C:          # an image
+                frames += 1
+                local = b[i + 9]
+                i += 10 + (3 * (2 << (local & 7)) if local & 0x80 else 0) + 1
+            else:
+                return "a broken GIF at byte %d" % i
+            while i < len(b) and b[i]:
+                i += b[i] + 1
+            i += 1
+        if i >= len(b):
+            return "a GIF without its end"
+        if frames < at_least:
+            return "%d frames, expected %d" % (frames, at_least)
+        return None
+    return check
+
+
 def png_ok(path):
     size = png_size(path)
     if not size or size[0] < 100 or size[1] < 100:
@@ -218,10 +247,27 @@ def cases(fx, shipped):
     add("phase", "nullclines, direction field, equilibrium, figure export",
         "lecar.ode", ["nullclines", "dirfield", "eq", "show phase"],
         then=["export {out}/phase.svg phase", "export {out}/phase.png phase",
-              "export {out}/time.svg time", "export {out}/time.png time"],
+              "export {out}/time.svg time"],
         expect=[r"Equilibrium \(saddle\)", r"manifolds drawn"],
-        files={"phase.svg": svg_ok, "phase.png": png_ok, "time.svg": svg_ok,
-               "time.png": png_ok}, frames=20)
+        files={"phase.svg": svg_ok, "phase.png": png_ok, "time.svg": svg_ok},
+        frames=20)
+    # A PNG is the figure as it is on the screen: the Time Series shares its
+    # place with the Phase Plane, so it is brought forward first.
+    add("time_png", "the time series as a PNG", "lecar.ode", ["run", "show time"],
+        then=["export {out}/time.png time"], files={"time.png": png_ok}, frames=16)
+    # The Kinescope: a picture of a figure, and a film of the Range
+    add("kinescope_capture", "capture a figure, save it as a GIF", "lecar.ode",
+        ["run", "show phase"],
+        then=["kinescope capture phase", "kinescope save {out}/one.gif"],
+        expect=[r"Saved .*one\.gif: 1 frame of"], files={"one.gif": gif_frames(1)},
+        frames=16)
+    add("kinescope_film", "film the Range: a GIF and PNG frames", "lecar.ode",
+        ["nullclines", "show phase"],
+        then=["range iapp 0 0.3 5 film phase", "kinescope save {out}/film.gif 200",
+              "kinescope frames {out}/frame"],
+        expect=[r"Filmed 5 runs over iapp: 5 frames", r"Saved .*film\.gif: 5 frames"],
+        files={"film.gif": gif_frames(5), "frame_001.png": png_ok,
+               "frame_005.png": png_ok}, frames=30)
     add("freeze_erase", "keep curves, erase", "lecar.ode",
         ["run", "freeze", "set iapp=0.2", "run", "erase"])
 

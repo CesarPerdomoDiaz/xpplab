@@ -59,7 +59,13 @@ static const char *usage =
     "                           follows the equilibrium (Sing pts > Range).\n"
     "                           NAME2: a second value too, on a grid of\n"
     "                           N2 steps, or without N2 along with the first\n"
-    "                           (XPPAUT's 2par range)\n"
+    "                           (XPPAUT's 2par range). film [FIGURE]: each\n"
+    "                           run drawn alone and captured by the Kinescope\n"
+    "                           (Range's Movie)\n"
+    "  kinescope capture [FIG]  a picture of a figure (time, phase, auto,\n"
+    "                           auto2) for the Kinescope [K C]; kinescope\n"
+    "                           play [MS], stop, show K, clear, save F.gif\n"
+    "                           [MS], frames BASE (PNG files), film [FIG]\n"
     "  bvp                      solve the boundary-value problem (bndry)\n"
     "  ani FILE.ani             open an XPPAUT animation of the run;\n"
     "                           ani play, ani stop, ani row N\n"
@@ -124,6 +130,51 @@ static bool is_number(const char *s) {
   if (!s) return false;
   strtod(s, &end);
   return end != s && *end == '\0';
+}
+
+/* time, phase, auto or auto2: a figure; -1 for any other word. */
+static int figure_word(const char *w) {
+  static const char *names[] = {"time", "phase", "auto", "auto2"};
+  int i;
+  for (i = 0; w && i < FIG_COUNT; i++)
+    if (!strcmp(w, names[i])) return i;
+  return -1;
+}
+
+/* kinescope capture [FIGURE] | clear | play [MS] | stop | show K |
+   save FILE.gif [MS] | frames BASE | film [FIGURE]: XPPAUT's Kinescope. */
+static void cmd_kinescope(App *a, char *rest) {
+  Kinescope *k = &a->ks;
+  char *w = next_word(&rest), *x = next_word(&rest);
+  int f = figure_word(x);
+  if (w && !strcmp(w, "capture")) {
+    app_kine_capture(a, f >= 0 ? f : k->source);
+  } else if (w && (!strcmp(w, "clear") || !strcmp(w, "reset"))) {
+    app_kine_clear(a);
+    app_log(a, "Kinescope emptied.");
+  } else if (w && !strcmp(w, "play")) {
+    if (x && is_number(x)) k->ms = atoi(x);
+    k->playing = k->n > 1;
+    k->acc = 0;
+  } else if (w && !strcmp(w, "stop")) {
+    k->playing = false;
+  } else if (w && !strcmp(w, "show") && x && is_number(x)) {
+    int i = atoi(x);
+    if (i >= 1 && i <= k->n) k->cur = i - 1;
+    k->playing = false;
+  } else if (w && !strcmp(w, "save") && x) {
+    char *ms = next_word(&rest);
+    app_kine_save_gif(a, x, ms && is_number(ms) ? atoi(ms) : k->ms);
+  } else if (w && !strcmp(w, "frames") && x) {
+    app_kine_save_frames(a, x);
+  } else if (w && !strcmp(w, "film")) {
+    app_film_range(a, f >= 0 ? f : k->source);
+  } else if (w) {
+    app_log(a, "Write: kinescope capture [time|phase|auto|auto2], clear, play "
+               "[MS], stop, show K, save FILE.gif [MS], frames BASE, or film "
+               "[FIGURE] (the Range tab's runs)");
+  }
+  a->show_kine = true;
 }
 
 /* spectrum, fourier, power, hist, hist2d, xcorr, mean, prc, hfun, fitdata */
@@ -445,6 +496,8 @@ void app_command(App *a, const char *line_in) {
                  "the time goes on), ic read FILE, ic write FILE, or ic NAME = "
                  "FORMULA (NAME a variable or u[1..20], [j] the index)");
     }
+  } else if (!strcmp(cmd, "kinescope") || !strcmp(cmd, "ks")) {
+    cmd_kinescope(a, rest);
   } else if (!strcmp(cmd, "click")) {
     /* click X Y: a run from that point of the phase plane; click keep [off]
        keeps each such run (Initial conds > mIce). */
@@ -579,8 +632,8 @@ void app_command(App *a, const char *line_in) {
        first: on a grid when STEPS2 is given, else both together. */
     char *par = next_word(&rest), *from = next_word(&rest), *to = next_word(&rest);
     char *w, *wd[24];
-    int p = par ? app_find_par(a, par) : -1, ic = -1, nw = 0, k;
-    bool bad = false;
+    int p = par ? app_find_par(a, par) : -1, ic = -1, nw = 0, k, film_fig = -1;
+    bool bad = false, film = false;
     if (p < 0 && par) ic = app_find_var(a, par);
     while (nw < 24 && (wd[nw] = next_word(&rest)) != NULL) nw++;
     if ((p < 0 && ic < 0) || !from || !to) {
@@ -618,6 +671,10 @@ void app_command(App *a, const char *line_in) {
           a->sw.steps = atoi(w);
         else if (!strcmp(w, "continue"))
           a->sw.continue_runs = true;
+        else if (!strcmp(w, "film"))
+          film = true; /* each run captured by the Kinescope */
+        else if (film && figure_word(w) >= 0)
+          film_fig = figure_word(w);
         else if (!strcmp(w, "lyap") || !strcmp(w, "liapunov"))
           a->sw.mode = SWEEP_LYAPUNOV;
         else if (!strcmp(w, "eq") || !strcmp(w, "equilibria"))
@@ -634,7 +691,12 @@ void app_command(App *a, const char *line_in) {
         } else
           app_log(a, "note: ignored '%s'", w);
       }
-      if (!bad) app_sweep(a);
+      if (bad)
+        ;
+      else if (film)
+        app_film_range(a, film_fig >= 0 ? film_fig : a->ks.source);
+      else
+        app_sweep(a);
     }
   } else if (!strcmp(cmd, "open")) {
     char *p = skip_space(rest);

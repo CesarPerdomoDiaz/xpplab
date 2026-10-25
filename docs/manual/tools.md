@@ -1,4 +1,4 @@
-# Initial values, Range, boundary-value problems, 3D and animations
+# Initial values, Range, boundary-value problems, 3D, animations and the Kinescope
 
 ## Initial values
 
@@ -203,3 +203,39 @@ otherwise. Commands are evaluated at every frame, except those after a
 between, or a formula from 0 to 1 along the colour scale.
 
 Commands: `ani pend.ani`, `ani play`, `ani row 200`.
+
+## The Kinescope
+
+The **Kinescope** (*View > Kinescope*, or *Run > Kinescope...*) is
+XPPAUT's film strip: it keeps pictures of a figure exactly as it is on the
+screen, plays them back and saves them as an animated GIF for a talk, a
+web page or a paper's supplement.
+
+- Choose the figure (Phase Plane, Time Series, Bifurcation or the
+  two-parameter diagram) and press **Capture** (K C) whenever it shows
+  something worth keeping: change a parameter, run, capture again.
+- **Play** (K A) steps through the frames at the speed set beside it, in a
+  loop if *Loop* is ticked; the arrows step by hand, as XPPAUT's Playback
+  does. **Delete all** (K R) empties the strip.
+- **Save animated GIF...** writes every frame into one GIF (XPPAUT's Make
+  AniGif), with the delay set by the speed. **Save frames as PNG...**
+  writes NAME_001.png, NAME_002.png, ... (XPPAUT's Save).
+
+**Workspace > Range > Film it in the Kinescope** is XPPAUT's Range with
+*Movie* set to Yes: the model runs for each value in turn, each run drawn
+alone, and the Kinescope captures its figure after every run. Keep that
+figure in view while it films. In the Morris-Lecar model, a film of iapp
+from 0 to 0.3 with the nullclines on shows the V nullcline rising, and the
+trajectory going from rest to a limit cycle and back to rest as the
+current grows.
+
+A capture is a picture of the screen, so the figure must be in view: a
+plot in a tab behind another cannot be captured (nor saved as a PNG).
+The session's Python script writes a film's runs as `m.sweep(...)`; the
+pictures themselves are not in the script. In Python, matplotlib's
+`animation` module makes the same kind of film from those runs.
+
+Commands: `kinescope capture phase`, `kinescope play 200` (ms a frame),
+`kinescope show 3`, `kinescope stop`, `kinescope clear`, `kinescope save
+film.gif 200`, `kinescope frames frame`, and `range iapp 0 0.3 10 film`
+(or `kinescope film`, the Range tab's runs).

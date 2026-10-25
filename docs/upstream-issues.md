@@ -65,6 +65,19 @@ equation, so XPPAUT finds 8 equations for 9 boundary conditions and stops.
 XPP Studio keeps this behaviour, since changing the continuation rule could
 change how other files parse; see [ModelDB models](development/modeldb.md).
 
+### A diverging AUTO run leaves a parameter at NaN
+
+XPPAUT's AUTO interface writes each of AUTO's trial parameter values into
+the model before evaluating it, and keeps the last one when AUTO stops.
+When AUTO's Newton steps diverge and it stops with MX, as it does at once
+for `coaster2D.ode`, whose steady states are not isolated (`X`, `Z` and `L`
+can rest at any value), that last value is NaN. The model's parameter
+stays NaN, so every later run, and a second continuation, is garbage (found
+from a user report, issue #8). XPP Studio leaves `auto_nox.c` alone: the
+engine API's `xppe_auto_run()` puts any parameter AUTO left non-finite back
+to its value at the newest computed point, or the value it had before the
+run. Finite values stay as AUTO left them, so no result changes.
+
 ### The Volterra history has room for 50 variables
 
 `parserslow2.c` defines `double *Memory[MAXKER]` (50 entries), while

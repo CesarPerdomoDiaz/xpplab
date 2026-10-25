@@ -77,3 +77,18 @@ def test_dataframe_and_plot(lecar_hopf):
     assert {"branch", "type", "stable", "iapp", "V_max", "V_min"} <= set(df.columns)
     ax = full.plot("V")
     assert ax.get_xlabel() == "iapp"
+
+
+def test_a_failed_continuation_leaves_the_parameters_usable():
+    # coaster2D's steady states are not isolated (X, Z and L can rest at any
+    # value), so AUTO's first Newton steps diverge and it stops with MX. It
+    # used to leave the parameter at its last trial value, NaN, which broke
+    # every later run of the model.
+    with xs.load(ODE / "coaster2D.ode") as m:
+        d = m.auto.equilibria("drag")
+        assert d.special("MX"), d
+        assert m.parameters["drag"] == pytest.approx(1.2)
+        d = m.auto.equilibria("drag")          # again, from where it stopped
+        assert m.parameters["drag"] == pytest.approx(1.2)
+        sol = m.run(total=20)
+        assert len(sol["t"]) > 100 and sol["M"][-1] == pytest.approx(3.14159, abs=1e-3)

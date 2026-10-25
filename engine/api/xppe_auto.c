@@ -10,6 +10,7 @@
  * continuation therefore runs exactly as it would in XPPAUT.
  */
 #include <ctype.h>
+#include <math.h>
 #include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +42,10 @@ void set_ivar(int i, double value);
 void get_ic(int it, double *x);
 void evaluate_derived(void);
 void redo_all_fun_tables(void);
+void redo_stuff(void);
+int get_val(char *name, double *value);
+int set_val(char *name, double value);
+int plintf(char *fmt, ...);
 
 static char auto_workdir[1024];
 
@@ -206,18 +211,49 @@ int xppe_auto_reset(void) {
   return XPPE_OK;
 }
 
+static DIAGRAM *nth_point(int i);
+
+/* AUTO evaluates the model at its trial parameter values, and XPPAUT keeps
+   the last of them as the model's parameters. When AUTO's Newton steps
+   diverge (it stops with MX), that last value can be NaN or infinite, and
+   every later run of the model is then garbage. Such a parameter goes back
+   to its value at the newest point AUTO computed, or else to the value it
+   had before the run. Finite values are left exactly as AUTO left them. */
+static void restore_nonfinite_parameters(const double *before, int points_before) {
+  DIAGRAM *last = xppe_auto_count() > points_before ? nth_point(xppe_auto_count() - 1)
+                                                     : NULL;
+  int i, k, changed = 0;
+  for (i = 0; i < NUPAR && i < MAXPAR; i++) {
+    double v = 0.0, good = before[i];
+    if (get_val(upar_names[i], &v) != 1 || isfinite(v)) continue;
+    for (k = 0; last && k < NAutoPar; k++)
+      if (AutoPar[k] == i && isfinite(last->par[k])) good = last->par[k];
+    set_val(upar_names[i], good);
+    plintf("AUTO left %s at %g; it is back at %g\n", upar_names[i], v, good);
+    changed = 1;
+  }
+  if (changed) redo_stuff();
+}
+
 int xppe_auto_run(const char *choice) {
-  int rc, before;
+  int rc, before, i;
+  double *saved;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
   xppe_begin_call();
   xpps_answers_clear();
   if (choice && choice[0]) xpps_answers_push(choice);
   before = xppe_auto_count();
+  saved = calloc(MAXPAR, sizeof *saved);
+  for (i = 0; saved && i < NUPAR && i < MAXPAR; i++) get_val(upar_names[i], &saved[i]);
   push_workdir();
-  XPPE_GUARD_BEGIN(pop_workdir());
+  XPPE_GUARD_BEGIN((pop_workdir(), free(saved)));
   auto_run();
   XPPE_GUARD_END;
   pop_workdir();
+  if (saved) {
+    restore_nonfinite_parameters(saved, before);
+    free(saved);
+  }
   xpps_answers_clear();
   xppe_end_call();
   if (xppe_auto_count() == before) {

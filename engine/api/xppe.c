@@ -444,6 +444,135 @@ int xppe_ic_last(void) {
   return XPPE_OK;
 }
 
+/* Initial conds > Shift: as Last, and T0 becomes the time the last run
+   ended, so that the time goes on. */
+int xppe_ic_shift(void) {
+  extern double LastTime;
+  int rc = xppe_ic_last();
+  if (rc == XPPE_OK) T0 = LastTime;
+  return rc;
+}
+
+/* Initial conds > File: the first numbers in a text file, one per ODE
+   variable in order, read as XPPAUT reads them (fscanf "%lg"). Commas and
+   semicolons may separate them too. A file with too few numbers changes
+   nothing. */
+int xppe_ic_file(const char *path) {
+  double v[MAXODE];
+  char msg[1200];
+  FILE *fp;
+  int rc, n = 0, c, i;
+  if ((rc = xppe_require_model()) != XPPE_OK) return rc;
+  if ((fp = fopen(path, "r")) == NULL) {
+    xppe_set_error("cannot open %s", path);
+    return XPPE_ERR_LOAD;
+  }
+  while (n < NODE) {
+    if (fscanf(fp, "%lg", &v[n]) == 1)
+      n++;
+    else if ((c = fgetc(fp)) != ',' && c != ';')
+      break;
+  }
+  fclose(fp);
+  if (n < NODE) {
+    snprintf(msg, sizeof msg, "%.1000s holds %d number%s; the model has %d variables",
+             path, n, n == 1 ? "" : "s", NODE);
+    xppe_set_error("%s", msg);
+    return XPPE_ERR_RANGE;
+  }
+  for (i = 0; i < NODE; i++) last_ic[i] = v[i];
+  return NODE;
+}
+
+static int variable_index(const char *name) {
+  int i;
+  for (i = 0; i < NODE + NMarkov; i++)
+    if (xppe_same_name(name, uvar_names[i])) return i;
+  return -1;
+}
+
+/* XPPAUT's subsk() exits on an unclosed bracket: check first. */
+static int brackets_close(const char *s) {
+  int depth = 0;
+  for (; *s; s++) {
+    if (*s == '[') depth++;
+    if (*s == ']' && --depth < 0) return 0;
+  }
+  return depth == 0;
+}
+
+/* Initial conds > formUla, evaluated as XPPAUT's evaluate_ar_ic() does:
+   each variable of target gets the value of formula, with [j] in an array
+   target's formula standing for the index. */
+int xppe_ic_formula(const char *target, const char *formula) {
+  void subsk(char *big, char *new, int k, int flag);
+  double calculate(char *expr, int *ok);
+  char name[256], pat[300], var[300], src[1000], expr[4096];
+  double v[MAXODE];
+  int idx[MAXODE];
+  int rc, j, j1 = 0, j2 = 0, n = 0, k = 0, ok, i;
+  const char *lb = NULL, *dots = NULL, *rb = NULL;
+  if ((rc = xppe_require_model()) != XPPE_OK) return rc;
+  for (i = 0; target[i] && k < (int)sizeof name - 1; i++)
+    if (!isspace((unsigned char)target[i])) name[k++] = target[i];
+  name[k] = '\0';
+  if (target[i] || strlen(formula) >= sizeof src) {
+    xppe_set_error("name or formula too long", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  if (!brackets_close(name) || !brackets_close(formula)) {
+    xppe_set_error("a [ without its ] (or the other way round)", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  if ((lb = strchr(name, '[')) != NULL) {
+    dots = strstr(lb, "..");
+    rb = strchr(lb, ']');
+    if (!dots || !rb || dots > rb) {
+      xppe_set_error("write a range of variables as u[1..20], not %s", name);
+      return XPPE_ERR_RANGE;
+    }
+    j1 = atoi(lb + 1);
+    j2 = atoi(dots + 2);
+    snprintf(pat, sizeof pat, "%.*s[j]%s", (int)(lb - name), name, rb + 1);
+  } else {
+    snprintf(pat, sizeof pat, "%s", name);
+  }
+  snprintf(src, sizeof src, "%s", formula);
+  /* Every variable first, so that a bad name changes nothing. */
+  for (j = j1; j <= j2; j++) {
+    if (lb)
+      subsk(pat, var, j, 1);
+    else
+      snprintf(var, sizeof var, "%s", pat);
+    if (n >= MAXODE || (idx[n] = variable_index(var)) < 0) {
+      xppe_set_error("no variable called %s", var);
+      return XPPE_ERR_NAME;
+    }
+    n++;
+  }
+  if (n == 0) {
+    xppe_set_error("%s names no variable", name);
+    return XPPE_ERR_RANGE;
+  }
+  xppe_begin_call();
+  XPPE_GUARD_BEGIN((void)0);
+  for (k = 0, ok = 1; k < n && ok; k++) {
+    if (lb)
+      subsk(src, expr, j1 + k, 1);
+    else
+      snprintf(expr, sizeof expr, "%s", src);
+    v[k] = calculate(expr, &ok);
+  }
+  XPPE_GUARD_END;
+  xppe_end_call();
+  if (!ok) {
+    xppe_set_error("cannot evaluate %s", expr);
+    return XPPE_ERR_NUMERIC;
+  }
+  for (k = 0; k < n; k++) last_ic[idx[k]] = v[k];
+  return n;
+}
+
 /* ---- Equilibria ------------------------------------------------------------ */
 
 int xppe_equilibrium(double *x, double *re, double *im) {

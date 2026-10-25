@@ -40,6 +40,10 @@ commands. `help` lists them all.
 | `get I` | Show a value. |
 | `whos` | List variables and parameters with their values. |
 | `ic last` | Start the next run where the last one ended. |
+| `ic shift` | The same, and the start time T0 becomes the time the run ended (XPPAUT's Shift). |
+| `ic read ics.dat`, `ic write ics.dat` | Read the initial values from a text file, one number per variable in order; or write them, one per line. |
+| `ic u[1..20] = sin([j]/3)` | Initial values from a formula: one variable (`ic V = vk + 0.1`) or a numbered range, `[j]` the index (XPPAUT's formUla). |
+| `click -0.3 0`, `click keep` | Start a run at that point of the phase plane, as a click does; `click keep` keeps each such run (`click keep off` stops). |
 | `eq` | Find an equilibrium and report its stability. |
 | `eq all 200` | Every equilibrium Newton's method finds from 200 random points (100 if left out) in the phase plane's window: XPPAUT's Sing pts > Monte Carlo. |
 | `nullclines`, `nullclines off` | Show or hide nullclines. |

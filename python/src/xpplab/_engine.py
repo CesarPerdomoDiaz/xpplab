@@ -19,7 +19,7 @@ from pathlib import Path
 
 __all__ = ["Engine", "EngineError", "find_engine_library"]
 
-API_VERSION = 4
+API_VERSION = 5
 
 OK = 0
 ERR_STATE = -1
@@ -203,6 +203,9 @@ _SIGNATURES = {
     "xppe_result_column": ([ctypes.c_int, ctypes.POINTER(ctypes.c_double),
                             ctypes.c_int], ctypes.c_int),
     "xppe_ic_last": ([], ctypes.c_int),
+    "xppe_ic_shift": ([], ctypes.c_int),
+    "xppe_ic_file": ([ctypes.c_char_p], ctypes.c_int),
+    "xppe_ic_formula": ([ctypes.c_char_p, ctypes.c_char_p], ctypes.c_int),
     "xppe_bvp_count": ([], ctypes.c_int),
     "xppe_bvp": ([ctypes.c_int, ctypes.c_double, ctypes.c_double], ctypes.c_int),
     "xppe_ani_load": ([ctypes.c_char_p], ctypes.c_int),

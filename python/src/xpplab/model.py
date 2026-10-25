@@ -447,11 +447,46 @@ class Model(AnalysisMixin):
                                 trajectory=trajectory, nullclines=nullclines,
                                 field=field, equilibrium=equilibrium, ax=ax)
 
-    def ic_last(self) -> "Model":
+    def ic_last(self, *, shift: bool = False) -> "Model":
         """Start the next run where the last one ended (XPPAUT's Initial
         conds > Last, I L): the final state, in full precision, becomes the
-        initial condition."""
-        self._engine.call("xppe_ic_last")
+        initial condition.
+
+        With ``shift=True`` (Initial conds > Shift, I S) the start time T0
+        also becomes the time the run ended, so that the time goes on: it
+        matters for models with forcing terms in t.
+        """
+        self._engine.call("xppe_ic_shift" if shift else "xppe_ic_last")
+        return self
+
+    def read_ics(self, path) -> "Model":
+        """Read the initial conditions from a text file (XPPAUT's Initial
+        conds > File, I F): the first numbers in it, one per variable in
+        order, separated by spaces, new lines or commas. A file with fewer
+        numbers than variables raises EngineError and changes nothing."""
+        self._engine.call("xppe_ic_file", _b(str(Path(path).resolve())))
+        return self
+
+    def write_ics(self, path) -> Path:
+        """Write the initial conditions to a text file, one per line in the
+        order of the variables, exactly: :meth:`read_ics` reads it back."""
+        path = Path(path)
+        path.write_text("".join(repr(float(self.get(v))) + "\n"
+                                for v in self.variables))
+        return path
+
+    def ic_formula(self, target: str, formula: str) -> "Model":
+        """Set initial conditions from a formula (XPPAUT's Initial conds >
+        formUla, I U), evaluated by XPPAUT with the model's parameters and
+        functions.
+
+        ``target`` is a variable, ``m.ic_formula("V", "vk + 0.1")``, or a
+        range of numbered variables in XPPAUT's array form, where ``[j]`` in
+        the formula stands for the index::
+
+            m.ic_formula("u[1..50]", "exp(-([j]-25)^2/20)")
+        """
+        self._engine.call("xppe_ic_formula", _b(target), _b(formula))
         return self
 
     def sweep(self, parameter: str, values, *, measure=None,

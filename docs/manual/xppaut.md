@@ -35,8 +35,11 @@ page.
 | XPPAUT | XPP Lab |
 |---|---|
 | Initial conds > Go | Run button, F5, `run` |
-| Initial conds > Mouse | Phase Plane > Click to start |
-| Continue | Workspace > Initial values > From end of last run, then Run |
+| Initial conds > Mouse | Phase Plane > Click to start, `click x y` |
+| Initial conds > mIce | Phase Plane > Click to start > Keep each |
+| Initial conds > Last, Shift | Workspace > Initial values > From end of last run, From end, time goes on; `ic last`, `ic shift` |
+| Initial conds > File, formUla | Workspace > Initial values > From file..., From a formula; `ic read`, `ic u[1..20] = ...` |
+| Continue | `continue` (C C) |
 | Nullcline > New | Phase Plane > Nullclines |
 | Dir.field | Phase Plane > Flow |
 | Window/zoom | Mouse: drag, scroll, double-click |

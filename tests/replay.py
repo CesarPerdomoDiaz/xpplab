@@ -88,6 +88,16 @@ CASES = [
         "range iapp 0.05 0.3 4 gca 0.9 1.1 3 V continue",
         "export {out}/grid_continued.csv range",
         "range iapp 0 0.3 3 V -0.2 0.2 2", "export {out}/last_of_kept.csv"]),
+    ("initial_values", "lecar.ode", [
+        "set iapp=0.1 total=40", "run", "ic shift", "run",
+        "export {out}/shifted.csv", "ic write {out}/ics.dat", "set V=0 W=0",
+        "ic read {out}/ics.dat", "run", "export {out}/from_file.csv",
+        "ic V = vk + 0.1*gca", "run", "export {out}/formula.csv",
+        "click keep", "click -0.3 0.0", "click 0.2 0.3",
+        "export {out}/clicked.csv"]),
+    ("initial_array", "amari.ode", [
+        "set total=5", "ic u[0..199] = 0.8*exp(-([j]-100)^2/50)", "run",
+        "export {out}/bump.csv"]),
     ("analysis", "lecar.ode", [
         "set iapp=0.1 total=400", "run",
         "spectrum V 256", "export {out}/spectrum.csv analysis",

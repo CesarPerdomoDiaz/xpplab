@@ -190,6 +190,51 @@ def test_two_values_together_and_on_a_grid(lecar):
     assert peak(lecar.run()) == grid[1, 1]
 
 
+def test_shift_lets_the_time_go_on(lecar):
+    sol = lecar.run(total=20)
+    lecar.ic_last(shift=True)
+    assert lecar.get("T0") == pytest.approx(20)
+    assert lecar.ics["V"] == pytest.approx(sol["V"][-1], abs=1e-6)
+    again = lecar.run()
+    assert again.t[0] == pytest.approx(20) and again.t[-1] == pytest.approx(40)
+    lecar.ic_last()                       # Last alone leaves T0 alone
+    assert lecar.get("T0") == pytest.approx(20)
+
+
+def test_initial_values_from_a_file(lecar, tmp_path):
+    lecar.run(iapp=0.1, total=33)
+    lecar.ic_last()
+    ics = dict(lecar.ics)
+    path = lecar.write_ics(tmp_path / "ics.dat")
+    lecar.set(V=0, W=0)
+    assert dict(lecar.read_ics(path).ics) == ics          # exactly
+    (tmp_path / "comma.txt").write_text("0.25, -0.125  7\n")
+    assert dict(lecar.read_ics(tmp_path / "comma.txt").ics) == {"V": 0.25, "W": -0.125}
+    (tmp_path / "short.dat").write_text("1.5\n")
+    with pytest.raises(xs.EngineError, match="1 number"):
+        lecar.read_ics(tmp_path / "short.dat")
+    with pytest.raises(xs.EngineError, match="cannot open"):
+        lecar.read_ics(tmp_path / "missing.dat")
+    assert dict(lecar.ics) == {"V": 0.25, "W": -0.125}    # unchanged
+
+
+def test_initial_values_from_a_formula(lecar):
+    lecar.ic_formula("V", "vk + 0.1*gca")
+    assert lecar.ics["V"] == pytest.approx(-0.7 + 0.1 * lecar.get("gca"))
+    for target, formula in [("Q", "1"), ("V", "1+"), ("V[1..2", "1"),
+                            ("V", "sin([j"), ("u[1..3]", "[j]")]:
+        with pytest.raises(xs.EngineError):
+            lecar.ic_formula(target, formula)
+    assert lecar.ics["V"] == pytest.approx(-0.6)          # unchanged
+    with xs.load(ODE / "amari.ode") as m:
+        m.ic_formula("u[0..199]", "exp(-([j]-100)^2/50)")
+        got = np.array([m.ics["u%d" % j] for j in range(200)])
+        np.testing.assert_allclose(got, np.exp(-(np.arange(200) - 100.0) ** 2 / 50),
+                                   rtol=1e-15)
+        m.ic_formula("u[3..5]", "[j+1]/2")
+        assert [m.ics["u%d" % j] for j in (3, 4, 5)] == [2, 2.5, 3]
+
+
 def test_a_grid_as_a_table():
     t = xs.Table.from_grid("a", [1, 2], "b", [10, 20, 30], {"z": [[1, 2], [3, 4], [5, 6]]})
     assert list(t["a"]) == [1, 2, 1, 2, 1, 2]

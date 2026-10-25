@@ -892,6 +892,21 @@ bool app_run(App *a) {
   return ok;
 }
 
+/* Initial conds > Mouse: a run from a point of the phase plane. With Keep
+   each (mIce) the earlier runs stay on the plots. */
+bool app_click_start(App *a, double x, double y) {
+  bool live = a->live, keep = a->keep_curves, ok;
+  if (!a->model_ok) return false;
+  a->live = false;
+  app_set_ic(a, a->pp.xvar, x);
+  app_set_ic(a, a->pp.yvar, y);
+  a->live = live;
+  if (a->pp.click_keep) a->keep_curves = true;
+  ok = app_run(a);
+  a->keep_curves = keep;
+  return ok;
+}
+
 bool app_run_live(App *a) {
   bool ok;
   if (a->echo.depth > 0) return app_run(a);
@@ -902,7 +917,7 @@ bool app_run_live(App *a) {
   return ok;
 }
 
-bool app_ic_last(App *a) {
+bool app_ic_last(App *a, bool shift) {
   int i, j;
   bool live = a->live, outer;
   if (!a->have_traj || a->traj.nrows == 0) {
@@ -915,12 +930,87 @@ bool app_ic_last(App *a) {
     for (j = 1; j < a->traj.ncols; j++)
       if (SDL_strcasecmp(a->traj.names[j], a->vars[i]) == 0)
         app_set_ic(a, i, a->traj.cols[j][a->traj.nrows - 1]);
+  /* Shift: the time goes on from where the run ended. */
+  if (shift) a->eng->api.xppe_set_number("T0", a->traj.cols[0][a->traj.nrows - 1]);
   a->live = live;
   /* The values as the run holds them, which Model.ic_last() would take
      from the engine in another precision: written as values. */
   if (outer) echo_values(a);
   echo_end(a);
-  app_log(a, "Initial values set to the end of the last run.");
+  app_refresh_values(a);
+  a->reveal_ics = true;
+  if (shift)
+    app_log(a, "Initial values set to the end of the last run, and the start "
+               "time T0 to %g.", a->t0);
+  else
+    app_log(a, "Initial values set to the end of the last run.");
+  return true;
+}
+
+/* After the engine changed initial values itself: the app's copy, the
+   echo's line, and a live rerun. */
+static void ics_changed(App *a, bool outer, const char *line) {
+  if (outer) echo_line(a, "%s", line);
+  a->reveal_ics = true;
+  app_refresh_values(a);
+  echo_end(a);
+  if (a->live) a->needs_run = true;
+}
+
+bool app_ic_read(App *a, const char *path) {
+  char p[2100], line[2200];
+  bool outer;
+  if (!a->model_ok) return false;
+  outer = echo_begin(a);
+  if (a->eng->api.xppe_ic_file(path) < 0) {
+    app_log(a, "error: %s", a->eng->api.xppe_error());
+    echo_end(a);
+    return false;
+  }
+  snprintf(line, sizeof line, "m.read_ics(%s)", echo_str(path, p, sizeof p));
+  ics_changed(a, outer, line);
+  app_log(a, "Initial values read from %s.", path);
+  return true;
+}
+
+bool app_ic_write(App *a, const char *path) {
+  char p[2100], num[64];
+  bool outer;
+  int i;
+  FILE *f;
+  if (!a->model_ok) return false;
+  if ((f = fopen(path, "w")) == NULL) {
+    app_log(a, "error: cannot write %s", path);
+    return false;
+  }
+  /* Exactly, one per line: Model.read_ics() and xppe_ic_file() read it. */
+  for (i = 0; i < a->nvars; i++) {
+    app_format_double(num, sizeof num, a->ic[i]);
+    fprintf(f, "%s\n", num);
+  }
+  fclose(f);
+  outer = echo_begin(a);
+  if (outer) echo_line(a, "m.write_ics(%s)", echo_str(path, p, sizeof p));
+  echo_end(a);
+  app_log(a, "Initial values written to %s.", path);
+  return true;
+}
+
+bool app_ic_formula(App *a, const char *target, const char *formula) {
+  char t[300], f[2100], line[2600];
+  bool outer;
+  int n;
+  if (!a->model_ok) return false;
+  outer = echo_begin(a);
+  if ((n = a->eng->api.xppe_ic_formula(target, formula)) < 0) {
+    app_log(a, "error: %s", a->eng->api.xppe_error());
+    echo_end(a);
+    return false;
+  }
+  snprintf(line, sizeof line, "m.ic_formula(%s, %s)", echo_str(target, t, sizeof t),
+           echo_str(formula, f, sizeof f));
+  ics_changed(a, outer, line);
+  app_log(a, "%d initial value%s set from %s.", n, n == 1 ? "" : "s", formula);
   return true;
 }
 

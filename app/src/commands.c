@@ -22,6 +22,13 @@ static const char *usage =
     "  get NAME                 show a value\n"
     "  whos                     list variables and parameters\n"
     "  ic last                  start the next run where the last ended [I L]\n"
+    "  ic shift                 the same, and the time goes on from there [I S]\n"
+    "  ic read FILE             initial values from a file, one number per\n"
+    "                           variable [I F]; ic write FILE saves them\n"
+    "  ic NAME = FORMULA        a variable, or a range u[1..20] with [j] for\n"
+    "                           the index, from a formula [I U]\n"
+    "  click X Y                start a run at a point of the phase plane, as a\n"
+    "                           click does [I M]\n"
     "  eq                       find an equilibrium and its stability [S G]\n"
     "  eq all [GUESSES]         every equilibrium in the phase plane's window,\n"
     "                           from random guesses (Sing pts > Monte Carlo)\n"
@@ -404,11 +411,46 @@ void app_command(App *a, const char *line_in) {
   } else if (!strcmp(cmd, "whos") || !strcmp(cmd, "who") || !strcmp(cmd, "list")) {
     cmd_whos(a);
   } else if (!strcmp(cmd, "ic")) {
-    char *w = next_word(&rest);
-    if (w && !strcmp(w, "last")) {
-      app_ic_last(a);
+    /* ic last | ic shift | ic read FILE | ic write FILE | ic NAME = FORMULA,
+       NAME a variable or a range u[1..20] with [j] in the formula. */
+    char line[2100], *w, *eq;
+    bool file;
+    snprintf(line, sizeof line, "%s", skip_space(rest));
+    w = next_word(&rest);
+    file = w && (!strcmp(w, "read") || !strcmp(w, "write"));
+    if (file && *skip_space(rest)) {
+      char *p = skip_space(rest);
+      if (!strcmp(w, "read"))
+        app_ic_read(a, p);
+      else
+        app_ic_write(a, p);
+    } else if (w && !file && !strcmp(w, "last") && !*skip_space(rest)) {
+      app_ic_last(a, false);
+    } else if (w && !file && !strcmp(w, "shift") && !*skip_space(rest)) {
+      app_ic_last(a, true);
+    } else if (w && !file && (eq = strchr(line, '=')) != NULL) {
+      char *f = skip_space(eq + 1), *end = f + strlen(f);
+      while (end > f && isspace((unsigned char)end[-1])) *--end = '\0';
+      for (end = eq; end > line && isspace((unsigned char)end[-1]); end--) {}
+      *end = '\0';
+      app_ic_formula(a, line, f);
     } else {
-      app_log(a, "Use 'ic last', or 'set x=...' for one variable.");
+      app_log(a, "Write: ic last (from the end of the last run), ic shift (and "
+                 "the time goes on), ic read FILE, ic write FILE, or ic NAME = "
+                 "FORMULA (NAME a variable or u[1..20], [j] the index)");
+    }
+  } else if (!strcmp(cmd, "click")) {
+    /* click X Y: a run from that point of the phase plane; click keep [off]
+       keeps each such run (Initial conds > mIce). */
+    char *x = next_word(&rest), *y = next_word(&rest);
+    if (x && !strcmp(x, "keep")) {
+      a->pp.click_keep = !(y && !strcmp(y, "off"));
+      a->pp.click_to_start = a->pp.click_to_start || a->pp.click_keep;
+    } else if (x && y && is_number(x) && is_number(y)) {
+      app_click_start(a, atof(x), atof(y));
+    } else {
+      app_log(a, "Write: click X Y (a run from that point of the phase plane), "
+                 "or click keep [off]");
     }
   } else if (!strcmp(cmd, "eq") || !strcmp(cmd, "equilibrium") ||
              !strcmp(cmd, "sg")) {

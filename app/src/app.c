@@ -1111,6 +1111,10 @@ bool app_auto_equilibria(App *a) {
     memcpy(g, a->ic, sizeof(double) * (size_t)a->nvars);
     if (x->xppe_equilibrium(g, re, im) == XPPE_OK)
       for (i = 0; i < a->nvars; i++) x->xppe_set_number(a->vars[i], g[i]);
+    else
+      app_log(a, "AUTO: no steady state was found near the initial values "
+                 "(Newton's method did not converge); AUTO starts from them "
+                 "anyway.");
     free(g);
     free(re);
     free(im);
@@ -1126,6 +1130,16 @@ bool app_auto_equilibria(App *a) {
   app_auto_refresh(a);
   app_refresh_values(a);
   report_auto(a, before);
+  /* Stopped at once without converging: say why and what to try. */
+  if (a->au.count - before <= 3 && a->au.count > before &&
+      strcmp(a->au.info[a->au.count - 1].type_name, "MX") == 0)
+    app_log(a, "AUTO stopped at once (MX: no convergence). It follows a "
+               "steady state, so it must start from one: run the model until "
+               "it settles, take its end as the initial values (ic last, or "
+               "I L), and try again. If no steady state can be found at all, "
+               "the model's steady states may not be isolated: some variables "
+               "(a position, a running total) can rest at any value, and AUTO "
+               "cannot follow such steady states.");
   app_status(a, "AUTO: %d points", a->au.count);
   return true;
 }

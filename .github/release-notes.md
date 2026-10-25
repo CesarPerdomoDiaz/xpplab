@@ -17,7 +17,7 @@ The warnings appear because the apps are not yet signed with a paid certificate.
 The same engine, with AUTO, from Python 3.9 or newer on any of the three systems:
 
 ```
-pip install xppstudio --find-links https://github.com/CesarPerdomoDiaz/xppstudio/releases/expanded_assets/@TAG@
+pip install xppstudio==@VERSION@
 ```
 
 Then see the [Python guide](https://cesarperdomodiaz.github.io/xppstudio/python/quickstart/).

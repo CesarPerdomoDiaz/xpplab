@@ -33,7 +33,7 @@
 | **Windows** 10 or 11, 64-bit | [XPPStudio-Windows-x64.zip](https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest/download/XPPStudio-Windows-x64.zip) | Unzip it anywhere and run `xppstudio.exe` |
 | **macOS** 11 or later, Apple silicon or Intel | [XPPStudio-macOS.dmg](https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest/download/XPPStudio-macOS.dmg) | Open it and drag the app to *Applications* |
 | **Linux**, x86-64 | [XPPStudio-Linux-x86_64.tar.gz](https://github.com/CesarPerdomoDiaz/xppstudio/releases/latest/download/XPPStudio-Linux-x86_64.tar.gz) | Unpack it and run `xppstudio` |
-| **Python** 3.9 or later | `pip install xppstudio --find-links https://github.com/CesarPerdomoDiaz/xppstudio/releases/expanded_assets/v0.1.0` | `import xppstudio` |
+| **Python** 3.9 or later | `pip install xppstudio` | `import xppstudio` |
 
 Nothing else is needed: no X server, no compiler, no Terminal. The apps are
 not yet signed with a paid certificate, so the first time Windows or macOS
@@ -164,7 +164,7 @@ rest state to the limit cycles, and looks at the figures. Every result
 includes the Python code that reproduces it.
 
 ```bash
-pip install ".[mcp]"       # in a clone; from the next release, the Python line above with [mcp]
+pip install "xppstudio[mcp]"
 claude mcp add xppstudio -- python -m xppstudio.mcp
 ```
 

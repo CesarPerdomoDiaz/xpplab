@@ -51,6 +51,18 @@ library holds one model. `engine/api/xpp_instance.c` (and the Python
 package's `_engine.py`) copy the library file to a private temporary
 location for each model, which gives every model independent globals.
 
+## The app's actions as Python
+
+Every action of the desktop app goes through the `app_*` functions in
+`app/src/app.c` and `app_analysis.c`, whether it comes from a button, a
+key or the command window. `app/src/echo.c` writes each one as the line of
+Python, with the xpplab package, that makes the same engine calls. The
+lines follow the engine's state rather than the clicks: before an action,
+the options, parameters and initial values that differ from what the lines
+so far have set are written, exactly; after it, the engine's state becomes
+the script's. A saved session therefore repeats the app's computations bit
+for bit, which `tests/replay.py` checks.
+
 ## Tests
 
 - `tests/golden.py`: every example model in batch mode, checked bit for bit
@@ -63,5 +75,8 @@ location for each model, which gives every model independent globals.
 - `python/tests`: the Python package.
 - `tests/modeldb_check.py`: the XPPAUT models published on ModelDB, against
   unmodified XPPAUT, on request (see [ModelDB models](modeldb.md)).
+- `tests/replay.py`: desktop sessions saved as Python scripts repeat
+  their CSV exports bit for bit.
+- `tests/parity.py`: the desktop app's features, case by case.
 - CI also starts the desktop app, loads a model, runs AUTO and takes a
   screenshot.

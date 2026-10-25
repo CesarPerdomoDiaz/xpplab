@@ -98,6 +98,7 @@ void ui_dialog_open_ani(App *a);
 void ui_dialog_open(App *a);
 void ui_dialog_save_as(App *a);
 void ui_dialog_export_csv(App *a);
+void ui_dialog_save_script(App *a);
 void ui_dialog_poll(App *a);
 
 /* An "Export" button with PNG and SVG choices for a figure; and the

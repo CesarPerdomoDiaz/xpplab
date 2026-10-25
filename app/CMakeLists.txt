@@ -86,6 +86,7 @@ set(APP_SOURCES
   src/main.c
   src/app.c
   src/app_analysis.c
+  src/echo.c
   src/commands.c
   src/docs.c
   src/ui_common.c

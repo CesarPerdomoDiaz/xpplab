@@ -172,6 +172,8 @@ void app_init(App *a, const char *base_dir, bool ephemeral) {
   a->pp.show_equilibria = true;
   a->au.selected = -1;
   a->au.yvar = 0;
+  a->echo.console = true;
+  a->echo.sweep_mode = -1;
   snprintf(a->help_page, sizeof a->help_page, "welcome");
   set_editor_text(a, "");
   a->ephemeral = ephemeral;
@@ -191,6 +193,9 @@ void app_shutdown(App *a) {
   a->eng = NULL;
   free(a->editor);
   free(a->log);
+  free(a->echo.text);
+  free(a->echo.par);
+  free(a->echo.ic);
 }
 
 /* ---- Loading ----------------------------------------------------------- */
@@ -312,6 +317,7 @@ static bool load_engine(App *a) {
   if (a->eng) xpp_instance_close(a->eng);
   a->eng = NULL;
   a->model_ok = false;
+  a->echo.loaded = false;
   a->load_error[0] = '\0';
   a->error_line = 0;
 
@@ -408,12 +414,14 @@ static bool load_engine(App *a) {
   a->sw.mode = SWEEP_MAXMIN;
   a->sw.transient = 0.5;
   app_analysis_reset(a);
+  echo_model_loaded(a);
   return true;
 }
 
 bool app_open(App *a, const char *path) {
   size_t len;
   char *text = read_file(path, &len);
+  bool outer;
   if (!text) {
     app_log(a, "error: cannot read %s", path);
     app_status(a, "Cannot read %s", path);
@@ -433,16 +441,19 @@ bool app_open(App *a, const char *path) {
   set_editor_text(a, text);
   free(text);
   app_add_recent(a, a->model_path);
+  outer = echo_begin(a);
   if (!load_engine(a)) {
     app_status(a, "%s has errors - see the editor", a->model_name);
     a->show_editor = true;
+    echo_end(a);
     return false;
   }
   app_log(a, "Loaded %s: %d variables, %d parameters.", a->model_name,
           a->nvars, a->npars);
   app_status(a, "Loaded %s", a->model_name);
   snprintf(a->focus, sizeof a->focus, "time");
-  app_run(a);
+  if (app_run(a) && outer) echo_line(a, "sol = m.run()");
+  echo_end(a);
   return true;
 }
 
@@ -583,6 +594,7 @@ bool app_save_editor(App *a, const char *path) {
 }
 
 bool app_apply_editor(App *a) {
+  bool outer;
   if (!a->model_path[0]) {
     char *pref = app_pref_dir();
     snprintf(a->model_path, sizeof a->model_path, "%suntitled.ode",
@@ -604,13 +616,16 @@ bool app_apply_editor(App *a) {
   } else if (!app_save_editor(a, a->model_path)) {
     return false;
   }
+  outer = echo_begin(a);
   if (!load_engine(a)) {
     app_status(a, "The model has errors: %s", a->load_error);
+    echo_end(a);
     return false;
   }
   app_log(a, "Reloaded %s.", a->model_name);
   app_status(a, "Reloaded %s", a->model_name);
-  app_run(a);
+  if (app_run(a) && outer) echo_line(a, "sol = m.run()");
+  echo_end(a);
   return true;
 }
 
@@ -651,6 +666,7 @@ int app_find_par(App *a, const char *name) {
 
 static void after_change(App *a) {
   a->pp.nc_dirty = true;
+  a->echo.dirty = true;
   if (a->live) a->needs_run = true;
 }
 
@@ -666,6 +682,7 @@ bool app_set_ic(App *a, int i, double v) {
   if (!a->model_ok || i < 0 || i >= a->nvars) return false;
   if (a->eng->api.xppe_set_number(a->vars[i], v) != XPPE_OK) return false;
   a->ic[i] = get_value(a, a->vars[i]);
+  a->echo.dirty = true;
   if (a->live) a->needs_run = true;
   return true;
 }
@@ -676,20 +693,36 @@ bool app_set_option(App *a, const char *name, const char *value) {
     app_log(a, "error: %s", a->eng->api.xppe_error());
     return false;
   }
+  /* The options the echo follows are written when they differ; any other
+     is written as it was given. */
+  if (a->echo.depth == 0 && a->echo.loaded && !echo_knows(a, name)) {
+    char low[64], v[600];
+    int k;
+    for (k = 0; name[k] && k < 63; k++) low[k] = (char)tolower((unsigned char)name[k]);
+    low[k] = '\0';
+    echo_line(a, "m.set(%s=%s)", low, echo_str(value, v, sizeof v));
+  }
   app_refresh_values(a);
   after_change(a);
   return true;
 }
 
 bool app_apply_set(App *a, const char *name) {
+  bool outer;
+  char s[160];
   if (!a->model_ok) return false;
+  outer = echo_begin(a);
   if (a->eng->api.xppe_apply_set(name) != XPPE_OK) {
     app_log(a, "error: %s", a->eng->api.xppe_error());
+    echo_end(a);
     return false;
   }
+  if (outer) echo_line(a, "m.apply_set(%s)", echo_str(name, s, sizeof s));
+  echo_end(a);
   app_refresh_values(a);
   reset_slider_ranges(a);
   after_change(a);
+  if (outer) a->echo.dirty = false; /* the set's values are the script's too */
   app_log(a, "Applied set %s.", name);
   return true;
 }
@@ -778,6 +811,7 @@ static void recover_engine(App *a, const char *what) {
     a->au.ntst = keep.ntst;
     app_auto_refresh(a);
     app_refresh_values(a);
+    echo_values(a); /* the session reopens the model too, then sets them */
     app_log(a, "Reopened %s with your parameters, initial values and AUTO "
                "settings; the bifurcation diagram starts afresh.", a->model_name);
   }
@@ -785,7 +819,7 @@ static void recover_engine(App *a, const char *what) {
   free(ic);
 }
 
-bool app_run(App *a) {
+static bool run(App *a) {
   int rows, rc;
   xpp_engine_api *x;
   a->needs_run = false;
@@ -816,17 +850,53 @@ bool app_run(App *a) {
   return true;
 }
 
+bool app_run(App *a) {
+  bool outer = echo_begin(a), ok = run(a);
+  if (outer && ok) echo_line(a, "sol = m.run()");
+  echo_end(a);
+  return ok;
+}
+
+bool app_run_live(App *a) {
+  bool ok;
+  if (a->echo.depth > 0) return app_run(a);
+  a->echo.live = true;
+  ok = app_run(a);
+  a->echo.live = false;
+  if (ok) a->echo.pending_run = true;
+  return ok;
+}
+
+bool app_ic_last(App *a) {
+  int i, j;
+  bool live = a->live, outer;
+  if (!a->have_traj || a->traj.nrows == 0) {
+    app_log(a, "There is no run yet.");
+    return false;
+  }
+  outer = echo_begin(a);
+  a->live = false;
+  for (i = 0; i < a->nvars; i++)
+    for (j = 1; j < a->traj.ncols; j++)
+      if (SDL_strcasecmp(a->traj.names[j], a->vars[i]) == 0)
+        app_set_ic(a, i, a->traj.cols[j][a->traj.nrows - 1]);
+  a->live = live;
+  /* The values as the run holds them, which Model.ic_last() would take
+     from the engine in another precision: written as values. */
+  if (outer) echo_values(a);
+  echo_end(a);
+  app_log(a, "Initial values set to the end of the last run.");
+  return true;
+}
+
 /* XPPAUT's Continue: integrate further from where the last run ended and
    append the result, leaving the initial values and T0 as they were. */
-bool app_continue(App *a, double more) {
+static bool continue_run(App *a, double more) {
   Trajectory old;
   double t_end, *ic_saved;
   double t0 = a->t0, total = a->total;
   bool keep = a->keep_curves;
   int i, j;
-  if (!a->model_ok) return false;
-  if (!a->have_traj || a->traj.nrows == 0) return app_run(a);
-  if (more <= 0) more = a->total;
   old = a->traj;
   memset(&a->traj, 0, sizeof a->traj);
   a->have_traj = false;
@@ -840,7 +910,7 @@ bool app_continue(App *a, double more) {
       if (SDL_strcasecmp(old.names[j], a->vars[i]) == 0)
         a->eng->api.xppe_set_number(a->vars[i], old.cols[j][old.nrows - 1]);
   a->keep_curves = false;
-  if (!app_run(a)) {
+  if (!run(a)) {
     a->traj = old;
     a->have_traj = true;
   } else {
@@ -869,12 +939,30 @@ bool app_continue(App *a, double more) {
   return true;
 }
 
+bool app_continue(App *a, double more) {
+  bool outer, ok, fresh;
+  char num[64];
+  if (!a->model_ok) return false;
+  if (more <= 0) more = a->total;
+  fresh = !a->have_traj || a->traj.nrows == 0;
+  outer = echo_begin(a);
+  ok = fresh ? run(a) : continue_run(a, more);
+  if (outer && ok) {
+    if (fresh)
+      echo_line(a, "sol = m.run()");
+    else
+      echo_line(a, "sol = m.continue_run(sol, %s)", echo_num(more, num, sizeof num));
+  }
+  echo_end(a);
+  return ok;
+}
+
 /* ---- Parameter sweeps ------------------------------------------------------ */
 
 bool app_sweep(App *a) {
   SweepUI *s = &a->sw;
   double old, *ics;
-  bool live = a->live, keep = a->keep_curves;
+  bool live = a->live, keep = a->keep_curves, outer;
   int k, n, col = -1, j;
   const char *what;
   if (!a->model_ok) return false;
@@ -882,6 +970,7 @@ bool app_sweep(App *a) {
                  : (s->par < 0 || s->par >= a->npars))
     return false;
   what = s->over_ic ? a->vars[s->par] : a->pars[s->par];
+  outer = echo_begin(a);
   s->overlay = s->mode == SWEEP_OVERLAY;
   n = s->steps < 2 ? 2 : s->steps;
   if (s->overlay && n > APP_MAX_FROZEN) n = APP_MAX_FROZEN;
@@ -955,6 +1044,36 @@ bool app_sweep(App *a) {
     a->show_workspace = true;
     snprintf(a->focus, sizeof a->focus, "workspace");
   }
+  /* The values as the loop above makes them, then Model.sweep(), whose
+     measure takes the max and min over the same rows. */
+  if (outer && k == n) {
+    char nm[160], var[160], f[64], t[64], tr[64];
+    const char *cont = s->continue_runs ? ", continue_runs=True" : "";
+    echo_str(what, nm, sizeof nm);
+    echo_line(a, "sweep_values = [%s + (%s - %s) * k / %d for k in range(%d)]",
+              echo_num(s->from, f, sizeof f), echo_num(s->to, t, sizeof t), f,
+              n - 1, n);
+    if (s->overlay) {
+      echo_line(a, "runs = m.sweep(%s, sweep_values%s)", nm, cont);
+      echo_line(a, "sol = runs[-1]");
+    } else if (s->mode == SWEEP_LYAPUNOV) {
+      echo_line(a, "sweep = m.sweep(%s, sweep_values, measure=lambda s: "
+                   "m.lyapunov()%s)", nm, cont);
+      echo_line(a, "sol = m.run()");
+    } else {
+      echo_str(a->vars[s->var], var, sizeof var);
+      echo_num(s->transient, tr, sizeof tr);
+      echo_line(a, "sweep = m.sweep(%s, sweep_values, measure=lambda s: "
+                   "(s[%s][int(len(s) * %s):].max(), s[%s][int(len(s) * %s):].min())%s)",
+                nm, var, tr, var, tr, cont);
+      echo_line(a, "sol = m.run()");
+    }
+    a->echo.sweep_mode = s->overlay ? -1 : s->mode;
+    snprintf(a->echo.sweep_name, sizeof a->echo.sweep_name, "%s", what);
+    snprintf(a->echo.sweep_var, sizeof a->echo.sweep_var, "%s",
+             s->mode == SWEEP_MAXMIN ? a->vars[s->var] : "");
+  }
+  echo_end(a);
   app_log(a, "Range over %s from %g to %g in %d runs%s%s.", what, s->from,
           s->to, n, s->continue_runs ? ", each starting where the last ended" : "",
           s->overlay ? " (trajectories kept on the plots)"
@@ -997,7 +1116,40 @@ void app_clear_equilibria(App *a) {
   a->neq = 0;
 }
 
+static bool equilibrium(App *a, const double *guess);
+
+/* eq = m.equilibrium(), or for a saddle, whose manifolds are drawn too,
+   eq, manifolds = m.manifolds(); with the guess as a dict. */
+static void echo_equilibrium(App *a, const double *guess, bool saddle) {
+  char g[2048], name[160], num[64];
+  size_t k = 0;
+  int i;
+  g[0] = '\0';
+  if (guess) {
+    k += (size_t)snprintf(g, sizeof g, "{");
+    for (i = 0; i < a->nvars && k < sizeof g - 240; i++)
+      k += (size_t)snprintf(g + k, sizeof g - k, "%s%s: %s", i ? ", " : "",
+                            echo_str(a->vars[i], name, sizeof name),
+                            echo_num(guess[i], num, sizeof num));
+    snprintf(g + k, sizeof g - k, "}");
+  }
+  if (saddle)
+    echo_line(a, "eq, manifolds = m.manifolds(%s)", g);
+  else
+    echo_line(a, "eq = m.equilibrium(%s)", g);
+}
+
 bool app_equilibrium(App *a, const double *guess) {
+  bool outer = echo_begin(a), ok = equilibrium(a, guess);
+  if (outer && ok) {
+    const Equilibrium *e = &a->eq[a->neq - 1];
+    echo_equilibrium(a, guess, e->unstable > 0 && e->unstable < a->nvars && a->nvars > 1);
+  }
+  echo_end(a);
+  return ok;
+}
+
+static bool equilibrium(App *a, const double *guess) {
   Equilibrium *e;
   int i, n = a->nvars;
   if (!a->model_ok) return false;
@@ -1065,6 +1217,20 @@ bool app_nullclines(App *a, double xlo, double xhi, double ylo, double yhi) {
                                         yhi, p->grid, p->ncx, max);
   p->ncy_n = a->eng->api.xppe_nullcline(1, p->xvar, p->yvar, xlo, xhi, ylo,
                                         yhi, p->grid, p->ncy, max);
+  /* Written once when they are switched on, not every time a pan or zoom
+     computes them again. */
+  if (!a->echo.nc_written) {
+    char x[160], y[160], n[4][64];
+    if (echo_begin(a)) {
+      echo_line(a, "nc = m.nullclines(%s, %s, (%s, %s), (%s, %s), grid=%d)",
+                echo_str(a->vars[p->xvar], x, sizeof x),
+                echo_str(a->vars[p->yvar], y, sizeof y), echo_num(xlo, n[0], 64),
+                echo_num(xhi, n[1], 64), echo_num(ylo, n[2], 64),
+                echo_num(yhi, n[3], 64), p->grid);
+      a->echo.nc_written = true;
+    }
+    echo_end(a);
+  }
   if (p->ncx_n < 0) p->ncx_n = 0;
   if (p->ncy_n < 0) p->ncy_n = 0;
   p->xlo = xlo;
@@ -1125,6 +1291,66 @@ bool app_auto_push_settings(App *a) {
   return true;
 }
 
+/* Before an AUTO action: the parameters and numerics that
+   app_auto_push_settings() is about to give the engine, where they differ
+   from what it holds (the script's model holds the same). */
+static void echo_auto_setup(App *a) {
+  static const char *keys[] = {"DS",      "DSMIN",   "DSMAX", "PARMIN", "PARMAX",
+                               "NORMMIN", "NORMMAX", "NMAX",  "NPR",    "NTST"};
+  xpp_engine_api *x = &a->eng->api;
+  double want[10];
+  const char *main, *second, *m1, *m2;
+  char line[1200], name[2][160], num[64], low[16];
+  size_t k = 0;
+  int i, j;
+  if (a->au.main_par < 0) return;
+  want[0] = a->au.ds;
+  want[1] = a->au.dsmin;
+  want[2] = a->au.dsmax;
+  want[3] = a->au.parmin;
+  want[4] = a->au.parmax;
+  want[5] = a->au.normmin;
+  want[6] = a->au.normmax;
+  want[7] = a->au.nmax;
+  want[8] = a->au.npr;
+  want[9] = a->au.ntst;
+  main = a->pars[a->au.main_par];
+  second = a->au.second_par >= 0 ? a->pars[a->au.second_par] : NULL;
+  m1 = x->xppe_auto_parameter_name(x->xppe_auto_main_slot(0));
+  m2 = x->xppe_auto_parameter_name(x->xppe_auto_main_slot(1));
+  if (!m1 || SDL_strcasecmp(m1, main) != 0 ||
+      (second && (!m2 || SDL_strcasecmp(m2, second) != 0))) {
+    echo_str(main, name[0], sizeof name[0]);
+    if (second)
+      echo_line(a, "m.auto.parameters(%s, %s)", name[0],
+                echo_str(second, name[1], sizeof name[1]));
+    else
+      echo_line(a, "m.auto.parameters(%s)", name[0]);
+  }
+  for (i = 0; i < 10; i++) {
+    double now = 0;
+    x->xppe_auto_get(keys[i], &now);
+    if (now == want[i]) continue;
+    for (j = 0; keys[i][j] && j < 15; j++) low[j] = (char)tolower((unsigned char)keys[i][j]);
+    low[j] = '\0';
+    k += (size_t)snprintf(line + k, sizeof line - k, "%s%s=%s", k ? ", " : "", low,
+                          echo_num(want[i], num, sizeof num));
+  }
+  if (k) echo_line(a, "m.auto.set(%s)", line);
+}
+
+/* The name xpplab's Auto.continue_from() gives the action of a key. */
+static const char *auto_action(const char *type, const char *key) {
+  static const struct { const char *key, *name; } names[] = {
+      {"p", "periodic"}, {"t", "two-parameter"}, {"s", "switch"},
+      {"d", "doubling"}, {"f", "fixed-period"},  {"e", "extend"}, {"n", "new"}};
+  size_t i;
+  for (i = 0; i < sizeof names / sizeof names[0]; i++)
+    if (strcmp(key, names[i].key) == 0) return names[i].name;
+  /* "": a fold's two-parameter curve, or an ordinary point's branch */
+  return strcmp(type, "LP") == 0 ? "two-parameter" : "extend";
+}
+
 static void report_auto(App *a, int before) {
   int i, specials = 0;
   /* AUTO's code ended its run where XPPAUT itself would have closed (see
@@ -1148,7 +1374,23 @@ static void report_auto(App *a, int before) {
   app_log(a, "AUTO computed %d points.", a->au.count - before);
 }
 
+static bool auto_equilibria(App *a);
+
 bool app_auto_equilibria(App *a) {
+  bool outer, ok;
+  char name[160];
+  if (!a->model_ok) return false;
+  outer = echo_begin(a);
+  if (outer) echo_auto_setup(a);
+  ok = auto_equilibria(a);
+  if (outer && ok)
+    echo_line(a, "m.auto.equilibria(%s)",
+              echo_str(a->pars[a->au.main_par], name, sizeof name));
+  echo_end(a);
+  return ok;
+}
+
+static bool auto_equilibria(App *a) {
   xpp_engine_api *x;
   int before, rc;
   if (!a->model_ok || !app_auto_push_settings(a)) return false;
@@ -1239,7 +1481,34 @@ int app_auto_actions(App *a, int point, const char **labels, const char **keys,
   return n;
 }
 
+static bool auto_continue(App *a, int point, const char *key);
+
 bool app_auto_continue(App *a, int point, const char *key) {
+  bool outer, ok;
+  char type[16], name[2][160];
+  const char *action;
+  int label;
+  if (!a->model_ok || point < 0 || point >= a->au.count) return false;
+  /* The point's array is rebuilt by the run: keep what the line needs. */
+  label = a->au.info[point].label;
+  snprintf(type, sizeof type, "%s", a->au.info[point].type_name);
+  action = auto_action(type, key);
+  outer = echo_begin(a);
+  if (outer && label) echo_auto_setup(a);
+  ok = auto_continue(a, point, key);
+  if (outer && ok) {
+    if (strcmp(action, "two-parameter") == 0 && a->au.second_par >= 0)
+      echo_line(a, "m.auto.continue_from(%d, \"two-parameter\", parameter=%s, second=%s)",
+                label, echo_str(a->pars[a->au.main_par], name[0], sizeof name[0]),
+                echo_str(a->pars[a->au.second_par], name[1], sizeof name[1]));
+    else
+      echo_line(a, "m.auto.continue_from(%d, \"%s\")", label, action);
+  }
+  echo_end(a);
+  return ok;
+}
+
+static bool auto_continue(App *a, int point, const char *key) {
   xpp_engine_api *x;
   xppe_auto_point_info *p;
   int before, rc;
@@ -1275,8 +1544,12 @@ bool app_auto_continue(App *a, int point, const char *key) {
 }
 
 void app_auto_reset(App *a) {
+  bool outer;
   if (!a->model_ok) return;
+  outer = echo_begin(a);
   a->eng->api.xppe_auto_reset();
+  if (outer) echo_line(a, "m.auto.reset()");
+  echo_end(a);
   a->au.selected = -1;
   app_auto_refresh(a);
   app_log(a, "AUTO: diagram cleared.");
@@ -1284,25 +1557,158 @@ void app_auto_reset(App *a) {
 
 /* ---- Files and settings -------------------------------------------------- */
 
-bool app_export_csv(App *a, const char *path) {
+/* A table as CSV: a header of names, then rows of exact numbers. */
+static bool write_table(App *a, const char *path, const Trajectory *t) {
   FILE *f;
+  char num[40];
   int i, j;
-  if (!a->have_traj) return false;
   f = fopen(path, "w");
   if (!f) {
     app_log(a, "error: cannot write %s", path);
     return false;
   }
-  for (j = 0; j < a->traj.ncols; j++)
-    fprintf(f, "%s%s", j ? "," : "", a->traj.names[j]);
+  for (j = 0; j < t->ncols; j++) fprintf(f, "%s%s", j ? "," : "", t->names[j]);
   fputc('\n', f);
-  for (i = 0; i < a->traj.nrows; i++) {
-    for (j = 0; j < a->traj.ncols; j++)
-      fprintf(f, "%s%.10g", j ? "," : "", a->traj.cols[j][i]);
+  for (i = 0; i < t->nrows; i++) {
+    for (j = 0; j < t->ncols; j++) {
+      app_format_double(num, sizeof num, t->cols[j][i]);
+      fprintf(f, "%s%s", j ? "," : "", num);
+    }
     fputc('\n', f);
   }
   fclose(f);
-  app_log(a, "Exported %d rows to %s", a->traj.nrows, path);
+  app_log(a, "Exported %d rows to %s", t->nrows, path);
+  return true;
+}
+
+/* The line that writes the same file from the script. */
+static void echo_export(App *a, const char *what, const char *path) {
+  char p[2100], q[2200];
+  if (!echo_begin(a)) {
+    echo_end(a);
+    return;
+  }
+  echo_abs_path(path, p, sizeof p);
+  echo_line(a, "%s.to_csv(%s)", what, echo_str(p, q, sizeof q));
+  echo_end(a);
+}
+
+bool app_export_csv(App *a, const char *path) {
+  if (!a->have_traj) {
+    app_log(a, "error: there is no run to export");
+    return false;
+  }
+  if (!write_table(a, path, &a->traj)) return false;
+  echo_export(a, "sol", path);
+  return true;
+}
+
+bool app_export_analysis_csv(App *a, const char *path) {
+  if (!a->an.have || !a->echo.table[0]) {
+    app_log(a, "error: there is no Analysis result to export (statistics and "
+               "fits are shown in the command window)");
+    return false;
+  }
+  if (!write_table(a, path, &a->an.res)) return false;
+  echo_export(a, a->echo.table, path);
+  return true;
+}
+
+bool app_export_range_csv(App *a, const char *path) {
+  SweepUI *s = &a->sw;
+  Trajectory t;
+  char names[3][APP_NAME_LEN], cols[2][160], p[2100], q[2200], nm[160];
+  double *c[3];
+  bool ok;
+  if (s->overlay || s->n <= 0 || a->echo.sweep_mode < 0) {
+    app_log(a, "error: export a Range that measures a variable or the "
+               "Liapunov exponent (a Range that keeps the runs has no table)");
+    return false;
+  }
+  memset(&t, 0, sizeof t);
+  snprintf(names[0], APP_NAME_LEN, "%s", a->echo.sweep_name);
+  c[0] = s->x;
+  c[1] = s->ymax;
+  c[2] = s->ymin;
+  if (a->echo.sweep_mode == SWEEP_LYAPUNOV) {
+    snprintf(names[1], APP_NAME_LEN, "lyapunov");
+    t.ncols = 2;
+  } else {
+    snprintf(names[1], APP_NAME_LEN, "%s_max", a->echo.sweep_var);
+    snprintf(names[2], APP_NAME_LEN, "%s_min", a->echo.sweep_var);
+    t.ncols = 3;
+  }
+  t.nrows = s->n;
+  t.names = names;
+  t.cols = c;
+  if (!(ok = write_table(a, path, &t))) return false;
+  if (echo_begin(a)) {
+    echo_abs_path(path, p, sizeof p);
+    echo_str(names[0], nm, sizeof nm);
+    if (t.ncols == 2)
+      echo_line(a, "xs.Table({%s: sweep_values, \"lyapunov\": sweep}).to_csv(%s)",
+                nm, echo_str(p, q, sizeof q));
+    else
+      echo_line(a, "xs.Table({%s: sweep_values, %s: sweep[:, 0], %s: sweep[:, 1]})"
+                   ".to_csv(%s)", nm, echo_str(names[1], cols[0], sizeof cols[0]),
+                echo_str(names[2], cols[1], sizeof cols[1]), echo_str(p, q, sizeof q));
+  }
+  echo_end(a);
+  return true;
+}
+
+/* The points of the bifurcation diagram, with the columns xpplab's
+   Diagram.to_csv() writes. */
+bool app_export_auto_csv(App *a, const char *path) {
+  xpp_engine_api *x;
+  FILE *f;
+  char num[40];
+  int i, j;
+  if (!a->model_ok || a->au.count == 0) {
+    app_log(a, "error: the bifurcation diagram has no points yet");
+    return false;
+  }
+  x = &a->eng->api;
+  f = fopen(path, "w");
+  if (!f) {
+    app_log(a, "error: cannot write %s", path);
+    return false;
+  }
+  fputs("branch,point,type,label,stable,periodic,two_parameter,parameter,value,"
+        "parameter2,value2,norm,period", f);
+  for (j = 0; j < a->nvars; j++) fprintf(f, ",%s_max", a->vars[j]);
+  for (j = 0; j < a->nvars; j++) fprintf(f, ",%s_min", a->vars[j]);
+  fputc('\n', f);
+  for (i = 0; i < a->au.count; i++) {
+    const xppe_auto_point_info *p = &a->au.info[i];
+    const char *n1 = x->xppe_auto_parameter_name(p->par1_slot);
+    const char *n2 = p->two_parameter ? x->xppe_auto_parameter_name(p->par2_slot) : NULL;
+    fprintf(f, "%d,%d,%s,%d,%d,%d,%d,%s,", p->branch, p->point, p->type_name, p->label,
+            p->stable ? 1 : 0, p->periodic ? 1 : 0, p->two_parameter ? 1 : 0,
+            n1 ? n1 : "");
+    app_format_double(num, sizeof num, p->par1);
+    fprintf(f, "%s,%s,", num, n2 ? n2 : "");
+    if (n2) {
+      app_format_double(num, sizeof num, p->par2);
+      fputs(num, f);
+    }
+    app_format_double(num, sizeof num, p->norm);
+    fprintf(f, ",%s,", num);
+    app_format_double(num, sizeof num, p->period);
+    fputs(num, f);
+    for (j = 0; j < a->nvars; j++) {
+      app_format_double(num, sizeof num, a->au.umax[(size_t)i * a->nvars + j]);
+      fprintf(f, ",%s", num);
+    }
+    for (j = 0; j < a->nvars; j++) {
+      app_format_double(num, sizeof num, a->au.umin[(size_t)i * a->nvars + j]);
+      fprintf(f, ",%s", num);
+    }
+    fputc('\n', f);
+  }
+  fclose(f);
+  app_log(a, "Exported %d points of the bifurcation diagram to %s", a->au.count, path);
+  echo_export(a, "m.auto.diagram", path);
   return true;
 }
 
@@ -1362,8 +1768,8 @@ void app_save_settings(App *a) {
   settings_path(path, sizeof path);
   f = fopen(path, "w");
   if (!f) return;
-  fprintf(f, "dark=%d\nscale=%g\nclassic_keys=%d\nlive=%d\n", a->dark,
-          (double)a->ui_scale, a->classic_keys, a->live);
+  fprintf(f, "dark=%d\nscale=%g\nclassic_keys=%d\nlive=%d\necho=%d\n", a->dark,
+          (double)a->ui_scale, a->classic_keys, a->live, a->echo.console);
   for (i = a->nrecent - 1; i >= 0; i--) fprintf(f, "recent=%s\n", a->recent[i]);
   fclose(f);
 }
@@ -1383,6 +1789,7 @@ void app_load_settings(App *a) {
     if (strcmp(line, "scale") == 0) a->ui_scale = (float)atof(eq + 1);
     if (strcmp(line, "classic_keys") == 0) a->classic_keys = atoi(eq + 1) != 0;
     if (strcmp(line, "live") == 0) a->live = atoi(eq + 1) != 0;
+    if (strcmp(line, "echo") == 0) a->echo.console = atoi(eq + 1) != 0;
     if (strcmp(line, "recent") == 0) app_add_recent(a, eq + 1);
   }
   fclose(f);

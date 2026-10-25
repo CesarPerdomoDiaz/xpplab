@@ -113,3 +113,39 @@ def test_closed_model_refuses_work():
     m.close()
     with pytest.raises(xs.EngineError):
         m.run()
+
+
+def test_continue_run_appends_and_restores(lecar):
+    sol = lecar.run(total=20)
+    ics = dict(lecar.ics)
+    longer = lecar.continue_run(sol, 15)
+    assert len(longer) == len(sol) + len(lecar.last_run()) - 1
+    assert longer.t[-1] == pytest.approx(35)
+    assert np.array_equal(longer["V"][:len(sol)], sol["V"])
+    assert np.all(np.diff(longer.t) > 0)
+    # Initial conditions, T0 and the total time are as they were.
+    assert dict(lecar.ics) == ics
+    assert lecar.get("T0") == 0 and lecar.get("TOTAL") == 20
+
+
+def test_last_run_is_the_engines_run(lecar):
+    sol = lecar.run()
+    assert np.array_equal(lecar.last_run()["V"], sol["V"])
+
+
+def test_csv_is_exact(lecar, tmp_path):
+    sol = lecar.run(iapp=0.1, total=50)
+    sol.to_csv(tmp_path / "run.csv")
+    lines = (tmp_path / "run.csv").read_text().splitlines()
+    assert lines[0] == ",".join(sol.columns)
+    back = np.array([[float(x) for x in l.split(",")] for l in lines[1:]])
+    assert np.array_equal(back, sol.to_numpy())
+
+
+def test_raising_maxstor_grows_the_storage(lecar):
+    # Setting MAXSTOR alone used to leave the storage at its old size, so a
+    # long run wrote past its end and crashed the process.
+    lecar.set(total=300, maxstor=10000)
+    assert len(lecar.run()) == 6001
+    lecar.set(maxstor=100)  # less than allocated: runs grow it again
+    assert len(lecar.run()) == 6001

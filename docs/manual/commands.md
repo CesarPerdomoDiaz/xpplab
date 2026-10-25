@@ -63,13 +63,45 @@ commands. `help` lists them all.
 | `hfun V'-V; 0` | H function for weak coupling, one formula per variable; primed names are the other cell. |
 | `fitdata v.dat V 2 gca,gk` | Fit gca and gk so that V matches column 2 of v.dat. |
 | `open file.ode`, `new`, `save` | Model files. |
-| `export run.csv` | Save the last run as CSV. |
+| `export run.csv` | Save the last run as CSV. Every number is written exactly. |
+| `export d.csv auto` | Save the points of the bifurcation diagram as CSV (`range`: the last Range that measures; `analysis`: the Analysis result). |
 | `export fig.svg phase` | Save a figure (`time`, `phase`, `auto`, `auto2`) as SVG; `.png` saves it as shown. |
+| `script session.py` | Save the session as a Python script that repeats it (see below). |
+| `echo off`, `echo on` | Hide or show each action as Python in the command window. |
 | `continue 50` | Integrate 50 more time units from the end of the last run (C C). |
 | `clc` | Clear the command window. |
 | `show phase`, `hide help` | Bring a window forward, or close it: `time`, `phase`, `auto`, `editor`, `data`, `analysis`, `3d`, `animator`, `help`, `console`, `workspace`, `models`. |
 | `layout side`, `layout tabs` | Put the phase plane beside the time series (also in **View**), or all plots back in tabs. |
 | `help auto` | Open a manual page. |
+
+## Your session as Python
+
+Each action that changes the model or computes something is also written in
+the command window, in green after `>>>`, as the line of Python that does
+the same with the [xpplab package](https://cesarperdomodiaz.github.io/xpplab/python/quickstart/):
+
+```
+>>> m = xs.load("lecar.ode")
+>>> sol = m.run()
+>>> m.parameters["iapp"] = 0.1
+>>> sol = m.run()
+>>> m.auto.equilibria("iapp")
+>>> m.auto.continue_from(2, "periodic")
+```
+
+A slider is written once, when you let it go, with the value it ended at.
+**File > Save session as Python script** (or `script session.py`) saves all
+the lines so far, with the import they need. Run the script with Python
+(`pip install xpplab`) and it repeats the session's computations number for
+number: the same runs, the same bifurcation diagram, the same spectra, to
+the last bit, because the package runs the same engine. Data exported as
+CSV during the session is written again by the script, so the two can be
+compared file by file.
+
+Figures are drawn again with matplotlib: the same data, but not the same
+picture. Changes to the view (zoom, windows, colours) are not written.
+**View > Show actions as Python** (or `echo off`) hides the lines in the
+command window; the script keeps them either way.
 
 ## Command-line options
 

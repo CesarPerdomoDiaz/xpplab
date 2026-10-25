@@ -133,7 +133,8 @@ void ui_apply_theme(App *a) {
 
 /* ---- File dialogs ------------------------------------------------------------- */
 
-enum { DLG_NONE, DLG_OPEN, DLG_SAVE_AS, DLG_EXPORT, DLG_PNG, DLG_SVG, DLG_ANI };
+enum { DLG_NONE, DLG_OPEN, DLG_SAVE_AS, DLG_EXPORT, DLG_PNG, DLG_SVG, DLG_ANI,
+       DLG_SCRIPT, DLG_DATA };
 static SDL_Mutex *dlg_lock;
 static int dlg_kind;
 static char dlg_result[1024];
@@ -200,6 +201,22 @@ void ui_dialog_export_csv(App *a) {
                          (SDL_Window *)a->window, csv_filters, 2, NULL);
 }
 
+static const SDL_DialogFileFilter py_filters[] = {
+    {"Python scripts (*.py)", "py"}, {"All files", "*"}};
+
+void ui_dialog_save_script(App *a) {
+  if (!dlg_lock) dlg_lock = SDL_CreateMutex();
+  SDL_ShowSaveFileDialog(dialog_done, (void *)(intptr_t)DLG_SCRIPT,
+                         (SDL_Window *)a->window, py_filters, 2, NULL);
+}
+
+/* With a dot and an extension, or the one given. */
+static void with_extension(const char *path, const char *ext, char *out, size_t len) {
+  size_t n = strlen(path), e = strlen(ext);
+  snprintf(out, len, "%s%s", path,
+           (n < e || SDL_strcasecmp(path + n - e, ext) != 0) ? ext : "");
+}
+
 void ui_dialog_poll(App *a) {
   char path[1024];
   int kind;
@@ -219,16 +236,28 @@ void ui_dialog_poll(App *a) {
     if (app_save_editor(a, p)) app_apply_editor(a);
   }
   if (kind == DLG_EXPORT) app_export_csv(a, path);
-  if (kind == DLG_PNG || kind == DLG_SVG) {
-    const char *ext = kind == DLG_PNG ? ".png" : ".svg";
+  if (kind == DLG_SCRIPT) {
     char p[1100];
-    size_t n = strlen(path);
-    snprintf(p, sizeof p, "%s%s", path,
-             (n < 4 || SDL_strcasecmp(path + n - 4, ext) != 0) ? ext : "");
+    with_extension(path, ".py", p, sizeof p);
+    echo_save(a, p);
+  }
+  if (kind == DLG_DATA) {
+    char p[1100];
+    with_extension(path, ".csv", p, sizeof p);
+    if (dlg_figure == FIG_AUTO || dlg_figure == FIG_AUTO2)
+      app_export_auto_csv(a, p);
+    else
+      app_export_csv(a, p);
+  }
+  if (kind == DLG_PNG || kind == DLG_SVG) {
+    char p[1100];
+    bool ok = true;
+    with_extension(path, kind == DLG_PNG ? ".png" : ".svg", p, sizeof p);
     if (kind == DLG_PNG)
       export_png((FigureKind)dlg_figure, p);
     else
-      export_svg(a, (FigureKind)dlg_figure, p);
+      ok = export_svg(a, (FigureKind)dlg_figure, p);
+    if (ok) echo_figure(a, dlg_figure, p);
   }
 }
 
@@ -236,19 +265,26 @@ static const SDL_DialogFileFilter png_filters[] = {{"PNG images (*.png)", "png"}
 static const SDL_DialogFileFilter svg_filters[] = {{"SVG vector figures (*.svg)", "svg"}};
 
 void ui_export_button(App *a, int figure) {
+  bool diagram = figure == FIG_AUTO || figure == FIG_AUTO2;
   if (Button("Export...")) igOpenPopup_Str("export", 0);
   Tooltip("Save this figure: a PNG image exactly as shown, or an SVG vector "
-          "figure for papers and posters.");
+          "figure for papers and posters. Or save its numbers as CSV.");
   if (igBeginPopup("export", 0)) {
     int kind = DLG_NONE;
     if (igMenuItem_Bool("PNG image (as shown)...", NULL, false, true)) kind = DLG_PNG;
     if (igMenuItem_Bool("SVG vector figure...", NULL, false, true)) kind = DLG_SVG;
+    if (igMenuItem_Bool(diagram ? "Diagram points as CSV..." : "Run as CSV...", NULL,
+                        false, diagram ? a->au.count > 0 : a->have_traj))
+      kind = DLG_DATA;
     if (kind != DLG_NONE) {
       if (!dlg_lock) dlg_lock = SDL_CreateMutex();
       dlg_figure = figure;
       SDL_ShowSaveFileDialog(dialog_done, (void *)(intptr_t)kind,
                              (SDL_Window *)a->window,
-                             kind == DLG_PNG ? png_filters : svg_filters, 1, NULL);
+                             kind == DLG_PNG   ? png_filters
+                             : kind == DLG_SVG ? svg_filters
+                                               : csv_filters,
+                             1, NULL);
     }
     igEndPopup();
   }
@@ -475,5 +511,7 @@ void ui_draw(App *a) {
   }
 
   /* Live mode: rerun after parameter edits, at most once per frame. */
-  if (a->needs_run) app_run(a);
+  if (a->needs_run) app_run_live(a);
+  /* The session's Python: a slider or field is written once let go. */
+  echo_frame(a, igIsAnyItemActive() || igIsMouseDown_Nil(ImGuiMouseButton_Left));
 }

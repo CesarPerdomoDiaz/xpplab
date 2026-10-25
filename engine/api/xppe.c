@@ -47,6 +47,7 @@ void do_intern_set(char *name, char *value);
 void extract_internset(int j);
 void chk_delay(void);
 void redo_stuff(void);
+int reallocstor(int ncol, int nrow);
 int get_val(char *name, double *value);
 void convert(char *source, char *dest);
 void do_sing_info(double *x, double eps, double err, double big, int maxit,
@@ -349,7 +350,17 @@ int xppe_set(const char *name, const char *value) {
   if (xppe_same_name(n, "POIMAP") &&
       (v[0] == '0' || v[0] == 'o' || v[0] == 'O' || v[0] == 'n' || v[0] == 'N'))
     POIMAP = 0;
-  else
+  /* MAXSTOR is the size of the storage already allocated: XPPAUT reads it
+     before allocating, and later only changes it together with the
+     storage (stor_full). Set here alone, a larger value let the next run
+     write past the end of the arrays. Grow the storage with it. */
+  else if (xppe_same_name(n, "MAXSTOR")) {
+    int rows = atoi(v);
+    if (rows > MAXSTOR && reallocstor(NEQ + 1, rows))
+      MAXSTOR = rows;
+    else if (rows > 0 && rows <= MAXSTOR)
+      MAXSTOR = rows; /* within what is allocated: safe */
+  } else
     do_intern_set(n, v);
   redo_stuff();
   XPPE_GUARD_END;

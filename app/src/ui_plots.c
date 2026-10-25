@@ -279,7 +279,10 @@ void ui_phase_plot(App *a) {
   igSetNextItemWidth(90);
   if (Combo("y", &p->yvar, a->vars, a->nvars)) p->nc_dirty = true;
   igSameLine(0, 14);
-  if (igCheckbox("Nullclines", &p->nullclines)) p->nc_dirty = true;
+  if (igCheckbox("Nullclines", &p->nullclines)) {
+    p->nc_dirty = true;
+    a->echo.nc_written = false;
+  }
   Tooltip("Red: where dx/dt = 0. Green: where dy/dt = 0. Equilibria are where "
           "they cross (N N).");
   igSameLine(0, -1);

@@ -258,7 +258,7 @@ bool app_apply_editor(App *a);  /* save the editor text and reload */
 bool app_save_editor(App *a, const char *path);
 /* Whether path is one of the examples that come with the app, which Save
    never overwrites: an edited example goes to a copy in Documents/XPP
-   Studio, under the first free name that app_example_copy_path() gives. */
+   Lab, under the first free name that app_example_copy_path() gives. */
 bool app_is_example(const App *a, const char *path);
 bool app_example_copy_path(const App *a, char *out, size_t len);
 void app_new_model(App *a);
@@ -312,6 +312,9 @@ int app_auto_actions(App *a, int point, const char **labels, const char **keys,
 /* Files */
 bool app_export_csv(App *a, const char *path);
 void app_add_recent(App *a, const char *path);
+/* The app's own folder (settings, layout, untitled models), ending in a
+   separator, or NULL; free it with SDL_free(). */
+char *app_pref_dir(void);
 void app_save_settings(App *a);
 void app_load_settings(App *a);
 

@@ -1,4 +1,4 @@
-Review a change that another agent made for XPP Studio issue #$number:
+Review a change that another agent made for XPP Lab issue #$number:
 $title
 
 $body
@@ -15,7 +15,7 @@ needed, but do not change anything. Look for:
 - bugs and unhandled cases;
 - anything that could change XPPAUT's numbers (the golden tests must stay
   bit-identical);
-- edits in `engine/xppaut/` without an `XPP Studio fix:` comment, or a fix
+- edits in `engine/xppaut/` without an `XPP Lab fix:` comment, or a fix
   without a row in `docs/upstream-issues.md`;
 - missing or weak tests, and documentation the change makes wrong;
 - anything that does not do what the issue asks.

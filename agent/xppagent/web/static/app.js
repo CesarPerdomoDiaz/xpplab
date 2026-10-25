@@ -122,7 +122,7 @@ function drawTop(p) {
   if (p.bot) {
     $("avatar").src = `https://github.com/${encodeURIComponent(p.bot)}.png?size=88`;
   }
-  $("repo").textContent = `XPP Studio's maintainer agent · ${p.repo}`;
+  $("repo").textContent = `XPP Lab's maintainer agent · ${p.repo}`;
   const status = $("status");
   let kind = "idle", text = "Idle, checking for work every minute";
   if (!a.alive) {

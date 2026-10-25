@@ -345,7 +345,7 @@ int get_mouse_xy(x,y,w)
  Window w;
  int *x,*y;
  {
-  /* XPP Studio: headless, there is no mouse. */
+  /* XPP Lab: headless, there is no mouse. */
   if(xpps_embedded){*x=0;*y=0;return 0;}
   int no_but=1;
   char ch;
@@ -686,7 +686,7 @@ int new_string(name,value)
 char *name;
 char *value;
 {
- /* XPP Studio: headless, the text comes from the answer queue. */
+ /* XPP Lab: headless, the text comes from the answer queue. */
  if(xpps_embedded){const char *a=xpps_answer_next();if(!a)return 0;strcpy(value,a);return 1;}
  char old_value[80];
  int done=0;

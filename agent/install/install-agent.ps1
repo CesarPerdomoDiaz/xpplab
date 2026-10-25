@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Installs the XPP Studio maintainer agent as a scheduled task that runs
+    Installs the XPP Lab maintainer agent as a scheduled task that runs
     all the time under its own Windows account.
 
 .DESCRIPTION
@@ -94,7 +94,7 @@ if (-not $user) {
     Write-Host "  scheduled task; nobody needs to remember it after that."
     $password = Read-Host -AsSecureString "Password for $UserName"
     New-LocalUser -Name $UserName -Password $password -PasswordNeverExpires `
-        -UserMayNotChangePassword -Description "Runs the XPP Studio maintainer agent" | Out-Null
+        -UserMayNotChangePassword -Description "Runs the XPP Lab maintainer agent" | Out-Null
 } else {
     Say "The account $UserName exists"
 }
@@ -173,7 +173,7 @@ if (-not (Test-Path $config)) {
 $secrets = Join-Path $AgentHome "secrets.env"
 if (-not (Test-Path $secrets)) {
     $template = @"
-# Secrets of the XPP Studio maintainer agent. Readable only by the agent's
+# Secrets of the XPP Lab maintainer agent. Readable only by the agent's
 # account and administrators. See agent/README.md for how to make each one.
 GH_TOKEN=
 CLAUDE_CODE_OAUTH_TOKEN=

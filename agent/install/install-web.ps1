@@ -48,7 +48,7 @@ if (-not (Get-LocalUser -Name $UserName -ErrorAction SilentlyContinue)) {
     Write-Host "  Choose a long password for it; you type it once more below for the task."
     $password = Read-Host -AsSecureString "Password for $UserName"
     New-LocalUser -Name $UserName -Password $password -PasswordNeverExpires `
-        -UserMayNotChangePassword -Description "Runs the XPP Studio agent's dashboard" | Out-Null
+        -UserMayNotChangePassword -Description "Runs the XPP Lab agent's dashboard" | Out-Null
 } else {
     Say "The account $UserName exists"
 }

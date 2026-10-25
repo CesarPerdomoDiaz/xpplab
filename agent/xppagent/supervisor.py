@@ -460,7 +460,7 @@ class Supervisor:
     def run(self, sleep=time.sleep, passes: int | None = None) -> None:
         """Pass after pass, for ever (or `passes` times, for tests). Setting up
         is retried too: after a reboot the network may not be up yet."""
-        log.info("XPP Studio maintainer agent started for %s", self.cfg.slug)
+        log.info("XPP Lab maintainer agent started for %s", self.cfg.slug)
         if passes is None and self.cfg.explain_per_window > 0:
             self.explainer.start()
         ready = False

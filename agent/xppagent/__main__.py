@@ -72,7 +72,7 @@ def doctor(cfg, live: bool) -> int:
         bad += not ok
         print(f"  [{'ok' if ok else 'FAIL'}] {what}" + (f": {detail}" if detail else ""))
 
-    print(f"XPP Studio maintainer agent {__version__}")
+    print(f"XPP Lab maintainer agent {__version__}")
     report(sys.version_info >= (3, 11), "Python 3.11 or newer", sys.version.split()[0])
     try:
         cfg.home.mkdir(parents=True, exist_ok=True)

@@ -1,4 +1,4 @@
-The maintainer of XPP Studio asks you about $what #$number, to decide what
+The maintainer of XPP Lab asks you about $what #$number, to decide what
 to do with it. Read whatever you need in the code (this checkout is
 $checkout) and in its history; change nothing. Your final message is posted
 on GitHub as your answer, exactly as you write it, so write only the answer

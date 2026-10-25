@@ -26,7 +26,7 @@ static const char *about[AN_COUNT] = {
     "Mean and standard deviation of a column, and the largest Liapunov "
     "exponent of the run: negative at a stable equilibrium, near zero on a "
     "limit cycle, positive for chaos. (stocHastic > Mean, Liapunov)",
-    "Phase response curves of a stable limit cycle. XPP Studio settles onto "
+    "Phase response curves of a stable limit cycle. XPP Lab settles onto "
     "the cycle, measures its period, integrates exactly one period and "
     "computes XPPAUT's adjoint along it. Each column is how much a small "
     "kick in that variable advances the cycle, in time units. (Averaging > "

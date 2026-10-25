@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "xppstudio": {
+    "xpplab": {
       "command": "python",
-      "args": ["-m", "xppstudio.mcp"]
+      "args": ["-m", "xpplab.mcp"]
     }
   }
 }

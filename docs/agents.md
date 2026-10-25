@@ -1,7 +1,7 @@
 # Coding agents
 
 Many researchers now run their analyses through a coding agent such as
-Claude Code, Codex or Claude Desktop. XPP Studio can serve those agents
+Claude Code, Codex or Claude Desktop. XPP Lab can serve those agents
 through the **Model Context Protocol** (MCP): the agent writes an `.ode`
 file, checks it, simulates it, runs AUTO, and looks at the figures, with
 XPPAUT's own numerics. Every answer the agent gets also carries the Python
@@ -15,7 +15,7 @@ reads and writes only the files you point it at and its work folder.
 From PyPI:
 
 ```
-pip install "xppstudio[mcp]"
+pip install "xpplab[mcp]"
 ```
 
 Or from a clone of the repository, with `pip install ".[mcp]"` (see the
@@ -25,14 +25,14 @@ package. The server needs Python 3.10 or later.
 Check that it starts:
 
 ```
-python -m xppstudio.mcp --help
+python -m xpplab.mcp --help
 ```
 
 ## Connect an agent
 
-The server speaks MCP over stdio: the agent starts `python -m xppstudio.mcp`
-(or the `xppstudio-mcp` command) and talks to it. Use the Python that has
-xppstudio installed; on Windows, give its full path if `python` is not on
+The server speaks MCP over stdio: the agent starts `python -m xpplab.mcp`
+(or the `xpplab-mcp` command) and talks to it. Use the Python that has
+xpplab installed; on Windows, give its full path if `python` is not on
 `PATH`.
 
 ### Claude Code
@@ -40,7 +40,7 @@ xppstudio installed; on Windows, give its full path if `python` is not on
 Add the server to a project:
 
 ```
-claude mcp add xppstudio -- python -m xppstudio.mcp
+claude mcp add xpplab -- python -m xpplab.mcp
 ```
 
 or put this `.mcp.json` at the root of the project:
@@ -48,21 +48,21 @@ or put this `.mcp.json` at the root of the project:
 ```json
 {
   "mcpServers": {
-    "xppstudio": {
+    "xpplab": {
       "command": "python",
-      "args": ["-m", "xppstudio.mcp"]
+      "args": ["-m", "xpplab.mcp"]
     }
   }
 }
 ```
 
-XPP Studio is also a Claude Code **plugin**: the MCP server plus a skill
+XPP Lab is also a Claude Code **plugin**: the MCP server plus a skill
 that teaches Claude the workflow and the usual pitfalls of AUTO. Install it
 from the repository's marketplace:
 
 ```
-/plugin marketplace add CesarPerdomoDiaz/xppstudio
-/plugin install xppstudio@xppstudio
+/plugin marketplace add CesarPerdomoDiaz/xpplab
+/plugin install xpplab@xpplab
 ```
 
 `/mcp` in Claude Code shows whether the server is connected.
@@ -72,9 +72,9 @@ from the repository's marketplace:
 In `~/.codex/config.toml`:
 
 ```toml
-[mcp_servers.xppstudio]
+[mcp_servers.xpplab]
 command = "python"
-args = ["-m", "xppstudio.mcp"]
+args = ["-m", "xpplab.mcp"]
 ```
 
 The repository's `AGENTS.md` describes the workflow for agents that work
@@ -89,9 +89,9 @@ Developer > Edit config):
 ```json
 {
   "mcpServers": {
-    "xppstudio": {
+    "xpplab": {
       "command": "C:\\Users\\you\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
-      "args": ["-m", "xppstudio.mcp", "--workdir", "C:\\Users\\you\\Documents\\xppstudio"]
+      "args": ["-m", "xpplab.mcp", "--workdir", "C:\\Users\\you\\Documents\\xpplab"]
     }
   }
 }
@@ -117,9 +117,9 @@ the server saves it under the work folder.
 | `plot_simulation`, `plot_phase_plane`, `plot_bifurcation`, `plot_table` | PNG or SVG figures in the work folder. The agent also receives the PNG, so it can look at it. |
 
 The server also offers the [.ode format](manual/odefile.md) and the
-[AUTO guide](manual/auto.md) as resources (`xppstudio://docs/ode-format`,
-`xppstudio://docs/auto`), the list of examples (`xppstudio://examples`) and
-each example's text (`xppstudio://examples/lecar.ode`), and a prompt,
+[AUTO guide](manual/auto.md) as resources (`xpplab://docs/ode-format`,
+`xpplab://docs/auto`), the list of examples (`xpplab://examples`) and
+each example's text (`xpplab://examples/lecar.ode`), and a prompt,
 `explore_model`, that asks for a complete analysis of a model.
 
 ## How calls work
@@ -136,7 +136,7 @@ each example's text (`xppstudio://examples/lecar.ode`), and a prompt,
   it. Editing the file, or `reset=true`, clears the diagram.
 - **Compact results, full data in files.** Results are one line of JSON.
   Whole runs, spectra, sweeps and diagrams go to CSV files in the work
-  folder: `--workdir`, else `$XPPSTUDIO_WORKDIR`, else `./xppstudio-out`.
+  folder: `--workdir`, else `$XPPLAB_WORKDIR`, else `./xpplab-out`.
 - **Reproducible.** Each result has a `python` entry. For AUTO it repeats
   every step of the diagram in order, so pasting it into Python rebuilds
   the same diagram, labels included.
@@ -164,7 +164,7 @@ agent typically calls:
 
 ## The skill
 
-`skills/xppstudio/SKILL.md` in the repository is the guide the Claude Code
+`skills/xpplab/SKILL.md` in the repository is the guide the Claude Code
 plugin loads: the workflow above, how to read special points (sub- and
 supercritical Hopf, folds of cycles, SNICs), and the pitfalls (AUTO's
 parameter range, the sign of `ds`, `ntst` for spiky orbits, closed loops of
@@ -173,14 +173,14 @@ orbits, stiff systems). Other agents can be pointed at the same file.
 ## Without MCP
 
 The tools are a thin layer over the [Python package](python/quickstart.md).
-An agent that can run Python can use `xppstudio` directly; the `python`
+An agent that can run Python can use `xpplab` directly; the `python`
 entries of the results show how.
 
 ## Troubleshooting
 
-- **The server does not start**: run `python -m xppstudio.mcp --help` with
+- **The server does not start**: run `python -m xpplab.mcp --help` with
   the same Python. "No module named mcp" means the `[mcp]` extra is missing.
-- **"the XPP Studio engine library was not found"**: the package was
+- **"the XPP Lab engine library was not found"**: the package was
   imported from a source tree without a build. Install the wheel, build the
-  engine (`cmake --build build`), or set `XPPSTUDIO_ENGINE` to the library.
-- **No examples**: set `XPPSTUDIO_EXAMPLES` to a folder of `.ode` files.
+  engine (`cmake --build build`), or set `XPPLAB_ENGINE` to the library.
+- **No examples**: set `XPPLAB_EXAMPLES` to a folder of `.ode` files.

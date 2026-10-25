@@ -202,14 +202,14 @@ endif()
 # Inside a Python wheel the library lives next to the package code.
 if(SKBUILD)
   install(TARGETS xppe
-    RUNTIME DESTINATION xppstudio/_lib COMPONENT python
-    LIBRARY DESTINATION xppstudio/_lib COMPONENT python)
-  # The MCP server (xppstudio.mcp) offers agents the example models and the
+    RUNTIME DESTINATION xpplab/_lib COMPONENT python
+    LIBRARY DESTINATION xpplab/_lib COMPONENT python)
+  # The MCP server (xpplab.mcp) offers agents the example models and the
   # manual's pages on the .ode format and AUTO.
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/
-    DESTINATION xppstudio/examples COMPONENT python
+    DESTINATION xpplab/examples COMPONENT python
     FILES_MATCHING PATTERN "*.ode" PATTERN "*.ani" PATTERN "*.tab" PATTERN "*.dat")
   install(FILES ${PROJECT_SOURCE_DIR}/docs/manual/odefile.md
                 ${PROJECT_SOURCE_DIR}/docs/manual/auto.md
-    DESTINATION xppstudio/_docs COMPONENT python)
+    DESTINATION xpplab/_docs COMPONENT python)
 endif()

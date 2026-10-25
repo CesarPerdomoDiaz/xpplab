@@ -1,6 +1,6 @@
-# The XPP Studio maintainer agent
+# The XPP Lab maintainer agent
 
-A program that works on XPP Studio around the clock. It takes GitHub issues
+A program that works on XPP Lab around the clock. It takes GitHub issues
 that you label `agent`, plans each one on the issue, makes the change with
 Claude Code in its own git worktree, runs the build and all the tests, opens
 a draft pull request, has a second Claude run review it, fixes what the
@@ -108,7 +108,7 @@ keeps your own token off the workstation.
    window, and sign up with the bot's name as the username (for example
    `limit-cyclist`). Use an email address of your own with a `+` tag, such
    as `you+bot@gmail.com`; Gmail delivers it to you. Give it a display name
-   and a bio saying what it is: "XPP Studio's maintainer agent (Claude Code).
+   and a bio saying what it is: "XPP Lab's maintainer agent (Claude Code).
    Works on issues labelled agent; César merges."
 2. **Keep its email private.** In the bot's Settings > Emails, tick "Keep my
    email addresses private". Its commits then use the address
@@ -159,7 +159,7 @@ In a new PowerShell (so the new programs are on the PATH):
 
 ```powershell
 gh auth login
-gh repo clone CesarPerdomoDiaz/xppstudio C:\src\xppstudio
+gh repo clone CesarPerdomoDiaz/xpplab C:\src\xpplab
 ```
 
 This checkout is only used to install and update the agent; the agent
@@ -170,7 +170,7 @@ keeps its own clone.
 In an elevated PowerShell:
 
 ```powershell
-cd C:\src\xppstudio
+cd C:\src\xpplab
 powershell -ExecutionPolicy Bypass -File agent\install\install-agent.ps1
 ```
 
@@ -179,6 +179,8 @@ Choose a long password for it when asked, and type it again when the
 installer asks for it to register the scheduled task. It also creates
 `C:\xpps-agent` with `config.toml`, an empty `secrets.env` and the
 scheduled task "XPP Studio maintainer agent". It does not start the task.
+(The scheduled tasks keep the name the project had before it became XPP
+Lab: renaming a task means typing the account's password again.)
 
 ### 4. Install Claude Code for the agent's account
 
@@ -208,7 +210,7 @@ above). Without a bot account, make a token of your own instead: on
 github.com, go to Settings, Developer settings, Personal access tokens,
 Fine-grained tokens, and choose "Generate new token":
 
-- Repository access: only `CesarPerdomoDiaz/xppstudio`.
+- Repository access: only `CesarPerdomoDiaz/xpplab`.
 - Permissions: Contents read and write; Issues read and write; Pull
   requests read and write; Actions read; Commit statuses read (Metadata
   read is added automatically). Leave Workflows and Administration off.
@@ -265,7 +267,7 @@ within a minute, then a draft pull request.
 | Pause, resume | the `agent:paused` label on the log issue, or the file `C:\xpps-agent\STOP` |
 | Stop, start | `Stop-ScheduledTask` / `Start-ScheduledTask -TaskName "XPP Studio maintainer agent"` |
 | Change settings | edit `C:\xpps-agent\config.toml`, then stop and start the task |
-| Update the agent | `agent\install\update-agent.ps1`, as administrator. It pulls `C:\src\xppstudio`, lets the agent finish its step, copies the new code and restarts it, keeping the settings, secrets and state |
+| Update the agent | `agent\install\update-agent.ps1`, as administrator. It pulls `C:\src\xpplab`, lets the agent finish its step, copies the new code and restarts it, keeping the settings, secrets and state |
 | Remove it | `agent\install\uninstall-agent.ps1` (add `-Purge` to delete its folder and account too) |
 
 ### Looking after it from another computer
@@ -277,7 +279,7 @@ Tailscale and only with that key. Password logins are turned off, and port
 logs and restarts then need no Remote Desktop:
 
 ```
-ssh you@<workstation> "powershell -File C:\src\xppstudio\agent\install\update-agent.ps1"
+ssh you@<workstation> "powershell -File C:\src\xpplab\agent\install\update-agent.ps1"
 ```
 
 ## The dashboard
@@ -320,14 +322,14 @@ comments from the dashboard are yours.
    DNS, turn on MagicDNS and HTTPS Certificates.
 2. **Make your own token:** on github.com, as yourself, go to Settings,
    Developer settings, Fine-grained tokens:
-   - Repository access: only `CesarPerdomoDiaz/xppstudio`.
+   - Repository access: only `CesarPerdomoDiaz/xpplab`.
    - Permissions: Contents read and write (for merging); Issues read and
      write; Pull requests read and write; Commit statuses read; Actions
      read.
    - Expiration: up to a year.
 3. **Install it.** In an elevated PowerShell:
    ```powershell
-   cd C:\src\xppstudio
+   cd C:\src\xpplab
    git pull
    powershell -ExecutionPolicy Bypass -File agent\install\install-web.ps1
    ```

@@ -9,7 +9,7 @@ the second becomes the command shown as code.
 
 import re
 
-REPO = "https://github.com/CesarPerdomoDiaz/xppstudio/blob/main/engine/xppaut/ode/"
+REPO = "https://github.com/CesarPerdomoDiaz/xpplab/blob/main/engine/xppaut/ode/"
 
 _example = re.compile(r"\[([^\]]+)\]\(example:([^)]+)\)")
 _command = re.compile(r"\[([^\]]+)\]\(cmd:([^)]+)\)")

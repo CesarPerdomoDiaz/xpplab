@@ -178,7 +178,7 @@ void app_init(App *a, const char *base_dir, bool ephemeral) {
   /* Until the user picks a theme, follow the system's light or dark mode. */
   if (!ephemeral) a->dark = SDL_GetSystemTheme() == SDL_SYSTEM_THEME_DARK;
   if (!ephemeral) app_load_settings(a);
-  app_log(a, "XPP Studio %s - XPPAUT 8.0 engine. Type 'help' for commands.",
+  app_log(a, "XPP Lab %s - XPPAUT 8.0 engine. Type 'help' for commands.",
           XPPS_VERSION);
   app_status(a, "Open a model (File > Open) or pick an example on the left.");
 }
@@ -448,7 +448,7 @@ bool app_open(App *a, const char *path) {
 
 bool app_open_text(App *a, const char *text, const char *name) {
   char path[1024];
-  char *pref = SDL_GetPrefPath("XPPStudio", "XPPStudio");
+  char *pref = app_pref_dir();
   FILE *f;
   snprintf(path, sizeof path, "%s%s", pref ? pref : "", name);
   SDL_free(pref);
@@ -467,7 +467,7 @@ bool app_open_text(App *a, const char *text, const char *name) {
 /* The examples come with the app: inside the bundle on macOS, next to the
    program elsewhere. Saving one in place would change the app itself (on
    macOS it breaks the app's signature, and run from the disk image the save
-   fails), so an edited example is saved as a copy in Documents/XPP Studio. */
+   fails), so an edited example is saved as a copy in Documents/XPP Lab. */
 
 #ifdef _WIN32
 #define SEP "\\"
@@ -495,16 +495,16 @@ bool app_is_example(const App *a, const char *path) {
   return in;
 }
 
-/* The folder for the copies, made if need be. XPPSTUDIO_DOCUMENTS, if set,
+/* The folder for the copies, made if need be. XPPLAB_DOCUMENTS, if set,
    stands for Documents (tests/parity.py points it at its own folder). */
 static bool copies_dir(char *out, size_t len) {
-  const char *docs = SDL_getenv("XPPSTUDIO_DOCUMENTS");
+  const char *docs = SDL_getenv("XPPLAB_DOCUMENTS");
   size_t n;
   if (!docs || !*docs) docs = SDL_GetUserFolder(SDL_FOLDER_DOCUMENTS);
   if (!docs) docs = SDL_GetUserFolder(SDL_FOLDER_HOME);
   if (!docs) return false;
   n = strlen(docs);
-  snprintf(out, len, "%s%sXPP Studio", docs,
+  snprintf(out, len, "%s%sXPP Lab", docs,
            n && (docs[n - 1] == '/' || docs[n - 1] == '\\') ? "" : SEP);
   return SDL_CreateDirectory(out);
 }
@@ -584,7 +584,7 @@ bool app_save_editor(App *a, const char *path) {
 
 bool app_apply_editor(App *a) {
   if (!a->model_path[0]) {
-    char *pref = SDL_GetPrefPath("XPPStudio", "XPPStudio");
+    char *pref = app_pref_dir();
     snprintf(a->model_path, sizeof a->model_path, "%suntitled.ode",
              pref ? pref : "");
     SDL_free(pref);
@@ -1318,8 +1318,39 @@ void app_add_recent(App *a, const char *path) {
   snprintf(a->recent[0], sizeof a->recent[0], "%s", path);
 }
 
+char *app_pref_dir(void) {
+  static const char *carry[] = {"settings.ini", "layout.ini"};
+  static bool checked = false;
+  char *pref = SDL_GetPrefPath("XPPLab", "XPPLab");
+  if (pref && !checked) {
+    /* Until 0.1.1 the app was XPP Studio: the old folder is the same path
+       with XPPStudio for XPPLab. Its settings and layout come along once. */
+    char old[1024], from[1100], to[1100], *o = old, *end = old + sizeof old - 1;
+    const char *s = pref;
+    size_t i;
+    checked = true;
+    while (*s && o < end) {
+      if (strncmp(s, "XPPLab", 6) == 0 && end - o >= 9) {
+        memcpy(o, "XPPStudio", 9);
+        o += 9;
+        s += 6;
+      } else {
+        *o++ = *s++;
+      }
+    }
+    *o = '\0';
+    for (i = 0; i < SDL_arraysize(carry); i++) {
+      snprintf(from, sizeof from, "%s%s", old, carry[i]);
+      snprintf(to, sizeof to, "%s%s", pref, carry[i]);
+      if (SDL_GetPathInfo(from, NULL) && !SDL_GetPathInfo(to, NULL))
+        SDL_CopyFile(from, to);
+    }
+  }
+  return pref;
+}
+
 static void settings_path(char *out, size_t len) {
-  char *pref = SDL_GetPrefPath("XPPStudio", "XPPStudio");
+  char *pref = app_pref_dir();
   snprintf(out, len, "%ssettings.ini", pref ? pref : "");
   SDL_free(pref);
 }

@@ -136,7 +136,7 @@ static void menu_help(App *a) {
   if (igMenuItem_Bool("Coming from XPPAUT", NULL, false, true))
     ui_show_help(a, "xppaut");
   igSeparator();
-  if (igMenuItem_Bool("About XPP Studio", NULL, false, true))
+  if (igMenuItem_Bool("About XPP Lab", NULL, false, true))
     ui_show_help(a, "about");
 }
 

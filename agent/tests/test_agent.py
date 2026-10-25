@@ -387,7 +387,7 @@ def test_claude_results_are_read():
 
 def test_the_example_config_loads():
     cfg = load(AGENT / "config.example.toml")
-    assert cfg.slug == "CesarPerdomoDiaz/xppstudio" and len(cfg.gates) == 5
+    assert cfg.slug == "CesarPerdomoDiaz/xpplab" and len(cfg.gates) == 5
     assert [j.name for j in cfg.jobs] == ["dependencies", "manual", "examples"]
     assert cfg.home == Path("C:/xpps-agent")
 

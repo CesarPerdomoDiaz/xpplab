@@ -70,7 +70,7 @@ XPPAUT animations are `.ani` files: lines, circles, rectangles, text and
 comets (points with a trail) whose positions and colours are formulas of
 the variables. The **Animator** (*View > Animator*) plays one over the run:
 *Play*, the row slider, *speed* in rows per second and *Loop*. When a model
-has an animation of the same name next to it, XPP Studio loads it and shows
+has an animation of the same name next to it, XPP Lab loads it and shows
 an **Animate** button; open another with *Open .ani...*.
 
 [Open the double pendulum](example:doubpend.ode), [run it](cmd:run) and

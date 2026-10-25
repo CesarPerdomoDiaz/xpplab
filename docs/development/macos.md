@@ -1,6 +1,6 @@
-# XPP Studio for macOS: the plan
+# XPP Lab for macOS: the plan
 
-**Goal:** a student downloads XPP Studio, drags it to *Applications* and
+**Goal:** a student downloads XPP Lab, drags it to *Applications* and
 double-clicks it. It opens without a warning on Apple Silicon and Intel
 Macs, fits a 13-inch laptop screen and behaves like other Mac apps. No
 XQuartz, no Homebrew, no Terminal.
@@ -74,7 +74,7 @@ display scale 2.00, pixel density 2.00, interface scale 1.00, renderer
 metal. The interface fills the window, and text is sharp at full
 resolution.
 
-![XPP Studio on a Retina MacBook Air](../images/macos-retina.png)
+![XPP Lab on a Retina MacBook Air](../images/macos-retina.png)
 
 *The fixed app on the M2 MacBook Air (macOS 26.6), shown at half its
 2940 × 1618 pixels.*
@@ -97,13 +97,13 @@ resolution.
   that nothing links outside the bundle, the signature, and that the app
   starts and runs AUTO. That build is on the preview release.
 - **`Info.plist`** declares the `.ode` document type (UTI
-  `org.xppstudio.ode`), marks the app as Retina-capable and sets the
+  `org.xpplab.ode`), marks the app as Retina-capable and sets the
   minimum system version to 11.0.
 - **⌘ shortcuts:** ImGui maps its Ctrl shortcuts to ⌘ on macOS (⌘O, ⌘S,
   ⌘N, ⌘Q), and SDL adds the standard application menu (About, Hide, Quit)
   and the Window menu.
 
-![XPP Studio on macOS](../images/macos-first-run.png)
+![XPP Lab on macOS](../images/macos-first-run.png)
 
 *The CI screenshot from GitHub's Apple Silicon runner: a 1× screen, so it
 cannot show Retina problems.*
@@ -168,8 +168,8 @@ says "ignore the security warning" is a poor start.
    notarization queue (usually a few minutes, sometimes much longer) is
    then billed at 1× instead of 10×.
 
-Fix the bundle at the same time: name it `XPP Studio.app` rather than
-`xppstudio.app`, and ship SDL once (it is in both `Contents/MacOS` and
+Fix the bundle at the same time: name it `XPP Lab.app` rather than
+`xpplab.app`, and ship SDL once (it is in both `Contents/MacOS` and
 `Contents/Frameworks`, 3 MB of a 10 MB download).
 
 - **Cost:** US$99 a year, plus about a day of work. Expect a few release
@@ -241,7 +241,7 @@ on macOS. The 3D view gets the same treatment: drag rotates, pinch zooms.
 
 ### 6. The Mac menu bar
 
-Mac users look for menus at the top of the screen. Today XPP Studio's
+Mac users look for menus at the top of the screen. Today XPP Lab's
 menus are inside the window, and the system menu bar has only SDL's
 application and Window menus.
 
@@ -252,7 +252,7 @@ application and Window menus.
 - **Hide the in-window menu bar** when the system one exists. That gives
   the plots about 25 points of height on a laptop.
 - **Standard items:**
-  - *About XPP Studio*, with the version and engine credits;
+  - *About XPP Lab*, with the version and engine credits;
   - *Settings…* ⌘,: theme, text size and XPPAUT keys, now under View;
   - *Quit* ⌘Q, which asks about unsaved changes;
   - an Edit menu whose Cut, Copy, Paste and Select All reach ImGui's text
@@ -294,17 +294,17 @@ as drop events. No person has tried it yet. Things to check:
 
 ### 9. Distribution: Homebrew and Python
 
-- **Homebrew cask.** `brew install --cask xppstudio` is how many Mac users
+- **Homebrew cask.** `brew install --cask xpplab` is how many Mac users
   and lab administrators install apps.
   - Requirements: a public repository (the download URL must be
     reachable) and a notarized app. Homebrew stopped supporting casks
     that fail Gatekeeper on 1 September 2026.
-  - Start with a tap: a repository `homebrew-xppstudio` holding
-    `Casks/xppstudio.rb` with the version, URL and SHA-256. The release
+  - Start with a tap: a repository `homebrew-xpplab` holding
+    `Casks/xpplab.rb` with the version, URL and SHA-256. The release
     workflow updates it on a Linux runner.
   - Move to homebrew/cask once the project meets its notability rules.
   - **Cost:** an hour, after step 2. No macOS minutes.
-- **The Python wheel is a separate route.** `pip install xppstudio` gives
+- **The Python wheel is a separate route.** `pip install xpplab` gives
   the engine, AUTO and the Python API for scripts and Jupyter, not the
   desktop app. The macOS wheel is universal2, built by cibuildwheel, which
   is already configured to run on tags and by hand. It needs no
@@ -378,8 +378,8 @@ The plan:
 3. **The window:** it fills the screen. Text is about the size of Finder's
    and looks sharp, and the toolbar is not cut off. Take a screenshot.
 4. **Run from Terminal**
-   (`/Applications/xppstudio.app/Contents/MacOS/xppstudio`) and copy what
-   it prints. The line starting `XPP Studio: window` gives the scale.
+   (`/Applications/xpplab.app/Contents/MacOS/xpplab`) and copy what
+   it prints. The line starting `XPP Lab: window` gives the scale.
 5. ⌘O shows the standard Mac open panel; open an `.ode` model.
 6. Double-click an `.ode` file in Finder, then drop one on the Dock icon.
 7. In the phase plane, scroll with two fingers and pinch; if you have a

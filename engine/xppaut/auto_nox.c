@@ -454,7 +454,7 @@ void renamef(old,new)
 char *old,*new;
 {
 #ifdef _WIN32
- /* XPP Studio fix: on Windows rename() fails if the target exists. */
+ /* XPP Lab fix: on Windows rename() fails if the target exists. */
  remove(new);
 #endif
  rename(old,new);
@@ -551,7 +551,7 @@ void close_auto(flg)  /* labels compatible with A2K  */
       fp8_is_open=0;
     }
   */
-  /* XPP Studio fix: close fort.8 before renaming it to the .s file. POSIX
+  /* XPP Lab fix: close fort.8 before renaming it to the .s file. POSIX
      can rename an open file (leaving its tail unflushed); Windows cannot,
      which lost the restart data needed to continue from labelled points. */
   if(fp8_is_open){
@@ -653,7 +653,7 @@ void do_auto(iold,isave,itp)
 		*/
  
     open_auto(iold); /* this copies the relevant files .s  to fort.3 */
-    /* XPP Studio: guarded, so that an exit() inside AUTO ends only this
+    /* XPP Lab: guarded, so that an exit() inside AUTO ends only this
        continuation (see go_go_auto_guarded() in gogoauto.c). */
     go_go_auto_guarded(); /* this complets the initialization and calls the 
                       main routines 

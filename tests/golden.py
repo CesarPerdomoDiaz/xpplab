@@ -32,7 +32,7 @@ GOLDEN = ROOT / "tests" / "golden"
 TIMEOUT = 60
 
 # Models whose output differs from run to run in unmodified XPPAUT (fixed
-# in XPP Studio; see docs/upstream-issues.md). In compare mode a mismatch
+# in XPP Lab; see docs/upstream-issues.md). In compare mode a mismatch
 # with the reference is reported but does not fail the suite.
 REFERENCE_NONDETERMINISTIC = {
     "ode/mlvolt": "unmodified XPPAUT reads int[.5] with stray digits about "

@@ -123,7 +123,7 @@ class Model(AnalysisMixin):
     @classmethod
     def from_text(cls, text: str, name: str = "model.ode", **kw) -> "Model":
         """Load a model from the text of an .ode file."""
-        d = Path(tempfile.mkdtemp(prefix="xppstudio-model-"))
+        d = Path(tempfile.mkdtemp(prefix="xpplab-model-"))
         p = d / name
         p.write_text(text)
         return cls(p, **kw)

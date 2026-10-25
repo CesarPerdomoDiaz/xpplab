@@ -1,12 +1,12 @@
 ---
-name: xppstudio
-description: Simulate ODE models and compute bifurcation diagrams with XPP Studio, which runs XPPAUT's integrators and its AUTO continuation. Use when the user wants to write or fix an XPPAUT .ode file; simulate a dynamical system (neuron, oscillator, population, chemical or mechanical model); find equilibria and their stability; follow steady states or limit cycles as a parameter changes (Hopf, fold, period doubling); sweep a parameter; or compute phase response curves, spectra or Liapunov exponents.
+name: xpplab
+description: Simulate ODE models and compute bifurcation diagrams with XPP Lab, which runs XPPAUT's integrators and its AUTO continuation. Use when the user wants to write or fix an XPPAUT .ode file; simulate a dynamical system (neuron, oscillator, population, chemical or mechanical model); find equilibria and their stability; follow steady states or limit cycles as a parameter changes (Hopf, fold, period doubling); sweep a parameter; or compute phase response curves, spectra or Liapunov exponents.
 ---
 
-# Dynamical systems with XPP Studio
+# Dynamical systems with XPP Lab
 
-XPP Studio is XPPAUT 8.0 (Ermentrout's ODE and bifurcation tool, with AUTO)
-as a library. Its MCP server, `xppstudio`, gives you these tools:
+XPP Lab is XPPAUT 8.0 (Ermentrout's ODE and bifurcation tool, with AUTO)
+as a library. Its MCP server, `xpplab`, gives you these tools:
 
 | Step | Tool |
 |---|---|
@@ -18,8 +18,8 @@ as a library. Its MCP server, `xppstudio`, gives you these tools:
 | Oscillations | `limit_cycle`, `phase_response`, `spectrum`, `lyapunov` |
 | Data | `fit` (Levenberg-Marquardt), `bvp` (shooting), `plot_table` |
 
-The .ode format is in the resource `xppstudio://docs/ode-format`, the AUTO
-guide in `xppstudio://docs/auto`. If the tools are missing, see "Without the
+The .ode format is in the resource `xpplab://docs/ode-format`, the AUTO
+guide in `xpplab://docs/auto`. If the tools are missing, see "Without the
 MCP server" below.
 
 ## How the tools behave
@@ -151,11 +151,11 @@ MCP server" below.
 
 ## Without the MCP server
 
-The tools are a thin layer over the `xppstudio` Python package
-(`pip install "xppstudio[mcp]"` installs both). The same analysis in Python:
+The tools are a thin layer over the `xpplab` Python package
+(`pip install "xpplab[mcp]"` installs both). The same analysis in Python:
 
 ```python
-import xppstudio as xs
+import xpplab as xs
 m = xs.load("fhn.ode")
 sol = m.run(I=0.5)                         # sol.t, sol["V"]
 eq = m.equilibrium()                       # eq.values, eq.eigenvalues, eq.kind
@@ -166,4 +166,4 @@ m.auto.diagram.plot("V")
 prc = m.phase_response()                   # with I set where it oscillates
 ```
 
-To start the server yourself: `python -m xppstudio.mcp` (stdio).
+To start the server yourself: `python -m xpplab.mcp` (stdio).

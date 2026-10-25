@@ -1,4 +1,4 @@
-"""The MCP server: the tools of :mod:`xppstudio.mcp.session` over the Model
+"""The MCP server: the tools of :mod:`xpplab.mcp.session` over the Model
 Context Protocol, with the manual and the example models as resources.
 
 Built on the official MCP Python SDK (``MCPServer``, called ``FastMCP``
@@ -26,11 +26,11 @@ from .. import __version__
 from .session import Session, ToolError, describe_file, doc_path, examples_dir
 
 INSTRUCTIONS = """\
-XPP Studio runs XPPAUT's integrators and its AUTO continuation on .ode model
+XPP Lab runs XPPAUT's integrators and its AUTO continuation on .ode model
 files (Ermentrout's XPPAUT 8.0, bit for bit).
 
 - model: a path to an .ode file, the name of an example (find_examples), or
-  the text of a model. The format is in the resource xppstudio://docs/ode-format.
+  the text of a model. The format is in the resource xpplab://docs/ode-format.
 - values: parameters, initial conditions and options for one call, e.g.
   {"iapp": 0.1, "V": -0.3, "total": 200, "meth": "stiff"}. Each call starts
   from the file's values plus these; nothing carries over between calls.
@@ -39,7 +39,7 @@ files (Ermentrout's XPPAUT 8.0, bit for bit).
   values and settings that computed them, and plot_bifurcation draws it.
   It is cleared when the model file changes, or with reset=true.
 - Results are compact JSON; full data goes to CSV files in the work folder;
-  every result has a "python" entry that reproduces it with the xppstudio
+  every result has a "python" entry that reproduces it with the xpplab
   package.
 
 Typical session: write the .ode file, check_model, describe_model, simulate,
@@ -75,7 +75,7 @@ def _json(result: dict) -> str:
 def create_server(session: Optional[Session] = None):
     """Build the MCP server around a Session (a new one by default)."""
     s = session or Session()
-    server = _Server("xppstudio", instructions=INSTRUCTIONS)
+    server = _Server("xpplab", instructions=INSTRUCTIONS)
     server._xpp_session = s  # for tests and embedding
 
     def call(method, **kw) -> str:
@@ -400,12 +400,12 @@ def create_server(session: Optional[Session] = None):
     def _doc(name: str, title: str) -> str:
         p = doc_path(name)
         if p is None:
-            return (f"{title} is not installed with this copy of xppstudio. See "
-                    f"https://github.com/CesarPerdomoDiaz/xppstudio/blob/main/"
+            return (f"{title} is not installed with this copy of xpplab. See "
+                    f"https://github.com/CesarPerdomoDiaz/xpplab/blob/main/"
                     f"docs/manual/{name}")
         return p.read_text(encoding="utf-8")
 
-    @server.resource("xppstudio://docs/ode-format", name="ode-format",
+    @server.resource("xpplab://docs/ode-format", name="ode-format",
                      title="The .ode file format",
                      description="How to write an XPPAUT model file: equations, "
                                  "parameters, options, expressions.",
@@ -413,7 +413,7 @@ def create_server(session: Optional[Session] = None):
     def ode_format() -> str:
         return _doc("odefile.md", "The .ode reference")
 
-    @server.resource("xppstudio://docs/auto", name="auto-guide",
+    @server.resource("xpplab://docs/auto", name="auto-guide",
                      title="Bifurcation analysis with AUTO",
                      description="Special points, the numerical settings, and "
                                  "what to do when AUTO fails.",
@@ -421,23 +421,23 @@ def create_server(session: Optional[Session] = None):
     def auto_guide() -> str:
         return _doc("auto.md", "The AUTO guide")
 
-    @server.resource("xppstudio://examples", name="examples",
+    @server.resource("xpplab://examples", name="examples",
                      title="Example models",
                      description="The example .ode files, one line each.",
                      mime_type="text/markdown")
     def examples() -> str:
         ex = examples_dir()
         if ex is None:
-            return "No example folder found; set XPPSTUDIO_EXAMPLES."
+            return "No example folder found; set XPPLAB_EXAMPLES."
         lines = [f"# Example models ({ex})", "",
                  "Pass a name as `model` to any tool; read one with "
-                 "xppstudio://examples/<name>.", ""]
+                 "xpplab://examples/<name>.", ""]
         for p in sorted(ex.glob("*.ode"), key=lambda p: p.name.lower()):
             about = describe_file(p)
             lines.append(f"- {p.name}" + (f": {about}" if about else ""))
         return "\n".join(lines) + "\n"
 
-    @server.resource("xppstudio://examples/{name}", name="example-model",
+    @server.resource("xpplab://examples/{name}", name="example-model",
                      title="An example model",
                      description="The text of one example .ode file.",
                      mime_type="text/plain")
@@ -456,7 +456,7 @@ def create_server(session: Optional[Session] = None):
     def explore_model(model: str, parameter: str = "") -> str:
         target = f" in {parameter}" if parameter else ""
         return (
-            f"Analyse the XPPAUT model {model} with the xppstudio tools.\n"
+            f"Analyse the XPPAUT model {model} with the xpplab tools.\n"
             f"1. check_model, then describe_model.\n"
             f"2. simulate it and say what it does (steady state, oscillation, ...).\n"
             f"3. equilibria: where are they, and are they stable?\n"
@@ -496,14 +496,14 @@ def _protect_stdio() -> None:
 
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(
-        prog="python -m xppstudio.mcp",
-        description="XPP Studio's MCP server, over stdio: XPPAUT simulations "
+        prog="python -m xpplab.mcp",
+        description="XPP Lab's MCP server, over stdio: XPPAUT simulations "
                     "and AUTO continuation for coding agents.")
     ap.add_argument("--workdir", help="folder for CSV files, figures and "
-                    "inline models (default: $XPPSTUDIO_WORKDIR, else "
-                    "./xppstudio-out)")
+                    "inline models (default: $XPPLAB_WORKDIR, else "
+                    "./xpplab-out)")
     ap.add_argument("--version", action="version",
-                    version=f"xppstudio {__version__}")
+                    version=f"xpplab {__version__}")
     args = ap.parse_args(argv)
     session = Session(workdir=args.workdir)
     server = create_server(session)

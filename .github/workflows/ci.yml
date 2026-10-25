@@ -50,14 +50,14 @@ jobs:
       - name: Desktop app starts, loads a model and renders
         run: |
           cd build/app
-          ./xppstudio.exe examples/lecar.ode --cmd "nullclines" --cmd "auto steady iapp" --screenshot shot.bmp --frames 10 || echo "exit code $?"
+          ./xpplab.exe examples/lecar.ode --cmd "nullclines" --cmd "auto steady iapp" --screenshot shot.bmp --frames 10 || echo "exit code $?"
           cat shot.bmp.err 2>/dev/null || true
           test -s shot.bmp
       - name: If the app failed, show where (gdb)
         if: failure()
         run: |
           cd build/app
-          gdb -batch -ex run -ex bt --args ./xppstudio.exe examples/lecar.ode --screenshot dbg.bmp --frames 5
+          gdb -batch -ex run -ex bt --args ./xpplab.exe examples/lecar.ode --screenshot dbg.bmp --frames 5
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -127,7 +127,7 @@ jobs:
       - name: Desktop app starts and renders (macOS)
         if: runner.os == 'macOS'
         run: |
-          app=build/app/xppstudio.app/Contents/MacOS/xppstudio
+          app=build/app/xpplab.app/Contents/MacOS/xpplab
           test -x "$app"
           "$app" "$PWD/engine/xppaut/ode/lecar.ode" --cmd "nullclines" \
             --cmd "show phase" --screenshot "$PWD/macos-app.bmp" --frames 12 || true
@@ -142,7 +142,7 @@ jobs:
           name: macos-preview
           path: |
             macos-app.bmp
-            build/XPPStudio-*.dmg
+            build/XPPLab-*.dmg
           if-no-files-found: ignore
 
   linux-app:
@@ -156,11 +156,11 @@ jobs:
       - run: |
           cmake -S . -B build -G Ninja -DXPPS_BUILD_TESTS=OFF -DXPPS_FETCH_SDL3=ON \
                 -DCMAKE_BUILD_TYPE=RelWithDebInfo
-          cmake --build build --target xppstudio
+          cmake --build build --target xpplab
       - name: The app starts under a virtual display and renders
         run: |
           cd build/app
-          xvfb-run -a ./xppstudio examples/lecar.ode --cmd "auto steady iapp" --screenshot shot.bmp --frames 10 || true
+          xvfb-run -a ./xpplab examples/lecar.ode --cmd "auto steady iapp" --screenshot shot.bmp --frames 10 || true
           cat shot.bmp.err 2>/dev/null || true
           test -s shot.bmp
       - name: If the app crashed, show where (gdb, valgrind)
@@ -168,10 +168,10 @@ jobs:
         run: |
           sudo apt-get install -y gdb valgrind
           cd build/app
-          xvfb-run -a gdb -batch -ex run -ex bt --args ./xppstudio examples/lecar.ode \
+          xvfb-run -a gdb -batch -ex run -ex bt --args ./xpplab examples/lecar.ode \
             --cmd "auto steady iapp" --screenshot "$PWD/dbg.bmp" --frames 10 || true
           xvfb-run -a valgrind --track-origins=yes --fullpath-after= --num-callers=30 \
-            --log-file="$GITHUB_WORKSPACE/vg-app.log" ./xppstudio examples/lecar.ode \
+            --log-file="$GITHUB_WORKSPACE/vg-app.log" ./xpplab examples/lecar.ode \
             --cmd "auto steady iapp" --screenshot "$PWD/vg.bmp" --frames 4 || true
           python3 "$GITHUB_WORKSPACE/tests/valgrind_report.py" "$GITHUB_WORKSPACE/vg-app.log"
 
@@ -252,7 +252,7 @@ jobs:
         run: |
           PYTHONMALLOC=malloc PYTHONPATH=python/src $VG --log-file=vg-python.%p.log \
             python -m pytest -q python/tests --ignore=python/tests/test_mcp.py || true
-      - name: Errors in XPP Studio code
+      - name: Errors in XPP Lab code
         run: python tests/valgrind_report.py vg-*.log
       - uses: actions/upload-artifact@v4
         if: always()

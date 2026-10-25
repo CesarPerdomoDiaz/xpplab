@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Stops and removes the XPP Studio maintainer agent's scheduled task.
+    Stops and removes the XPP Lab maintainer agent's scheduled task.
     With -Purge, also deletes its home folder (state, logs, secrets, clone)
     and its Windows account.
 #>

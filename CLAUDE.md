@@ -1,6 +1,6 @@
-# XPP Studio: notes for Claude
+# XPP Lab: notes for Claude
 
-XPP Studio is XPPAUT 8.0 (Bard Ermentrout's ODE and AUTO bifurcation tool)
+XPP Lab is XPPAUT 8.0 (Bard Ermentrout's ODE and AUTO bifurcation tool)
 with a headless C engine API, a Python package and a MATLAB-style desktop
 app. Read README.md for the overview and ROADMAP.md for what is planned.
 
@@ -10,8 +10,8 @@ app. Read README.md for the overview and ROADMAP.md for what is planned.
 - `engine/platform/` null Xlib, Windows compatibility, the embedding layer.
 - `engine/api/` the C API (`xppe.h`); one file per area (`xppe_data.c`
   analysis, `xppe_bvp.c`, `xppe_ani.c`, `xppe_auto.c`, ...).
-- `python/` the `xppstudio` package (ctypes) and its tests;
-  `python/src/xppstudio/mcp/` is the MCP server for coding agents.
+- `python/` the `xpplab` package (ctypes) and its tests;
+  `python/src/xpplab/mcp/` is the MCP server for coding agents.
 - `skills/`, `.claude-plugin/`, `.mcp.json` the Claude Code plugin (skill
   plus MCP server); `AGENTS.md` the same guidance for other agents.
 - `app/` the desktop app: SDL3 + Dear ImGui + ImPlot through cimgui, in C.
@@ -42,14 +42,14 @@ unmodified XPPAUT (`tests/build_reference.sh`, `golden.py compare`).
   unmodified XPPAUT. If a change alters a golden, it is wrong unless it fixes
   a genuine XPPAUT bug, and then that must be argued in the commit.
 - **Upstream edits are minimal and marked.** Every change in
-  `engine/xppaut/` carries an `XPP Studio fix:` (or `XPP Studio:` for
+  `engine/xppaut/` carries an `XPP Lab fix:` (or `XPP Lab:` for
   embedding guards) comment, and a fix gets a row in
   `docs/upstream-issues.md`.
 - New engine features call XPPAUT's own routines rather than reimplementing
   its numerics, and are tested against XPPAUT (batch mode or golden data) or
   against known answers.
 - Keep the API backwards compatible; bump `XPPE_API_VERSION` (and
-  `API_VERSION` in `python/src/xppstudio/_engine.py`) when adding functions,
+  `API_VERSION` in `python/src/xpplab/_engine.py`) when adding functions,
   and add new functions to `engine/api/xpp_instance.h` and the Python
   signatures.
 - Never commit build directories, test output or secrets.
@@ -60,15 +60,15 @@ unmodified XPPAUT (`tests/build_reference.sh`, `golden.py compare`).
   Bash heredocs: `\\` collapses in heredocs on this machine.
 - Never start the desktop app without `--screenshot` or `--record` from a
   script: it opens a window and waits. Use `--screenshot file.png` (PNG), e.g.
-  `build/app/xppstudio.exe examples/lecar.ode --cmd run --screenshot s.png`.
+  `build/app/xpplab.exe examples/lecar.ode --cmd run --screenshot s.png`.
   `--record DIR --frames N --script FILE` saves N frames while timed
   commands run; `python tools/make_demo.py` re-records the README's GIFs.
 - On a Mac over SSH, start the app through LaunchServices so it can open a
   window (someone must be logged in at the Mac):
-  `open -W -n --stderr ~/err.txt build/app/xppstudio.app --args "$PWD/engine/xppaut/ode/lecar.ode" --screenshot "$HOME/shot.png"`.
+  `open -W -n --stderr ~/err.txt build/app/xpplab.app --args "$PWD/engine/xppaut/ode/lecar.ode" --screenshot "$HOME/shot.png"`.
   Paths must be absolute; stderr has the line with the window size and
   scales.
-- CI runs on every push: Windows, Linux, macOS (billed tenfold on this
-  private repository), AddressSanitizer and Valgrind. Pushes that only touch
+- CI runs on every push: Windows, Linux, macOS, AddressSanitizer and
+  Valgrind. Pushes that only touch
   `docs/` or `*.md` skip it.
 - Prose in docs: plain, direct sentences; no marketing language.

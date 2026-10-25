@@ -24,7 +24,7 @@ class Job:
 @dataclass
 class Config:
     # the repository
-    slug: str = "CesarPerdomoDiaz/xppstudio"
+    slug: str = "CesarPerdomoDiaz/xpplab"
     owner: str = "CesarPerdomoDiaz"   # the only person the agent takes orders from
     base: str = "main"
     # the agent's home: its own clone, worktrees, state, logs
@@ -66,8 +66,8 @@ class Config:
     explain_poll_seconds: int = 20
     max_open: int = 3                # tasks in progress at once (PRs included)
     # the agent's commits
-    git_name: str = "XPP Studio agent"
-    git_email: str = "agent@xppstudio.invalid"
+    git_name: str = "XPP Lab agent"
+    git_email: str = "agent@xpplab.invalid"
     # the daily log
     log_issue_title: str = "Maintainer agent log"
     log_hour: int = 7

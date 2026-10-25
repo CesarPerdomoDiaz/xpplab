@@ -1,9 +1,9 @@
-# Settings of the XPP Studio maintainer agent. Copy this file to
+# Settings of the XPP Lab maintainer agent. Copy this file to
 # C:\xpps-agent\config.toml and edit it there. Secrets do not go here: they
 # go in C:\xpps-agent\secrets.env (see README.md).
 
 [repository]
-slug = "CesarPerdomoDiaz/xppstudio"
+slug = "CesarPerdomoDiaz/xpplab"
 owner = "CesarPerdomoDiaz"        # the only person the agent takes work from
 base = "main"
 
@@ -75,7 +75,7 @@ name = "dependencies"
 every_hours = 168
 title = "Weekly check: third-party versions"
 body = """
-Check the versions XPP Studio pins: SDL3, cimgui, Dear ImGui, ImPlot and
+Check the versions XPP Lab pins: SDL3, cimgui, Dear ImGui, ImPlot and
 the GitHub Actions in .github/workflows (report those; do not edit
 workflow files). If a newer stable release of a library exists and the
 update is small, update one library, with the build and all tests
@@ -98,6 +98,6 @@ every_hours = 336
 title = "Fortnightly check: models that fail to load"
 body = """
 Look for .ode files in the repository's tests and examples that load in
-XPPAUT but fail or warn in XPP Studio's Python package or app. Fix one
+XPPAUT but fail or warn in XPP Lab's Python package or app. Fix one
 cause, with a test. If you find none, report what you checked.
 """

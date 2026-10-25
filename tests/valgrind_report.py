@@ -1,4 +1,4 @@
-"""Print the valgrind errors that involve XPP Studio's code.
+"""Print the valgrind errors that involve XPP Lab's code.
 
     python tests/valgrind_report.py vg-*.log
 
@@ -48,7 +48,7 @@ def main():
             print(f"--- {Path(path).name}")
             print("\n".join(b))
             print()
-    print(f"{found} distinct memory errors involving XPP Studio code")
+    print(f"{found} distinct memory errors involving XPP Lab code")
     sys.exit(1 if found else 0)
 
 

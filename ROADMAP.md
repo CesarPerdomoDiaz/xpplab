@@ -1,12 +1,12 @@
-# XPP Studio roadmap
+# XPP Lab roadmap
 
-XPP Studio is XPPAUT, the dynamical-systems and bifurcation tool by Bard
+XPP Lab is XPPAUT, the dynamical-systems and bifurcation tool by Bard
 Ermentrout, rebuilt for today. The numerical engine is XPPAUT 8.0's own C
 code, AUTO included, kept bit-for-bit identical. Around it we build what
 XPPAUT never had: a one-command install on Windows, macOS and Linux, a
 Python API, and a modern desktop app with real documentation.
 
-"XPP Studio" is a working name until we have talked to Bard Ermentrout.
+"XPP Lab" is a working name until we have talked to Bard Ermentrout.
 
 Where it is going, in a page: [docs/vision.md](docs/vision.md).
 
@@ -56,7 +56,7 @@ AUTO-based Python package can do that.
              |  parser, integrators, equilibria, AUTO, ... |
              +--------------------------------------------+
                |                    |                    |
-       xpp (command line)   xppstudio (Python)    XPP Studio (app)
+       xpp (command line)   xpplab (Python)    XPP Lab (app)
        drop-in for          pip wheels, NumPy,    MATLAB-style desktop,
        xppaut -silent       Jupyter, plotting     docs, XPP hotkeys
 ```
@@ -116,7 +116,7 @@ The order is chosen so something useful ships early:
 - [x] Shared library build with an exported, versioned C API
 - [ ] `xpp` command-line tool built on the API
 
-### M2 Python package `xppstudio`
+### M2 Python package `xpplab`
 - [x] `ctypes` bindings to the shared library (no Python C-API dependency)
 - [x] `xs.load("lecar.ode")`, `m.run()` returning NumPy arrays or pandas
       DataFrames, `m.equilibrium()`, `m.auto.equilibria()`, `m.auto.continue_from()`
@@ -202,5 +202,5 @@ To do:
 - [ ] Codimension-two bifurcations through AUTO, explained in the manual
 
 ### M8 Working with coding agents
-- [ ] An MCP server and a Claude Code skill (`python -m xppstudio.mcp`)
+- [ ] An MCP server and a Claude Code skill (`python -m xpplab.mcp`)
 - [ ] A coding agent drives the running app while the researcher watches

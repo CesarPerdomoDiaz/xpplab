@@ -1,6 +1,6 @@
-# About XPP Studio
+# About XPP Lab
 
-XPP Studio puts a modern interface on the XPPAUT engine and adds a
+XPP Lab puts a modern interface on the XPPAUT engine and adds a
 Python package.
 
 ## Credits
@@ -24,5 +24,5 @@ A Guide to XPPAUT for Researchers and Students*, SIAM, 2002.
 
 ## Licence
 
-XPP Studio is free software under the GNU General Public License, version
+XPP Lab is free software under the GNU General Public License, version
 2 or later, the same licence as XPPAUT.

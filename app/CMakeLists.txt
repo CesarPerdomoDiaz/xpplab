@@ -1,4 +1,4 @@
-# XPP Studio desktop application: C on top of Dear ImGui (through cimgui),
+# XPP Lab desktop application: C on top of Dear ImGui (through cimgui),
 # ImPlot (through cimplot) and SDL3.
 
 enable_language(CXX)
@@ -111,9 +111,9 @@ set(APP_SOURCES
 )
 if(WIN32)
   enable_language(RC)
-  list(APPEND APP_SOURCES resources/xppstudio.rc)
-  set_source_files_properties(resources/xppstudio.rc PROPERTIES OBJECT_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/resources/xppstudio.manifest;${CMAKE_CURRENT_SOURCE_DIR}/resources/icon.ico")
+  list(APPEND APP_SOURCES resources/xpplab.rc)
+  set_source_files_properties(resources/xpplab.rc PROPERTIES OBJECT_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/xpplab.manifest;${CMAKE_CURRENT_SOURCE_DIR}/resources/icon.ico")
 endif()
 if(APPLE)
   set(MACOSX_BUNDLE_ICON_FILE icon.icns)
@@ -122,64 +122,64 @@ if(APPLE)
   list(APPEND APP_SOURCES resources/icon.icns)
 endif()
 
-add_executable(xppstudio WIN32 MACOSX_BUNDLE ${APP_SOURCES})
-set_target_properties(xppstudio PROPERTIES
-  OUTPUT_NAME "xppstudio"
-  MACOSX_BUNDLE_BUNDLE_NAME "XPP Studio"
-  MACOSX_BUNDLE_GUI_IDENTIFIER "org.xppstudio.app"
+add_executable(xpplab WIN32 MACOSX_BUNDLE ${APP_SOURCES})
+set_target_properties(xpplab PROPERTIES
+  OUTPUT_NAME "xpplab"
+  MACOSX_BUNDLE_BUNDLE_NAME "XPP Lab"
+  MACOSX_BUNDLE_GUI_IDENTIFIER "org.xpplab.app"
   MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
   MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
   MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resources/Info.plist.in"
   INSTALL_RPATH "$ORIGIN"
   BUILD_RPATH "$ORIGIN")
-target_include_directories(xppstudio PRIVATE src ${PROJECT_SOURCE_DIR}/engine/api ${TP})
-target_link_libraries(xppstudio PRIVATE xpps_gui SDL3::SDL3)
+target_include_directories(xpplab PRIVATE src ${PROJECT_SOURCE_DIR}/engine/api ${TP})
+target_link_libraries(xpplab PRIVATE xpps_gui SDL3::SDL3)
 if(NOT WIN32)
-  target_link_libraries(xppstudio PRIVATE ${CMAKE_DL_LIBS} m)
+  target_link_libraries(xpplab PRIVATE ${CMAKE_DL_LIBS} m)
 endif()
 if(MINGW)
   # No MinGW runtime DLLs (libgcc, libstdc++, winpthread) at run time.
-  target_link_options(xppstudio PRIVATE -static)
+  target_link_options(xpplab PRIVATE -static)
 endif()
-add_dependencies(xppstudio xppe)
-target_compile_definitions(xppstudio PRIVATE
+add_dependencies(xpplab xppe)
+target_compile_definitions(xpplab PRIVATE
   XPPS_VERSION="${PROJECT_VERSION}")
 
 # The engine library and the example models go where SDL_GetBasePath()
 # points: next to the executable, or Contents/Resources in a macOS bundle.
 if(APPLE)
-  set(APP_DATA_DIR $<TARGET_BUNDLE_CONTENT_DIR:xppstudio>/Resources)
+  set(APP_DATA_DIR $<TARGET_BUNDLE_CONTENT_DIR:xpplab>/Resources)
 else()
-  set(APP_DATA_DIR $<TARGET_FILE_DIR:xppstudio>)
+  set(APP_DATA_DIR $<TARGET_FILE_DIR:xpplab>)
 endif()
-add_custom_command(TARGET xppstudio POST_BUILD
+add_custom_command(TARGET xpplab POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E make_directory ${APP_DATA_DIR}
   COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:xppe> ${APP_DATA_DIR}
   COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL3::SDL3>
-          $<TARGET_FILE_DIR:xppstudio>
+          $<TARGET_FILE_DIR:xpplab>
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${PROJECT_SOURCE_DIR}/engine/xppaut/ode ${APP_DATA_DIR}/examples)
 
 # Install a self-contained folder (or bundle) and package it with CPack.
-# Every package carries the licences: XPP Studio's, and the notices and
+# Every package carries the licences: XPP Lab's, and the notices and
 # texts for the parts by others (THIRD-PARTY-NOTICES.md).
 set(XPPS_LICENCE_FILES ${PROJECT_SOURCE_DIR}/LICENSE
     ${PROJECT_SOURCE_DIR}/THIRD-PARTY-NOTICES.md)
 if(APPLE)
-  install(TARGETS xppstudio BUNDLE DESTINATION . COMPONENT app)
+  install(TARGETS xpplab BUNDLE DESTINATION . COMPONENT app)
   # In the disk image beside the app, and inside the app itself.
   install(FILES ${XPPS_LICENCE_FILES} DESTINATION . COMPONENT app)
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/licenses DESTINATION . COMPONENT app)
   install(FILES ${XPPS_LICENCE_FILES}
-          DESTINATION xppstudio.app/Contents/Resources COMPONENT app)
+          DESTINATION xpplab.app/Contents/Resources COMPONENT app)
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/licenses
-          DESTINATION xppstudio.app/Contents/Resources COMPONENT app)
+          DESTINATION xpplab.app/Contents/Resources COMPONENT app)
   # Copy SDL3 into the bundle and point the executable at it, then sign the
   # result ad hoc (Apple Silicon refuses to run modified unsigned code).
   # First drop the build leftovers among XPPAUT's examples (see below).
   install(CODE [[
     include(BundleUtilities)
-    set(app "${CMAKE_INSTALL_PREFIX}/xppstudio.app")
+    set(app "${CMAKE_INSTALL_PREFIX}/xpplab.app")
     file(GLOB junk "${app}/Contents/Resources/examples/*~"
          "${app}/Contents/Resources/examples/*.o" "${app}/Contents/Resources/examples/*.so"
          "${app}/Contents/Resources/examples/*.bak" "${app}/Contents/Resources/examples/a.out")
@@ -190,7 +190,7 @@ if(APPLE)
     execute_process(COMMAND codesign --force --deep --sign - "${app}")
   ]] COMPONENT app)
 else()
-  install(TARGETS xppstudio RUNTIME DESTINATION . COMPONENT app)
+  install(TARGETS xpplab RUNTIME DESTINATION . COMPONENT app)
   install(FILES $<TARGET_FILE:xppe> DESTINATION . COMPONENT app)
   if(WIN32)
     install(FILES $<TARGET_FILE:SDL3::SDL3> DESTINATION . COMPONENT app)
@@ -218,7 +218,7 @@ if(MINGW)
   install(CODE "set(XPPS_MINGW_BIN \"${XPPS_MINGW_BIN}\")" COMPONENT app)
   install(CODE [[
     file(GET_RUNTIME_DEPENDENCIES
-      EXECUTABLES "${CMAKE_INSTALL_PREFIX}/xppstudio.exe"
+      EXECUTABLES "${CMAKE_INSTALL_PREFIX}/xpplab.exe"
       LIBRARIES "${CMAKE_INSTALL_PREFIX}/SDL3.dll" "${CMAKE_INSTALL_PREFIX}/libxppe.dll"
       DIRECTORIES "${XPPS_MINGW_BIN}"
       PRE_EXCLUDE_REGEXES "^api-ms-" "^ext-ms-"

@@ -161,7 +161,7 @@ static bool svg_begin(Svg *s, const char *path, const FigureState *fig) {
           "<svg xmlns='http://www.w3.org/2000/svg' width='%d' height='%d' "
           "viewBox='0 0 %d %d' font-family='Helvetica, Arial, sans-serif' "
           "font-size='14' fill='#222'>\n"
-          "<!-- Made with XPP Studio -->\n"
+          "<!-- Made with XPP Lab -->\n"
           "<rect width='100%%' height='100%%' fill='white'/>\n"
           "<defs><clipPath id='plot'><rect x='%d' y='%d' width='%d' height='%d'/>"
           "</clipPath></defs>\n",

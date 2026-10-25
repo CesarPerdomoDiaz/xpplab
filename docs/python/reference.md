@@ -1,19 +1,19 @@
 # API reference
 
-::: xppstudio.Model
+::: xpplab.Model
 
-::: xppstudio.Trajectory
+::: xpplab.Trajectory
 
-::: xppstudio.Equilibrium
+::: xpplab.Equilibrium
 
-::: xppstudio.Table
+::: xpplab.Table
 
-::: xppstudio.Animation
+::: xpplab.Animation
 
-::: xppstudio.auto.Auto
+::: xpplab.auto.Auto
 
-::: xppstudio.Diagram
+::: xpplab.Diagram
 
-::: xppstudio.Point
+::: xpplab.Point
 
-::: xppstudio.EngineError
+::: xpplab.EngineError

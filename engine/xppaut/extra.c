@@ -214,7 +214,7 @@ void add_export_list(char *in,char *out)
   int l1=strlen(in);
   int l2=strlen(out);
   int i;
-  /* XPP Studio fix: +1 for the terminating zero, which strcpy() wrote past
+  /* XPP Lab fix: +1 for the terminating zero, which strcpy() wrote past
      the end of each block and corrupted the heap. */
   in_out.lin=(char *)malloc(l1+1);
   in_out.lout=(char *)malloc(l2+1);
@@ -228,7 +228,7 @@ void add_export_list(char *in,char *out)
   i=get_export_count(out);
   in_out.out=(int *)malloc((i+1)*sizeof(int));
   in_out.outtype=(int *)malloc((i+1)*sizeof(int));
-  /* XPP Studio fix: calloc, not malloc. When the library cannot be loaded,
+  /* XPP Lab fix: calloc, not malloc. When the library cannot be loaded,
      my_fun() leaves vout alone and do_in_out() copies it into the exported
      variables at every step: they took whatever the heap held. */
   in_out.vout=(double *)calloc(i+1,sizeof(double));

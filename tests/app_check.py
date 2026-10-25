@@ -1,6 +1,6 @@
 """Exit status of scripted runs of the desktop app.
 
-usage: app_check.py xppstudio model.ode
+usage: app_check.py xpplab model.ode
 
 A --screenshot run that works exits 0 and writes the PNG. A --record run into
 a folder that does not exist exits non-zero and writes <folder>.err.

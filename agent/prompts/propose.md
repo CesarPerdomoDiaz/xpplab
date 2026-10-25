@@ -1,4 +1,4 @@
-You are choosing what XPP Studio's maintainer agent should propose next.
+You are choosing what XPP Lab's maintainer agent should propose next.
 Read the code as much as you need; change nothing. This run's answer is
 the JSON block described at the end, not the usual status block.
 

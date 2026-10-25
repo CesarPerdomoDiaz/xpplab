@@ -60,7 +60,7 @@ class GitHubAPI:
             "Authorization": f"Bearer {self.token}",
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
-            "User-Agent": "xppstudio-dashboard"})
+            "User-Agent": "xpplab-dashboard"})
         if data is not None:
             req.add_header("Content-Type", "application/json")
         try:

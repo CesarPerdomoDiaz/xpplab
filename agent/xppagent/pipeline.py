@@ -256,7 +256,7 @@ class Pipeline:
         body = (f"Closes #{task.issue}.\n\n{answer.get('summary') or ''}\n\n"
                 f"**Checks run before pushing**\n\n{summary}\n\n"
                 f"```\n{self.repo.stat(path)}```\n\n"
-                "_Draft opened by the XPP Studio maintainer agent. An agent review "
+                "_Draft opened by the XPP Lab maintainer agent. An agent review "
                 "and CI come next; I will ask for your review when they pass._")
         task.pr = self.gh.pr_for_branch(task.branch) or \
             self.gh.create_pr(task.branch, self.cfg.base, title, body)

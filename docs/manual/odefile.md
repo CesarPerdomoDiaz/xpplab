@@ -1,6 +1,6 @@
 # The .ode file format
 
-A model is a plain text file, usually ending in `.ode`. XPP Studio reads
+A model is a plain text file, usually ending in `.ode`. XPP Lab reads
 exactly the format of XPPAUT 8.0, so files written for XPPAUT work
 unchanged. Each statement goes on its own line, and the file ends with
 `done`. Upper and lower case are the same in names.

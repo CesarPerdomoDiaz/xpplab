@@ -1,4 +1,4 @@
-"""The MCP server for coding agents (xppstudio.mcp).
+"""The MCP server for coding agents (xpplab.mcp).
 
 Each tool is called in-process through the Session that the server wraps;
 these tests need only NumPy (and matplotlib for the plots). The server
@@ -14,9 +14,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-import xppstudio as xs
-from xppstudio.mcp import Session, ToolError
-from xppstudio.mcp.diagnose import definition_line, diagnose
+import xpplab as xs
+from xpplab.mcp import Session, ToolError
+from xpplab.mcp.diagnose import definition_line, diagnose
 
 ROOT = Path(__file__).resolve().parents[2]
 ODE = ROOT / "engine" / "xppaut" / "ode"
@@ -49,7 +49,7 @@ TOOLS = {"check_model", "describe_model", "find_examples", "simulate",
 
 @pytest.fixture
 def session(tmp_path, monkeypatch):
-    monkeypatch.setenv("XPPSTUDIO_EXAMPLES", str(ODE))
+    monkeypatch.setenv("XPPLAB_EXAMPLES", str(ODE))
     s = Session(workdir=tmp_path / "out", cwd=tmp_path)
     yield s
     s.close()
@@ -132,8 +132,8 @@ def test_describe_model(session):
 def test_examples_and_manual_are_found(monkeypatch):
     """From a checkout they come from the repository, from a wheel from the
     package (engine/CMakeLists.txt installs them)."""
-    from xppstudio.mcp.session import doc_path, examples_dir
-    monkeypatch.delenv("XPPSTUDIO_EXAMPLES", raising=False)
+    from xpplab.mcp.session import doc_path, examples_dir
+    monkeypatch.delenv("XPPLAB_EXAMPLES", raising=False)
     assert (examples_dir() / "lecar.ode").is_file()
     assert doc_path("odefile.md") and doc_path("auto.md")
 
@@ -368,7 +368,7 @@ def _text(result):
 
 def test_server_tools_and_schemas(tmp_path):
     pytest.importorskip("mcp")
-    from xppstudio.mcp import create_server
+    from xpplab.mcp import create_server
     server = create_server(Session(workdir=tmp_path))
     tools = asyncio.run(server.list_tools())
     assert {t.name for t in tools} == TOOLS
@@ -385,8 +385,8 @@ def test_server_tools_and_schemas(tmp_path):
 
 def test_server_calls_tools_in_process(tmp_path, monkeypatch):
     pytest.importorskip("mcp")
-    monkeypatch.setenv("XPPSTUDIO_EXAMPLES", str(ODE))
-    from xppstudio.mcp import create_server
+    monkeypatch.setenv("XPPLAB_EXAMPLES", str(ODE))
+    from xpplab.mcp import create_server
     server = create_server(Session(workdir=tmp_path))
 
     async def go():
@@ -396,9 +396,9 @@ def test_server_calls_tools_in_process(tmp_path, monkeypatch):
         assert [c.type for c in _content(r)] == ["text", "image"]
         with pytest.raises(Exception, match="find_examples"):
             await server.call_tool("simulate", {"model": "nope.ode"})
-        text = await server.read_resource("xppstudio://docs/ode-format")
+        text = await server.read_resource("xpplab://docs/ode-format")
         assert "The .ode file format" in list(text)[0].content
-        ex = await server.read_resource("xppstudio://examples/lecar.ode")
+        ex = await server.read_resource("xpplab://examples/lecar.ode")
         assert "Morris-Lecar" in list(ex)[0].content
     asyncio.run(go())
 
@@ -413,10 +413,10 @@ def test_stdio_round_trip(tmp_path):
     src = str(Path(xs.__file__).resolve().parents[1])
     env = dict(os.environ)
     env["PYTHONPATH"] = src + os.pathsep + env.get("PYTHONPATH", "")
-    env["XPPSTUDIO_EXAMPLES"] = str(ODE)
+    env["XPPLAB_EXAMPLES"] = str(ODE)
     params = StdioServerParameters(
         command=sys.executable, cwd=str(tmp_path), env=env,
-        args=["-m", "xppstudio.mcp", "--workdir", str(tmp_path / "out")])
+        args=["-m", "xpplab.mcp", "--workdir", str(tmp_path / "out")])
 
     async def go():
         async with stdio_client(params) as (read, write):
@@ -433,6 +433,6 @@ def test_stdio_round_trip(tmp_path):
                 r = await client.call_tool("simulate", {"model": "nope.ode"})
                 assert getattr(r, "is_error", None) or getattr(r, "isError", None)
                 assert "find_examples" in _text(r)
-                res = await client.read_resource("xppstudio://docs/auto")
+                res = await client.read_resource("xpplab://docs/auto")
                 assert "AUTO" in res.contents[0].text
     asyncio.run(asyncio.wait_for(go(), 120))

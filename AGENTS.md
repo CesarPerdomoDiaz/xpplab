@@ -1,36 +1,36 @@
 # AGENTS.md
 
 Notes for coding agents (Codex and others) working in this repository,
-either to use XPP Studio for a dynamical-systems question or to change it.
+either to use XPP Lab for a dynamical-systems question or to change it.
 Claude Code reads the same rules from `CLAUDE.md`.
 
-XPP Studio is XPPAUT 8.0, Bard Ermentrout's ODE and AUTO bifurcation tool,
+XPP Lab is XPPAUT 8.0, Bard Ermentrout's ODE and AUTO bifurcation tool,
 rebuilt around its unchanged numerical code: a C engine with an API
-(`engine/api/xppe.h`), the Python package `xppstudio` (`python/`), and a
+(`engine/api/xppe.h`), the Python package `xpplab` (`python/`), and a
 desktop app (`app/`).
 
-## Using XPP Studio for an analysis
+## Using XPP Lab for an analysis
 
 The quickest route is the MCP server, which wraps the Python package:
 
 ```
-pip install "xppstudio[mcp]"  # or ".[mcp]" from this clone
-python -m xppstudio.mcp       # stdio; Codex starts it for you
+pip install "xpplab[mcp]"  # or ".[mcp]" from this clone
+python -m xpplab.mcp       # stdio; Codex starts it for you
 ```
 
 For Codex, in `~/.codex/config.toml`:
 
 ```toml
-[mcp_servers.xppstudio]
+[mcp_servers.xpplab]
 command = "python"
-args = ["-m", "xppstudio.mcp"]
+args = ["-m", "xpplab.mcp"]
 ```
 
 Its tools: `check_model`, `describe_model`, `find_examples`, `simulate`,
 `equilibria`, `continuation` (AUTO), `sweep`, `limit_cycle`,
 `phase_response`, `spectrum`, `lyapunov`, `fit`, `bvp`, and the plots
 `plot_simulation`, `plot_phase_plane`, `plot_bifurcation`, `plot_table`.
-`docs/agents.md` describes them; `skills/xppstudio/SKILL.md` is the full
+`docs/agents.md` describes them; `skills/xpplab/SKILL.md` is the full
 guide to the workflow and to AUTO's pitfalls. Read it before a bifurcation
 analysis.
 
@@ -52,7 +52,7 @@ model until its file changes or `reset=true`.
 Without MCP, use the package directly (`docs/python/`):
 
 ```python
-import xppstudio as xs
+import xpplab as xs
 m = xs.load("engine/xppaut/ode/lecar.ode")
 m.apply_set("hopf")
 d = m.auto.equilibria("iapp")
@@ -68,7 +68,7 @@ The example models are in `engine/xppaut/ode/`.
 - `engine/xppaut/` XPPAUT 8.0's C sources; the first commit is pristine.
 - `engine/platform/` null Xlib, Windows compatibility, the embedding layer.
 - `engine/api/` the C API, one file per area.
-- `python/src/xppstudio/` the package (ctypes); `mcp/` is the MCP server.
+- `python/src/xpplab/` the package (ctypes); `mcp/` is the MCP server.
 - `app/` the desktop app (SDL3 + Dear ImGui through cimgui, in C).
 - `docs/` the MkDocs site; `docs/manual/*.md` is also the app's help.
 - `tests/` golden tests and API checks; `python/tests/` the package's.
@@ -98,12 +98,12 @@ The MCP tests need `pip install mcp`; without it they are skipped.
   a genuine XPPAUT bug, argued in the commit.
 - **Never reimplement XPPAUT's numerics.** New features call XPPAUT's own
   routines and are tested against XPPAUT or known answers.
-- **Upstream edits are minimal and marked** with an `XPP Studio fix:`
+- **Upstream edits are minimal and marked** with an `XPP Lab fix:`
   comment, and each fix gets a row in `docs/upstream-issues.md`.
 - **Keep the C API backwards compatible.** When adding functions, bump
-  `XPPE_API_VERSION` and `API_VERSION` in `python/src/xppstudio/_engine.py`,
+  `XPPE_API_VERSION` and `API_VERSION` in `python/src/xpplab/_engine.py`,
   and add them to `engine/api/xpp_instance.h` and the Python signatures.
-- Never commit build directories, test output (`xppstudio-out/`) or secrets.
+- Never commit build directories, test output (`xpplab-out/`) or secrets.
 - Never start the desktop app from a script without `--screenshot` or
   `--record`: it opens a window and waits.
 - Docs: plain, direct sentences; no marketing language.

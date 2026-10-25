@@ -1,4 +1,4 @@
-"""Run the XPPAUT models published on ModelDB through XPP Studio and through
+"""Run the XPPAUT models published on ModelDB through XPP Lab and through
 unmodified XPPAUT 8.0, and compare.
 
 The models come from tools/fetch_modeldb.py (build-modeldb/models/<id>/,
@@ -7,12 +7,12 @@ listed in tests/modeldb/manifest.json). Every model file is run in batch mode
 download, and classified:
 
     identical     both ran and wrote the same numbers
-    fixed         they differ only because XPP Studio fixes an upstream bug
+    fixed         they differ only because XPP Lab fixes an upstream bug
                   (docs/upstream-issues.md), checked by rerunning XPPAUT
                   without the bug's trigger where that can be done
     differs       both ran, the numbers differ
-    ours-fails    XPPAUT ran it, XPP Studio did not
-    ref-fails     XPP Studio ran it, XPPAUT did not
+    ours-fails    XPPAUT ran it, XPP Lab did not
+    ref-fails     XPP Lab ran it, XPPAUT did not
     both-fail     neither wrote output (the log says why)
     too-slow      both were still running after --timeout seconds
 
@@ -266,7 +266,7 @@ def check_one(job, args, tmp):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--exe", type=Path, required=True,
-                    help="XPP Studio's build/cli/xppaut-headless")
+                    help="XPP Lab's build/cli/xppaut-headless")
     ap.add_argument("--reference", type=Path, required=True,
                     help="unmodified XPPAUT 8.0")
     ap.add_argument("--cache", type=Path, default=CACHE)

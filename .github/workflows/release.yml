@@ -43,22 +43,22 @@ jobs:
         shell: pwsh
         run: |
           $pkg = Join-Path $env:RUNNER_TEMP "pkg"
-          Expand-Archive build\XPPStudio-Windows-x64.zip $pkg
-          $dir = Join-Path $pkg "XPPStudio-Windows-x64"
+          Expand-Archive build\XPPLab-Windows-x64.zip $pkg
+          $dir = Join-Path $pkg "XPPLab-Windows-x64"
           Get-ChildItem $dir | Select-Object Name, Length | Format-Table
           foreach ($f in "LICENSE", "THIRD-PARTY-NOTICES.md", "licenses\LGPL-2.1.txt", "examples\lecar.ode") {
             if (-not (Test-Path (Join-Path $dir $f))) { throw "missing from the zip: $f" }
           }
           if (Get-ChildItem (Join-Path $dir "examples") -Filter "*~") { throw "editor backups in the examples" }
           $env:Path = "C:\Windows\System32;C:\Windows"
-          $p = Start-Process -FilePath (Join-Path $dir "xppstudio.exe") -WorkingDirectory $dir -Wait -PassThru `
+          $p = Start-Process -FilePath (Join-Path $dir "xpplab.exe") -WorkingDirectory $dir -Wait -PassThru `
                -ArgumentList 'examples/lecar.ode', '--cmd', '"auto steady iapp"', '--screenshot', 'shot.png', '--frames', '10'
           if (Test-Path (Join-Path $dir "shot.png.err")) { Get-Content (Join-Path $dir "shot.png.err") }
           if (-not (Test-Path (Join-Path $dir "shot.png"))) { throw "no screenshot (exit code $($p.ExitCode))" }
       - uses: actions/upload-artifact@v4
         with:
           name: app-windows
-          path: build/XPPStudio-*.zip
+          path: build/XPPLab-*.zip
 
   macos:
     runs-on: macos-latest
@@ -75,7 +75,7 @@ jobs:
           cd build && cpack
       - name: Check the packaged app (architectures, libraries, signature, start-up)
         run: |
-          yes | hdiutil attach build/XPPStudio-*.dmg -mountpoint /tmp/xpps -nobrowse -readonly
+          yes | hdiutil attach build/XPPLab-*.dmg -mountpoint /tmp/xpps -nobrowse -readonly
           ls -la /tmp/xpps
           test -f /tmp/xpps/LICENSE && test -f /tmp/xpps/THIRD-PARTY-NOTICES.md
           bundle=$(ls -d /tmp/xpps/*.app | head -1)
@@ -114,7 +114,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: app-macos
-          path: build/XPPStudio-*.dmg
+          path: build/XPPLab-*.dmg
       - uses: actions/upload-artifact@v4
         with:
           name: macos-screenshots
@@ -138,20 +138,20 @@ jobs:
           cd build && cpack
       - name: The unpacked app starts and renders
         run: |
-          mkdir -p /tmp/pkg && tar xzf build/XPPStudio-Linux-x86_64.tar.gz -C /tmp/pkg
-          cd /tmp/pkg/XPPStudio-Linux-x86_64
+          mkdir -p /tmp/pkg && tar xzf build/XPPLab-Linux-x86_64.tar.gz -C /tmp/pkg
+          cd /tmp/pkg/XPPLab-Linux-x86_64
           ls -la
           test -f LICENSE && test -f THIRD-PARTY-NOTICES.md && test -f examples/lecar.ode
           if ls examples/*~ examples/a.out 2>/dev/null; then echo "::error::build leftovers"; exit 1; fi
-          if ldd ./xppstudio | grep "not found"; then echo "::error::missing libraries"; exit 1; fi
-          xvfb-run -a ./xppstudio examples/lecar.ode --cmd "auto steady iapp" \
+          if ldd ./xpplab | grep "not found"; then echo "::error::missing libraries"; exit 1; fi
+          xvfb-run -a ./xpplab examples/lecar.ode --cmd "auto steady iapp" \
             --screenshot shot.png --frames 10 || true
           cat shot.png.err 2>/dev/null || true
           test -s shot.png
       - uses: actions/upload-artifact@v4
         with:
           name: app-linux
-          path: build/XPPStudio-*.tar.gz
+          path: build/XPPLab-*.tar.gz
 
   linux-distros:
     # The Linux package, unpacked and started on other distributions than
@@ -185,12 +185,12 @@ jobs:
           fi
       - name: The app starts and renders
         run: |
-          mkdir -p /tmp/pkg && tar xzf XPPStudio-Linux-x86_64.tar.gz -C /tmp/pkg
-          cd /tmp/pkg/XPPStudio-Linux-x86_64
-          if ldd ./xppstudio | grep "not found"; then echo "missing libraries"; exit 1; fi
+          mkdir -p /tmp/pkg && tar xzf XPPLab-Linux-x86_64.tar.gz -C /tmp/pkg
+          cd /tmp/pkg/XPPLab-Linux-x86_64
+          if ldd ./xpplab | grep "not found"; then echo "missing libraries"; exit 1; fi
           Xvfb :99 -screen 0 1600x1000x24 >/dev/null 2>&1 &
           sleep 3
-          DISPLAY=:99 ./xppstudio examples/lecar.ode --cmd "auto steady iapp" \
+          DISPLAY=:99 ./xpplab examples/lecar.ode --cmd "auto steady iapp" \
             --screenshot shot.png --frames 10 || true
           cat shot.png.err 2>/dev/null || true
           test -s shot.png
@@ -260,17 +260,17 @@ jobs:
         run: |
           # every file at the top of dist/, wherever its artifact put it
           find dist -mindepth 2 -type f -exec mv -t dist {} +
-          for f in XPPStudio-Windows-x64.zip XPPStudio-macOS.dmg XPPStudio-Linux-x86_64.tar.gz; do
+          for f in XPPLab-Windows-x64.zip XPPLab-macOS.dmg XPPLab-Linux-x86_64.tar.gz; do
             test -f "dist/$f" || { echo "::error::$f is missing"; exit 1; }
           done
-          (cd dist && sha256sum XPPStudio-* *.whl > SHA256SUMS && cat SHA256SUMS)
+          (cd dist && sha256sum XPPLab-* *.whl > SHA256SUMS && cat SHA256SUMS)
           version="${GITHUB_REF_NAME#v}"
           sed -e "s/@VERSION@/$version/g" -e "s/@TAG@/$GITHUB_REF_NAME/g" \
               .github/release-notes.md > notes.md
           { echo; echo "## Checksums (SHA-256)"; echo; echo '```text'; cat dist/SHA256SUMS; echo '```'; } >> notes.md
       - uses: softprops/action-gh-release@v2
         with:
-          name: XPP Studio ${{ github.ref_name }}
+          name: XPP Lab ${{ github.ref_name }}
           body_path: notes.md
           # GitHub's list of the changes since the last release follows the notes.
           generate_release_notes: true
@@ -280,6 +280,6 @@ jobs:
           prerelease: false
           make_latest: true
           files: |
-            dist/XPPStudio-*
+            dist/XPPLab-*
             dist/*.whl
             dist/SHA256SUMS

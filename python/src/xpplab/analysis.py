@@ -87,7 +87,7 @@ class Table:
 
 
 class AnalysisMixin:
-    """The analysis methods of :class:`xppstudio.Model`."""
+    """The analysis methods of :class:`xpplab.Model`."""
 
     def _result(self, title: str) -> Table:
         eng = self._engine
@@ -344,7 +344,7 @@ class AnalysisMixin:
 
     def animation(self, path):
         """An XPPAUT animation (.ani file) of the last run: see
-        :class:`xppstudio.Animation`. A relative path is taken next to the
+        :class:`xpplab.Animation`. A relative path is taken next to the
         model."""
         from .animation import Animation
         p = Path(path)

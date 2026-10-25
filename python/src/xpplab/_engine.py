@@ -124,11 +124,11 @@ def _library_name() -> str:
 def find_engine_library() -> Path:
     """Locate the engine library.
 
-    The XPPSTUDIO_ENGINE environment variable wins. Otherwise use the copy
+    The XPPLAB_ENGINE environment variable wins. Otherwise use the copy
     installed inside the package, then a development build in the
     repository's build/ directory.
     """
-    env = os.environ.get("XPPSTUDIO_ENGINE")
+    env = os.environ.get("XPPLAB_ENGINE")
     if env:
         return Path(env)
     here = Path(__file__).resolve().parent
@@ -140,7 +140,7 @@ def find_engine_library() -> Path:
         if c.exists():
             return c
     raise EngineError(
-        "the XPP Studio engine library was not found; set XPPSTUDIO_ENGINE "
+        "the XPP Lab engine library was not found; set XPPLAB_ENGINE "
         "to the path of " + _library_name())
 
 
@@ -241,7 +241,7 @@ class Engine:
 
     def __init__(self, library: str | os.PathLike | None = None):
         source = Path(library) if library else find_engine_library()
-        self._tmpdir = Path(tempfile.mkdtemp(prefix="xppstudio-"))
+        self._tmpdir = Path(tempfile.mkdtemp(prefix="xpplab-"))
         self._path = self._tmpdir / source.name
         shutil.copy2(source, self._path)
         self.workdir = self._tmpdir / "work"

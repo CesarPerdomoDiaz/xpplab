@@ -1,9 +1,9 @@
 cff-version: 1.2.0
 message: >-
-  If you use XPP Studio in your work, please cite it as below, and cite
+  If you use XPP Lab in your work, please cite it as below, and cite
   XPPAUT itself, whose methods it runs (the reference below).
 type: software
-title: XPP Studio
+title: XPP Lab
 abstract: >-
   XPPAUT 8.0's simulation and AUTO bifurcation engine, with the same
   numbers as XPPAUT, as a desktop app for Windows, macOS and Linux and as a
@@ -11,10 +11,10 @@ abstract: >-
 authors:
   - given-names: César Eduardo
     family-names: Perdomo Díaz
-version: 0.1.0
+version: 0.1.1
 license: GPL-2.0-or-later
-repository-code: "https://github.com/CesarPerdomoDiaz/xppstudio"
-url: "https://cesarperdomodiaz.github.io/xppstudio/"
+repository-code: "https://github.com/CesarPerdomoDiaz/xpplab"
+url: "https://cesarperdomodiaz.github.io/xpplab/"
 keywords:
   - XPPAUT
   - AUTO

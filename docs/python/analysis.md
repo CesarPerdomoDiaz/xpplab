@@ -5,11 +5,11 @@
 These are XPPAUT's *Numerics > stocHastic* and *Numerics > Averaging*
 tools, run by XPPAUT's own code. Each one analyses the model's **last run**,
 as XPPAUT's menus do, and leaves the run unchanged. Most return a
-[`Table`](reference.md#xppstudio.Table): named NumPy columns, with
+[`Table`](reference.md#xpplab.Table): named NumPy columns, with
 `.to_pandas()` and `.plot()`.
 
 ```python
-import xppstudio as xs
+import xpplab as xs
 m = xs.load("lecar.ode")
 m.run(total=400)
 ```

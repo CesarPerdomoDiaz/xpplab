@@ -44,7 +44,7 @@ void start_cv(y,t,n,tout,atol,rtol)
 
 void end_cv()
 {
-  /* XPP Studio fix: integrate() calls end_cv() when dt is below dtmin,
+  /* XPP Lab fix: integrate() calls end_cv() when dt is below dtmin,
      before CVODE was ever started, and N_VFree(NULL) crashed. Skip what
      was not allocated, and forget what is freed so that a second call
      cannot free it twice. */

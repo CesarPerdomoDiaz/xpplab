@@ -17,6 +17,7 @@ as a library. Its MCP server, `xpplab`, gives you these tools:
 | Brute force | `sweep` (XPPAUT's Range: max/min, period, Liapunov per value) |
 | Oscillations | `limit_cycle`, `phase_response`, `spectrum`, `lyapunov` |
 | Data | `fit` (Levenberg-Marquardt), `bvp` (shooting), `plot_table` |
+| In the researcher's open app | `app_status`, `app_command` (any command-window command), `app_run`: the app's plots follow |
 
 The .ode format is in the resource `xpplab://docs/ode-format`, the AUTO
 guide in `xpplab://docs/auto`. If the tools are missing, see "Without the

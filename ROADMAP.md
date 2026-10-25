@@ -180,7 +180,8 @@ To do:
 
 ### M8 Working with coding agents
 - [x] An MCP server and a Claude Code skill (`python -m xpplab.mcp`)
-- [ ] A coding agent drives the running app while the researcher watches
+- [x] A coding agent drives the running app while the researcher watches:
+      the MCP tools `app_status`, `app_command`, `app_run`
 
 ### M10 XPPAUT parity sprint: the features the interface still lacked: done
 - [x] Equilibria over a parameter (Sing pts > Range) and every equilibrium

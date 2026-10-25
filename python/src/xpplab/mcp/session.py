@@ -507,6 +507,54 @@ class Session:
     # -- tools: simulation --------------------------------------------------------
 
     @_guarded
+    # -- the running desktop app (xpplab.app) -------------------------------------
+
+    def _app(self):
+        from .. import app as xapp
+        try:
+            return xapp.connect(timeout=60)
+        except xapp.AppError as err:
+            raise ToolError(f"{err}. These tools act in the XPP Lab window the "
+                            "researcher has open; the other tools need no app.") from None
+
+    def app_status(self) -> dict:
+        """Whether the desktop app is open, its model and current values."""
+        with self._app() as app:
+            return {"app": f"XPP Lab {app.version}", "model": app.model_path,
+                    "parameters": {k: _r(v) for k, v in app.parameters.items()},
+                    "initial_conditions": {k: _r(v) for k, v in
+                                           app.initial_conditions.items()}}
+
+    def app_command(self, command: str) -> dict:
+        """A command-window command in the app; what it showed, its Python."""
+        from .. import app as xapp
+        with self._app() as app:
+            try:
+                log = app.command(command)
+            except xapp.AppError as err:
+                raise ToolError(f"{err}\n{err.log}".strip()) from None
+            return {"log": log, "python": app.last_python}
+
+    def app_run(self, values: dict | None = None) -> dict:
+        """Set values in the app, run there, and summarise the run."""
+        with self._app() as app:
+            sol = app.run(**(values or {}))
+            python = app.last_python
+            variables = app.variables
+        summary = {}
+        for c in sol.columns:
+            if c == "T":
+                continue
+            x = sol[c]
+            fin = x[np.isfinite(x)]
+            summary[c] = ({"min": _r(fin.min()), "max": _r(fin.max()),
+                           "mean": _r(fin.mean()), "final": _r(x[-1])}
+                          if len(fin) else {"final": _r(x[-1])})
+        return {"points": len(sol), "t": [_r(sol.t[0]), _r(sol.t[-1])],
+                "columns": summary,
+                "behaviour": _behaviour(sol, variables, False),
+                "python": python}
+
     def simulate(self, model: str, values: dict | None = None,
                  parameter_set: str | None = None,
                  columns: list[str] | None = None, points: int = 0) -> dict:

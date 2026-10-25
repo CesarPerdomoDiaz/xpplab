@@ -870,7 +870,11 @@ inho(iap_type *iap, integer *icp, doublereal *par)
        have created it. */
   for(i=0;i<4;i++)
     beyn_1.iflag[i]=0;
-    
+  /* XPP Lab fix: ieigc is a "first call" flag tested against 0 in eigho(),
+     but malloc leaves it uninitialised. */
+  blhme_1.ieigc[0]=0;
+  blhme_1.ieigc[1]=0;
+
 
 /* Reads from fort.11 specific constants for homoclinic continuation. */
 /* Sets up re-defined constants in IAP. */

@@ -23,6 +23,8 @@ static const char *usage =
     "  whos                     list variables and parameters\n"
     "  ic last                  start the next run where the last ended [I L]\n"
     "  eq                       find an equilibrium and its stability [S G]\n"
+    "  eq all [GUESSES]         every equilibrium in the phase plane's window,\n"
+    "                           from random guesses (Sing pts > Monte Carlo)\n"
     "  nullclines [off]         draw nullclines in the phase plane [N N]\n"
     "  dirfield [off]           draw the direction field [D D]\n"
     "  erase                    remove kept curves [E]\n"
@@ -33,12 +35,16 @@ static const char *usage =
     "  auto set DS=0.01 ...     AUTO numerics (ds, dsmin, dsmax, nmax, npr,\n"
     "                           parmin, parmax, ntst)\n"
     "  auto reset               clear the bifurcation diagram\n"
-    "  range NAME FROM TO N [VAR|lyap] [continue]\n"
+    "  auto save FILE.auto      save the diagram, AUTO's settings and restart\n"
+    "                           data; auto load FILE.auto brings it back\n"
+    "  auto orbit LABEL         the periodic orbit at a point as the run\n"
+    "  range NAME FROM TO N [VAR|lyap|eq] [continue]\n"
     "                           XPPAUT's Range: N runs over a parameter or\n"
     "                           initial value; with VAR plot its max and min\n"
     "                           (a brute-force diagram), with lyap the\n"
     "                           Liapunov exponent; continue starts each run\n"
-    "                           where the last ended (also: sweep)\n"
+    "                           where the last ended (also: sweep); eq\n"
+    "                           follows the equilibrium (Sing pts > Range)\n"
     "  bvp                      solve the boundary-value problem (bndry)\n"
     "  ani FILE.ani             open an XPPAUT animation of the run;\n"
     "                           ani play, ani stop, ani row N\n"
@@ -59,7 +65,8 @@ static const char *usage =
     "                           fit parameters to data (comma lists)\n"
     "  open FILE | new | save   models\n"
     "  export FILE.csv [WHAT]   save data as CSV: the last run, or auto (the\n"
-    "                           bifurcation diagram), range or analysis\n"
+    "                           bifurcation diagram), range, analysis or\n"
+    "                           equilibria (the last eq all)\n"
     "  export FILE.svg [WHICH]  save a figure (time, phase, auto, auto2);\n"
     "                           .png saves it as it looks on screen\n"
     "  script FILE.py           save the session as a Python script that\n"
@@ -243,6 +250,10 @@ static void cmd_whos(App *a) {
 
 static const char *action_key(App *a, int point, const char *word) {
   const xppe_auto_point_info *p = &a->au.info[point];
+  /* From a fold XPPAUT's AUTO always follows the fold in two parameters
+     (auto_run() in auto_nox.c), whatever else is asked. */
+  if (strcmp(p->type_name, "LP") == 0)
+    return !strcmp(word, "two") || !strcmp(word, "two-parameter") ? "" : NULL;
   if (!strcmp(word, "periodic")) return "p";
   if (!strcmp(word, "two") || !strcmp(word, "two-parameter"))
     return strcmp(p->type_name, "LP") == 0 ? "" : "t";
@@ -303,6 +314,11 @@ static void cmd_auto(App *a, char *rest) {
       return;
     }
     key = action_key(a, point, act ? act : "extend");
+    if (!key && strcmp(a->au.info[point].type_name, "LP") == 0) {
+      app_log(a, "error: from a fold (LP) AUTO can only follow the fold in two "
+                 "parameters: write auto from %d two", label);
+      return;
+    }
     if (!key) {
       app_log(a, "error: unknown action %s", act);
       return;
@@ -311,6 +327,25 @@ static void cmd_auto(App *a, char *rest) {
     app_auto_continue(a, point, key);
   } else if (!strcmp(w, "reset")) {
     app_auto_reset(a);
+  } else if (!strcmp(w, "save") || !strcmp(w, "load")) {
+    char *p = skip_space(rest);
+    if (!*p)
+      app_log(a, "Write: auto %s FILE.auto", w);
+    else if (w[0] == 's')
+      app_auto_save(a, p);
+    else
+      app_auto_load(a, p);
+  } else if (!strcmp(w, "orbit")) {
+    char *lab = next_word(&rest);
+    int i, label = lab ? atoi(lab) : 0, point = -1;
+    for (i = 0; i < a->au.count; i++)
+      if (a->au.info[i].label == label && label) point = i;
+    if (point < 0)
+      app_log(a, "error: no point labelled %s", lab ? lab : "?");
+    else {
+      a->au.selected = point;
+      app_auto_orbit(a, point);
+    }
   } else if (!strcmp(w, "set")) {
     char *tok = strtok(rest, " ,;");
     while (tok) {
@@ -374,7 +409,13 @@ void app_command(App *a, const char *line_in) {
     }
   } else if (!strcmp(cmd, "eq") || !strcmp(cmd, "equilibrium") ||
              !strcmp(cmd, "sg")) {
-    app_equilibrium(a, NULL);
+    char *w = next_word(&rest);
+    if (w && !strcmp(w, "all")) {
+      char *g = next_word(&rest);
+      app_find_equilibria(a, g ? atoi(g) : 100);
+    } else {
+      app_equilibrium(a, NULL);
+    }
   } else if (!strcmp(cmd, "nullclines") || !strcmp(cmd, "nn")) {
     char *w = next_word(&rest);
     a->pp.nullclines = !(w && !strcmp(w, "off"));
@@ -479,8 +520,10 @@ void app_command(App *a, const char *line_in) {
           a->sw.continue_runs = true;
         else if (!strcmp(w, "lyap") || !strcmp(w, "liapunov"))
           a->sw.mode = SWEEP_LYAPUNOV;
+        else if (!strcmp(w, "eq") || !strcmp(w, "equilibria"))
+          a->sw.mode = SWEEP_EQUILIBRIA;
         else if (app_find_var(a, w) >= 0) {
-          a->sw.mode = SWEEP_MAXMIN;
+          if (a->sw.mode != SWEEP_EQUILIBRIA) a->sw.mode = SWEEP_MAXMIN;
           a->sw.var = app_find_var(a, w);
         } else
           app_log(a, "note: ignored '%s'", w);
@@ -523,9 +566,11 @@ void app_command(App *a, const char *line_in) {
       app_export_range_csv(a, file);
     } else if (which && !strcmp(which, "analysis")) {
       app_export_analysis_csv(a, file);
+    } else if (which && !strcmp(which, "equilibria")) {
+      app_export_equilibria_csv(a, file);
     } else if (which && strcmp(which, "run") != 0) {
-      app_log(a, "error: export FILE.csv takes run, auto, range or analysis, "
-                 "not '%s'", which);
+      app_log(a, "error: export FILE.csv takes run, auto, range, analysis or "
+                 "equilibria, not '%s'", which);
     } else {
       app_export_csv(a, file);
     }

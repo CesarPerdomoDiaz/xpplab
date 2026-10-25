@@ -446,3 +446,101 @@ int xppe_auto_ungrab(void) {
   grabpt.flag = 0;
   return XPPE_OK;
 }
+
+/* ---- Files: AUTO > File > Save diagram, Load diagram, Import orbit -------- */
+
+#include "diagram.h"
+void create_auto_file_name(void);
+
+/* save_auto() (auto_nox.c) to the path given, without its file dialog: the
+   settings, the plot, the diagram and AUTO's restart data (its .s file). */
+int xppe_auto_save(const char *path) {
+  FILE *fp = NULL;
+  int rc, status = 0;
+  if ((rc = xppe_require_model()) != XPPE_OK) return rc;
+  if (NBifs <= 1) {
+    xppe_set_error("the diagram is empty", NULL);
+    return XPPE_ERR_STATE;
+  }
+  xppe_begin_call();
+  push_workdir();
+  XPPE_GUARD_BEGIN((pop_workdir(), fp ? fclose(fp) : 0));
+  create_auto_file_name();
+  if ((fp = fopen(path, "w")) != NULL) {
+    save_auto_numerics(fp);
+    save_auto_graph(fp);
+    if ((status = save_diagram(fp, NODE)) == 1) save_q_file(fp);
+    fclose(fp);
+  }
+  XPPE_GUARD_END;
+  pop_workdir();
+  xppe_end_call();
+  if (!fp) {
+    xppe_set_error("cannot write %s", path);
+    return XPPE_ERR_RANGE;
+  }
+  return status == 1 ? XPPE_OK : XPPE_ERR_STATE;
+}
+
+/* load_auto() from the path given, without its dialogs: the diagram so far
+   is forgotten (yes_reset_auto(), as xppe_auto_reset() does), then the
+   file's settings, diagram and restart data replace it, so its labelled
+   points can be grabbed and continued. */
+int xppe_auto_load(const char *path) {
+  FILE *fp;
+  int rc, status = 0;
+  if ((rc = xppe_require_model()) != XPPE_OK) return rc;
+  if ((fp = fopen(path, "r")) == NULL) {
+    xppe_set_error("cannot read %s", path);
+    return XPPE_ERR_LOAD;
+  }
+  xppe_begin_call();
+  push_workdir();
+  XPPE_GUARD_BEGIN((pop_workdir(), fclose(fp)));
+  create_auto_file_name();
+  if (NBifs > 1) yes_reset_auto();
+  load_auto_numerics(fp);
+  load_auto_graph(fp);
+  if ((status = load_diagram(fp, NODE)) == 1) make_q_file(fp);
+  fclose(fp);
+  XPPE_GUARD_END;
+  pop_workdir();
+  xppe_end_call();
+  if (status != 1) {
+    xppe_set_error("%s holds no diagram", path);
+    return XPPE_ERR_LOAD;
+  }
+  return XPPE_OK;
+}
+
+/* load_auto_orbitx() (Import orbit): the periodic orbit at a labelled point,
+   one period from AUTO's restart data, becomes the current run. */
+int xppe_auto_orbit(int label) {
+  DIAGRAM *d;
+  int rc;
+  if ((rc = xppe_require_model()) != XPPE_OK) return rc;
+  for (d = DiagFlag ? bifd : NULL; d; d = d->next)
+    if (d->lab == label && label != 0) break;
+  if (!d) {
+    xppe_set_error("no point with that label", NULL);
+    return XPPE_ERR_NAME;
+  }
+  if (d->ibr >= 0) {
+    xppe_set_error("a steady state has no orbit; grab it to make it the "
+                   "initial values", NULL);
+    return XPPE_ERR_STATE;
+  }
+  xppe_begin_call();
+  push_workdir();
+  XPPE_GUARD_BEGIN(pop_workdir());
+  create_auto_file_name();
+  load_auto_orbitx(d->ibr, 1, d->lab, d->per);
+  XPPE_GUARD_END;
+  pop_workdir();
+  xppe_end_call();
+  if (xppe_rows() <= 0) {
+    xppe_set_error("AUTO's restart data has no orbit with that label", NULL);
+    return XPPE_ERR_STATE;
+  }
+  return XPPE_OK;
+}

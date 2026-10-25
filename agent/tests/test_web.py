@@ -12,10 +12,16 @@ import pytest
 
 from xppagent.config import Config
 from xppagent.web.server import (Dashboard, Sessions, check_password, hash_password,
-                                 parse_roadmap, read_events, serve, summarize)
+                                 diff_roadmap, parse_focus, parse_path, parse_roadmap, read_events, serve,
+                                 summarize)
 
 ROOT = Path(__file__).resolve().parents[2]
 RUN = "20261024-205221-6-review-d0c3be"
+OLD, MID, NEW, OTHER = "0" * 40, "a" * 40, "b" * 40, "c" * 40
+ROADMAP_NOW = ("## The main path\n\nPath: M1 \u2192 M2\n\n## Milestones\n"
+               "### M1 Engine\n- [x] load\n- [ ] the `xpp` tool\n### M2 App\n- [ ] a window\n"
+               "### M5 Docs\n- [ ] a manual\n")
+ROADMAP_THEN = "## Milestones\n### M1 Engine\n- [ ] load\n- [ ] the `xpp` tool\n"
 
 
 class FakeAPI:
@@ -52,10 +58,26 @@ class FakeAPI:
                      "body": "Closes #6.\n\nfail() now flags an error.\n\n**Checks run before pushing**\n\n- x\n\n<!-- xpps-agent -->",
                      "author": {"login": "limit-cyclist"},
                      "commits": {"nodes": [{"commit": {"oid": "abc"}}]}}]},
-                "merged": {"nodes": []},
+                "merged": {"nodes": [
+                    {"number": 12, "title": "Load models", "url": "https://github.com/o/r/pull/12",
+                     "mergedAt": "2026-10-25T10:00:00Z", "mergeCommit": {"oid": NEW}},
+                    {"number": 11, "title": "Fix a typo", "url": "https://github.com/o/r/pull/11",
+                     "mergedAt": "2026-10-25T09:00:00Z", "mergeCommit": {"oid": OTHER}}]},
                 "milestones": {"nodes": []},
-                "roadmap": {"text": "## Milestones\n### M1 Engine\n- [x] load\n- [ ] the `xpp` tool\n"},
+                "roadmap": {"text": ROADMAP_NOW},
+                "roadmapHistory": {"target": {"history": {"nodes": [
+                    {"oid": NEW, "committedDate": "2026-10-25T10:00:00Z", "messageHeadline": "x",
+                     "url": "https://github.com/o/r/commit/b", "parents": {"nodes": [{"oid": MID}]},
+                     "associatedPullRequests": {"nodes": [
+                         {"number": 12, "title": "Load models", "url": "https://github.com/o/r/pull/12"}]}},
+                    {"oid": MID, "committedDate": "2026-10-20T10:00:00Z", "messageHeadline": "Roadmap",
+                     "url": "https://github.com/o/r/commit/a", "parents": {"nodes": [{"oid": OLD}]},
+                     "associatedPullRequests": {"nodes": []}}]}}},
             }}
+
+    def roadmap_texts(self, oids):
+        self.calls.append(("roadmaps", tuple(oids)))
+        return {o: {NEW: ROADMAP_NOW, MID: ROADMAP_THEN}.get(o, "") for o in oids}
 
     def workflow_jobs(self, sha):
         self.calls.append(("jobs", sha))
@@ -344,3 +366,38 @@ def test_asking_the_bot_to_explain(site):
     status, _, _ = site.request("POST", "/api/action", {"action": "explain", "number": 11},
                                 cookie=cookie, headers={"X-CSRF": page["csrf"]})
     assert status == 200 and site.api.calls[-1] == ("comment", 11, "/explain")
+
+
+def test_the_path_and_what_moved_it(site):
+    cookie = site.login()
+    _, _, page = site.request("GET", "/api/overview", cookie=cookie)
+    ev = page["evolution"]
+    assert ev["path"] == ["M1", "M2"] and ev["side"] == ["M5"]
+    assert ev["current"] == "M1" and ev["next"] == {"milestone": "M1", "item": 1}
+    newest, first = ev["steps"]
+    assert newest["pr"] == 12 and newest["done"] == [{"milestone": "M1", "item": 0}]
+    assert newest["planned"] == [{"milestone": "M2", "item": 0}, {"milestone": "M5", "item": 0}]
+    assert first["created"] and not first["done"]
+    assert [(d["number"], d["kind"]) for d in ev["drift"]] == [(11, "other"), (12, "path")]
+    # A commit's roadmap is fetched once: the next refresh asks for none.
+    site.dash.refresh_github()
+    assert not [c for c in site.api.calls if c[0] == "roadmaps"]
+
+
+def test_a_ticked_item_is_done_and_a_new_open_one_planned():
+    before = parse_roadmap("### M1 A\n- [ ] one\n- [ ] two\n")
+    after = parse_roadmap("### M1 A\n- [x] one\n- [ ] two\n- [ ] three\n- [x] four\n")
+    assert diff_roadmap(before, after) == [
+        {"milestone": "M1", "item": 0, "kind": "done"},
+        {"milestone": "M1", "item": 2, "kind": "planned"},
+        {"milestone": "M1", "item": 3, "kind": "done"}]
+
+
+def test_the_real_roadmap_has_a_path():
+    text = (ROOT / "ROADMAP.md").read_text(encoding="utf-8")
+    milestones = parse_roadmap(text)
+    path = parse_path(text)
+    assert path[0] == "M0" and len(path) >= 5 and set(path) <= {m["id"] for m in milestones}
+    assert parse_focus(text) in path              # the milestone in brackets
+    # A heading without an M number does not leak its items into the one before.
+    assert next(m for m in milestones if m["id"] == "M8")["total"] == 2

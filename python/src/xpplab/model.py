@@ -14,7 +14,7 @@ import numpy as np
 from . import _engine as E
 from .analysis import AnalysisMixin
 
-__all__ = ["Model", "Trajectory", "Equilibrium", "load", "METHODS"]
+__all__ = ["Model", "Trajectory", "Equilibrium", "EquilibriumList", "load", "METHODS"]
 
 # XPPAUT's integrators, by the names its ODE files use. The value is the
 # key XPPAUT recognises (the first letter it reads).
@@ -270,6 +270,24 @@ class Model(AnalysisMixin):
         discrete = self.get("METH") == "discrete"
         return Equilibrium(values, eig, discrete)
 
+    def linearize(self, at: dict | None = None, inputs=(), *,
+                  step: float | None = None, tol: float | None = None):
+        """Linearise at an equilibrium and test controllability.
+
+        ``at`` is a dict of variable values (others keep their initial
+        value); by default the equilibrium found by :meth:`equilibrium`.
+        ``inputs`` lists the parameters that act as controls. A is the
+        Jacobian of the right-hand side and B the derivative with respect to
+        each input, both by central differences of :meth:`rhs` extrapolated to
+        zero step (Ridders' method, which picks its own step; ``step=`` sets
+        a fixed relative step instead). Returns a
+        :class:`~xpplab.control.Linearization` with ``A``, ``B``,
+        ``eigenvalues``, ``controllability`` (the matrix [B, AB, ...]),
+        ``rank`` and ``controllable``. ``tol`` is the singular-value cutoff
+        for the rank."""
+        from .control import linearize
+        return linearize(self, at, inputs, step=step, tol=tol)
+
     def manifolds(self, guess: dict | None = None):
         """Stable and unstable manifolds of a saddle, as XPPAUT draws them.
 
@@ -289,6 +307,58 @@ class Model(AnalysisMixin):
             branches.append(("unstable" if kind.value > 0 else "stable",
                              self._collect()))
         return eq, branches
+
+    def equilibrium_sweep(self, parameter: str, values, *,
+                          guess: dict | None = None):
+        """Follow an equilibrium as a parameter changes: XPPAUT's Sing pts >
+        Range, a quick diagram of steady states without AUTO.
+
+        For each value in turn the parameter takes it, and Newton's method
+        starts from the equilibrium found at the value before (the first
+        time from the initial conditions, or from ``guess``). Returns a
+        Table: the parameter, each variable, then ``unstable`` and
+        ``stable``, the numbers of eigenvalues with positive and negative
+        real parts (for maps, outside and inside the unit circle). Where
+        Newton's method failed the row holds NaN. The parameter is restored
+        afterwards."""
+        name = self.parameters._lookup(parameter)
+        vals = [float(v) for v in values]
+        buf = (ctypes.c_double * max(len(vals), 1))(*vals)
+        self._engine.call("xppe_equilibrium_sweep", _b(name), buf, len(vals),
+                          self._state(guess))
+        return self._result(f"Equilibria as {name} changes")
+
+    def find_equilibria(self, guesses: int = 100, box: dict | None = None,
+                        tol: float = 0.001) -> "EquilibriumList":
+        """Every equilibrium Newton's method finds from random starting
+        points: XPPAUT's Sing pts > Monte Carlo.
+
+        The ``guesses`` starting points are spread uniformly over a box:
+        ``box`` maps variables to ``(low, high)``, and the others span -10
+        to 10, XPPAUT's default. Equilibria closer than ``tol`` (the sum of
+        the absolute differences) count as one. Returns the equilibria in
+        the order found, as a list of :class:`Equilibrium`. XPPAUT's random
+        numbers repeat from run to run, so the same calls find the same
+        list."""
+        n = len(self.variables)
+        lo = (ctypes.c_double * n)(*([-10.0] * n))
+        hi = (ctypes.c_double * n)(*([10.0] * n))
+        for k, (a, b) in (box or {}).items():
+            i = self._var_index(k)
+            lo[i], hi[i] = float(a), float(b)
+        count = self._engine.call("xppe_find_equilibria", int(guesses),
+                                  float(tol), lo, hi)
+        x = (ctypes.c_double * n)()
+        re = (ctypes.c_double * n)()
+        im = (ctypes.c_double * n)()
+        discrete = self.get("METH") == "discrete"
+        found = EquilibriumList(self.variables)
+        for i in range(count):
+            self._engine.call("xppe_found_equilibrium", i, x, re, im)
+            found.append(Equilibrium({v: x[j] for j, v in enumerate(self.variables)},
+                                     np.array(re[:]) + 1j * np.array(im[:]),
+                                     discrete))
+        return found
 
     # -- phase plane --------------------------------------------------------
 
@@ -587,3 +657,39 @@ class Equilibrium:
     def __repr__(self) -> str:
         vals = ", ".join(f"{k}={v:.6g}" for k, v in self.values.items())
         return f"<Equilibrium {self.kind}: {vals}>"
+
+
+class EquilibriumList(list):
+    """Equilibria found together (:meth:`Model.find_equilibria`): a list of
+    :class:`Equilibrium` that can also be written as a table."""
+
+    def __init__(self, variables, items=()):
+        super().__init__(items)
+        self.variables = list(variables)
+
+    def _table(self):
+        n = len(self.variables)
+        cols = list(self.variables) + ["unstable"]
+        cols += [f"{part}{k}" for k in range(1, n + 1) for part in ("re", "im")]
+        rows = [[e.values[v] for v in self.variables] + [e.unstable_count]
+                + [c for ev in e.eigenvalues for c in (ev.real, ev.imag)]
+                for e in self]
+        return cols, rows
+
+    def to_csv(self, path: str | os.PathLike) -> None:
+        """One row per equilibrium: the variables, the number of unstable
+        eigenvalues, then each eigenvalue's real and imaginary parts (re1,
+        im1, re2, ...). The desktop app's ``export FILE.csv equilibria``
+        writes the same file."""
+        from .analysis import write_csv
+        write_csv(path, *self._table())
+
+    def to_pandas(self):
+        """The same table as a pandas DataFrame."""
+        import pandas as pd
+        cols, rows = self._table()
+        return pd.DataFrame(rows, columns=cols)
+
+    def __repr__(self) -> str:
+        kinds = ", ".join(e.kind for e in self)
+        return f"<{len(self)} equilibria: {kinds or 'none'}>"

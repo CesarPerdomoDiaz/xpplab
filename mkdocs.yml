@@ -69,6 +69,7 @@ nav:
       - Phase plane: python/phase-plane.md
       - Bifurcations with AUTO: python/auto.md
       - Data analysis: python/analysis.md
+      - Control design: python/control.md
       - API reference: python/reference.md
   - Coding agents: agents.md
   - Reference:

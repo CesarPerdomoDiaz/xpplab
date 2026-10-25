@@ -47,6 +47,10 @@ extern "C" {
     (int, int, int, double, double, double, double, int, float *, int))       \
   X(int, xppe_manifold_count, (void))                                         \
   X(int, xppe_manifold, (int, int *))                                         \
+  X(int, xppe_equilibrium_sweep,                                              \
+    (const char *, const double *, int, const double *))                      \
+  X(int, xppe_find_equilibria, (int, double, const double *, const double *)) \
+  X(int, xppe_found_equilibrium, (int, double *, double *, double *))         \
   X(int, xppe_fourier, (const char *))                                        \
   X(int, xppe_power, (const char *))                                          \
   X(int, xppe_spectrum, (int, const char *, const char *, int, int))          \
@@ -79,6 +83,9 @@ extern "C" {
   X(int, xppe_auto_run, (const char *))                                       \
   X(int, xppe_auto_grab, (int))                                               \
   X(int, xppe_auto_ungrab, (void))                                            \
+  X(int, xppe_auto_save, (const char *))                                      \
+  X(int, xppe_auto_load, (const char *))                                      \
+  X(int, xppe_auto_orbit, (int))                                              \
   X(int, xppe_auto_parameter_count, (void))                                   \
   X(const char *, xppe_auto_parameter_name, (int))                            \
   X(int, xppe_auto_main_slot, (int))                                          \

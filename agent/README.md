@@ -63,10 +63,15 @@ comment, before they leave the workstation.
 ## How it stays within your Max subscription
 
 Claude Code runs under your Max subscription, which has usage limits per
-five-hour window, shared with your own use. The agent:
+five-hour window and per week, shared with your own use. The agent:
 
-- makes at most `runs_per_window` Claude runs (default 8) in any
+- makes at most `runs_per_window` Claude runs (default 16) in any
   `window_hours` (default 5);
+- leaves you the rest of the subscription: every run reports how much of
+  the five-hour window and of the week is used (by you and the agent
+  together), and above `max_five_hour_percent` (default 60) or
+  `max_week_percent` (default 75) the agent starts no run until that
+  window resets. The dashboard and the daily log show the last reading;
 - makes none during `quiet_hours`, if you set them (for example the hours
   you work);
 - stops until the reset time when Claude reports a usage limit, and then
@@ -287,6 +292,16 @@ ssh you@<workstation> "powershell -File C:\src\xpplab\agent\install\update-agent
 `python -m xppagent web` serves "mission control", a web page for
 supervising the bot from any of your devices. It shows:
 
+- **The path:** the roadmap as a graph, to check that the work stays on
+  course. Each milestone on `ROADMAP.md`'s "Path:" line is a hub, in order;
+  the one in brackets there is marked "you are here", earlier ones with
+  open items are marked as passed with items left, and the other
+  milestones hang below as side tracks. Each hub's items circle it, done
+  ones filled, and the merges that ticked them sit just outside. Click any
+  node for its details; drag and scroll to move and zoom. Below it, the
+  last merges in order: green moved the path, amber a side track, grey
+  ticked nothing (fixes, upkeep or detours). It reads the roadmap's history
+  from GitHub, each commit's version once.
 - **Right now:** the Claude run in progress, step by step (the files it
   reads and edits, the commands it runs, the errors it hits) as they
   happen, and otherwise what the bot is waiting for.

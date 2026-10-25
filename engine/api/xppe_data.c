@@ -94,6 +94,18 @@ static void result_fill(int col, const float *src) {
   for (i = 0; i < res_nrows; i++) res[col][i] = (double)src[i];
 }
 
+int xppe_result_start(int nrows, int ncols, const char *const *names) {
+  if (ncols > MAX_RESULT_COLS) {
+    xppe_set_error("too many columns for the result table", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  return result_begin(nrows, ncols, names);
+}
+
+void xppe_result_put(int col, int row, double value) {
+  if (col >= 0 && col < res_ncols && row >= 0 && row < res_nrows) res[col][row] = value;
+}
+
 int xppe_result_rows(void) { return res_nrows; }
 int xppe_result_count(void) { return res_ncols; }
 

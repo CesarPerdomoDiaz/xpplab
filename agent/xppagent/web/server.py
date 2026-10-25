@@ -174,7 +174,7 @@ def parse_roadmap(text: str) -> list[dict]:
             milestones.append(current)
             last = None
             continue
-        if line.startswith("## "):
+        if line.startswith(("## ", "### ")):   # a heading without an M number ends one
             current = None
             continue
         if current is None:
@@ -192,6 +192,100 @@ def parse_roadmap(text: str) -> list[dict]:
         m["done"] = sum(i["done"] for i in m["items"])
         m["total"] = len(m["items"])
     return milestones
+
+
+def parse_path(text: str) -> list[str]:
+    """The main path's milestones, in order, from the roadmap's "Path:" line."""
+    for line in (text or "").splitlines():
+        if line.startswith("Path:"):
+            return re.findall(r"M\d+", line)
+    return []
+
+
+def parse_focus(text: str) -> str | None:
+    """The milestone in progress: the one in brackets on the "Path:" line."""
+    for line in (text or "").splitlines():
+        if line.startswith("Path:"):
+            m = re.search(r"\[\s*(M\d+)\s*\]", line)
+            return m.group(1) if m else None
+    return None
+
+
+def _key(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", (text or "").lower()).strip()
+
+
+def diff_roadmap(before: list[dict], after: list[dict]) -> list[dict]:
+    """What a change to the roadmap did to its items: "done" for an item
+    ticked (or added already ticked, as a pull request that ships something
+    new does), "planned" for an open item added."""
+    was = {_key(i["text"]): i["done"] for m in before for i in m["items"]}
+    out = []
+    for m in after:
+        for n, i in enumerate(m["items"]):
+            k = _key(i["text"])
+            if i["done"] and not was.get(k, False):
+                out.append({"milestone": m["id"], "item": n, "kind": "done"})
+            elif not i["done"] and k not in was:
+                out.append({"milestone": m["id"], "item": n, "kind": "planned"})
+    return out
+
+
+def evolution(roadmap_text: str, history: list[dict], merged: list[dict],
+              roadmap_at: dict[str, list[dict]]) -> dict:
+    """The app's path for the dashboard's graph: the milestones in path order
+    (the rest as side tracks), the one in progress and what is left behind
+    it, and what each change to the roadmap advanced. A merged pull request
+    that ticked an item on the path moved it forward; one that ticked only a
+    side track's items, or none, is upkeep or a detour."""
+    milestones = parse_roadmap(roadmap_text)
+    ids = [m["id"] for m in milestones]
+    path = [i for i in parse_path(roadmap_text) if i in ids]
+    by_id = {m["id"]: m for m in milestones}
+    unfinished = [i for i in path if by_id[i]["done"] < by_id[i]["total"]]
+    current = parse_focus(roadmap_text)
+    if current not in path:
+        current = unfinished[0] if unfinished else None
+    behind = [i for i in unfinished if path.index(i) < path.index(current)] if current else []
+    nxt = None
+    if current and current in unfinished:
+        n = next(k for k, it in enumerate(by_id[current]["items"]) if not it["done"])
+        nxt = {"milestone": current, "item": n}
+    # Each step: one commit that changed the roadmap, newest first. Items are
+    # matched to today's roadmap by their words, so a step whose item has
+    # since been reworded keeps only its milestone.
+    today = {(m["id"], _key(i["text"])): k for m in milestones for k, i in enumerate(m["items"])}
+    steps = []
+    for c in history:
+        parent = ((c.get("parents") or {}).get("nodes") or [{}])[0].get("oid")
+        now, before = roadmap_at.get(c.get("oid")), roadmap_at.get(parent) if parent else []
+        if now is None or before is None:
+            continue
+        pr = ((c.get("associatedPullRequests") or {}).get("nodes") or [None])[0] or {}
+        step = {"oid": c["oid"], "date": c.get("committedDate"), "pr": pr.get("number"),
+                "title": pr.get("title") or c.get("messageHeadline", ""),
+                "url": pr.get("url") or c.get("url"), "created": not before, "done": [], "planned": []}
+        if before:
+            then = {m["id"]: m for m in now}
+            for d in diff_roadmap(before, now):
+                text = then[d["milestone"]]["items"][d["item"]]["text"]
+                k = today.get((d["milestone"], _key(text)))
+                step[d["kind"]].append({"milestone": d["milestone"], "item": k})
+        steps.append(step)
+    on_path = {s["oid"] for s in steps if any(d["milestone"] in path for d in s["done"])}
+    side = {s["oid"] for s in steps if s["done"]} - on_path
+    planned = {s["oid"] for s in steps if s["planned"] and not s["done"]}
+    drift = []
+    for p in merged:
+        oid = (p.get("mergeCommit") or {}).get("oid")
+        drift.append({"number": p.get("number"), "title": p.get("title"), "url": p.get("url"),
+                      "merged": p.get("mergedAt"),
+                      "kind": "path" if oid in on_path else "side" if oid in side
+                      else "planned" if oid in planned else "other"})
+    drift.sort(key=lambda d: d["merged"] or "")
+    return {"milestones": milestones, "path": path,
+            "side": [i for i in ids if i not in path], "current": current, "behind": behind,
+            "next": nxt, "steps": steps, "drift": drift}
 
 
 def pr_summary(body: str) -> str:
@@ -219,6 +313,7 @@ class Dashboard:
         self._comments: dict = {}     # pr -> (updatedAt, comments)
         self._jobs: dict = {}         # commit sha -> its CI jobs
         self._asked: dict = {}        # number -> a question sent, until the agent has it
+        self._roadmap_at: dict = {}   # commit -> the roadmap then (commits do not change)
         self._wake = threading.Event()
 
     # files of the agent's home
@@ -280,6 +375,7 @@ class Dashboard:
             return
         try:
             data = self.gh.overview()
+            self._fetch_roadmaps(data)
             files = self.agent_files()
             tasks = (files["state"].get("tasks") or {}).values()
             waiting = {t.get("pr") for t in tasks if t.get("stage") in ("owner", "pr", "ci") and t.get("pr")}
@@ -306,6 +402,27 @@ class Dashboard:
             with self._lock:
                 self._github_error = str(e)
             log.warning("GitHub refresh failed: %s", e)
+
+    @staticmethod
+    def _history(data: dict) -> list[dict]:
+        repo = (data or {}).get("repository") or {}
+        target = (repo.get("roadmapHistory") or {}).get("target") or {}
+        return (target.get("history") or {}).get("nodes") or []
+
+    def _fetch_roadmaps(self, data: dict) -> None:
+        """The roadmap at each commit that changed it, and just before: fetched
+        once, since a commit's files never change."""
+        want = []
+        for c in self._history(data):
+            parent = ((c.get("parents") or {}).get("nodes") or [{}])[0].get("oid")
+            want += [o for o in (c.get("oid"), parent) if o and o not in self._roadmap_at]
+        want = list(dict.fromkeys(want))
+        try:
+            for i in range(0, len(want), 30):
+                for oid, text in self.gh.roadmap_texts(want[i:i + 30]).items():
+                    self._roadmap_at[oid] = parse_roadmap(text)
+        except (GitHubAPIError, KeyError, TypeError) as e:
+            log.warning("could not read the roadmap's history: %s", e)
 
     def refresher(self) -> None:
         while True:
@@ -390,6 +507,11 @@ class Dashboard:
                       "runs_used": status.get("runs_used"),
                       "runs_per_window": status.get("runs_per_window") or self.cfg.runs_per_window,
                       "window_hours": status.get("window_hours") or self.cfg.window_hours,
+                      "usage": status.get("usage") or state.get("usage") or {},
+                      "max_five_hour_percent": status.get("max_five_hour_percent")
+                      or self.cfg.max_five_hour_percent,
+                      "max_week_percent": status.get("max_week_percent")
+                      or self.cfg.max_week_percent,
                       "current": current | run_info(Path(current["file"]).stem)
                       if current and current.get("file") else None,
                       "explaining": files["explaining"]
@@ -409,6 +531,9 @@ class Dashboard:
             "events": (state.get("events") or [])[-40:][::-1],
             "runs": self.recent_runs(),
             "roadmap": parse_roadmap((repo.get("roadmap") or {}).get("text", "")),
+            "evolution": evolution((repo.get("roadmap") or {}).get("text", ""),
+                                   self._history(gh), repo.get("merged", {}).get("nodes", []),
+                                   self._roadmap_at),
             "milestones": repo.get("milestones", {}).get("nodes", []),
             "log_issue": log_issue,
             "github_age": round(now - gh_time) if gh_time else None,

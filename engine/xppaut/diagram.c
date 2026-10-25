@@ -592,10 +592,13 @@ int save_diagram(fp,n)
     fprintf(fp,"%d %d %d %d %d %d %d %d %d %d %d %d\n", 
 	    d->calc,d->ibr,d->ntot,d->itp,d->lab,d->index,d->nfpar,
 	    d->icp1,d->icp2,d->icp3,d->icp4,d->flag2);
-    for(i=0;i<8;i++)fprintf(fp,"%g ",d->par[i]);
-    fprintf(fp,"%g %g \n",d->norm,d->per);
-    
-    for(i=0;i<n;i++)fprintf(fp,"%f %f %f %f %f %f\n",d->u0[i],d->uhi[i],d->ulo[i],
+    /* XPP Lab fix: write the numbers exactly. With %g and %f a reloaded
+       diagram had 6 significant digits (6 decimals for the eigenvalues,
+       so a small one read back as 0). load_diagram() reads both. */
+    for(i=0;i<8;i++)fprintf(fp,"%.17g ",d->par[i]);
+    fprintf(fp,"%.17g %.17g \n",d->norm,d->per);
+
+    for(i=0;i<n;i++)fprintf(fp,"%.17g %.17g %.17g %.17g %.17g %.17g\n",d->u0[i],d->uhi[i],d->ulo[i],
 			    d->ubar[i],d->evr[i],d->evi[i]);
     d=d->next;
     if(d==NULL)break;

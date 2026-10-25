@@ -41,9 +41,13 @@ page.
 | Dir.field | Phase Plane > Flow |
 | Window/zoom | Mouse: drag, scroll, double-click |
 | Sing pts > Go | Equilibrium button |
+| Sing pts > Monte Carlo | Phase Plane > All equilibria, `eq all` |
+| Sing pts > Range | Workspace > Range > Equilibria, `range ... eq` |
 | Parameters, ICs, Numerics windows | Workspace tabs |
 | Erase | `erase` (E) |
 | File > Auto | Bifurcation window |
+| AUTO > File > Save diagram, Load diagram | Bifurcation > Save..., Open..., `auto save`, `auto load` |
+| AUTO > File > Import orbit | Bifurcation > Show this orbit as the run, `auto orbit` |
 | Data viewer | View > Data |
 | File > Write .set / Read .set | the `.ode` file keeps the values; `set` statements give named sets |
 

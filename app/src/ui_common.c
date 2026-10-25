@@ -134,7 +134,7 @@ void ui_apply_theme(App *a) {
 /* ---- File dialogs ------------------------------------------------------------- */
 
 enum { DLG_NONE, DLG_OPEN, DLG_SAVE_AS, DLG_EXPORT, DLG_PNG, DLG_SVG, DLG_ANI,
-       DLG_SCRIPT, DLG_DATA };
+       DLG_SCRIPT, DLG_DATA, DLG_AUTO_SAVE, DLG_AUTO_OPEN };
 static SDL_Mutex *dlg_lock;
 static int dlg_kind;
 static char dlg_result[1024];
@@ -210,6 +210,19 @@ void ui_dialog_save_script(App *a) {
                          (SDL_Window *)a->window, py_filters, 2, NULL);
 }
 
+static const SDL_DialogFileFilter auto_filters[] = {
+    {"AUTO diagrams (*.auto)", "auto"}, {"All files", "*"}};
+
+void ui_dialog_auto_file(App *a, bool save) {
+  if (!dlg_lock) dlg_lock = SDL_CreateMutex();
+  if (save)
+    SDL_ShowSaveFileDialog(dialog_done, (void *)(intptr_t)DLG_AUTO_SAVE,
+                           (SDL_Window *)a->window, auto_filters, 2, NULL);
+  else
+    SDL_ShowOpenFileDialog(dialog_done, (void *)(intptr_t)DLG_AUTO_OPEN,
+                           (SDL_Window *)a->window, auto_filters, 2, NULL, false);
+}
+
 /* With a dot and an extension, or the one given. */
 static void with_extension(const char *path, const char *ext, char *out, size_t len) {
   size_t n = strlen(path), e = strlen(ext);
@@ -241,6 +254,12 @@ void ui_dialog_poll(App *a) {
     with_extension(path, ".py", p, sizeof p);
     echo_save(a, p);
   }
+  if (kind == DLG_AUTO_SAVE) {
+    char p[1100];
+    with_extension(path, ".auto", p, sizeof p);
+    app_auto_save(a, p);
+  }
+  if (kind == DLG_AUTO_OPEN) app_auto_load(a, path);
   if (kind == DLG_DATA) {
     char p[1100];
     with_extension(path, ".csv", p, sizeof p);

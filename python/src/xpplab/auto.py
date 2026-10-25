@@ -17,6 +17,7 @@ m.auto.diagram.plot()                    # the whole diagram
 from __future__ import annotations
 
 import ctypes
+from pathlib import Path
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -278,6 +279,31 @@ class Auto:
         """Forget the whole bifurcation diagram."""
         self._eng.call("xppe_auto_reset")
         return self
+
+    # -- files ----------------------------------------------------------------
+
+    def save(self, path) -> None:
+        """Save the diagram as an .auto file, XPPAUT's AUTO > File > Save
+        diagram: AUTO's settings, every point and AUTO's restart data, so
+        that :meth:`load` brings back a diagram that can be continued from
+        its labelled points. XPPAUT opens these files too."""
+        self._eng.call("xppe_auto_save", str(Path(path).resolve()).encode("latin-1"))
+
+    def load(self, path) -> Diagram:
+        """Replace the diagram with one saved by :meth:`save` or by XPPAUT
+        (AUTO > File > Load diagram). Its settings and restart data come
+        with it, so :meth:`continue_from` works on its labels. Returns the
+        diagram."""
+        self._eng.call("xppe_auto_load", str(Path(path).resolve()).encode("latin-1"))
+        return self.diagram
+
+    def orbit(self, point: Point | int):
+        """The periodic orbit at a labelled point as a run, one period long,
+        from AUTO's own solution (XPPAUT's AUTO > File > Import orbit). It
+        becomes the model's last run, so the analysis tools see it."""
+        label = point.label if isinstance(point, Point) else int(point)
+        self._eng.call("xppe_auto_orbit", label)
+        return self._model._collect()
 
     def _run(self, key: str, settings: dict) -> Diagram:
         if settings:

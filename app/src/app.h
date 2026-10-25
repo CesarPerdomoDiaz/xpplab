@@ -64,8 +64,10 @@ typedef struct {
   int nmax, npr, ntst;
 } AutoUI;
 
-/* XPPAUT's Initial conds > Range (the Range tab). */
-enum { SWEEP_OVERLAY, SWEEP_MAXMIN, SWEEP_LYAPUNOV };
+/* XPPAUT's Initial conds > Range (the Range tab), and with
+   SWEEP_EQUILIBRIA its Sing pts > Range: the equilibrium followed over the
+   parameter. */
+enum { SWEEP_OVERLAY, SWEEP_MAXMIN, SWEEP_LYAPUNOV, SWEEP_EQUILIBRIA };
 
 typedef struct {
   int par;             /* what is varied: a parameter index, or with   */
@@ -79,9 +81,21 @@ typedef struct {
   double transient;    /* fraction of each run ignored before measuring */
   bool overlay;        /* mode == SWEEP_OVERLAY (kept for the plots) */
   int n;               /* results of the last measuring sweep */
-  double *x, *ymax, *ymin;
+  double *x, *ymax, *ymin; /* equilibria: the variable, and the number of
+                              unstable eigenvalues (NaN: none found) */
+  Trajectory eqt;      /* equilibria: the parameter, every variable,
+                          unstable, stable */
+  int result_mode;     /* the mode the results above come from */
   bool reveal;         /* bring the Range tab forward next frame */
 } SweepUI;
+
+/* Every equilibrium found in a box (XPPAUT's Sing pts > Monte Carlo):
+   n of them, nvars values each. */
+typedef struct {
+  int n, guesses;
+  double *x, *re, *im;
+  int *unstable;
+} FoundEquilibria;
 
 /* The Analysis window: XPPAUT's Numerics > stocHastic and Averaging tools,
    applied to the last run (app_analysis.c). */
@@ -228,6 +242,7 @@ typedef struct App {
   bool needs_run;
   Equilibrium eq[APP_MAX_EQUILIBRIA];
   int neq;
+  FoundEquilibria found;
 
   PhasePlane pp;
   AutoUI au;
@@ -309,6 +324,11 @@ void app_freeze(App *a);
 void app_clear_curves(App *a);
 bool app_equilibrium(App *a, const double *guess);
 void app_clear_equilibria(App *a);
+/* Every equilibrium Newton's method finds from `guesses` random points
+   (XPPAUT's Sing pts > Monte Carlo), in the phase plane's window and, for
+   the other variables, the range of the last run widened by a quarter.
+   They replace the equilibria shown. */
+bool app_find_equilibria(App *a, int guesses);
 bool app_nullclines(App *a, double xlo, double xhi, double ylo, double yhi);
 /* XPPAUT's Initial conds > Range: run once per value of a parameter, and
    either keep each trajectory or record the max and min of a variable. */
@@ -334,6 +354,12 @@ bool app_auto_equilibria(App *a);
 bool app_auto_continue(App *a, int point, const char *action);
 void app_auto_reset(App *a);
 void app_auto_refresh(App *a);
+/* The diagram to and from an .auto file (XPPAUT's AUTO > File > Save and
+   Load diagram), and the periodic orbit at a point as the run (Import
+   orbit). */
+bool app_auto_save(App *a, const char *path);
+bool app_auto_load(App *a, const char *path);
+bool app_auto_orbit(App *a, int point);
 bool app_auto_push_settings(App *a);
 /* Actions available from a diagram point, as (label, key) pairs. */
 int app_auto_actions(App *a, int point, const char **labels, const char **keys,
@@ -345,6 +371,7 @@ bool app_export_csv(App *a, const char *path);          /* the last run */
 bool app_export_auto_csv(App *a, const char *path);     /* the diagram's points */
 bool app_export_analysis_csv(App *a, const char *path); /* the Analysis result */
 bool app_export_range_csv(App *a, const char *path);    /* a measuring Range */
+bool app_export_equilibria_csv(App *a, const char *path); /* app_find_equilibria */
 void app_format_double(char *buf, size_t len, double v);
 void app_add_recent(App *a, const char *path);
 /* The app's own folder (settings, layout, untitled models), ending in a

@@ -70,6 +70,8 @@ class Pipeline:
                               session=task.session if task else "",
                               resume=bool(task and not new_session and task.session),
                               read_only=read_only, model=model, tag=tag)
+        if res.usage:  # the subscription's use, which paces the next runs
+            self.state.usage = res.usage
         if res.signed_out:
             raise Wait(time.time() + 3600, "the Claude CLI is signed out; sign it in "
                        "again on the workstation (see agent/README.md)", alert=True)

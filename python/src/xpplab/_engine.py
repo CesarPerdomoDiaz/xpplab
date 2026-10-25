@@ -19,7 +19,7 @@ from pathlib import Path
 
 __all__ = ["Engine", "EngineError", "find_engine_library"]
 
-API_VERSION = 2
+API_VERSION = 4
 
 OK = 0
 ERR_STATE = -1
@@ -167,6 +167,14 @@ _SIGNATURES = {
                   ctypes.POINTER(ctypes.c_double)], ctypes.c_int),
     "xppe_manifold_count": ([], ctypes.c_int),
     "xppe_manifold": ([ctypes.c_int, ctypes.POINTER(ctypes.c_int)], ctypes.c_int),
+    "xppe_equilibrium_sweep": ([ctypes.c_char_p, ctypes.POINTER(ctypes.c_double),
+                                ctypes.c_int, ctypes.POINTER(ctypes.c_double)],
+                               ctypes.c_int),
+    "xppe_find_equilibria": ([ctypes.c_int, ctypes.c_double,
+                              ctypes.POINTER(ctypes.c_double),
+                              ctypes.POINTER(ctypes.c_double)], ctypes.c_int),
+    "xppe_found_equilibrium": ([ctypes.c_int] + [ctypes.POINTER(ctypes.c_double)] * 3,
+                               ctypes.c_int),
     "xppe_fourier": ([ctypes.c_char_p], ctypes.c_int),
     "xppe_power": ([ctypes.c_char_p], ctypes.c_int),
     "xppe_spectrum": ([ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p,
@@ -215,6 +223,9 @@ _SIGNATURES = {
     "xppe_auto_run": ([ctypes.c_char_p], ctypes.c_int),
     "xppe_auto_grab": ([ctypes.c_int], ctypes.c_int),
     "xppe_auto_ungrab": ([], ctypes.c_int),
+    "xppe_auto_save": ([ctypes.c_char_p], ctypes.c_int),
+    "xppe_auto_load": ([ctypes.c_char_p], ctypes.c_int),
+    "xppe_auto_orbit": ([ctypes.c_int], ctypes.c_int),
     "xppe_auto_parameter_count": ([], ctypes.c_int),
     "xppe_auto_parameter_name": ([ctypes.c_int], ctypes.c_char_p),
     "xppe_auto_main_slot": ([ctypes.c_int], ctypes.c_int),

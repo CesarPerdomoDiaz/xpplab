@@ -293,6 +293,11 @@ void ui_phase_plot(App *a) {
   Tooltip("Click anywhere in the plot to start a trajectory there, like "
           "XPPAUT's Initial conds > Mouse.");
   igSameLine(0, -1);
+  if (Button("All equilibria")) app_command(a, "eq all");
+  Tooltip("Look for every equilibrium in this window from 100 random "
+          "starting points, and mark each with its stability (XPPAUT's Sing "
+          "pts > Monte Carlo; eq all N for more points).");
+  igSameLine(0, -1);
   if (Button("Fit")) ImPlot_SetNextAxesToFit();
   igSameLine(0, -1);
   ui_export_button(a, FIG_PHASE);

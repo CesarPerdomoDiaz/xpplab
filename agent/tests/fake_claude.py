@@ -18,6 +18,11 @@ def say(event):
 
 
 say({"type": "system", "subtype": "init", "session_id": "s-fake", "cwd": os.getcwd()})
+# As Claude Code reports the subscription's use (the real event has more fields).
+say({"type": "rate_limit_event", "rate_limit_info": {
+    "status": "allowed", "rateLimitType": "five_hour", "unifiedWindows": {
+        "five_hour": {"utilization": 0.35, "resetsAt": 1792951200, "status": "allowed"},
+        "seven_day": {"utilization": 0.55, "resetsAt": 1793034000, "status": "allowed"}}}})
 time.sleep(float(os.environ.get("FAKE_SLEEP", "0")))
 say({"type": "assistant", "message": {"content": [
     {"type": "text", "text": f"Reading the code ({len(prompt)} characters of prompt)."},

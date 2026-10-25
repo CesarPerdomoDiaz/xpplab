@@ -297,6 +297,34 @@ def test_a_usage_limit_pauses_and_repeats_the_step(world):
     assert t.stage == "pr"
 
 
+def test_the_subscription_use_holds_the_agent_back(world):
+    """Past its share of the subscription, as the last run reported it, the
+    agent waits for that window to reset; a reading from a window that has
+    reset already holds nothing back."""
+    w = world
+    n = w.gh.new_issue("Add a hello file")
+    soon = time.time() + 600
+    use = {"five_hour": {"utilization": 0.7, "resets_at": soon},
+           "seven_day": {"utilization": 0.2, "resets_at": soon + 86400}}
+    w.claude.on("plan", lambda p, cwd: Result(True, done(), "s-new", usage=use))
+    w.claude.on("implement", hello)
+    ticks(w, 2)
+    t = w.task(n)
+    assert w.sup.state.usage == use                       # read from the plan's run
+    assert t.stage == "planned" and w.claude.kinds() == ["plan"]
+    assert "5-hour window is 70% used" in w.sup.waiting
+    assert "5-hour window 70% (the agent stops at 60%)" in w.sup.report(0)
+    w.sup.state.usage["five_hour"]["resets_at"] = time.time() - 1   # it has reset
+    w.sup.state.usage["seven_day"]["utilization"] = 0.8
+    w.sup.waiting = ""
+    w.sup.tick()
+    assert t.stage == "planned" and "week is 80% used" in w.sup.waiting
+    w.cfg.max_week_percent = 100                          # the week's check off
+    w.sup.waiting = ""
+    w.sup.tick()
+    assert t.stage == "pr" and w.claude.kinds()[:2] == ["plan", "implement"]
+
+
 def test_a_signed_out_cli_alerts_the_owner_once(world):
     w = world
     log = w.gh.create_issue(w.cfg.log_issue_title, "log")
@@ -552,9 +580,11 @@ def test_the_claude_runner_streams_its_events(tmp_path, monkeypatch):
     assert r.ok and r.session == "s-fake"
     assert "current: yes" in r.text                     # current.json during the run
     assert not (runs / "current.json").exists()          # and gone after it
+    assert r.usage["five_hour"] == {"utilization": 0.35, "resets_at": 1792951200}
+    assert r.usage["seven_day"] == {"utilization": 0.55, "resets_at": 1793034000}
     (live,) = runs.glob("*-6-plan-*.jsonl")
     kinds = [json.loads(line)["type"] for line in live.read_text(encoding="utf-8").splitlines()]
-    assert kinds == ["system", "assistant", "user", "result"]
+    assert kinds == ["system", "rate_limit_event", "assistant", "user", "result"]
     summary = json.loads(live.with_suffix(".json").read_text(encoding="utf-8"))
     assert summary["events"] == live.name and summary["seconds"] >= 0
 

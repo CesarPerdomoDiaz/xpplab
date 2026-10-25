@@ -261,7 +261,7 @@ static void diagram_plot(App *a, bool two_param) {
        over the scale. */
     double xlo, xhi, ylo, yhi;
     diagram_extent(a, two_param, &xlo, &xhi, &ylo, &yhi);
-    if (!two_param && a->sw.n > 0 && a->sw.mode == SWEEP_MAXMIN && !a->sw.over_ic &&
+    if (!two_param && a->sw.n > 0 && a->sw.result_mode == SWEEP_MAXMIN && !a->sw.over_ic &&
         a->sw.par == u->main_par && u->yvar == a->sw.var) {
       int k;
       for (k = 0; k < a->sw.n; k++) {
@@ -278,11 +278,28 @@ static void diagram_plot(App *a, bool two_param) {
     fit_axis(ImAxis_Y1, ylo, yhi);
     /* A brute-force sweep of the same parameter and variable, for
        comparison: simulations should sit on the stable branches. */
-    if (!two_param && a->sw.n > 0 && a->sw.mode == SWEEP_MAXMIN &&
+    if (!two_param && a->sw.n > 0 && a->sw.result_mode == SWEEP_MAXMIN &&
         !a->sw.over_ic && a->sw.par == u->main_par && u->yvar == a->sw.var) {
       ImPlotSpec_c s = SpecMarker(V4(0.5f, 0.5f, 0.5f, 0.7f), ImPlotMarker_Circle, 2.2f);
       ImPlot_PlotScatter_doublePtrdoublePtr("##swmax", a->sw.x, a->sw.ymax, a->sw.n, s);
       ImPlot_PlotScatter_doublePtrdoublePtr("##swmin", a->sw.x, a->sw.ymin, a->sw.n, s);
+    }
+    /* Equilibria followed over the same parameter (Range > Equilibria):
+       each one a dot in AUTO's colours, on AUTO's branches where they
+       agree. */
+    if (!two_param && a->sw.n > 0 && a->sw.result_mode == SWEEP_EQUILIBRIA &&
+        a->sw.par == u->main_par && u->yvar >= 0 && u->yvar < a->nvars &&
+        a->sw.eqt.ncols > a->nvars + 1) {
+      const Trajectory *t = &a->sw.eqt;
+      int k;
+      for (k = 0; k < t->nrows; k++) {
+        double px = t->cols[0][k], py = t->cols[u->yvar + 1][k],
+               un = t->cols[a->nvars + 1][k];
+        if (isnan(un)) continue;
+        ImPlot_PlotScatter_doublePtrdoublePtr(
+            un > 0 ? "##equ" : "##eqs", &px, &py, 1,
+            SpecMarker(un > 0 ? COL_UNSTABLE_EQ : COL_STABLE_EQ, ImPlotMarker_Circle, 2.6f));
+      }
     }
     draw_branches(a, two_param);
     draw_special(a, two_param);
@@ -357,6 +374,18 @@ static void controls(App *a) {
           "it as the parameter changes, detecting folds, Hopf and branch "
           "points.");
   if (ButtonW("Clear diagram", -1)) app_auto_reset(a);
+  {
+    float w = (igGetContentRegionAvail().x - igGetStyle()->ItemSpacing.x) / 2;
+    igBeginDisabled(a->au.count == 0);
+    if (ButtonW("Save...", w)) ui_dialog_auto_file(a, true);
+    igEndDisabled();
+    Tooltip("Save the diagram as an .auto file, with AUTO's settings and its "
+            "restart data (XPPAUT's AUTO > File > Save diagram).");
+    igSameLine(0, -1);
+    if (ButtonW("Open...", w)) ui_dialog_auto_file(a, false);
+    Tooltip("Open a diagram saved here or by XPPAUT. It replaces the one "
+            "shown, and its labelled points can be continued.");
+  }
 }
 
 static void points_table(App *a) {
@@ -427,6 +456,12 @@ static void selected_actions(App *a) {
       app_auto_continue(a, sel, keys[i]);
     }
     igPopID();
+  }
+  if (p->periodic && p->label) {
+    if (ButtonW("Show this orbit as the run", -1)) app_auto_orbit(a, u->selected);
+    Tooltip("Make this periodic orbit, one period from AUTO's own solution, "
+            "the current run: see it in the phase plane and the time series, "
+            "or analyse it (XPPAUT's AUTO > File > Import orbit).");
   }
 }
 

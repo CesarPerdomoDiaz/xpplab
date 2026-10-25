@@ -82,6 +82,18 @@ The order is chosen so something useful ships early:
 - **License:** GPL-2.0-or-later, as XPPAUT is. AUTO's parts are BSD-3.
   Upstream authors are credited everywhere.
 
+## The main path
+
+The milestones in the order the work follows. The engine and the two front
+ends came first; then XPPAUT parity, so that its users lose nothing; then
+the app and Python as one environment; then analysis beyond XPPAUT; then
+scale. The other milestones (documentation, releases, coding agents) run
+alongside. The milestone in brackets is the one in progress. The maintainer
+agent's dashboard draws this path; open items left in earlier milestones
+show there as left behind, and work that advances none of it as a detour.
+
+Path: M0 → M1 → M2 → M3 → M4 → [M10] → M9 → M7 → M11
+
 ## Milestones
 
 ### M0 Foundation: done
@@ -196,8 +208,8 @@ To do:
 - [ ] Journal of Open Source Software paper
 
 ### M7 Beyond XPPAUT: analysis and control
-- [ ] Linearise a model at an equilibrium with chosen inputs (the A and B
-      matrices), in Python and in the app
+- [x] Linearise a model at an equilibrium with chosen inputs (the A and B
+      matrices), in Python (`Model.linearize`); the app part is still open
 - [ ] Eigenvalues in the complex plane, with a controllability check
 - [ ] Pole placement: drag an eigenvalue, get the feedback gain, simulate the
       closed loop (generated as an `.ode` model)
@@ -209,8 +221,19 @@ To do:
 - [ ] Codimension-two bifurcations through AUTO, explained in the manual
 
 ### M8 Working with coding agents
-- [ ] An MCP server and a Claude Code skill (`python -m xpplab.mcp`)
+- [x] An MCP server and a Claude Code skill (`python -m xpplab.mcp`)
 - [ ] A coding agent drives the running app while the researcher watches
+
+### M10 XPPAUT parity sprint: the features the interface still lacked
+- [x] Equilibria over a parameter (Sing pts > Range) and every equilibrium
+      in a box (Sing pts > Monte Carlo), in the C API, Python and the app
+- [x] Save and reload AUTO diagrams (exactly, unlike XPPAUT's 6 digits); import an orbit
+- [ ] Range over two parameters
+- [ ] Initial values from a file, a formula, Shift, several clicks
+- [ ] Freeze and save nullclines
+- [ ] Kinescope
+- [ ] A batch command-line tool (XPPAUT's -silent, with AUTO)
+- [ ] Ensemble statistics over noisy runs (stocHastic > Compute)
 
 ### M9 The app and Python together
 - [x] Each action in the app written in the command window as the Python
@@ -221,3 +244,10 @@ To do:
       agent) drives the running app
 - [ ] A Python console inside the app, its objects listed in the Workspace
 - [ ] A Python runtime fetched the first time the console is used
+
+### M11 Scale and reach
+- [ ] A compiled engine for large models, checked against XPPAUT's
+- [ ] A model builder that writes the `.ode` file
+- [ ] SBML and NeuroML import
+- [ ] XPP Lab in the browser, with nothing to install
+- [ ] An index of toolboxes that install with pip and appear in the app

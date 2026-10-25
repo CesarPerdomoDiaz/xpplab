@@ -66,7 +66,8 @@ def _in_ranges(ranges: list[str], when: time.struct_time) -> bool:
 
 
 class Budget:
-    """Claude runs allowed: a sliding window, quiet hours, a usage-limit pause."""
+    """Claude runs allowed: a sliding window, quiet hours, a usage-limit pause,
+    and the share of the subscription the owner leaves to the agent."""
 
     def __init__(self, cfg: Config, state: State, clock=time.time):
         self.cfg = cfg
@@ -79,10 +80,36 @@ class Budget:
             raise Wait(self.state.paused_until, "paused after a usage limit")
         if self.cfg.quiet_hours and _in_ranges(self.cfg.quiet_hours, time.localtime(now)):
             raise Wait(now + 600, "quiet hours")
+        self._check_share(now)
         window = self.cfg.window_hours * 3600
         self.state.runs = [t for t in self.state.runs if now - t < window]
         if len(self.state.runs) >= self.cfg.runs_per_window:
             raise Wait(self.state.runs[0] + window, "the run budget for this window is used")
+
+    def _windows(self, now: float):
+        """(name, percent used, reset time, the agent's limit) for each of the
+        subscription's windows the last run reported, unless it has reset."""
+        for key, limit, name in (("five_hour", self.cfg.max_five_hour_percent, "5-hour window"),
+                                 ("seven_day", self.cfg.max_week_percent, "week")):
+            w = (self.state.usage or {}).get(key) or {}
+            resets = float(w.get("resets_at") or 0)
+            if resets > now:
+                yield name, 100 * float(w.get("utilization") or 0), resets, limit
+
+    def _check_share(self, now: float) -> None:
+        """The subscription is shared with the owner, and each run reports how
+        much of its five-hour window and of its week is used (by the owner
+        too). Past the agent's share, wait until that window resets: its use
+        does not go down before then."""
+        for name, used, resets, limit in self._windows(now):
+            if limit < 100 and used >= limit:
+                raise Wait(resets, f"holding back: the subscription's {name} is "
+                                   f"{used:.0f}% used (the agent's limit is {limit:g}%)")
+
+    def share(self) -> str:
+        """The subscription's use at the last run, in words, or ""."""
+        return ", ".join(f"{name} {used:.0f}% (the agent stops at {limit:g}%)"
+                         for name, used, _, limit in self._windows(self.clock()))
 
     def take(self) -> None:
         self.check()
@@ -267,7 +294,10 @@ class Supervisor:
                   "runs_used": self.budget.used(), "runs_per_window": self.cfg.runs_per_window,
                   "window_hours": self.cfg.window_hours,
                   "paused_until": self.state.paused_until,
-                  "quiet_hours": self.cfg.quiet_hours}
+                  "quiet_hours": self.cfg.quiet_hours,
+                  "usage": self.state.usage,
+                  "max_five_hour_percent": self.cfg.max_five_hour_percent,
+                  "max_week_percent": self.cfg.max_week_percent}
         path = self.cfg.home / "status.json"
         try:
             tmp = path.with_suffix(".tmp")
@@ -371,7 +401,9 @@ class Supervisor:
         return did
 
     def _wait(self, w: Wait) -> None:
-        self.waiting = f"{w.why} (until {time.strftime('%H:%M', time.localtime(w.until))})"
+        # The week's window can reset days later: name the day then.
+        fmt = "%H:%M" if w.until - self.clock() < 20 * 3600 else "%a %H:%M"
+        self.waiting = f"{w.why} (until {time.strftime(fmt, time.localtime(w.until))})"
         log.info("waiting: %s", self.waiting)
         if "usage limit" in w.why or w.alert:
             self.state.paused_until = max(self.state.paused_until, w.until)
@@ -446,6 +478,8 @@ class Supervisor:
                 lines.append(f"- #{t.issue} {t.title}: {t.stage}{pr}")
         lines += ["", f"Claude runs in the last {self.cfg.window_hours:g} hours: "
                       f"{self.budget.used()} of {self.cfg.runs_per_window}."]
+        if self.budget.share():
+            lines.append(f"Subscription use at the last run: {self.budget.share()}.")
         if self.state.paused_until > self.clock():
             lines.append("Paused until " + time.strftime(
                 "%H:%M", time.localtime(self.state.paused_until)) + ".")
@@ -484,6 +518,8 @@ class Supervisor:
     def status(self) -> str:
         lines = [f"repository {self.cfg.slug}, home {self.cfg.home}",
                  f"Claude runs in the window: {self.budget.used()}/{self.cfg.runs_per_window}"]
+        if self.budget.share():
+            lines.append(f"subscription use at the last run: {self.budget.share()}")
         if self.state.paused_until > self.clock():
             lines.append("paused until " + time.ctime(self.state.paused_until))
         if self.cfg.stop_file.exists():

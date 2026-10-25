@@ -14,9 +14,10 @@ from ._engine import EngineError, find_engine_library
 from .analysis import Table
 from .animation import Animation
 from .auto import Diagram, Point
+from .control import Linearization
 from .model import METHODS, Equilibrium, Model, Trajectory, load
 
-__all__ = ["Model", "Trajectory", "Equilibrium", "Diagram", "Point", "Table", "Animation",
+__all__ = ["Model", "Trajectory", "Equilibrium", "Linearization", "Diagram", "Point", "Table", "Animation",
            "EngineError", "METHODS", "load", "find_engine_library",
            "__version__"]
 

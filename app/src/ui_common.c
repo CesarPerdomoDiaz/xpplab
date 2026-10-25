@@ -134,7 +134,8 @@ void ui_apply_theme(App *a) {
 /* ---- File dialogs ------------------------------------------------------------- */
 
 enum { DLG_NONE, DLG_OPEN, DLG_SAVE_AS, DLG_EXPORT, DLG_PNG, DLG_SVG, DLG_ANI,
-       DLG_SCRIPT, DLG_DATA, DLG_AUTO_SAVE, DLG_AUTO_OPEN, DLG_IC_READ, DLG_IC_WRITE };
+       DLG_SCRIPT, DLG_DATA, DLG_AUTO_SAVE, DLG_AUTO_OPEN, DLG_IC_READ, DLG_IC_WRITE,
+       DLG_NULLCLINES };
 static SDL_Mutex *dlg_lock;
 static int dlg_kind;
 static char dlg_result[1024];
@@ -282,6 +283,11 @@ void ui_dialog_poll(App *a) {
     snprintf(p, sizeof p, "%s%s", path, strchr(base ? base : path, '.') ? "" : ".dat");
     app_ic_write(a, p);
   }
+  if (kind == DLG_NULLCLINES) {
+    char p[1100];
+    with_extension(path, ".csv", p, sizeof p);
+    app_export_nullclines_csv(a, p);
+  }
   if (kind == DLG_DATA) {
     char p[1100];
     with_extension(path, ".csv", p, sizeof p);
@@ -317,6 +323,10 @@ void ui_export_button(App *a, int figure) {
     if (igMenuItem_Bool(diagram ? "Diagram points as CSV..." : "Run as CSV...", NULL,
                         false, diagram ? a->au.count > 0 : a->have_traj))
       kind = DLG_DATA;
+    if (figure == FIG_PHASE &&
+        igMenuItem_Bool("Nullclines as CSV...", NULL, false,
+                        a->pp.nullclines || a->pp.nfrozen > 0))
+      kind = DLG_NULLCLINES;
     if (kind != DLG_NONE) {
       if (!dlg_lock) dlg_lock = SDL_CreateMutex();
       dlg_figure = figure;
@@ -361,7 +371,7 @@ static void classic_keys(App *a) {
     const char *command;
   } map[] = {
       {'i', 'g', "run"},      {'i', 'l', "ic last"},  {'i', 's', "ic shift"},
-      {'n', 'n', "nullclines"},
+      {'n', 'n', "nullclines"}, {'n', 'f', "nullclines freeze"},
       {'n', 'e', "nullclines off"}, {'d', 'd', "dirfield"},
       {'s', 'g', "eq"},       {'e', 0, "erase"},      {'w', 'f', "fit"},
       {'f', 'q', "quit"},     {'c', 'c', "continue"},

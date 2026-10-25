@@ -33,6 +33,11 @@ static const char *usage =
     "  eq all [GUESSES]         every equilibrium in the phase plane's window,\n"
     "                           from random guesses (Sing pts > Monte Carlo)\n"
     "  nullclines [off]         draw nullclines in the phase plane [N N]\n"
+    "  nullclines freeze        keep the nullclines drawn [N F]; nullclines\n"
+    "                           freeze PAR FROM TO N: for N values of PAR;\n"
+    "                           nullclines unfreeze deletes them; nullclines\n"
+    "                           show K shows the K-th alone (0: all), and\n"
+    "                           nullclines play steps through them\n"
     "  dirfield [off]           draw the direction field [D D]\n"
     "  erase                    remove kept curves [E]\n"
     "  use SET                  apply a named parameter set\n"
@@ -76,7 +81,8 @@ static const char *usage =
     "  open FILE | new | save   models\n"
     "  export FILE.csv [WHAT]   save data as CSV: the last run, or auto (the\n"
     "                           bifurcation diagram), range, analysis or\n"
-    "                           equilibria (the last eq all)\n"
+    "                           equilibria (the last eq all) or nullclines\n"
+    "                           (those shown and frozen)\n"
     "  export FILE.svg [WHICH]  save a figure (time, phase, auto, auto2);\n"
     "                           .png saves it as it looks on screen\n"
     "  script FILE.py           save the session as a Python script that\n"
@@ -462,10 +468,36 @@ void app_command(App *a, const char *line_in) {
       app_equilibrium(a, NULL);
     }
   } else if (!strcmp(cmd, "nullclines") || !strcmp(cmd, "nn")) {
+    /* nullclines [off] | freeze [PAR FROM TO N] | unfreeze | show K | play
+       [off]: XPPAUT's Nullcline > New and Freeze. */
     char *w = next_word(&rest);
-    a->pp.nullclines = !(w && !strcmp(w, "off"));
-    a->pp.nc_dirty = true;
-    a->echo.nc_written = false;
+    if (w && !strcmp(w, "freeze")) {
+      char *par = next_word(&rest), *from = next_word(&rest), *to = next_word(&rest),
+           *n = next_word(&rest);
+      int p = par ? app_find_par(a, par) : -1;
+      if (!par)
+        app_freeze_nullclines(a);
+      else if (p >= 0 && from && to && n && is_number(from) && is_number(to) &&
+               is_number(n))
+        app_freeze_nullcline_range(a, p, atof(from), atof(to), atoi(n));
+      else
+        app_log(a, "Write: nullclines freeze, or nullclines freeze PAR FROM TO N "
+                   "(N values of the parameter PAR)");
+    } else if (w && !strcmp(w, "unfreeze")) {
+      app_unfreeze_nullclines(a);
+    } else if (w && !strcmp(w, "show")) {
+      char *k = next_word(&rest);
+      a->pp.show_frozen = k ? atoi(k) : 0;
+      if (a->pp.show_frozen < 0 || a->pp.show_frozen > a->pp.nfrozen) a->pp.show_frozen = 0;
+      a->pp.play = false;
+    } else if (w && !strcmp(w, "play")) {
+      char *k = next_word(&rest);
+      a->pp.play = a->pp.nfrozen > 1 && !(k && !strcmp(k, "off"));
+    } else {
+      a->pp.nullclines = !(w && !strcmp(w, "off"));
+      a->pp.nc_dirty = true;
+      a->echo.nc_written = false;
+    }
     a->show_phase = true;
   } else if (!strcmp(cmd, "dirfield") || !strcmp(cmd, "dd")) {
     char *w = next_word(&rest);
@@ -616,7 +648,7 @@ void app_command(App *a, const char *line_in) {
     else
       app_apply_editor(a);
   } else if (!strcmp(cmd, "export")) {
-    /* export FILE.csv [run|auto|range|analysis] |
+    /* export FILE.csv [run|auto|range|analysis|equilibria|nullclines] |
        export FILE.svg|FILE.png [time|phase|auto|auto2] */
     char *file = next_word(&rest), *which = next_word(&rest);
     size_t n = file ? strlen(file) : 0;
@@ -638,6 +670,8 @@ void app_command(App *a, const char *line_in) {
       app_export_auto_csv(a, file);
     } else if (which && !strcmp(which, "range")) {
       app_export_range_csv(a, file);
+    } else if (which && (!strcmp(which, "nullclines") || !strcmp(which, "nc"))) {
+      app_export_nullclines_csv(a, file);
     } else if (which && !strcmp(which, "analysis")) {
       app_export_analysis_csv(a, file);
     } else if (which && !strcmp(which, "equilibria")) {

@@ -230,11 +230,12 @@ static void polyline(Svg *s, const double *x, const double *y, int n, int stride
   if (open) fputs("'/>\n", s->f);
 }
 
-static void segments(Svg *s, const float *seg, int n, const char *color) {
+static void segments(Svg *s, const float *seg, int n, const char *color, double width,
+                     double opacity) {
   int i;
   if (n <= 0) return;
   fprintf(s->f, "<path clip-path='url(#plot)' fill='none' stroke='%s' "
-                "stroke-width='2' d='", color);
+                "stroke-width='%.1f' stroke-opacity='%.2f' d='", color, width, opacity);
   for (i = 0; i < n; i++)
     fprintf(s->f, "M%.2f %.2fL%.2f %.2f", px(s, seg[4 * i]), py(s, seg[4 * i + 1]),
             px(s, seg[4 * i + 2]), py(s, seg[4 * i + 3]));
@@ -269,9 +270,16 @@ static void svg_phase(App *a, Svg *s) {
   const char *xn = a->vars[p->xvar], *yn = a->vars[p->yvar];
   char label[128];
   int i, k;
+  /* Frozen nullclines as the plot draws them: all faded, or one alone. */
+  for (k = 0; k < p->nfrozen; k++) {
+    bool one = p->show_frozen == k + 1;
+    if (p->show_frozen && !one) continue;
+    segments(s, p->frozen[k].x, p->frozen[k].nx, "#d62728", one ? 2 : 1.2, one ? 1 : 0.35);
+    segments(s, p->frozen[k].y, p->frozen[k].ny, "#2ca02c", one ? 2 : 1.2, one ? 1 : 0.35);
+  }
   if (p->nullclines) {
-    segments(s, p->ncx, p->ncx_n, "#d62728");
-    segments(s, p->ncy, p->ncy_n, "#2ca02c");
+    segments(s, p->ncx, p->ncx_n, "#d62728", 2, 1);
+    segments(s, p->ncy, p->ncy_n, "#2ca02c", 2, 1);
     snprintf(label, sizeof label, "%s nullcline", xn);
     legend_add(s, label, "#d62728", false);
     snprintf(label, sizeof label, "%s nullcline", yn);

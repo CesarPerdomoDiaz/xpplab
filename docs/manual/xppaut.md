@@ -41,6 +41,8 @@ page.
 | Initial conds > File, formUla | Workspace > Initial values > From file..., From a formula; `ic read`, `ic u[1..20] = ...` |
 | Continue | `continue` (C C) |
 | Nullcline > New | Phase Plane > Nullclines |
+| Nullcline > Freeze (Freeze, Range, Animate, Delete all) | Phase Plane > Freeze..., `nullclines freeze` |
+| Nullcline > Save | Phase Plane > Export... > Nullclines as CSV..., `export nc.csv nullclines` |
 | Dir.field | Phase Plane > Flow |
 | Window/zoom | Mouse: drag, scroll, double-click |
 | Sing pts > Go | Equilibrium button |

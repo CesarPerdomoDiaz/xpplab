@@ -39,6 +39,27 @@ def test_nullclines_lie_on_the_curves(fhn):
     assert np.max(np.abs(pts[:, 1] - (pts[:, 0] + 0.7) / 0.8)) < 0.05
 
 
+def test_nullclines_over_a_parameter(fhn, tmp_path):
+    box = ((-2.5, 2.5), (-1, 2.5))
+    sets = fhn.nullcline_sweep("I", [0.0, 0.5, 1.0], "v", "w", *box, grid=80)
+    assert len(sets) == 3 and fhn.get("I") == 0.5      # put back
+    fhn.set(I=1.0)
+    alone = fhn.nullclines("v", "w", *box, grid=80)
+    assert all(np.array_equal(a, b) for a, b in zip(sets[2], alone))
+    # The v-nullcline w = v - v^3/3 + I moves up with I; the w-nullcline stays.
+    assert np.mean(sets[2][0][:, 1]) > np.mean(sets[0][0][:, 1])
+    assert np.array_equal(sets[0][1], sets[2][1])
+    t = xs.Table.from_nullclines(sets, first=1)
+    assert t.columns == ["set", "nullcline", "x1", "y1", "x2", "y2"]
+    assert len(t) == sum(len(x) + len(y) for x, y in sets)
+    assert sorted(set(t["set"])) == [1, 2, 3] and set(t["nullcline"]) == {1, 2}
+    rows = t.to_numpy()[(t["set"] == 3) & (t["nullcline"] == 1)]
+    assert np.array_equal(rows[:, 2:], alone[0])
+    t.to_csv(tmp_path / "nc.csv")
+    back = np.loadtxt(tmp_path / "nc.csv", delimiter=",", skiprows=1)
+    assert np.array_equal(back, t.to_numpy())
+
+
 def test_vector_field_shape(fhn):
     X, Y, U, V = fhn.vector_field("v", "w", (-2, 2), (-1, 2), n=7)
     assert X.shape == Y.shape == U.shape == V.shape == (7, 7)
@@ -63,6 +84,9 @@ def test_phase_plane_plot(fhn):
     mpl.use("Agg")
     ax = fhn.phase_plane("v", "w", xlim=(-2.5, 2.5), ylim=(-1, 2.5))
     assert ax.get_xlabel() == "v"
+    frozen = fhn.nullcline_sweep("I", [0.0, 1.0], "v", "w", (-2.5, 2.5), (-1, 2.5))
+    ax2 = fhn.phase_plane("v", "w", xlim=(-2.5, 2.5), ylim=(-1, 2.5), frozen=frozen)
+    assert len(ax2.collections) == len(ax.collections) + 4
 
 
 DUFFING = """

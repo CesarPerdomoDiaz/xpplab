@@ -41,6 +41,15 @@ typedef struct {
   int nmanifolds;
 } Equilibrium;
 
+/* Nullclines kept on the phase plane (XPPAUT's Nullcline > Freeze). */
+typedef struct {
+  float *x, *y; /* segments (x1,y1,x2,y2) of the x and y variables' */
+  int nx, ny;
+  char label[64];
+} FrozenNullclines;
+
+#define APP_MAX_FROZEN_NC 400
+
 typedef struct {
   int xvar, yvar; /* indices of state variables */
   bool nullclines, dirfield, click_to_start, click_keep, show_equilibria;
@@ -51,6 +60,13 @@ typedef struct {
   int grid;
   bool set_window; /* apply win_* to the plot on the next frame */
   double win_xlo, win_xhi, win_ylo, win_yhi;
+  FrozenNullclines *frozen; /* in this plane; a new plane clears them */
+  int nfrozen;
+  int show_frozen; /* 0: all of them; k: the k-th alone */
+  bool play;       /* step through them one at a time */
+  double play_last;
+  int fr_par, fr_steps; /* Freeze over a range: the form */
+  double fr_from, fr_to;
 } PhasePlane;
 
 typedef struct {
@@ -201,6 +217,7 @@ typedef struct {
   bool dirty;         /* a value changed since the last line */
   bool wrote;         /* the action in progress wrote a line */
   bool nc_written;    /* the nullclines of this view are written */
+  bool frozen_list;   /* "frozen = []" is written */
   bool plt;           /* the lines draw figures */
   /* What the script's model holds after the lines so far. */
   double *par, *ic, opt[ECHO_NOPTS];
@@ -347,6 +364,12 @@ void app_clear_equilibria(App *a);
    They replace the equilibria shown. */
 bool app_find_equilibria(App *a, int guesses);
 bool app_nullclines(App *a, double xlo, double xhi, double ylo, double yhi);
+/* The phase plane's window as shown, else as the model file sets it. */
+bool app_phase_window(App *a, double w[4]);
+bool app_freeze_nullclines(App *a); /* Nullcline > Freeze */
+bool app_freeze_nullcline_range(App *a, int par, double from, double to, int n);
+void app_unfreeze_nullclines(App *a); /* Freeze > Delete all */
+bool app_export_nullclines_csv(App *a, const char *path);
 /* XPPAUT's Initial conds > Range: run once per value of a parameter, and
    either keep each trajectory or record the max and min of a variable. */
 bool app_sweep(App *a);

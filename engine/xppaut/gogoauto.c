@@ -119,6 +119,23 @@ int go_go_auto() /* this is the entry  at this point, xAuto has been set */
   return 1;  /* normal return */
 }
 
+/* XPP Studio: AUTO's code calls exit() on a singular matrix (ge() in
+   autlib1.c, "Division by Zero") and on a few other errors, which ends the
+   whole program, and in the app it left the engine unusable. Embedded,
+   such an exit() ends only this continuation: its files are closed here,
+   do_auto() goes on as after a normal run, and the points computed so far
+   stay in the diagram. */
+int go_go_auto_guarded(void)
+{
+  if(xpps_call_guarded(go_go_auto)) return 1;
+  if(fp3) fclose(fp3);
+  if(fp7) fclose(fp7);
+  if(fp9) fclose(fp9);
+  fp3=fp7=fp9=NULL;
+  printf("AUTO stopped here (XPPAUT would have ended the program)\n");
+  return 0;
+}
+
 int set_function_pointers(const iap_type iap,function_list *data) {
   if ((iap.ips == 0 || iap.ips == 1) && abs(iap.isw) != 2) {
     /*	** Algebraic systems. */

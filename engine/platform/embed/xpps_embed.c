@@ -59,6 +59,22 @@ void xpps_exit(int code) {
 
 void xpps_guard_set(jmp_buf *jb) { guard = jb; }
 
+int xpps_call_guarded(int (*fn)(void)) {
+  jmp_buf jb, *outer = guard;
+  if (!xpps_embedded) {
+    fn();
+    return 1;
+  }
+  if (setjmp(jb)) {   /* fn() called exit(): xpps_exit() cleared the guard */
+    guard = outer;
+    return 0;
+  }
+  guard = &jb;
+  fn();
+  guard = outer;
+  return 1;
+}
+
 int xpps_guard_code(void) { return guard_code; }
 
 extern FILE *logfile; /* XPPAUT's console stream (main.c) */

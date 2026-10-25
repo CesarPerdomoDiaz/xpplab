@@ -92,3 +92,26 @@ def test_a_failed_continuation_leaves_the_parameters_usable():
         assert m.parameters["drag"] == pytest.approx(1.2)
         sol = m.run(total=20)
         assert len(sol["t"]) > 100 and sol["M"][-1] == pytest.approx(3.14159, abs=1e-3)
+
+
+def test_auto_leaves_the_parameters_as_they_were():
+    # AUTO evaluates the model at trial values and XPPAUT kept the last one:
+    # in 6x6.ode a step jumps from a = 0.26 to a = -1.3e6, which then stayed
+    # the model's parameter. The diagram keeps the point; the model does not.
+    with xs.load(ODE / "6x6.ode") as m:
+        d = m.auto.equilibria("a")
+        assert min(p.value for p in d.points) < -1000      # the stray end point
+        assert m.parameters["a"] == 0.0
+
+
+def test_a_singular_matrix_stops_only_the_continuation():
+    # forcpend.ode meets a zero pivot in AUTO's linear solver (ge() in
+    # autlib1.c), where XPPAUT exits. The continuation ends there with its
+    # points kept, and the engine goes on working.
+    with xs.load(ODE / "forcpend.ode") as m:
+        d = m.auto.equilibria("f")
+        assert d.special("BP")
+        assert "AUTO stopped here" in m.log
+        assert m.parameters["f"] == pytest.approx(0.1)
+        d = m.auto.equilibria("w")                  # the same engine, again
+        assert len(m.run(total=10)["t"]) > 10

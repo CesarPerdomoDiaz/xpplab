@@ -185,39 +185,58 @@ static void pick_point(App *a, bool two_param) {
   if (pick >= 0 && best < 0.0025) u->selected = pick;
 }
 
-/* The finite extent of what the diagram shows, along x and along y. */
+/* Is point i inside the window AUTO was asked to cover? AUTO checks Par
+   min/max and Norm max only after a step, so a step that jumps far (6x6.ode
+   jumps from a = 0.26 to a = -1.3e6) leaves one stray end point outside. */
+static bool in_window(App *a, int i, bool two_param) {
+  const AutoUI *u = &a->au;
+  const xppe_auto_point_info *p = &u->info[i];
+  double margin = 0.1 * (u->parmax - u->parmin);
+  if (u->parmax > u->parmin &&
+      (p->par1 < u->parmin - margin || p->par1 > u->parmax + margin))
+    return false;
+  return two_param || !(u->normmax > 0) || p->norm <= u->normmax;
+}
+
+/* The finite extent of the diagram's points along x and y: those inside
+   AUTO's window, or all of them when none is. */
 static void diagram_extent(App *a, bool two_param, double *xlo, double *xhi,
                            double *ylo, double *yhi) {
   AutoUI *u = &a->au;
-  int i, k;
-  *xlo = *ylo = HUGE_VAL;
-  *xhi = *yhi = -HUGE_VAL;
-  for (i = 0; i < u->count; i++) {
-    const xppe_auto_point_info *p = &u->info[i];
-    double y[2];
-    if ((p->two_parameter != 0) != two_param || !isfinite(p->par1)) continue;
-    y[0] = two_param ? p->par2 : yvalue(a, i, 0);
-    y[1] = two_param ? p->par2 : yvalue(a, i, 1);
-    *xlo = fmin(*xlo, p->par1);
-    *xhi = fmax(*xhi, p->par1);
-    for (k = 0; k < 2; k++)
-      if (isfinite(y[k])) {
-        *ylo = fmin(*ylo, y[k]);
-        *yhi = fmax(*yhi, y[k]);
-      }
+  int i, k, pass;
+  for (pass = 0; pass < 2; pass++) {
+    *xlo = *ylo = HUGE_VAL;
+    *xhi = *yhi = -HUGE_VAL;
+    for (i = 0; i < u->count; i++) {
+      const xppe_auto_point_info *p = &u->info[i];
+      double y[2];
+      if ((p->two_parameter != 0) != two_param || !isfinite(p->par1)) continue;
+      if (pass == 0 && !in_window(a, i, two_param)) continue;
+      y[0] = two_param ? p->par2 : yvalue(a, i, 0);
+      y[1] = two_param ? p->par2 : yvalue(a, i, 1);
+      *xlo = fmin(*xlo, p->par1);
+      *xhi = fmax(*xhi, p->par1);
+      for (k = 0; k < 2; k++)
+        if (isfinite(y[k])) {
+          *ylo = fmin(*ylo, y[k]);
+          *yhi = fmax(*yhi, y[k]);
+        }
+    }
+    if (*xlo <= *xhi) return;
   }
 }
 
-/* Fit an axis to the data, but never to a span of rounding noise: points
-   that all share one value (a branch that stopped at once) would make the
-   axis zoom into nothing, label every tick alike and fly off at a pan or a
-   zoom. Such an axis shows a window around the value instead. */
-static bool axis_is_flat(double lo, double hi) {
-  return lo <= hi && hi - lo <= 1e-6 * fmax(1.0, fabs(0.5 * (lo + hi)));
-}
-
-static void flat_axis_limits(ImAxis axis, double lo, double hi) {
-  double mid = 0.5 * (lo + hi), d = fmax(0.05 * fabs(mid), 1e-3);
+/* Fit an axis to [lo, hi] with a margin, but never to a span of rounding
+   noise: points that all share one value (a branch that stopped at once)
+   would make the axis zoom into nothing, label every tick alike and fly
+   off at a pan or a zoom. Such an axis shows a window around the value. */
+static void fit_axis(ImAxis axis, double lo, double hi) {
+  double mid = 0.5 * (lo + hi), d;
+  if (!(lo <= hi)) return;   /* nothing to fit: ImPlot's own default */
+  if (hi - lo <= 1e-6 * fmax(1.0, fabs(mid)))
+    d = fmax(0.05 * fabs(mid), 1e-3);
+  else
+    d = 0.55 * (hi - lo);
   ImPlot_SetupAxisLimits(axis, mid - d, mid + d, ImPlotCond_Always);
 }
 
@@ -234,15 +253,26 @@ static void diagram_plot(App *a, bool two_param) {
     snprintf(ylabel, sizeof ylabel, "%s (max / min)", a->vars[u->yvar]);
   if (ImPlot_BeginPlot(two_param ? "##auto2" : "##auto", V2(-1, -1),
                        ImPlotFlags_NoTitle | ImPlotFlags_NoLegend)) {
+    /* The axes follow the diagram's points inside AUTO's window, as
+       autofit did, without a stray end point or rounding noise taking
+       over the scale. */
     double xlo, xhi, ylo, yhi;
-    bool xflat, yflat;
     diagram_extent(a, two_param, &xlo, &xhi, &ylo, &yhi);
-    xflat = axis_is_flat(xlo, xhi);
-    yflat = axis_is_flat(ylo, yhi);
-    ImPlot_SetupAxes(xname, ylabel, xflat ? ImPlotAxisFlags_None : ImPlotAxisFlags_AutoFit,
-                     yflat ? ImPlotAxisFlags_None : ImPlotAxisFlags_AutoFit);
-    if (xflat) flat_axis_limits(ImAxis_X1, xlo, xhi);
-    if (yflat) flat_axis_limits(ImAxis_Y1, ylo, yhi);
+    if (!two_param && a->sw.n > 0 && a->sw.mode == SWEEP_MAXMIN && !a->sw.over_ic &&
+        a->sw.par == u->main_par && u->yvar == a->sw.var) {
+      int k;
+      for (k = 0; k < a->sw.n; k++) {
+        if (isfinite(a->sw.x[k])) {
+          xlo = fmin(xlo, a->sw.x[k]);
+          xhi = fmax(xhi, a->sw.x[k]);
+        }
+        if (isfinite(a->sw.ymax[k])) yhi = fmax(yhi, a->sw.ymax[k]);
+        if (isfinite(a->sw.ymin[k])) ylo = fmin(ylo, a->sw.ymin[k]);
+      }
+    }
+    ImPlot_SetupAxes(xname, ylabel, ImPlotAxisFlags_None, ImPlotAxisFlags_None);
+    fit_axis(ImAxis_X1, xlo, xhi);
+    fit_axis(ImAxis_Y1, ylo, yhi);
     /* A brute-force sweep of the same parameter and variable, for
        comparison: simulations should sit on the stable branches. */
     if (!two_param && a->sw.n > 0 && a->sw.mode == SWEEP_MAXMIN &&

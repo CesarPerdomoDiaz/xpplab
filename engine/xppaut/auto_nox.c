@@ -178,6 +178,7 @@ ROTCHK blrtn;
 void evaluate_derived();
 void redo_all_fun_tables();
 void go_go_auto();
+int go_go_auto_guarded(void);
 void extra();
 void load_browser_with_branch();
 
@@ -652,7 +653,9 @@ void do_auto(iold,isave,itp)
 		*/
  
     open_auto(iold); /* this copies the relevant files .s  to fort.3 */
-    go_go_auto(); /* this complets the initialization and calls the 
+    /* XPP Studio: guarded, so that an exit() inside AUTO ends only this
+       continuation (see go_go_auto_guarded() in gogoauto.c). */
+    go_go_auto_guarded(); /* this complets the initialization and calls the 
                       main routines 
 		  */
     /* plintf("AUTO opened it==%d\n",itp); */

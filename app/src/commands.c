@@ -38,13 +38,16 @@ static const char *usage =
     "  auto save FILE.auto      save the diagram, AUTO's settings and restart\n"
     "                           data; auto load FILE.auto brings it back\n"
     "  auto orbit LABEL         the periodic orbit at a point as the run\n"
-    "  range NAME FROM TO N [VAR|lyap|eq] [continue]\n"
+    "  range NAME FROM TO N [NAME2 FROM2 TO2 [N2]] [VAR|lyap|eq] [continue]\n"
     "                           XPPAUT's Range: N runs over a parameter or\n"
     "                           initial value; with VAR plot its max and min\n"
     "                           (a brute-force diagram), with lyap the\n"
     "                           Liapunov exponent; continue starts each run\n"
     "                           where the last ended (also: sweep); eq\n"
-    "                           follows the equilibrium (Sing pts > Range)\n"
+    "                           follows the equilibrium (Sing pts > Range).\n"
+    "                           NAME2: a second value too, on a grid of\n"
+    "                           N2 steps, or without N2 along with the first\n"
+    "                           (XPPAUT's 2par range)\n"
     "  bvp                      solve the boundary-value problem (bndry)\n"
     "  ani FILE.ani             open an XPPAUT animation of the run;\n"
     "                           ani play, ani stop, ani row N\n"
@@ -495,16 +498,21 @@ void app_command(App *a, const char *line_in) {
     a->show_view3d = true;
     snprintf(a->focus, sizeof a->focus, "3d");
   } else if (!strcmp(cmd, "sweep") || !strcmp(cmd, "range")) {
-    /* range NAME FROM TO [STEPS] [VAR | lyap] [continue]: NAME is a
-       parameter or a variable (its initial value); with VAR the max/min of
-       VAR, with lyap the Liapunov exponent, otherwise keep the runs. */
+    /* range NAME FROM TO [STEPS] [NAME2 FROM2 TO2 [STEPS2]] [VAR | lyap |
+       eq] [continue]: NAME is a parameter or a variable (its initial
+       value); with VAR the max/min of VAR, with lyap the Liapunov exponent,
+       otherwise keep the runs. A second NAME varies a second value with the
+       first: on a grid when STEPS2 is given, else both together. */
     char *par = next_word(&rest), *from = next_word(&rest), *to = next_word(&rest);
-    char *w;
-    int p = par ? app_find_par(a, par) : -1, ic = -1;
+    char *w, *wd[24];
+    int p = par ? app_find_par(a, par) : -1, ic = -1, nw = 0, k;
+    bool bad = false;
     if (p < 0 && par) ic = app_find_var(a, par);
+    while (nw < 24 && (wd[nw] = next_word(&rest)) != NULL) nw++;
     if ((p < 0 && ic < 0) || !from || !to) {
-      app_log(a, "Write: range NAME FROM TO [STEPS] [VAR | lyap] [continue]   "
-                 "(NAME: a parameter or initial value; no VAR keeps the runs)");
+      app_log(a, "Write: range NAME FROM TO [STEPS] [NAME2 FROM2 TO2 [STEPS2]] "
+                 "[VAR | lyap | eq] [continue]   (NAME: a parameter or initial "
+                 "value; no VAR keeps the runs; STEPS2 makes a grid)");
     } else {
       a->sw.over_ic = p < 0;
       a->sw.par = p >= 0 ? p : ic;
@@ -513,8 +521,26 @@ void app_command(App *a, const char *line_in) {
       a->sw.steps = 20;
       a->sw.mode = SWEEP_OVERLAY;
       a->sw.continue_runs = false;
-      while ((w = next_word(&rest))) {
-        if (is_number(w))
+      a->sw.two = false;
+      for (k = 0; k < nw; k++) {
+        int p2, v2;
+        w = wd[k];
+        p2 = app_find_par(a, w);
+        v2 = p2 < 0 ? app_find_var(a, w) : -1;
+        if ((p2 >= 0 || v2 >= 0) && k + 2 < nw && is_number(wd[k + 1]) &&
+            is_number(wd[k + 2])) {
+          a->sw.two = true;
+          a->sw.over_ic2 = p2 < 0;
+          a->sw.par2 = p2 >= 0 ? p2 : v2;
+          a->sw.from2 = atof(wd[k + 1]);
+          a->sw.to2 = atof(wd[k + 2]);
+          a->sw.grid = false;
+          k += 2;
+          if (k + 1 < nw && is_number(wd[k + 1])) {
+            a->sw.steps2 = atoi(wd[++k]);
+            a->sw.grid = true;
+          }
+        } else if (is_number(w))
           a->sw.steps = atoi(w);
         else if (!strcmp(w, "continue"))
           a->sw.continue_runs = true;
@@ -525,10 +551,16 @@ void app_command(App *a, const char *line_in) {
         else if (app_find_var(a, w) >= 0) {
           if (a->sw.mode != SWEEP_EQUILIBRIA) a->sw.mode = SWEEP_MAXMIN;
           a->sw.var = app_find_var(a, w);
+        } else if (k + 2 < nw && is_number(wd[k + 1]) && is_number(wd[k + 2])) {
+          /* A second range under a name the model lacks: do not run the
+             first alone with its numbers taken as steps. */
+          app_log(a, "error: no parameter or variable called %s", w);
+          bad = true;
+          break;
         } else
           app_log(a, "note: ignored '%s'", w);
       }
-      app_sweep(a);
+      if (!bad) app_sweep(a);
     }
   } else if (!strcmp(cmd, "open")) {
     char *p = skip_space(rest);

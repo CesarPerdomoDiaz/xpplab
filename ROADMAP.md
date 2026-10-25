@@ -186,7 +186,7 @@ To do:
 - [x] Equilibria over a parameter (Sing pts > Range) and every equilibrium
       in a box (Sing pts > Monte Carlo), in the C API, Python and the app
 - [x] Save and reload AUTO diagrams (exactly, unlike XPPAUT's 6 digits); import an orbit
-- [ ] Range over two parameters
+- [x] Range over two parameters, on a grid (a colour map) or along a line
 - [ ] Initial values from a file, a formula, Shift, several clicks
 - [ ] Freeze and save nullclines
 - [ ] Kinescope

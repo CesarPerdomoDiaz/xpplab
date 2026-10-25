@@ -79,9 +79,20 @@ typedef struct {
                           ICs" = No) */
   int var;             /* variable measured (max/min mode) */
   double transient;    /* fraction of each run ignored before measuring */
+  /* A second value varied with the first (XPPAUT's 2par range): on a grid
+     (its Array), or both together along a line (its Crv). */
+  bool two, grid;
+  int par2;
+  bool over_ic2;
+  double from2, to2;
+  int steps2;          /* grid: values of the second */
+  int show;            /* a grid of max/min shows 0 max - min, 1 max, 2 min */
   bool overlay;        /* mode == SWEEP_OVERLAY (kept for the plots) */
   int n;               /* results of the last measuring sweep */
-  double *x, *ymax, *ymin; /* equilibria: the variable, and the number of
+  int n1, n2, result_kind; /* a grid of n2 rows of n1 (kind 2), a line (1),
+                              one value (0) */
+  double *x, *x2, *ymax, *ymin; /* x2: the second value of each run.
+                              Equilibria: the variable, and the number of
                               unstable eigenvalues (NaN: none found) */
   Trajectory eqt;      /* equilibria: the parameter, every variable,
                           unstable, stable */
@@ -196,7 +207,8 @@ typedef struct {
   int npar, nic;
   char table[16];     /* the variable holding the last analysis result */
   int sweep_mode;     /* what the variable 'sweep' holds: SWEEP_*, or -1 */
-  char sweep_name[APP_NAME_LEN], sweep_var[APP_NAME_LEN];
+  int sweep_kind;     /* and how: one value (0), a line (1), a grid (2) */
+  char sweep_name[APP_NAME_LEN], sweep_name2[APP_NAME_LEN], sweep_var[APP_NAME_LEN];
 } Echo;
 
 typedef struct App {

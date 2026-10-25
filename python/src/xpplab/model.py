@@ -469,20 +469,63 @@ class Model(AnalysisMixin):
         = Yes), or with ``continue_runs=True`` from where the previous run
         ended ("Use old ICs" = No), which follows an attractor as the
         parameter changes. The parameter and initial conditions are restored
-        afterwards."""
-        old = self.get(parameter)
+        afterwards.
+
+        Two values can move together along a line (XPPAUT's 2par range,
+        Crv): give a tuple of names and pairs of values,
+        ``m.sweep(("iapp", "gca"), zip(i_values, g_values))``. For every
+        pair on a grid, see :meth:`sweep_grid`."""
+        names = tuple(parameter) if isinstance(parameter, (tuple, list)) else (parameter,)
+        old = [self.get(n) for n in names]
         ics = {v: float(self.get(v)) for v in self.variables}
         out = []
         try:
             for i, v in enumerate(values):
                 if continue_runs and i > 0:
                     self.ic_last()
-                self.set(**{parameter: float(v)})
+                for name, x in zip(names, v if len(names) > 1 else (v,)):
+                    self.set(**{name: float(x)})
                 sol = self.run(**run_kw)
                 out.append(measure(sol) if measure else sol)
         finally:
             self.set(**ics)
+            for name, o in zip(names, old):
+                self.set(**{name: o})
+        return np.array(out) if measure else out
+
+    def sweep_grid(self, parameter: str, values, parameter2: str, values2, *,
+                   measure=None, continue_runs: bool = False, **run_kw):
+        """Run once for every pair of values on a grid: XPPAUT's 2par range
+        (Array). The runs go through ``values`` for each of ``values2`` in
+        turn, setting ``parameter`` then ``parameter2``; either may be an
+        initial condition.
+
+        With a ``measure``, returns a NumPy array of shape
+        ``(len(values2), len(values))`` (plus the measure's own shape): a map
+        over the two values, such as an amplitude or the Liapunov exponent,
+        ready for ``plt.imshow(..., origin="lower")``. Without one, a list of
+        rows of Trajectory objects. ``continue_runs`` starts each run where
+        the previous one ended, row after row. The values and initial
+        conditions are restored afterwards."""
+        old, old2 = self.get(parameter), self.get(parameter2)
+        ics = {v: float(self.get(v)) for v in self.variables}
+        out, k = [], 0
+        try:
+            for v2 in values2:
+                row = []
+                for v in values:
+                    if continue_runs and k > 0:
+                        self.ic_last()
+                    self.set(**{parameter: float(v)})
+                    self.set(**{parameter2: float(v2)})
+                    sol = self.run(**run_kw)
+                    row.append(measure(sol) if measure else sol)
+                    k += 1
+                out.append(row)
+        finally:
+            self.set(**ics)
             self.set(**{parameter: old})
+            self.set(**{parameter2: old2})
         return np.array(out) if measure else out
 
     def interact(self, *parameters: str, y: str | list | None = None,

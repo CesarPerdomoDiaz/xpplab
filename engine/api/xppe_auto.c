@@ -304,6 +304,33 @@ static const char *type_name(int itp) {
   return "";
 }
 
+/* Near a homoclinic orbit the period of a periodic branch grows without
+   bound while the parameter stops moving (to about 1e-9 for the kite model),
+   and AUTO's test functions then flag a limit point or branch point at nearly
+   every step. Those labels are noise, not bifurcations: report such points
+   as ordinary ones. A point counts as noise when it is a one-parameter
+   LP/BP/PD/TR whose period is at least 10 times that of the branch's first
+   point and whose parameter equals the previous point's to 1e-7 (relative). */
+static int is_period_tail_noise(const DIAGRAM *d) {
+  const DIAGRAM *q, *first = NULL, *prev = NULL;
+  double a, b;
+  switch (d->itp % 10) {
+  case 1: case 6: case 2: case 5: case 7: case 8: break;
+  default: return 0;
+  }
+  if (d->ibr >= 0 || d->flag2) return 0;
+  for (q = bifd; q && q != d; q = q->next)
+    if (q->ibr == d->ibr) {
+      if (!first) first = q;
+      prev = q;
+    }
+  if (!first || !prev || !(first->per > 0) || d->per < 10.0 * first->per)
+    return 0;
+  a = d->par[d->icp1];
+  b = prev->par[d->icp1];
+  return fabs(a - b) <= 1e-7 * (1.0 + fabs(a));
+}
+
 int xppe_auto_point(int i, xppe_auto_point_info *info) {
   DIAGRAM *d = nth_point(i);
   if (!d) {
@@ -324,7 +351,8 @@ int xppe_auto_point(int i, xppe_auto_point_info *info) {
   info->par2 = d->icp2 < NAutoPar ? d->par[d->icp2] : 0.0;
   info->norm = d->norm;
   info->period = d->per;
-  snprintf(info->type_name, sizeof info->type_name, "%s", type_name(d->itp));
+  snprintf(info->type_name, sizeof info->type_name, "%s",
+           is_period_tail_noise(d) ? "" : type_name(d->itp));
   return XPPE_OK;
 }
 

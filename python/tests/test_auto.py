@@ -169,3 +169,14 @@ def test_diagram_csv(lecar_hopf, tmp_path):
     row = dict(zip(head, lines[1 + d.points.index(d.first("HB"))].split(",")))
     assert row["type"] == "HB" and row["parameter"] == "iapp"
     assert float(row["value"]) == d.first("HB").value
+
+
+def test_homoclinic_tail_is_not_littered_with_limit_points():
+    # The kite's periodic branch runs into a homoclinic orbit: the period
+    # grows to 1e6 at a fixed parameter, and AUTO flags an LP almost every
+    # step. Those are noise and must not be reported as bifurcations.
+    with xs.Model.from_text(KITE % "", "kite.ode") as m:
+        d = m.auto.equilibria("vw")
+        orbits = m.auto.continue_from(d.first("HB"), "periodic")
+        assert max(p.period for p in orbits) > 1e5
+        assert len([p for p in orbits if p.type in ("LP", "BP", "PD", "TR")]) <= 10

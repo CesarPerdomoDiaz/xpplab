@@ -6,6 +6,24 @@ examples: a model you can save and run, what to expect and why, the Python
 that reproduces it, and exercises with worked solutions. They are meant for
 a course, or for self-study with the desktop app open beside the text.
 
+The theory follows established textbooks and cites them by chapter and
+section, so that every page can be read next to a book that treats the
+subject in full:
+
+- mechanics: Sanz Recio and Sánchez Arriaga, *Mecánica analítica:
+  lagrangiana, hamiltoniana y sistemas dinámicos* (McGraw-Hill, 2019),
+  whose chapters 8 to 10 on dynamical systems are also the general theory
+  the other pages refer to;
+- neuroscience: Izhikevich, *Dynamical Systems in Neuroscience* (MIT Press,
+  2007);
+- ecology: Murray, *Mathematical Biology I* (Springer, 2002), and Strogatz,
+  *Nonlinear Dynamics and Chaos* (CRC Press, 2024);
+- chemistry: Epstein and Pojman, *An Introduction to Nonlinear Chemical
+  Dynamics* (Oxford University Press, 1998), with Murray, Keener and Sneyd,
+  and Atkins for the kinetics.
+
+The full references are at the end of each page.
+
 | Page | Models | What you learn |
 |------|--------|----------------|
 | [Neuroscience](neuroscience.md) | passive membrane, theta neuron, FitzHugh-Nagumo | equilibria and eigenvalues, excitability, saddle-node and Hopf onset of firing, relaxation oscillations |

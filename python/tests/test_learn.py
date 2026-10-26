@@ -415,29 +415,43 @@ def test_chemistry_schlogl(runs):
     r = runs["chemistry"]
     sch = r.ns["sch"]
     found = r.first("found")
-    got = sorted((round(e["x"], 3), e.kind) for e in found)
-    assert got == [(0.0, "stable node"), (1.0, "unstable node"), (2.0, "stable node")]
+    got = sorted((round(e["x"], 4), e.kind) for e in found)
+    assert got == [(0.2929, "stable node"), (1.0, "unstable node"),
+                   (1.7071, "stable node")]
     d = r.first("d")
-    assert [round(p.value, 4) for p in d.special("LP")] == [0.3849, -0.3849]
-    approx(2 / (3 * np.sqrt(3)), 0.3849, 5e-5)
+    assert [round(p.value, 4) for p in d.special("LP")] == [0.6361, 0.3639]
+    s = 1 / np.sqrt(6)
+    approx(1 - s, 0.5918, 5e-5)
+    approx(1 + s, 1.4082, 5e-5)
+    f = lambda x: x ** 3 - 3 * x ** 2 + 2.5 * x
+    approx(f(1 - s), 0.6361, 5e-5)
+    approx(f(1 + s), 0.3639, 5e-5)
     mus = r.ns["mus"]
     up, down = np.asarray(r.ns["up"]), np.asarray(r.ns["down"])
-    k03, k04 = int(np.argmin(abs(mus - 0.3))), int(np.argmin(abs(mus + 0.3)))
-    approx(up[int(np.argmin(abs(mus - 0.3)))], 0.214, 5e-4)
-    approx(up[int(np.argmin(abs(mus - 0.4)))], 2.16, 5e-3)
-    approx(down[int(np.argmin(abs(mus + 0.3)))], 1.786, 5e-3)
-    approx(down[int(np.argmin(abs(mus + 0.4)))], -0.16, 5e-3)
+    assert mus.min() > 0 and up.min() > 0 and down.min() > 0   # physical
+    at = lambda m: int(np.argmin(abs(mus - m)))
+    approx(up[at(0.6)], 0.430, 5e-4)
+    approx(up[at(0.65)], 1.826, 5e-4)
+    approx(down[at(0.4)], 1.570, 5e-4)
+    approx(down[at(0.35)], 0.174, 5e-4)
+    # exercise 1: c = 3
+    approx(1 - 0.5 ** (1 / 3), 0.2063, 5e-5)
+    sch.set(mu=0.5, c=3, total=30)
+    found = sch.find_equilibria(100, box={"x": (0, 3)})
+    assert [round(e["x"], 4) for e in found] == [0.2063]
     # exercise 2
-    sch.set(mu=0.2, total=30)
-    found = sch.find_equilibria(100, box={"x": (-1, 3)})
-    assert sorted(round(e["x"], 4) for e in found) == [0.1211, 0.7909, 2.088]
-    approx(sch.run(x=0.5)["x"][-1], 0.1211, 5e-4)
-    approx(sch.run(x=1.3)["x"][-1], 2.088, 5e-4)
-    approx(sch.run(x=0.7)["x"][-1], 0.1211, 5e-4)
-    # exercise 1 and 3
-    x = 1 - 1 / np.sqrt(3)
-    approx(x ** 3 - 3 * x ** 2 + 2 * x, 0.3849, 5e-5)
+    sch.set(mu=0.45, c=2.5, total=30)
+    found = sch.find_equilibria(100, box={"x": (0, 3)})
+    assert sorted(round(e["x"], 4) for e in found) == [0.2474, 1.1021, 1.6505]
+    approx(sch.run(x=0.5)["x"][-1], 0.2474, 5e-4)
+    approx(sch.run(x=1.2)["x"][-1], 1.6505, 5e-4)
+    approx(sch.run(x=0.9)["x"][-1], 0.2474, 5e-4)
+    # exercise 3: the cusp, and the lower fold at zero feed when c = 9/4
     approx(1 ** 3 - 3 + 3, 1.0, 0)
+    s = np.sqrt(1 - (9 / 4) / 3)
+    approx(s, 0.5, 1e-12)
+    approx((1 + s) ** 3 - 3 * (1 + s) ** 2 + 9 / 4 * (1 + s), 0.0, 1e-12)
+    approx(1 - 3 * s ** 2 - 2 * s ** 3, 0.0, 1e-12)
 
 
 def test_chemistry_brusselator(runs):

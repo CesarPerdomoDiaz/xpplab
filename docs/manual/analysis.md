@@ -7,7 +7,9 @@ do, with XPPAUT's own code. Pick a tool on the left, set its options, and
 press **Compute**; the result is plotted on the right. Drag to pan, scroll
 to zoom, and right-click the plot for more options.
 
-Every tool also has a command, listed in each section below.
+Every tool also has a command, listed in each section below. The last
+tool, **Linearise**, does not need a run: it works at an equilibrium (the
+last section of this page).
 
 ## Spectra
 
@@ -130,3 +132,63 @@ times, so the mean's oscillations shrink as the runs fall out of step.
 
 Command: `ensemble 50`.
 
+
+## Linearisation and controllability
+
+Near an equilibrium a model behaves like the linear system
+
+    dx' = A dx + B du
+
+where `dx` is the distance from the equilibrium, `A` is the Jacobian of the
+right-hand side and `B` holds its derivatives with respect to the **inputs**:
+the parameters you treat as controls (an injected current, a force, a
+thrust). This is the starting point of control design. **Linearise**
+(*Run > Linearise...*, or the Analysis window's *Linearise* tool) computes
+it:
+
+- **Linearise at** *the equilibrium* that Newton's method finds from the
+  initial values (as *Find equilibrium* does), or at *the initial values*
+  themselves, equilibrium or not.
+- **Inputs:** tick the parameters that act as controls.
+
+The result shows, in words first:
+
+- where the linearisation was taken, and whether that point is an
+  equilibrium;
+- whether the equilibrium is **stable**: every eigenvalue of `A` has a
+  negative real part (for a map, `meth=discrete`, every eigenvalue lies
+  inside the unit circle);
+- whether the inputs can steer the state: the system is **controllable**
+  when the controllability matrix `[B, AB, ..., A^(n-1) B]` has full rank n.
+  If the rank is lower, some direction of the state cannot be moved by these
+  inputs, whatever they do. The smallest singular value of that matrix,
+  relative to the largest, says how hard the worst direction is to move.
+
+Below are `A` and `B` (hover over an entry for all its digits and its error
+estimate), the eigenvalues and the singular values. The plot shows the
+eigenvalues in the complex plane: the stable half (or, for a map, the
+inside of the unit circle) is shaded, and its edge is drawn.
+
+`A` and `B` come from central differences extrapolated to zero step
+(Ridders' method), so no step size has to be chosen; they are typically
+good to 1e-9 or better. If the right-hand side has a kink or a jump at the
+point, a note says how far the derivatives can be trusted. At an
+equilibrium the eigenvalues listed are those that *Find equilibrium*
+reports; elsewhere they are the eigenvalues of `A`, from XPPAUT's own
+routine.
+
+Try it: [open Morris-Lecar](example:lecar.ode) and type
+`linearize inputs iapp`. The equilibrium found from the initial values is a
+saddle (one eigenvalue near 1.03, the other near -0.30). The current enters
+only the equation for V, but W follows V, so `iapp` alone can steer both:
+the rank is 2.
+
+*Export > analysis* (or `export lin.csv analysis`) writes one row per state:
+its value at the point, its row of `A` and of `B` (columns `A_V`, `A_W`,
+`B_iapp`, ...), an eigenvalue (`eig_re`, `eig_im`), and on the first row the
+rank and the residual (the largest |dx/dt| at the point; for a map
+|F(x) - x|). In Python the same numbers come from `m.linearize()`; see
+[Control design](https://cesarperdomodiaz.github.io/xpplab/python/control/).
+
+Commands: `linearize inputs iapp`, `linearize at eq inputs iapp gca`,
+`linearize at ic iapp` (`linearise` works too).

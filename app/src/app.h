@@ -149,7 +149,8 @@ typedef struct {
 } FoundEquilibria;
 
 /* The Analysis window: XPPAUT's Numerics > stocHastic and Averaging tools,
-   applied to the last run (app_analysis.c). */
+   applied to the last run, and the linearisation at a point
+   (app_analysis.c). */
 enum {
   AN_SPECTRUM,    /* power spectral density, cross spectrum, coherence */
   AN_FOURIER,     /* Fourier series, as cos/sin or amplitude/phase */
@@ -161,8 +162,26 @@ enum {
   AN_HFUNCTION,   /* weak-coupling interaction function */
   AN_FIT,         /* fit parameters to data */
   AN_ENSEMBLE,    /* mean and variance over many noisy runs */
+  AN_LINEARIZE,   /* A, B, eigenvalues, controllability at a point */
   AN_COUNT
 };
+
+/* The linear system dx' = A dx + B du at a point (xppe_linearize): what
+   Model.linearize() returns in Python. Matrices are row-major. */
+typedef struct {
+  int n, m;                      /* states, inputs */
+  char (*inputs)[APP_NAME_LEN];
+  bool at_eq;                    /* at the equilibrium from the initial values */
+  bool discrete;                 /* a map: stable inside the unit circle */
+  double *x;                     /* the point */
+  double *A, *B, *A_err, *B_err; /* n x n and n x m, with error estimates */
+  double *re, *im;               /* eigenvalues */
+  double *sv;                    /* singular values of [B, AB, ...] */
+  int rank;                      /* -1 when it could not be computed */
+  double residual;               /* largest |f| (a map: |F(x) - x|) there */
+  double worst;                  /* largest error estimate of A and B */
+  char rank_error[200];
+} LinearSystem;
 
 typedef struct {
   int tool;
@@ -182,6 +201,9 @@ typedef struct {
   char fit_vars[128], fit_cols[64], fit_pars[256];
   bool log_y;
   int trials;          /* runs of an ensemble */
+  int lin_at;          /* linearise at: 0 the equilibrium, 1 the initial values */
+  char lin_inputs[512]; /* the inputs: parameters, separated by commas */
+  LinearSystem lin;
   int show_col;        /* result column on the vertical axis */
   bool refit;          /* frame the next drawn result */
   /* the last result */
@@ -425,6 +447,8 @@ void app_free_trajectory(Trajectory *t);
 void app_analysis_reset(App *a); /* a model was loaded: defaults, no result */
 void app_analysis_free(App *a);
 bool app_analysis_run(App *a);   /* run a->an.tool on the last run */
+/* The last linearisation as CSV: the columns of Linearization.to_csv(). */
+bool app_export_linear_csv(App *a, const char *path);
 const char *app_analysis_name(int tool);
 /* Boundary-value problem (XPPAUT's Bndryval), the 3D view's setup from the
    model, and the animator. */

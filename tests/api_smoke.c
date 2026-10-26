@@ -22,6 +22,63 @@ static int failures;
     }                                            \
   } while (0)
 
+/* Linearised at the equilibrium x (eigenvalues re, im from Sing pts), the
+   Jacobian's eigenvalues agree with XPPAUT's, whose Jacobian is coarser;
+   the input parameter keeps its value. */
+static void check_linearize(int n, const double *x, const double *re,
+                            const double *im) {
+  static double A[64 * 64], Ae[64 * 64], B[64], Be[64], lre[64], lim[64];
+  const char *in[1];
+  double before = 0, after = 0;
+  int i, j, rc;
+  if (xppe_count(XPPE_PARAMETERS) < 1) return;
+  in[0] = xppe_name(XPPE_PARAMETERS, 0);
+  xppe_get(in[0], &before);
+  rc = xppe_linearize(x, 1, in, 0.0, A, B, Ae, Be);
+  CHECK(rc == XPPE_OK, "linearize: %d %s", rc, xppe_error());
+  xppe_get(in[0], &after);
+  CHECK(before == after, "linearize changed %s: %.17g -> %.17g", in[0], before, after);
+  rc = xppe_eigenvalues(n, A, lre, lim);
+  CHECK(rc == XPPE_OK, "eigenvalues: %d %s", rc, xppe_error());
+  for (i = 0; i < n; i++) {
+    double best = 1e300;
+    for (j = 0; j < n; j++) {
+      double d = hypot(lre[j] - re[i], lim[j] - im[i]);
+      if (d < best) best = d;
+    }
+    CHECK(best < 1e-3 * (1 + hypot(re[i], im[i])),
+          "eigenvalue %g%+gi of the equilibrium is %g from A's", re[i], im[i], best);
+  }
+  CHECK(xppe_linearize(x, 1, (const char *const[]){"no_such_par"}, 0.0, A, B,
+                       NULL, NULL) == XPPE_ERR_NAME, "unknown input refused");
+  printf("linearized at the equilibrium with input %s: d/d%s =", in[0], in[0]);
+  for (i = 0; i < n; i++) printf(" %.6g", B[i]);
+  printf("\n");
+}
+
+/* Known answers: x'' + 0.5 x' + 4 x = u, and a pair the input cannot reach. */
+static void check_control_known(void) {
+  const double A[4] = {0, 1, -4, -0.5}, B[2] = {0, 1};
+  const double A2[4] = {-1, 0, 0, -2}, B2[2] = {1, 0};
+  double re[2], im[2], C[4], sv[2];
+  int rank;
+  CHECK(xppe_eigenvalues(2, A, re, im) == XPPE_OK, "eigenvalues");
+  CHECK(fabs(re[0] + 0.25) < 1e-9 && fabs(re[1] + 0.25) < 1e-9 &&
+            fabs(fabs(im[0]) - sqrt(3.9375)) < 1e-9 && im[0] == -im[1],
+        "eigenvalues %g%+gi %g%+gi", re[0], im[0], re[1], im[1]);
+  rank = xppe_controllability(2, 1, A, B, 0.0, C, sv);
+  CHECK(rank == 2, "controllable rank %d", rank);
+  CHECK(C[0] == 0 && C[1] == 1 && C[2] == 1 && C[3] == -0.5,
+        "controllability matrix %g %g; %g %g", C[0], C[1], C[2], C[3]);
+  CHECK(fabs(sv[0] * sv[1] - 1) < 1e-12 && sv[0] >= sv[1],
+        "singular values %g %g (their product is |det C| = 1)", sv[0], sv[1]);
+  rank = xppe_controllability(2, 1, A2, B2, 0.0, C, sv);
+  CHECK(rank == 1 && sv[1] == 0, "uncontrollable rank %d, sv %g %g", rank,
+        sv[0], sv[1]);
+  CHECK(xppe_controllability(2, 0, A, NULL, 0.0, NULL, NULL) == 0, "no inputs");
+  printf("control known answers checked\n");
+}
+
 int main(int argc, char **argv) {
   int i, n, rows, rc;
   double v, *col;
@@ -120,7 +177,9 @@ int main(int argc, char **argv) {
       printf(" %s=%.6g (eig %.4g%+.4gi)", xppe_name(XPPE_VARIABLES, i), x[i],
              re[i], im[i]);
     printf("\n");
+    if (rc == XPPE_OK) check_linearize(n, x, re, im);
   }
+  check_control_known();
 
   CHECK(xppe_load(argv[1], 0, NULL) == XPPE_ERR_STATE, "second load refused");
   free(col);

@@ -44,7 +44,14 @@ static const char *about[AN_COUNT] = {
     "mean of every column at each time, with a band of one standard "
     "deviation. Choose a column's mean or variance under Show. The run "
     "left in the other windows is the last one. (stocHastic > Compute, Mean, "
-    "Variance)"};
+    "Variance)",
+    "The linear model dx' = A dx + B du near a point: A is the Jacobian of "
+    "the right-hand side, B its derivative with respect to each input (the "
+    "parameters that act as controls). The eigenvalues of A are plotted in "
+    "the complex plane, and the rank of [B, AB, ..., A^(n-1) B] says whether "
+    "the inputs can steer every state. The derivatives are extrapolated to "
+    "zero step, so no step has to be chosen. Not in XPPAUT; in Python, "
+    "m.linearize()."};
 
 /* The result's view stays where the user zoomed it when the same result is
    computed again; another one, or another scale, is shown whole. */
@@ -99,6 +106,347 @@ static const char *windows[] = {"Square", "Parzen", "Hamming", "Bartlett",
 static bool needs_two(const AnalysisUI *n) {
   return (n->tool == AN_SPECTRUM && n->spec_kind > 0) ||
          n->tool == AN_HISTOGRAM2D || n->tool == AN_CORRELATION;
+}
+
+/* ---- Linearise ----------------------------------------------------------- */
+
+static PlotView plane_view;
+static ImVec2_c plane_size; /* the plot's area in the last frame */
+
+/* Whether name is in the list of inputs (names separated by commas or
+   spaces), ignoring case. */
+static bool has_input(const char *list, const char *name) {
+  size_t len = strlen(name);
+  const char *p = list;
+  while (*p) {
+    size_t w;
+    p += strspn(p, " ,;");
+    w = strcspn(p, " ,;");
+    if (w == len && SDL_strncasecmp(p, name, len) == 0) return true;
+    p += w;
+  }
+  return false;
+}
+
+/* The list with name added (on) or taken out, in the model's order. */
+static void set_input(App *a, bool on, const char *name) {
+  AnalysisUI *n = &a->an;
+  char list[sizeof n->lin_inputs];
+  size_t k = 0;
+  int i;
+  list[0] = '\0';
+  for (i = 0; i < a->npars; i++) {
+    bool in = SDL_strcasecmp(a->pars[i], name) == 0 ? on : has_input(n->lin_inputs, a->pars[i]);
+    if (in && k + strlen(a->pars[i]) + 3 < sizeof list)
+      k += (size_t)snprintf(list + k, sizeof list - k, "%s%s", k ? ", " : "", a->pars[i]);
+  }
+  snprintf(n->lin_inputs, sizeof n->lin_inputs, "%s", list);
+}
+
+static void linear_controls(App *a) {
+  AnalysisUI *n = &a->an;
+  float line = igGetFrameHeightWithSpacing();
+  int i, rows = a->npars < 5 ? a->npars : 5;
+  igTextDisabled("Linearise at");
+  igRadioButton_IntPtr("the equilibrium", &n->lin_at, 0);
+  Tooltip("Newton's method from the initial values finds it, as Run > Find "
+          "equilibrium does.");
+  igRadioButton_IntPtr("the initial values", &n->lin_at, 1);
+  Tooltip("Wherever the initial values are, equilibrium or not.");
+  igSpacing();
+  igTextDisabled("Inputs");
+  HelpMarker("The parameters that act as controls: B holds the derivatives "
+             "with respect to them, and the controllability test asks whether "
+             "they can steer every state.");
+  if (a->npars == 0) {
+    igTextDisabled("(the model has no parameters)");
+    return;
+  }
+  if (igBeginChild_Str("##inputs", V2(-1, line * (float)rows + 8), ImGuiChildFlags_Borders, 0)) {
+    for (i = 0; i < a->npars; i++) {
+      bool on = has_input(n->lin_inputs, a->pars[i]);
+      if (igCheckbox(a->pars[i], &on)) set_input(a, on, a->pars[i]);
+    }
+  }
+  igEndChild();
+}
+
+static void count_unstable(const LinearSystem *L, int *unstable, int *edge) {
+  int i;
+  *unstable = *edge = 0;
+  for (i = 0; i < L->n; i++) {
+    double r = L->discrete ? hypot(L->re[i], L->im[i]) - 1.0 : L->re[i];
+    if (r > 1e-9) (*unstable)++;
+    else if (r >= -1e-9) (*edge)++;
+  }
+}
+
+enum { GOOD, BAD, DOUBT };
+
+/* Lighter on the dark theme, as the command window's colours. */
+static ImVec4_c verdict_color(const App *a, int kind) {
+  if (kind == GOOD) return a->dark ? HEX(0x81c784) : HEX(0x2e7d32);
+  if (kind == BAD) return a->dark ? HEX(0xe57373) : HEX(0xd62728);
+  return a->dark ? HEX(0xffb74d) : HEX(0xe65100);
+}
+
+/* What the numbers say, in words. */
+static void linear_verdict(App *a) {
+  const LinearSystem *L = &a->an.lin;
+  char buf[1024];
+  size_t k = 0;
+  int i, unstable, edge;
+  bool equilibrium = L->at_eq || L->residual <= 1e-8;
+  k += (size_t)snprintf(buf, sizeof buf, "At %s",
+                        L->at_eq ? "the equilibrium" : "the initial values");
+  for (i = 0; i < L->n && i < 6; i++)
+    k += (size_t)snprintf(buf + k, sizeof buf - k, "%s %s = %.6g", i ? "," : "",
+                          a->vars[i], L->x[i]);
+  if (L->n > 6) k += (size_t)snprintf(buf + k, sizeof buf - k, ", ...");
+  if (!equilibrium)
+    snprintf(buf + k, sizeof buf - k, ". This point is not an equilibrium "
+             "(%s = %.3g there): A and B describe the motion near it, and the "
+             "eigenvalues do not decide its stability.",
+             L->discrete ? "|F(x) - x|" : "|dx/dt|", L->residual);
+  else
+    snprintf(buf + k, sizeof buf - k, ".");
+  TextWrapped(buf);
+  if (equilibrium) {
+    count_unstable(L, &unstable, &edge);
+    if (unstable > 0)
+      snprintf(buf, sizeof buf, "Unstable: %d of %d eigenvalue%s %s.", unstable,
+               L->n, L->n == 1 ? "" : "s",
+               L->discrete ? "lie outside the unit circle"
+                           : (unstable == 1 ? "has a positive real part"
+                                            : "have positive real parts"));
+    else if (edge > 0)
+      snprintf(buf, sizeof buf, "On the edge of stability: %d eigenvalue%s %s, "
+               "so the linear model cannot decide; the nonlinear terms do.",
+               edge, edge == 1 ? "" : "s",
+               L->discrete ? "on the unit circle" : "on the imaginary axis");
+    else
+      snprintf(buf, sizeof buf, "Stable: every eigenvalue %s.",
+               L->discrete ? "lies inside the unit circle"
+                           : "has a negative real part");
+    igPushStyleColor_Vec4(ImGuiCol_Text, verdict_color(a, unstable > 0 ? BAD
+                                                       : edge > 0  ? DOUBT
+                                                                   : GOOD));
+    TextWrapped(buf);
+    igPopStyleColor(1);
+  }
+  if (L->m == 0) {
+    igTextDisabled("Tick inputs on the left to test whether they can steer the "
+                   "state.");
+  } else if (L->rank < 0) {
+    snprintf(buf, sizeof buf, "The controllability rank could not be computed: %s",
+             L->rank_error);
+    TextWrapped(buf);
+  } else {
+    char names[400];
+    size_t q = 0;
+    names[0] = '\0';
+    for (i = 0; i < L->m && q < sizeof names - 80; i++)
+      q += (size_t)snprintf(names + q, sizeof names - q, "%s%s",
+                            i == 0 ? "" : i + 1 == L->m ? " and " : ", ",
+                            L->inputs[i]);
+    if (L->rank == L->n)
+      snprintf(buf, sizeof buf, "Controllable: %s can steer every state (the "
+               "controllability matrix has full rank, %d). The smallest of its "
+               "singular values is %.2g of the largest; the smaller it is, the "
+               "harder some direction is to move.",
+               names, L->n, L->sv[0] > 0 ? L->sv[L->n - 1] / L->sv[0] : 0.0);
+    else
+      snprintf(buf, sizeof buf, "Not controllable: %s %s only %d of the %d "
+               "directions of the state (the controllability matrix has rank "
+               "%d). Add an input, or choose another one.",
+               names, L->m == 1 ? "reaches" : "reach", L->rank, L->n, L->rank);
+    igPushStyleColor_Vec4(ImGuiCol_Text, verdict_color(a, L->rank == L->n ? GOOD : BAD));
+    TextWrapped(buf);
+    igPopStyleColor(1);
+  }
+  {
+    double scale = 1;
+    for (i = 0; i < L->n * L->n; i++)
+      if (fabs(L->A[i]) > scale) scale = fabs(L->A[i]);
+    for (i = 0; i < L->n * L->m; i++)
+      if (fabs(L->B[i]) > scale) scale = fabs(L->B[i]);
+    if (L->worst > 1e-5 * scale) {
+      snprintf(buf, sizeof buf, "The derivatives are only good to about %.1e: "
+               "the right-hand side may not be smooth here (hover over an entry "
+               "for its error).", L->worst);
+      igPushStyleColor_Vec4(ImGuiCol_Text, verdict_color(a, DOUBT));
+      TextWrapped(buf);
+      igPopStyleColor(1);
+    }
+  }
+}
+
+/* A matrix as a table: rows named by the variables, columns by names. */
+static void matrix_table(App *a, const char *id, const double *m,
+                         const double *err, int rows, int cols,
+                         char (*names)[APP_NAME_LEN]) {
+  ImGuiTableFlags tf = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+                       ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_ScrollX |
+                       ImGuiTableFlags_ScrollY;
+  float h = igGetTextLineHeightWithSpacing() * (float)((rows < 8 ? rows : 8) + 1) + 6;
+  int i, j;
+  if (!igBeginTable(id, cols + 1, tf, V2(0, h), 0)) return;
+  igTableSetupScrollFreeze(1, 1);
+  igTableSetupColumn("", 0, 0, 0);
+  for (j = 0; j < cols; j++) igTableSetupColumn(names[j], 0, 0, 0);
+  igTableHeadersRow();
+  for (i = 0; i < rows; i++) {
+    igTableNextRow(0, 0);
+    igTableSetColumnIndex(0);
+    igTextDisabled("%s", a->vars[i]);
+    for (j = 0; j < cols; j++) {
+      double v = m[i * cols + j];
+      igTableSetColumnIndex(j + 1);
+      igText("%.6g", v);
+      if (igIsItemHovered(0))
+        igSetTooltip("d %s' / d %s = %.17g\nerror estimate %.1e", a->vars[i],
+                     names[j], v, err[i * cols + j]);
+    }
+  }
+  igEndTable();
+}
+
+/* Axis limits that show the eigenvalues and the edge of the stable region
+   (Linearization.plot() in Python frames its figure the same way). */
+static void plane_window(const LinearSystem *L, double w[4]) {
+  double edge = L->discrete ? 1.0 : 0.0, lo = -edge, hi = edge, h = edge, span, pad;
+  int i;
+  for (i = 0; i < L->n; i++) {
+    if (!isfinite(L->re[i]) || !isfinite(L->im[i])) continue;
+    if (L->re[i] < lo) lo = L->re[i];
+    if (L->re[i] > hi) hi = L->re[i];
+    if (fabs(L->im[i]) > h) h = fabs(L->im[i]);
+  }
+  span = hi - lo > 2 * h ? hi - lo : 2 * h;
+  if (!(span > 0)) span = 1;
+  pad = 0.15 * span;
+  lo -= pad;
+  hi += pad;
+  h = h + pad > 0.3 * (hi - lo) ? h + pad : 0.3 * (hi - lo);
+  w[0] = lo;
+  w[1] = hi;
+  w[2] = -h;
+  w[3] = h;
+}
+
+static void eigen_plane(App *a) {
+  const LinearSystem *L = &a->an.lin;
+  if (!ImPlot_BeginPlot("##plane", V2(-1, -1), ImPlotFlags_NoTitle)) return;
+  /* Framed on the eigenvalues every frame until the user zooms or pans. */
+  bool follow = ui_view_follow(a, &plane_view, "real part", "imaginary part");
+  ImPlot_SetupAxes("real part", "imaginary part", 0, 0);
+  /* outside, where it covers no eigenvalue */
+  ImPlot_SetupLegend(ImPlotLocation_North,
+                     ImPlotLegendFlags_Outside | ImPlotLegendFlags_Horizontal);
+  if (follow) {
+    double w[4];
+    plane_window(L, w);
+    if (L->discrete && plane_size.x > 0 && plane_size.y > 0) {
+      /* one scale on both axes, so that the unit circle is round */
+      double sx = (w[1] - w[0]) / plane_size.x, sy = (w[3] - w[2]) / plane_size.y;
+      int k = sx > sy ? 2 : 0;
+      double c = 0.5 * (w[k] + w[k + 1]);
+      double half = 0.5 * (sx > sy ? sx * plane_size.y : sy * plane_size.x);
+      w[k] = c - half;
+      w[k + 1] = c + half;
+    }
+    ImPlot_SetupAxesLimits(w[0], w[1], w[2], w[3], ImPlotCond_Always);
+  }
+  {
+    ImPlotRect_c lim = ImPlot_GetPlotLimits(IMPLOT_AUTO, IMPLOT_AUTO);
+    ImPlotSpec_c fill = Spec(HEX(0x2ca02c), 0.0f), edge = Spec(V4(0.4f, 0.4f, 0.4f, 0.9f), 1.5f);
+    ImPlotSpec_c axis = Spec(V4(0.5f, 0.5f, 0.5f, 0.5f), 1.0f);
+    double zero = 0;
+    fill.FillColor = HEX(0x2ca02c);
+    fill.FillAlpha = 0.3f;
+    if (L->discrete) {
+      /* the unit circle, its inside shaded */
+      double cx[129], up[129], down[129];
+      int i;
+      for (i = 0; i < 129; i++) {
+        double t = 3.14159265358979323846 * i / 128;
+        cx[i] = cos(t);
+        up[i] = sin(t);
+        down[i] = -up[i];
+      }
+      ImPlot_PlotShaded_doublePtrdoublePtrdoublePtr("stable", cx, up, down, 129, fill);
+      ImPlot_PlotLine_doublePtrdoublePtr("##circle", cx, up, 129, edge);
+      ImPlot_PlotLine_doublePtrdoublePtr("##circle2", cx, down, 129, edge);
+    } else if (lim.X.Min < 0) {
+      /* the left half-plane shaded, the imaginary axis drawn */
+      double xs[2] = {lim.X.Min, 0}, lo[2] = {lim.Y.Min, lim.Y.Min},
+             hi[2] = {lim.Y.Max, lim.Y.Max};
+      ImPlot_PlotShaded_doublePtrdoublePtrdoublePtr("stable", xs, lo, hi, 2, fill);
+    }
+    if (!L->discrete) ImPlot_PlotInfLines_doublePtr("##imaginary axis", &zero, 1, edge);
+    axis.Flags = ImPlotInfLinesFlags_Horizontal;
+    ImPlot_PlotInfLines_doublePtr("##real axis", &zero, 1, axis);
+  }
+  {
+    ImPlotSpec_c s = SpecMarker(HEX(0xd62728), ImPlotMarker_Cross, 7.0f);
+    s.MarkerLineColor = HEX(0xd62728);
+    s.LineWeight = 2.0f;
+    ImPlot_PlotScatter_doublePtrdoublePtr("eigenvalues", L->re, L->im, L->n, s);
+  }
+  plane_size = ImPlot_GetPlotSize();
+  ui_view_end(&plane_view, true);
+  ImPlot_EndPlot();
+}
+
+static void heading(const char *title, const char *help) {
+  igTextDisabled("%s", title);
+  HelpMarker(help);
+}
+
+static void linear_result(App *a) {
+  const LinearSystem *L = &a->an.lin;
+  ImVec2_c avail;
+  float left;
+  int i;
+  linear_verdict(a);
+  igSpacing();
+  avail = igGetContentRegionAvail();
+  left = avail.x * 0.45f < 240 ? (avail.x < 240 ? avail.x : 240) : avail.x * 0.45f;
+  if (igBeginChild_Str("##matrices", V2(left, 0), 0, 0)) {
+    heading("A", "The Jacobian: row i, column j is d xi' / d xj, how the rate "
+                 "of state i changes with state j. Hover over an entry for "
+                 "all its digits and its error estimate.");
+    matrix_table(a, "##A", L->A, L->A_err, L->n, L->n, a->vars);
+    if (L->m > 0) {
+      igSpacing();
+      heading("B", "Row i, column k is d xi' / d uk, how the rate of state i "
+                   "changes with input k.");
+      matrix_table(a, "##B", L->B, L->B_err, L->n, L->m, L->inputs);
+    }
+    igSpacing();
+    heading("Eigenvalues",
+            L->at_eq ? "Of the Jacobian at the equilibrium, as Run > Find "
+                       "equilibrium (XPPAUT's Sing pts) reports them."
+                     : "Of A, by XPPAUT's own eigenvalue routine.");
+    for (i = 0; i < L->n && i < 200; i++) {
+      if (L->im[i] == 0)
+        igText("%.6g", L->re[i]);
+      else
+        igText("%.6g %c %.6gi", L->re[i], L->im[i] < 0 ? '-' : '+', fabs(L->im[i]));
+    }
+    if (L->m > 0 && L->rank >= 0) {
+      igSpacing();
+      heading("Singular values", "Of the controllability matrix [B, AB, ..., "
+                                 "A^(n-1) B]. The rank counts those above "
+                                 "1e-8 times the largest (times the matrix's "
+                                 "larger side).");
+      for (i = 0; i < L->n && i < 200; i++) igText("%.6g", L->sv[i]);
+    }
+  }
+  igEndChild();
+  igSameLine(0, -1);
+  if (igBeginChild_Str("##planebox", V2(0, 0), 0, 0)) eigen_plane(a);
+  igEndChild();
 }
 
 static void column_combo(App *a, const char *label, int *col) {
@@ -204,6 +552,11 @@ static void controls(App *a) {
       }
     }
     break;
+  case AN_LINEARIZE:
+    igPopItemWidth();
+    linear_controls(a);
+    igPushItemWidth(-90);
+    break;
   case AN_ENSEMBLE:
     igInputInt("Runs", &n->trials, 10, 100, 0);
     if (n->trials < 2) n->trials = 2;
@@ -245,6 +598,10 @@ static void plot_result(App *a) {
   Trajectory *r = &n->res;
   const double *x;
   int j;
+  if (n->have && n->res_tool == AN_LINEARIZE && n->lin.A) {
+    linear_result(a);
+    return;
+  }
   if (n->summary[0]) {
     igPushTextWrapPos(0);
     igTextUnformatted(n->summary, NULL);

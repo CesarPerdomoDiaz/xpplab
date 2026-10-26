@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ctypes
 import warnings
 from dataclasses import dataclass, field
 
@@ -17,6 +18,8 @@ class Linearization:
     ``A`` is the Jacobian of the right-hand side (for a map, of the map),
     ``B`` has one column per input parameter. ``controllability`` is
     [B, AB, ..., A^(n-1) B]; the pair is ``controllable`` when its rank is n.
+    ``rank`` is -1 when it cannot be computed (A^(n-1) B overflows, which
+    can happen for models with very many states).
     """
 
     point: dict[str, float]
@@ -31,6 +34,7 @@ class Linearization:
     discrete: bool = False
     A_error: np.ndarray | None = None  # error estimates of A and B (NaN with step=)
     B_error: np.ndarray | None = None
+    singular_values: np.ndarray | None = None  # of the controllability matrix
     _model: object = field(default=None, repr=False)
     _x0: np.ndarray | None = field(default=None, repr=False)
     _p0: np.ndarray | None = field(default=None, repr=False)
@@ -90,9 +94,76 @@ class Linearization:
                 hi = mid
         return lo
 
+    def to_csv(self, path) -> None:
+        """Write the linearisation as CSV, every number exact: one row per
+        state with its value at the point, its row of A and of B, and an
+        eigenvalue; the rank and the residual on the first row. The desktop
+        app's ``export FILE.csv analysis`` after ``linearize`` writes the
+        same file."""
+        from .analysis import write_csv
+        names = list(self.point)
+        cols = (["state", "at"] + [f"A_{v}" for v in names]
+                + [f"B_{p}" for p in self.inputs]
+                + ["eig_re", "eig_im", "rank", "residual"])
+        rows = []
+        for i, v in enumerate(names):
+            ev = complex(self.eigenvalues[i])
+            rows.append([v, float(self.point[v])] + [float(a) for a in self.A[i]]
+                        + [float(b) for b in self.B[i]]
+                        + [ev.real, ev.imag,
+                           int(self.rank) if i == 0 else None,
+                           float(self.residual) if i == 0 else None])
+        write_csv(path, cols, rows)
+
+    def plot(self, ax=None, **kw):
+        """The eigenvalues in the complex plane, as the desktop app shows
+        them: the stable region shaded (the left half-plane; for a map, the
+        inside of the unit circle) and its edge drawn."""
+        import matplotlib.pyplot as plt
+        ax = ax or plt.gca()
+        ev = np.asarray(self.eigenvalues, dtype=complex)
+        x0, x1, y0, y1 = _complex_plane_window(ev, self.discrete)
+        if self.discrete:
+            t = np.linspace(0, 2 * np.pi, 257)
+            ax.fill(np.cos(t), np.sin(t), color="tab:green", alpha=0.12, lw=0,
+                    label="stable (inside the unit circle)")
+            ax.plot(np.cos(t), np.sin(t), color="0.45", lw=1)
+        else:
+            ax.axvspan(x0, 0, color="tab:green", alpha=0.12, lw=0,
+                       label="stable (negative real part)")
+            ax.axvline(0, color="0.45", lw=1)
+        ax.axhline(0, color="0.75", lw=0.8)
+        style = {"marker": "x", "ls": "none", "color": "tab:red", "ms": 9, "mew": 2}
+        style.update(kw)
+        ax.plot(ev.real, ev.imag, label="eigenvalues", **style)
+        ax.set_xlim(x0, x1)
+        ax.set_ylim(y0, y1 + 0.25 * (y1 - y0))  # room for the legend on top
+        if self.discrete:
+            ax.set_aspect("equal", adjustable="box")  # a round unit circle
+        ax.set_xlabel("real part")
+        ax.set_ylabel("imaginary part")
+        ax.legend(loc="upper center", ncol=2, fontsize="small", frameon=False)
+        return ax
+
     def __repr__(self) -> str:
         return (f"Linearization(n={self.A.shape[0]}, inputs={self.inputs}, "
                 f"rank={self.rank}, controllable={self.controllable})")
+
+
+def _complex_plane_window(ev, discrete: bool):
+    """Axis limits that show the eigenvalues ev and the edge of the stable
+    region: the imaginary axis, or the unit circle for a map (the desktop
+    app frames its plot the same way)."""
+    ev = ev[np.isfinite(ev)]
+    edge = 1.0 if discrete else 0.0
+    lo = min(float(np.min(ev.real, initial=0.0)), -edge)
+    hi = max(float(np.max(ev.real, initial=0.0)), edge)
+    h = max(float(np.max(np.abs(ev.imag), initial=0.0)), edge)
+    span = max(hi - lo, 2 * h) or 1.0
+    pad = 0.15 * span
+    lo, hi = lo - pad, hi + pad
+    h = max(h + pad, 0.3 * (hi - lo))
+    return lo, hi, -h, h
 
 
 def _find(names: list[str], name: str, what: str) -> str:
@@ -102,63 +173,17 @@ def _find(names: list[str], name: str, what: str) -> str:
     raise KeyError(f"no {what} {name!r}; available: {', '.join(names)}")
 
 
-def _ridders(g, scale: float, start: float = 0.1, shrink: float = 1.4,
-             rows: int = 10):
-    """Derivative by Ridders' method: central differences g(h) at shrinking
-    steps, extrapolated to h = 0 (Neville's tableau, as in Numerical Recipes'
-    ``dfridr``). Each component keeps the extrapolation with the smallest
-    error estimate. Returns (derivative, error estimate)."""
-    n = np.size(g(start * scale))
-    best = np.zeros(n)
-    err = np.full(n, np.inf)
-    h = start * scale
-    tab = [None] * rows
-    for i in range(rows):
-        tab_i = [np.asarray(g(h), dtype=float)]
-        fac = shrink ** 2
-        for k in range(1, i + 1):
-            prev = tab[k - 1]
-            tab_i.append((tab_i[k - 1] * fac - prev) / (fac - 1.0))
-            e = np.maximum(np.abs(tab_i[k] - tab_i[k - 1]),
-                           np.abs(tab_i[k] - prev))
-            better = e <= err
-            best = np.where(better, tab_i[k], best)
-            err = np.where(better, e, err)
-            fac *= shrink ** 2
-        tab = tab_i
-        if i > 0:
-            # stop once the extrapolation gets worse: rounding noise has won
-            if np.all(np.abs(tab[i][-1] - prev_top) >= 2 * err):
-                break
-        prev_top = tab[i][-1]
-        h /= shrink
-    return best, err
-
-
-def _derivative(g, scale: float, step: float | None):
-    """d/dx of a vector function through its central difference g(h).
-
-    With ``step`` the difference uses that relative step; otherwise
-    Ridders' method is run from several starting steps, from coarse to fine,
-    and the estimate with the smallest error wins, so no step size has to
-    be chosen for the model."""
-    if step is not None:
-        d = np.asarray(g(step * scale), dtype=float)
-        return d, np.full(d.shape, np.nan)
-    d = err = None
-    for start in (1e-1, 1e-3, 1e-5):
-        di, ei = _ridders(g, scale, start)
-        if d is None:
-            d, err = di, ei
-        else:
-            better = ei < err
-            d, err = np.where(better, di, d), np.where(better, ei, err)
-    return d, err
+def _doubles(n: int):
+    return (ctypes.c_double * max(n, 1))()
 
 
 def linearize(model, at: dict | None = None, inputs=(), *,
               step: float | None = None, tol: float | None = None) -> Linearization:
-    """Linearise ``model`` and test controllability; see ``Model.linearize``."""
+    """Linearise ``model`` and test controllability; see ``Model.linearize``.
+
+    The numbers come from the engine (``xppe_linearize``,
+    ``xppe_eigenvalues``, ``xppe_controllability``), which the desktop app
+    calls too, so both give the same A, B, eigenvalues and rank."""
     names = list(model.variables)
     n = len(names)
     if at is None:
@@ -170,6 +195,7 @@ def linearize(model, at: dict | None = None, inputs=(), *,
                  for k, v in at.items()}
         for v in names:
             point.setdefault(v, float(model.get(v)))
+        point = {v: point[v] for v in names}
         eigenvalues = None
     x0 = np.array([point[v] for v in names])
 
@@ -178,56 +204,44 @@ def linearize(model, at: dict | None = None, inputs=(), *,
     # for a continuous model the equilibrium has f = 0; for a map x = F(x)
     residual = float(np.max(np.abs(f0 - x0 if discrete else f0), initial=0.0))
 
-    A = np.zeros((n, n))
-    A_err = np.zeros((n, n))
-    for j in range(n):
-        def g(h, j=j):
-            xp, xm = x0.copy(), x0.copy()
-            xp[j] += h
-            xm[j] -= h
-            return (model.rhs(xp) - model.rhs(xm)) / (2 * h)
-        A[:, j], A_err[:, j] = _derivative(g, max(1.0, abs(x0[j])), step)
-
     if isinstance(inputs, str):
         inputs = [inputs]
     pnames = list(model._parameter_names)
     inputs = [_find(pnames, p, "parameter") for p in inputs]
-    B = np.zeros((n, len(inputs)))
-    B_err = np.zeros((n, len(inputs)))
-    saved = {p: model.get(p) for p in inputs}
-    try:
-        for k, p in enumerate(inputs):
-            p0 = saved[p]
+    k = len(inputs)
+    if step is not None and not step > 0:
+        raise ValueError("step must be positive")
+    p0 = np.array([float(model.get(p)) for p in inputs])
 
-            def g(h, p=p, p0=p0):
-                model.set(**{p: p0 + h})
-                fp = model.rhs(x0)
-                model.set(**{p: p0 - h})
-                fm = model.rhs(x0)
-                return (fp - fm) / (2 * h)
-            B[:, k], B_err[:, k] = _derivative(g, max(1.0, abs(p0)), step)
-            model.set(**{p: p0})
-    finally:
-        model.set(**saved)
+    x = (ctypes.c_double * n)(*x0)
+    names_in = (ctypes.c_char_p * max(k, 1))(*[p.encode("latin-1") for p in inputs])
+    a, b, a_err, b_err = _doubles(n * n), _doubles(n * k), _doubles(n * n), _doubles(n * k)
+    model._engine.call("xppe_linearize", x, k, names_in,
+                       float(step) if step is not None else 0.0, a, b, a_err, b_err)
+    A = np.array(a[:n * n]).reshape(n, n)
+    B = np.array(b[:n * k]).reshape(n, k)
+    A_err = np.array(a_err[:n * n]).reshape(n, n)
+    B_err = np.array(b_err[:n * k]).reshape(n, k)
 
     if eigenvalues is None:
-        eigenvalues = np.linalg.eigvals(A)
+        re, im = _doubles(n), _doubles(n)
+        model._engine.call("xppe_eigenvalues", n, a, re, im)
+        eigenvalues = np.array(re[:n]) + 1j * np.array(im[:n])
 
-    blocks = []
-    if inputs:
-        M = B
-        for _ in range(n):
-            blocks.append(M)
-            M = A @ M
-        C = np.hstack(blocks)
-        s = np.linalg.svd(C, compute_uv=False)
-        if tol is None:
-            # the derivatives are good to about 1e-10 (see A_error), so the
-            # cutoff is relative to the largest singular value
-            tol = max(C.shape) * max(s[0], 1e-300) * 1e-8
-        rank = int(np.sum(s > tol))
+    if k:
+        c, sv = _doubles(n * n * k), _doubles(n)
+        rank = model._engine.call("xppe_controllability", n, k, a, b,
+                                  float(tol) if tol else 0.0, c, sv, check=False)
+        C = np.array(c[:n * n * k]).reshape(n, n * k)
+        s = np.array(sv[:n])
+        if rank < 0:
+            why = model._engine.call("xppe_error", check=False) or b""
+            warnings.warn("the controllability rank could not be computed: "
+                          + why.decode("latin-1"), stacklevel=3)
+            rank = -1
     else:
         C = np.zeros((n, 0))
+        s = np.zeros(0)
         rank = 0
     if step is None:
         bad = max(float(np.max(A_err, initial=0.0)), float(np.max(B_err, initial=0.0)))
@@ -238,6 +252,6 @@ def linearize(model, at: dict | None = None, inputs=(), *,
                 f"the derivatives are only good to about {bad:.1e}: the "
                 "right-hand side may not be smooth at this point "
                 "(see A_error, B_error)", stacklevel=3)
-    return Linearization(point, inputs, A, B, eigenvalues, C, rank,
-                         rank == n, residual, discrete, A_err, B_err,
-                         model, x0, np.array([saved[p] for p in inputs]))
+    return Linearization(point, inputs, A, B, eigenvalues, C, int(rank),
+                         rank == n, residual, discrete, A_err, B_err, s,
+                         model, x0, p0)

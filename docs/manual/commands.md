@@ -55,6 +55,7 @@ commands. `help` lists them all.
 | `show python` | Bring the Workspace's Python tab forward. |
 | `serve`, `serve off` | Let Python drive the app (`app = xpplab.app.connect()` in a notebook or script), or stop it. The app lets Python connect from the start unless it was started with `--no-serve`. |
 | `ensemble 50` | Run a noisy model 50 times and average: the mean and variance of every column at each time (XPPAUT's stocHastic > Compute). `export ens.csv analysis` saves them. |
+| `linearize at eq inputs iapp gca` | Linearise at the equilibrium found from the initial values (`at ic`: at the initial values): A and B, the eigenvalues in the complex plane, and whether the inputs (parameters) can steer every state. `export lin.csv analysis` saves the table; `linearise` works too. |
 | `range iapp 0 0.3 10 film` | Film the Range: each run drawn alone and captured by the Kinescope (XPPAUT's Range with Movie). |
 | `eq` | Find an equilibrium and report its stability. |
 | `eq all 200` | Every equilibrium Newton's method finds from 200 random points (100 if left out) in the phase plane's window: XPPAUT's Sing pts > Monte Carlo. |

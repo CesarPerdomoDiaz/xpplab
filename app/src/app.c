@@ -2466,6 +2466,11 @@ bool app_export_csv(App *a, const char *path) {
 }
 
 bool app_export_analysis_csv(App *a, const char *path) {
+  if (a->an.have && a->an.res_tool == AN_LINEARIZE) {
+    if (!app_export_linear_csv(a, path)) return false;
+    echo_export(a, "lin", path);
+    return true;
+  }
   if (!a->an.have || !a->echo.table[0]) {
     app_log(a, "error: there is no Analysis result to export (statistics and "
                "fits are shown in the command window)");

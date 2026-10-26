@@ -56,6 +56,11 @@ extern "C" {
     (const char *, const double *, int, const double *))                      \
   X(int, xppe_find_equilibria, (int, double, const double *, const double *)) \
   X(int, xppe_found_equilibrium, (int, double *, double *, double *))         \
+  X(int, xppe_linearize, (const double *, int, const char *const *, double,  \
+                          double *, double *, double *, double *))            \
+  X(int, xppe_eigenvalues, (int, const double *, double *, double *))         \
+  X(int, xppe_controllability,                                                \
+    (int, int, const double *, const double *, double, double *, double *))   \
   X(int, xppe_fourier, (const char *))                                        \
   X(int, xppe_power, (const char *))                                          \
   X(int, xppe_spectrum, (int, const char *, const char *, int, int))          \

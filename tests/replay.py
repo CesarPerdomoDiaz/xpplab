@@ -132,6 +132,14 @@ CASES = [
     ("equilibria_3d", "lorenz.ode", [
         "eq all 200", "export {out}/all.csv equilibria",
         "range r 0.5 30 30 eq z", "export {out}/sweep.csv range"]),
+    ("linearize", "lecar.ode", [
+        "linearize at eq inputs iapp gca", "export {out}/at_eq.csv analysis",
+        "set V=-0.1 W=0.2", "linearize at ic iapp",
+        "export {out}/at_ic.csv analysis",
+        "set iapp=0.08", "linearise", "export {out}/no_inputs.csv analysis",
+        "run", "export {out}/run.csv"]),
+    ("linearize_map", "del_log.ode", [
+        "linearize eps r", "export {out}/map.csv analysis"]),
 ]
 
 

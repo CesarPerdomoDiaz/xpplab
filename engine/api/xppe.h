@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 6
+#define XPPE_API_VERSION 7
 
 enum {
   XPPE_OK = 0,
@@ -169,6 +169,39 @@ XPPE_API int xppe_equilibrium_sweep(const char *parameter, const double *values,
 XPPE_API int xppe_find_equilibria(int guesses, double tolerance,
                                   const double *lo, const double *hi);
 XPPE_API int xppe_found_equilibrium(int i, double *x, double *re, double *im);
+
+/* ---- Linearisation and control ------------------------------------------
+ *
+ * The linear system dx' = A dx + B du around a point of the model, for
+ * control design. Matrices are row-major. Since API version 7.
+ */
+
+/* Linearise the right-hand side at the state x (one value per variable,
+   n = xppe_count(XPPE_VARIABLES), at t = 0; Markov variables get zero rows
+   and columns). A (n x n) receives the Jacobian, B (n x ninputs) the
+   derivatives with respect to the parameters named in inputs, one column
+   each. They are central differences extrapolated to zero step (Ridders'
+   method, from three starting steps, each entry keeping the estimate with
+   the smallest error), so no step has to be chosen; A_error and B_error
+   (either may be NULL) receive those error estimates. step > 0 takes a
+   single central difference with that relative step instead, and the
+   errors are NaN. For a map, A and B are the derivatives of the map. The
+   parameters keep their values. */
+XPPE_API int xppe_linearize(const double *x, int ninputs,
+                            const char *const *inputs, double step, double *A,
+                            double *B, double *A_error, double *B_error);
+/* The eigenvalues of the n x n matrix a, by XPPAUT's own routine (EISPACK's
+   orthes and hqr, as Sing pts uses), in the order it finds them. */
+XPPE_API int xppe_eigenvalues(int n, const double *a, double *re, double *im);
+/* The controllability matrix C = [B, AB, ..., A^(n-1) B] of n states and m
+   inputs (A n x n, B n x m): C is n x (n m). sv receives its n singular
+   values, largest first. Returns the rank: the number of singular values
+   above tol, or with tol <= 0 above max(n, n m) * 1e-8 times the largest
+   (the derivatives are good to about 1e-10). With m = 0 the rank is 0 and
+   nothing is written. */
+XPPE_API int xppe_controllability(int n, int m, const double *A,
+                                  const double *B, double tol, double *C,
+                                  double *sv);
 
 /* ---- Data analysis --------------------------------------------------------
  *

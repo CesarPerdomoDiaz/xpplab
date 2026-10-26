@@ -313,6 +313,13 @@ def cases(fx, shipped):
         ["set iapp=0.1", "prc 200", "show analysis"], expect=[r"over one period"])
     add("hfun", "H function for weak coupling", "lecar.ode",
         ["set iapp=0.1", "hfun V'-V; 0", "show analysis"], expect=[r"over one period"])
+    add("linearize", "linearise: A, B, eigenvalues, controllability", "lecar.ode",
+        ["linearize at eq inputs iapp gca", "show analysis",
+         "export {out}/lin.csv analysis"],
+        expect=[r"Linearised at the equilibrium", r"rank 2 of 2 \(controllable\)"],
+        files={"lin.csv": lambda p: None if p.read_text().startswith(
+            "state,at,A_V,A_W,B_iapp,B_gca,eig_re,eig_im,rank,residual")
+            else "not the linearisation's columns"})
 
     # Model types
     for name, model, what in [

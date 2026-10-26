@@ -13,7 +13,7 @@
 static const char *tool_names[AN_COUNT] = {
     "Spectrum",    "Fourier series", "Histogram",      "2-D histogram",
     "Correlation", "Statistics",     "Phase response", "H function",
-    "Fit to data", "Ensemble of noisy runs"};
+    "Fit to data", "Ensemble of noisy runs", "Linearise"};
 
 static bool ani_load(App *a, const char *path, bool quiet);
 
@@ -21,8 +21,15 @@ const char *app_analysis_name(int tool) {
   return tool >= 0 && tool < AN_COUNT ? tool_names[tool] : "";
 }
 
+static void free_linear(LinearSystem *L) {
+  free(L->inputs);
+  free(L->x); /* one block holds all the numbers */
+  memset(L, 0, sizeof *L);
+}
+
 void app_analysis_free(App *a) {
   app_free_trajectory(&a->an.res);
+  free_linear(&a->an.lin);
   free(a->an.coupling);
   a->an.coupling = NULL;
   a->an.have = false;
@@ -541,6 +548,212 @@ static bool ensemble(App *a, bool outer) {
   return true;
 }
 
+/* ---- Linearisation ---------------------------------------------------------- */
+
+/* The inputs typed (names separated by commas or spaces) as the model's
+   parameters, each once. False, with a message, for a name that is not a
+   parameter. */
+static bool parse_inputs(App *a, const char *typed, char (**out)[APP_NAME_LEN],
+                         int *m) {
+  char copy[512], *w;
+  char (*names)[APP_NAME_LEN] = calloc((size_t)a->npars + 1, APP_NAME_LEN);
+  int count = 0, i, k;
+  if (!names) return false;
+  snprintf(copy, sizeof copy, "%s", typed);
+  for (w = strtok(copy, " ,;"); w; w = strtok(NULL, " ,;")) {
+    for (i = 0; i < a->npars && SDL_strcasecmp(a->pars[i], w) != 0; i++)
+      ;
+    if (i == a->npars) {
+      app_log(a, "error: no parameter '%s' to use as an input; type 'whos' "
+                 "for the names", w);
+      app_status(a, "Linearise: no parameter %s", w);
+      free(names);
+      return false;
+    }
+    for (k = 0; k < count && strcmp(names[k], a->pars[i]) != 0; k++)
+      ;
+    if (k == count) snprintf(names[count++], APP_NAME_LEN, "%s", a->pars[i]);
+  }
+  *out = names;
+  *m = count;
+  return true;
+}
+
+/* lin = m.linearize(...): at the equilibrium is Python's default; the
+   initial values are the script's own, written before the line. */
+static void echo_linearize(App *a) {
+  const LinearSystem *L = &a->an.lin;
+  char args[4096], name[160];
+  size_t k = 0;
+  int i;
+  args[0] = '\0';
+  if (!L->at_eq) k += (size_t)snprintf(args, sizeof args, "at=m.initial_conditions");
+  if (L->m > 0) {
+    k += (size_t)snprintf(args + k, sizeof args - k, "%sinputs=[", k ? ", " : "");
+    for (i = 0; i < L->m && k < sizeof args - 200; i++)
+      k += (size_t)snprintf(args + k, sizeof args - k, "%s%s", i ? ", " : "",
+                            echo_str(L->inputs[i], name, sizeof name));
+    snprintf(args + k, sizeof args - k, "]");
+  }
+  echo_line(a, "lin = m.linearize(%s)", args);
+  snprintf(a->echo.table, sizeof a->echo.table, "lin");
+}
+
+/* Model.linearize() in Python, with the same engine calls in the same
+   order, so that the numbers are the same: the equilibrium (or the initial
+   values), the right-hand side there, A and B, the eigenvalues, the rank. */
+static bool linearize(App *a, bool outer) {
+  AnalysisUI *an = &a->an;
+  LinearSystem *L = &an->lin;
+  xpp_engine_api *x = &a->eng->api;
+  char (*inputs)[APP_NAME_LEN] = NULL;
+  const char **names = NULL;
+  double *f = NULL, *c = NULL, *block;
+  int n = a->nvars, m = 0, i, rc;
+  if (n < 1) return false;
+  if (!parse_inputs(a, an->lin_inputs, &inputs, &m)) return false;
+  free_linear(L);
+  app_free_trajectory(&an->res);
+  an->have = false;
+  an->summary[0] = '\0';
+  block = malloc(sizeof(double) * (size_t)(n * (2 * n + 2 * m + 4) + 1));
+  f = malloc(sizeof(double) * (size_t)n);
+  names = malloc(sizeof(char *) * (size_t)(m + 1));
+  c = malloc(sizeof(double) * (size_t)(n * n * m + 1));
+  if (!block || !f || !names || !c) {
+    free(block);
+    free(inputs);
+    rc = XPPE_ERR_RANGE;
+    goto done;
+  }
+  L->n = n;
+  L->m = m;
+  L->inputs = inputs;
+  L->at_eq = an->lin_at == 0;
+  L->discrete = a->meth == 0;
+  L->x = block;
+  L->A = L->x + n;
+  L->B = L->A + n * n;
+  L->A_err = L->B + n * m;
+  L->B_err = L->A_err + n * n;
+  L->re = L->B_err + n * m;
+  L->im = L->re + n;
+  L->sv = L->im + n;
+  for (i = 0; i < m; i++) names[i] = inputs[i];
+  for (i = 0; i < n; i++) x->xppe_get(a->vars[i], &L->x[i]);
+  if (L->at_eq && (rc = x->xppe_equilibrium(L->x, L->re, L->im)) != XPPE_OK) {
+    app_log(a, "No equilibrium found from the initial values (%s). Start "
+               "nearer one, or linearise at the initial values.",
+            x->xppe_error());
+    app_status(a, "Linearise: no equilibrium found");
+    goto done;
+  }
+  if ((rc = x->xppe_rhs(0.0, L->x, f)) != XPPE_OK) goto failed;
+  /* for a continuous model the equilibrium has f = 0; for a map x = F(x) */
+  for (i = 0; i < n; i++) {
+    double r = fabs(L->discrete ? f[i] - L->x[i] : f[i]);
+    if (r > L->residual || isnan(r)) L->residual = r;
+  }
+  rc = x->xppe_linearize(L->x, m, names, 0.0, L->A, L->B, L->A_err, L->B_err);
+  if (rc != XPPE_OK) goto failed;
+  if (!L->at_eq && (rc = x->xppe_eigenvalues(n, L->A, L->re, L->im)) != XPPE_OK)
+    goto failed;
+  L->rank = 0;
+  if (m > 0) {
+    L->rank = x->xppe_controllability(n, m, L->A, L->B, 0.0, c, L->sv);
+    if (L->rank < 0) {
+      snprintf(L->rank_error, sizeof L->rank_error, "%s", x->xppe_error());
+      L->rank = -1;
+    }
+  }
+  for (i = 0; i < n * n + n * m; i++) {
+    double e = i < n * n ? L->A_err[i] : L->B_err[i - n * n];
+    if (e > L->worst) L->worst = e;
+  }
+  an->have = true;
+  an->res_tool = AN_LINEARIZE;
+  an->refit = true;
+  if (outer) echo_linearize(a);
+  {
+    char line[1024];
+    int k = snprintf(line, sizeof line, "Linearised at %s:",
+                     L->at_eq ? "the equilibrium" : "the initial values");
+    for (i = 0; i < n && k < (int)sizeof line - 40; i++)
+      k += snprintf(line + k, sizeof line - k, " %s=%.6g", a->vars[i], L->x[i]);
+    app_log(a, "%s", line);
+    k = snprintf(line, sizeof line, "  eigenvalues:");
+    for (i = 0; i < n && k < (int)sizeof line - 40; i++)
+      k += snprintf(line + k, sizeof line - k, " %.5g%+.5gi", L->re[i], L->im[i]);
+    app_log(a, "%s", line);
+    if (m > 0 && L->rank >= 0)
+      app_log(a, "  controllability matrix: rank %d of %d (%s)", L->rank, n,
+              L->rank == n ? "controllable" : "not controllable");
+    else if (m > 0)
+      app_log(a, "  the controllability rank could not be computed: %s",
+              L->rank_error);
+  }
+  app_status(a, "Linearised at %s", L->at_eq ? "the equilibrium" : "the initial values");
+  rc = XPPE_OK;
+  goto done;
+failed:
+  app_log(a, "error: %s", x->xppe_error());
+  app_status(a, "Linearise failed: %s", x->xppe_error());
+done:
+  if (rc != XPPE_OK) free_linear(L);
+  free(f);
+  free(names);
+  free(c);
+  return rc == XPPE_OK;
+}
+
+/* The columns xpplab's Linearization.to_csv() writes. */
+bool app_export_linear_csv(App *a, const char *path) {
+  const LinearSystem *L = &a->an.lin;
+  FILE *f;
+  char num[40];
+  int i, j;
+  if (!L->A) {
+    app_log(a, "error: there is no linearisation to export");
+    return false;
+  }
+  f = fopen(path, "w");
+  if (!f) {
+    app_log(a, "error: cannot write %s", path);
+    return false;
+  }
+  fputs("state,at", f);
+  for (j = 0; j < L->n; j++) fprintf(f, ",A_%s", a->vars[j]);
+  for (j = 0; j < L->m; j++) fprintf(f, ",B_%s", L->inputs[j]);
+  fputs(",eig_re,eig_im,rank,residual\n", f);
+  for (i = 0; i < L->n; i++) {
+    fputs(a->vars[i], f);
+    app_format_double(num, sizeof num, L->x[i]);
+    fprintf(f, ",%s", num);
+    for (j = 0; j < L->n; j++) {
+      app_format_double(num, sizeof num, L->A[i * L->n + j]);
+      fprintf(f, ",%s", num);
+    }
+    for (j = 0; j < L->m; j++) {
+      app_format_double(num, sizeof num, L->B[i * L->m + j]);
+      fprintf(f, ",%s", num);
+    }
+    app_format_double(num, sizeof num, L->re[i]);
+    fprintf(f, ",%s", num);
+    app_format_double(num, sizeof num, L->im[i]);
+    fprintf(f, ",%s", num);
+    if (i == 0) {
+      app_format_double(num, sizeof num, L->residual);
+      fprintf(f, ",%d,%s\n", L->rank, num);
+    } else {
+      fputs(",,\n", f);
+    }
+  }
+  fclose(f);
+  app_log(a, "Exported the linearisation (%d states, %d inputs) to %s", L->n,
+          L->m, path);
+  return true;
+}
+
 static bool analysis_run(App *a, bool outer);
 
 bool app_analysis_run(App *a) {
@@ -561,6 +774,7 @@ static bool analysis_run(App *a, bool outer) {
   if (n->col2 < 0 || n->col2 >= a->ncols) n->col2 = n->col;
   x = &a->eng->api;
   if (n->tool == AN_ENSEMBLE) return ensemble(a, outer);
+  if (n->tool == AN_LINEARIZE) return linearize(a, outer);
   if (!a->have_traj && n->tool != AN_FIT && n->tool != AN_PRC &&
       n->tool != AN_HFUNCTION) {
     if (!app_run(a)) return false;

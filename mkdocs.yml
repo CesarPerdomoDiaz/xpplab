@@ -51,6 +51,7 @@ markdown_extensions:
       permalink: true
   - pymdownx.highlight
   - pymdownx.superfences
+  - pymdownx.details
 
 nav:
   - Home: index.md
@@ -73,6 +74,12 @@ nav:
       - Control design: python/control.md
       - Driving the desktop app: python/app.md
       - API reference: python/reference.md
+  - Learn by example:
+      - Overview: learn/index.md
+      - Neuroscience: learn/neuroscience.md
+      - Ecology: learn/ecology.md
+      - Chemistry: learn/chemistry.md
+      - Mechanics: learn/mechanics.md
   - Coding agents: agents.md
   - Reference:
       - The .ode file format: manual/odefile.md

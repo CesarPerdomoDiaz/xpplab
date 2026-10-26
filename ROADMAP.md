@@ -149,7 +149,8 @@ To do:
 - [x] Python guide and API reference (mkdocstrings)
 - [x] Gallery of the example models with thumbnails (generated at build)
 - [x] "Coming from XPPAUT" guide
-- [ ] Field tutorials (neuroscience, ecology, chemistry, mechanics)
+- [x] Field tutorials, "Learn by example" on the website (neuroscience,
+      ecology, chemistry, mechanics); their Python is run by the tests
 - [ ] "Coming from MATLAB" and "Coming from AUTO-07p" guides
 - [ ] Jupyter notebooks
 

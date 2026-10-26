@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(XPPLab VERSION 0.1.1 LANGUAGES C)
+project(XPPLab VERSION 0.1.2 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_EXTENSIONS ON)

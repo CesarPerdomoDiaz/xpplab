@@ -1,11 +1,14 @@
 **XPP Lab @VERSION@**: XPPAUT 8.0's engine, giving the same numbers as XPPAUT, with a desktop app for Windows, macOS and Linux and a Python package. It needs no X server, compiler or Terminal.
 
-## New in 0.1.1
+## New in 0.1.2
 
-- **A new name: XPP Lab.** Another project already goes by XPP Studio, so this one is now XPP Lab. The Python package is `xpplab` (`pip install xpplab`, `import xpplab`), the MCP server `xpplab-mcp`, and the app `xpplab`. The old repository address leads here. The app keeps the settings and window layout of 0.1.0; examples you edited and saved with 0.1.0 stay in *Documents/XPP Studio*.
-- **AUTO no longer leaves a model broken.** When a continuation failed, XPPAUT's AUTO interface left the parameter at AUTO's last trial value: NaN when it stopped with MX, or a value far outside the window after a jump. Every later run of the model was then wrong. Running AUTO on every example model found this in 39 of them, `coaster2D` among them (#8). The parameters now return to their values after every run.
-- **A singular matrix ends only the continuation.** In 7 example models AUTO meets a singular matrix and, as in XPPAUT, tries to end the program; the engine then stopped working until the model was loaded again. Now only the continuation stops, and the points computed so far stay in the diagram.
-- **The bifurcation plot** fits its axes to the points inside the window AUTO was asked to cover, so one stray point no longer sets the scale.
+- **The app and Python together.** Each action in the app now appears in the command window as the line of Python (the `xpplab` package) that does the same, and *File > Save session as Python script* saves them: the script repeats the session exactly. The command window also takes Python: click its `>>` prompt, and `m.run()` runs the open model in the app while its plots follow. On a computer without Python, **Install Python** downloads one for XPP Lab, with NumPy and Matplotlib (about 55 MB, once).
+- **Drive the open app from outside.** `xpplab.app.connect()` in a notebook or a script, or a coding agent through the MCP tools `app_status`, `app_command` and `app_run`, acts in the window you have open, and you watch the plots change.
+- **The rest of XPPAUT's interface:** equilibria over a parameter and every equilibrium in a box (*Sing pts > Range* and *Monte Carlo*); Range over two parameters; initial values from a file, a formula, *Shift* and several clicks; frozen and saved nullclines; the Kinescope, with animated GIFs and a film of the Range; statistics over many noisy runs (*stocHastic > Compute*). `xpplab-batch` is XPPAUT's `-silent` mode, and also runs the app's commands, AUTO included, without a window.
+- **AUTO:** diagrams save and load exactly (XPPAUT keeps 6 digits), and an orbit can be imported. Boundary-value and homoclinic starts are now tested, and a homoclinic start answers XPPAUT's info box. A periodic branch that ends on a homoclinic orbit no longer shows spurious limit and branch points on its tail.
+- **Linearise** (*Run > Linearise*): the A and B matrices at an equilibrium for the inputs you choose, the eigenvalues in the complex plane, and whether the inputs can steer the system. The app and `Model.linearize` give the same numbers.
+- **Plots keep your zoom** until a double-click or *Fit*.
+- **Learn by example** on the [website](https://cesarperdomodiaz.github.io/xpplab/learn/): field tutorials in neuroscience, ecology, chemistry and mechanics. In Jupyter, models, runs, equilibria and AUTO diagrams show as tables.
 
 ## Download and run
 
@@ -43,7 +46,8 @@ Then see the [Python guide](https://cesarperdomodiaz.github.io/xpplab/python/qui
   - phase response curves and the H function;
   - spectra, histograms, correlations and the Liapunov exponent;
   - fitting to data.
-- **Editor, command window and figure export.** The editor's errors point at the line, and the command window takes XPPAUT's two-key commands. Figures export as PNG and SVG, data as CSV.
+- **Editor, command window and figure export.** The editor's errors point at the line, and the command window takes XPPAUT's two-key commands, and Python. Figures export as PNG and SVG, data as CSV.
+- **Everything as Python.** Each action in the app is also a line of Python, and a session saves as a script that repeats it.
 
 Found a problem, or a model that works in XPPAUT but not here? Please [open an issue](https://github.com/CesarPerdomoDiaz/xpplab/issues/new/choose).
 

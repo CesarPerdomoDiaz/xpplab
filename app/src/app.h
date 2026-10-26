@@ -333,6 +333,7 @@ typedef struct App {
   int nrecent;
   bool quit;
   bool ephemeral; /* do not touch saved settings */
+  bool batch;     /* xpplab-batch: no window */
   void *window;   /* SDL_Window */
   void *renderer; /* SDL_Renderer */
   Kinescope ks;

@@ -147,6 +147,11 @@ static void cmd_kinescope(App *a, char *rest) {
   Kinescope *k = &a->ks;
   char *w = next_word(&rest), *x = next_word(&rest);
   int f = figure_word(x);
+  if (a->batch) {
+    app_log(a, "error: the Kinescope takes pictures of the window: it needs the "
+               "desktop app");
+    return;
+  }
   if (w && !strcmp(w, "capture")) {
     app_kine_capture(a, f >= 0 ? f : k->source);
   } else if (w && (!strcmp(w, "clear") || !strcmp(w, "reset"))) {
@@ -287,8 +292,15 @@ static void cmd_set(App *a, char *rest) {
         app_set_param(a, i, atof(eq + 1));
       else if ((i = app_find_var(a, tok)) >= 0)
         app_set_ic(a, i, atof(eq + 1));
-      else
+      else {
+        double v;
+        /* XPPAUT takes options this app does not list, and ignores names
+           it does not know: say so, in case of a typo. */
+        if (a->model_ok && a->eng->api.xppe_get(tok, &v) != XPPE_OK)
+          app_log(a, "note: %s is not a parameter, variable or option the app "
+                     "knows; XPPAUT may ignore it", tok);
         app_set_option(a, tok, eq + 1);
+      }
     }
     tok = strtok(NULL, " ,;");
   }
@@ -693,6 +705,8 @@ void app_command(App *a, const char *line_in) {
       }
       if (bad)
         ;
+      else if (film && a->batch)
+        app_log(a, "error: a film is pictures of the window: it needs the desktop app");
       else if (film)
         app_film_range(a, film_fig >= 0 ? film_fig : a->ks.source);
       else
@@ -723,10 +737,15 @@ void app_command(App *a, const char *line_in) {
       if (which && !strcmp(which, "time")) k = FIG_TIME;
       if (which && !strcmp(which, "auto")) k = FIG_AUTO;
       if (which && !strcmp(which, "auto2")) k = FIG_AUTO2;
-      if (!SDL_strcasecmp(file + n - 4, ".svg"))
+      if (!SDL_strcasecmp(file + n - 4, ".svg")) {
         ok = export_svg(a, k, file);
-      else
+      } else if (a->batch) {
+        app_log(a, "error: a PNG is a picture of the window; without one, export "
+                   "the figure as SVG");
+        ok = false;
+      } else {
         export_png(k, file);
+      }
       if (ok) echo_figure(a, k, file);
     } else if (which && !strcmp(which, "auto")) {
       app_export_auto_csv(a, file);

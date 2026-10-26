@@ -411,11 +411,62 @@ done:
   free(ys2);
 }
 
+static void fit(double *lo, double *hi, double v) {
+  if (v < *lo) *lo = v;
+  if (v > *hi) *hi = v;
+}
+
+/* Without a window (xpplab-batch): the limits the plot would take, the
+   phase plane's from the model file, the others fitted to the data. */
+static bool data_limits(App *a, FigureKind kind, FigureState *f) {
+  double x0 = INFINITY, x1 = -INFINITY, y0 = INFINITY, y1 = -INFINITY, w[4], dx, dy;
+  int i, j;
+  memset(f, 0, sizeof *f);
+  if (kind == FIG_PHASE) {
+    if (a->nvars < 2 || !app_phase_window(a, w)) return false;
+    if (a->pp.nullclines) app_nullclines(a, w[0], w[1], w[2], w[3]);
+    a->pp.xlo = w[0];
+    a->pp.xhi = w[1];
+    a->pp.ylo = w[2];
+    a->pp.yhi = w[3];
+    x0 = w[0], x1 = w[1], y0 = w[2], y1 = w[3];
+  } else if (kind == FIG_TIME) {
+    for (i = 0; a->have_traj && i < a->traj.nrows; i++) {
+      fit(&x0, &x1, a->traj.cols[0][i]);
+      for (j = 1; j < a->traj.ncols; j++)
+        if (a->plot_col[j] && isfinite(a->traj.cols[j][i])) fit(&y0, &y1, a->traj.cols[j][i]);
+    }
+  } else {
+    for (i = 0; i < a->au.count; i++) {
+      const xppe_auto_point_info *p = &a->au.info[i];
+      if ((p->two_parameter != 0) != (kind == FIG_AUTO2)) continue;
+      fit(&x0, &x1, p->par1);
+      if (kind == FIG_AUTO2) {
+        fit(&y0, &y1, p->par2);
+      } else {
+        if (isfinite(auto_y(a, i, 0))) fit(&y0, &y1, auto_y(a, i, 0));
+        if (isfinite(auto_y(a, i, 1))) fit(&y0, &y1, auto_y(a, i, 1));
+      }
+    }
+  }
+  if (!(x1 >= x0) || !(y1 >= y0)) return false;
+  dx = kind == FIG_PHASE ? 0 : 0.05 * (x1 - x0);
+  dy = kind == FIG_PHASE ? 0 : 0.05 * (y1 - y0);
+  f->xmin = x0 - dx;
+  f->xmax = x1 + dx;
+  f->ymin = y0 - dy;
+  f->ymax = y1 + dy;
+  f->valid = true;
+  return true;
+}
+
 bool export_svg(App *a, FigureKind kind, const char *path) {
   Svg s;
+  FigureState fitted;
   const FigureState *fig = &g_figures[kind];
   char ylabel[128];
   const char *xlabel = "t";
+  if (!fig->valid && a->batch && data_limits(a, kind, &fitted)) fig = &fitted;
   if (!fig->valid) {
     app_log(a, "error: show the %s first, then export it.", figure_name(kind));
     return false;

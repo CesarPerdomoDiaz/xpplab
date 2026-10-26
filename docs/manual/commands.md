@@ -173,3 +173,60 @@ xpplab lecar.ode --record frames --fps 20 --frames 100 --script demo.txt
 
 The frames in `frames/` can be turned into a video or an animated GIF with
 any tool; `tools/make_demo.py` does this for the README.
+
+## Without a window: xpplab-batch
+
+`xpplab-batch`, next to the app (inside the app bundle on macOS:
+`xpplab.app/Contents/MacOS/xpplab-batch`), runs models from a terminal,
+a script or a scheduled job. Without commands it is XPPAUT's `-silent`
+mode: it runs the model and writes `output.dat`, the same numbers
+`xppaut -silent` writes.
+
+```
+xpplab-batch lecar.ode
+xpplab-batch lecar.ode -outfile run.dat
+```
+
+With commands it speaks the command window's language, AUTO included.
+Give them with `-c`, or one per line in a file (lines starting with `#`
+are comments); `-c` commands run after those of the files.
+
+```
+xpplab-batch lecar.ode -c "set iapp=0.1" -c run -c "export run.csv"
+xpplab-batch lecar.ode analysis.txt --script analysis.py
+```
+
+where `analysis.txt` could hold:
+
+```
+# a brute-force diagram, then AUTO's
+use hopf
+range iapp 0 0.5 50 V
+export range.csv range
+auto set parmax=0.6 nmax=220
+auto steady iapp
+auto from 2 periodic
+export diagram.csv auto
+export diagram.svg auto
+```
+
+The command window's text goes to the terminal. The first command that
+fails stops the run, and `xpplab-batch` exits with status 1 (0 when all
+went well, 2 for a mistake in the options), so a script can tell. A `set`
+of a name the app does not know prints a note but goes on, since XPPAUT
+accepts options the app does not list.
+
+| Option | Action |
+|---|---|
+| `-c "command"` | Run a command. Repeatable. |
+| `-outfile FILE` | Without commands, the file the run is written to (default `output.dat`). |
+| `--script FILE.py` | Save the session as a Python script at the end, as *File > Save session as Python script* does. |
+| `--echo` | Also print each action as Python (`>>> ...`). |
+| `--quiet` | Print only the errors (to the error stream). |
+| `--keep-going` | Run every command even after one fails; the exit status is still 1. |
+
+`export FILE.dat` writes a run in XPPAUT's format (8 significant digits,
+no header); `.csv` writes every number exactly. Figures are written as SVG,
+the phase plane over the model file's window (`@ xlo=..., xhi=...`) and the
+others fitted to the data. PNG figures and the Kinescope need the window.
+

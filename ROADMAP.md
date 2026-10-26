@@ -87,8 +87,9 @@ Path: M0 → M1 → M2 → M3 → M4 → [M10] → M9 → M7 → M11
 - [ ] AUTO: BVPs and homoclinics (can be started with `start="bvp"`,
       `"homoclinic"` or `"heteroclinic"`, but no test covers them)
 - [x] Shared library build with an exported, versioned C API
-- [ ] `xpp` command-line tool built on the API (today only `xppaut-headless`
-      exists: XPPAUT's own `main` linked to the engine, not a new tool)
+- [x] A command-line tool built on the API: `xpplab-batch` (XPPAUT's
+      `-silent`, and the app's commands with AUTO); `xppaut-headless` stays
+      XPPAUT's own `main` for the golden tests
 
 ### M2 Python package `xpplab`
 - [x] `ctypes` bindings to the shared library (no Python C-API dependency)
@@ -190,7 +191,7 @@ To do:
 - [x] Freeze and save nullclines
 - [x] Kinescope: capture a figure, play the frames, an animated GIF; film
       the Range (XPPAUT's Movie)
-- [ ] A batch command-line tool (XPPAUT's -silent, with AUTO)
+- [x] A batch command-line tool (XPPAUT's -silent, with AUTO): `xpplab-batch`
 - [ ] Ensemble statistics over noisy runs (stocHastic > Compute)
 
 ### M9 The app and Python together

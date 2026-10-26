@@ -639,6 +639,18 @@ class Model(AnalysisMixin):
                 f"{', ...' if len(self.variables) > 6 else ''}), "
                 f"{len(self._parameter_names)} parameters>")
 
+    def _repr_html_(self) -> str:
+        from . import _html as H
+        ics = self.initial_conditions
+        variables = [(v, H.fmt(ics[v])) for v in self.variables]
+        pars = self.parameters
+        params = [(p, H.fmt(pars[p])) for p in self._parameter_names]
+        return H.block(
+            f"Model {self.name}",
+            H.table(["variable", "initial value"], variables[:H.MAX_ROWS],
+                    len(variables)),
+            H.table(["parameter", "value"], params[:H.MAX_ROWS], len(params)))
+
 
 def load(path: str | os.PathLike, **kw) -> Model:
     """Load an XPPAUT .ode file. Same as ``Model(path)``."""
@@ -714,6 +726,18 @@ class Trajectory:
         return (f"<Trajectory: {len(self)} points, t={self.t[0]:g}..{self.t[-1]:g}, "
                 f"columns {', '.join(self.columns)}>")
 
+    def _repr_html_(self) -> str:
+        from . import _html as H
+        n = len(self)
+        if not n:
+            return H.block("Trajectory: empty")
+        head = f"Trajectory: {n} points, t = {self.t[0]:g} to {self.t[-1]:g}"
+        k = min(n, 3)
+        idx = list(range(k)) if n <= 2 * k else list(range(k)) + list(range(n - k, n))
+        rows = [[H.fmt(self._data[c][i]) for c in self.columns] for i in idx]
+        return H.block(head, H.table(self.columns, rows),
+                       "<p>... first and last rows</p>" if n > len(idx) else "")
+
 
 @dataclass
 class Equilibrium:
@@ -756,6 +780,15 @@ class Equilibrium:
         vals = ", ".join(f"{k}={v:.6g}" for k, v in self.values.items())
         return f"<Equilibrium {self.kind}: {vals}>"
 
+    def _repr_html_(self) -> str:
+        from . import _html as H
+        label = "stable" if self.stable else "unstable"
+        rows = [[k, H.fmt(v)] for k, v in self.values.items()]
+        evs = [[H.fmt(e.real), H.fmt(e.imag)] for e in self.eigenvalues]
+        return H.block(f"Equilibrium: {label} ({self.kind})",
+                       H.table(["variable", "value"], rows),
+                       H.table(["eigenvalue re", "eigenvalue im"], evs))
+
 
 class EquilibriumList(list):
     """Equilibria found together (:meth:`Model.find_equilibria`): a list of
@@ -791,3 +824,14 @@ class EquilibriumList(list):
     def __repr__(self) -> str:
         kinds = ", ".join(e.kind for e in self)
         return f"<{len(self)} equilibria: {kinds or 'none'}>"
+
+    def _repr_html_(self) -> str:
+        from . import _html as H
+        if not len(self):
+            return H.block("0 equilibria")
+        rows = [[i + 1] + [H.fmt(e.values[v]) for v in self.variables]
+                + ["stable" if e.stable else "unstable", e.kind]
+                for i, e in enumerate(self)]
+        return H.block(f"{len(self)} equilibria",
+                       H.table(["#"] + self.variables + ["stability", "kind"],
+                               rows[:H.MAX_ROWS], len(rows)))

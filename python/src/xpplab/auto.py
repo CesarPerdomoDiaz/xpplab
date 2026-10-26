@@ -135,6 +135,20 @@ class Point:
         return (f"<{what}{lab}: {stab} {kind}, {self.parameter}={self.value:.6g}"
                 f"{two}, norm={self.norm:.6g}{extra}>")
 
+    def _repr_html_(self) -> str:
+        from . import _html as H
+        rows = [["type", f"{self.type or 'point'} ({self.description})"],
+                ["label", self.label],
+                ["stability", "stable" if self.stable else "unstable"],
+                ["kind", "periodic orbit" if self.periodic else "steady state"],
+                [self.parameter, H.fmt(self.value)]]
+        if self.two_parameter and self.parameter2:
+            rows.append([self.parameter2, H.fmt(self.value2)])
+        rows.append(["norm", H.fmt(self.norm)])
+        if self.periodic:
+            rows.append(["period", H.fmt(self.period)])
+        return H.block("Diagram point", H.table(None, rows))
+
 
 class Diagram:
     """A list of bifurcation-diagram points with helpers to explore them."""
@@ -237,6 +251,17 @@ class Diagram:
         sp = ", ".join(f"{p.type}#{p.label}" for p in self.special()[:12])
         more = " ..." if len(self.special()) > 12 else ""
         return f"<Diagram: {len(self)} points; special: {sp or 'none'}{more}>"
+
+    def _repr_html_(self) -> str:
+        from . import _html as H
+        special = self.special()
+        rows = [[p.type, p.label, "stable" if p.stable else "unstable",
+                 p.parameter, H.fmt(p.value), H.fmt(p.norm)]
+                for p in special[:H.MAX_ROWS]]
+        return H.block(
+            f"Diagram: {len(self)} points, {len(special)} special",
+            H.table(["type", "label", "stability", "parameter", "value", "norm"],
+                    rows, len(special)))
 
 
 class Auto:

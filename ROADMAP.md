@@ -97,7 +97,7 @@ Path: M0 → M1 → M2 → M3 → M4 → [M10] → M9 → M7 → M11
 - [x] Bifurcation diagrams in matplotlib: stable branches solid, unstable
       dashed, special points labelled
 - [x] Jupyter: interactive parameter sliders (`Model.interact`)
-- [ ] Jupyter: rich repr (`_repr_html_`; only plain `__repr__` exists)
+- [x] Jupyter: rich repr (`_repr_html_`; only plain `__repr__` exists)
 - [x] Wheels: py3-none wheels via scikit-build-core (Windows wheel built and
       tested locally); cibuildwheel for all platforms in CI
 - [ ] Publish on PyPI

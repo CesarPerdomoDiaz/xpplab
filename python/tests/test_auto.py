@@ -215,3 +215,27 @@ def test_the_orbit_at_a_point(lecar_hopf):
     assert sol["V"].max() == pytest.approx(p.umax["V"], abs=1e-3)
     with pytest.raises(xs.EngineError, match="steady state"):
         a.orbit(a.diagram.first("HB"))
+
+
+def test_diagram_and_point_html(lecar_hopf):
+    from html.parser import HTMLParser
+    d = lecar_hopf.auto.equilibria("iapp")
+    for obj in (d, d.first("HB"), d[:0]):
+        html = obj._repr_html_()
+        assert html.startswith("<")
+        HTMLParser().feed(html)
+    html = d._repr_html_()
+    special = d.special()
+    # "unstable" contains "stable", so count whole cells.
+    assert html.count("<td>stable</td>") == sum(p.stable for p in special)
+    assert html.count("<td>unstable</td>") == sum(not p.stable for p in special)
+    for p in d.special("HB"):
+        label = "stable" if p.stable else "unstable"
+        assert (f"<tr><td>HB</td><td>{p.label}</td><td>{label}</td>"
+                f"<td>{p.parameter}</td>") in html
+    hb = d.first("HB")
+    label = "stable" if hb.stable else "unstable"
+    ph = hb._repr_html_()
+    assert f"<tr><td>stability</td><td>{label}</td></tr>" in ph
+    assert f"<tr><td>label</td><td>{hb.label}</td></tr>" in ph
+    assert "<tr><td>type</td><td>HB (Hopf bifurcation)</td></tr>" in ph

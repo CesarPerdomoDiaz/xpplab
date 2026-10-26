@@ -42,6 +42,11 @@ files (Ermentrout's XPPAUT 8.0, bit for bit).
   every result has a "python" entry that reproduces it with the xpplab
   package.
 
+- If the researcher has the XPP Lab desktop app open, app_status,
+  app_command and app_run act in that window instead, so they watch the
+  plots change: app_command takes any command of the app's command window
+  (run, set iapp=0.2, nullclines, auto steady iapp, range ..., export ...).
+
 Typical session: write the .ode file, check_model, describe_model, simulate,
 equilibria, continuation(parameter=...) for steady states, then
 continuation(from_label=<HB label>, action="periodic") for the limit cycles,
@@ -123,6 +128,35 @@ def create_server(session: Optional[Session] = None):
         """Search the example models that ship with XPPAUT (Morris-Lecar,
         FitzHugh-Nagumo, Lorenz, ...). Pass a name as model to any tool."""
         return call("find_examples", query=query, limit=limit)
+
+    # -- the running desktop app ---------------------------------------------------
+
+    @tool
+    def app_status() -> str:
+        """Is the XPP Lab desktop app open? Its model, parameters and initial
+        values. The app_* tools act in that window, where the researcher
+        sees the plots follow."""
+        return call("app_status")
+
+    @tool
+    def app_command(
+            command: Annotated[str, Field(description=(
+                "A command of the app's command window, e.g. 'run', "
+                "'set iapp=0.2 total=200', 'nullclines', 'eq', 'auto steady "
+                "iapp', 'auto from 2 periodic', 'range iapp 0 0.3 20 V', "
+                "'export run.csv'. 'help' lists them."))],
+    ) -> str:
+        """Run a command in the open XPP Lab window, as if the researcher had
+        typed it. Returns what the command window showed and the Python the
+        app wrote for it."""
+        return call("app_command", command=command)
+
+    @tool
+    def app_run(values: Values = None) -> str:
+        """Set values in the open XPP Lab window (they stay set, unlike
+        simulate's), run the model there and summarise the run: min, max,
+        mean and final value of each column, and what it does in the end."""
+        return call("app_run", values=values)
 
     # -- simulation --------------------------------------------------------------
 

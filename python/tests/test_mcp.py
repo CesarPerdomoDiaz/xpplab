@@ -44,7 +44,8 @@ done
 TOOLS = {"check_model", "describe_model", "find_examples", "simulate",
          "equilibria", "sweep", "continuation", "spectrum", "lyapunov",
          "limit_cycle", "phase_response", "fit", "bvp", "plot_simulation",
-         "plot_phase_plane", "plot_bifurcation", "plot_table"}
+         "plot_phase_plane", "plot_bifurcation", "plot_table",
+         "app_status", "app_command", "app_run"}
 
 
 @pytest.fixture

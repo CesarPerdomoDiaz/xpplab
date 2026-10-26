@@ -28,8 +28,10 @@ args = ["-m", "xpplab.mcp"]
 
 Its tools: `check_model`, `describe_model`, `find_examples`, `simulate`,
 `equilibria`, `continuation` (AUTO), `sweep`, `limit_cycle`,
-`phase_response`, `spectrum`, `lyapunov`, `fit`, `bvp`, and the plots
-`plot_simulation`, `plot_phase_plane`, `plot_bifurcation`, `plot_table`.
+`phase_response`, `spectrum`, `lyapunov`, `fit`, `bvp`, the plots
+`plot_simulation`, `plot_phase_plane`, `plot_bifurcation`, `plot_table`,
+and `app_status`, `app_command`, `app_run`, which act in the XPP Lab
+window the researcher has open.
 `docs/agents.md` describes them; `skills/xpplab/SKILL.md` is the full
 guide to the workflow and to AUTO's pitfalls. Read it before a bifurcation
 analysis.

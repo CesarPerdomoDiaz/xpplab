@@ -115,6 +115,7 @@ the server saves it under the work folder.
 | `spectrum`, `lyapunov` | Welch spectra with their peaks; the largest Liapunov exponent. |
 | `fit`, `bvp` | Parameter fitting to data; boundary-value problems by shooting. |
 | `plot_simulation`, `plot_phase_plane`, `plot_bifurcation`, `plot_table` | PNG or SVG figures in the work folder. The agent also receives the PNG, so it can look at it. |
+| `app_status`, `app_command`, `app_run` | Act in the XPP Lab window the researcher has open, through its local channel ([Driving the desktop app](python/app.md)): `app_command` takes any command of the app's command window (`run`, `set iapp=0.2`, `nullclines`, `auto steady iapp`, ...), so the researcher watches the plots follow. Values set here stay set in the app. |
 
 The server also offers the [.ode format](manual/odefile.md) and the
 [AUTO guide](manual/auto.md) as resources (`xpplab://docs/ode-format`,

@@ -69,3 +69,11 @@ if(Python3_FOUND AND TARGET xpplab-batch)
             ${PROJECT_SOURCE_DIR}/engine/xppaut/ode)
   set_tests_properties(batch_cli PROPERTIES TIMEOUT 600)
 endif()
+
+if(Python3_FOUND AND TARGET xpplab)
+  # Python drives the running app through its local channel.
+  add_test(NAME app_channel
+    COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/channel_check.py
+            $<TARGET_FILE:xpplab> ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode)
+  set_tests_properties(app_channel PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+endif()

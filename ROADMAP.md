@@ -199,8 +199,8 @@ To do:
       that does the same; File > Save session as Python script
 - [x] The saved script repeats the session bit for bit (`tests/replay.py`)
 - [x] Exact CSV exports: runs, bifurcation diagrams, Ranges, Analysis results
-- [ ] A local channel through which Python (a notebook, a script, a coding
-      agent) drives the running app
+- [x] A local channel through which Python (a notebook, a script, a coding
+      agent) drives the running app: `xpplab.app.connect()`
 - [ ] A Python console inside the app, its objects listed in the Workspace
 - [ ] A Python runtime fetched the first time the console is used
 

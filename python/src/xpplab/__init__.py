@@ -16,10 +16,11 @@ from .animation import Animation
 from .auto import Diagram, Point
 from .control import Linearization
 from .model import METHODS, Ensemble, Equilibrium, EquilibriumList, Model, Trajectory, load
+from . import app  # xs.app.connect(): drive the running desktop app
 
 __all__ = ["Model", "Trajectory", "Ensemble", "Equilibrium", "EquilibriumList", "Linearization",
            "Diagram", "Point", "Table", "Animation",
-           "EngineError", "METHODS", "load", "find_engine_library",
+           "EngineError", "METHODS", "load", "find_engine_library", "app",
            "__version__"]
 
 __version__ = "0.1.1"

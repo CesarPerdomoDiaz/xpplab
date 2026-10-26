@@ -1,441 +1,772 @@
-# Mechanics: pendulums, buckling beams, oscillators and chaos
+# Mechanics: the pendulum and its relatives
 
-Newton's law makes a second order differential equation, `m x'' = F`. To
-give it to an ODE solver, write it as two first order equations: the
-position `x` and the velocity `v`, with `x' = v` and `v' = F/m`. The phase
-plane `(x, v)` is then the natural picture, and the questions of mechanics
-become the questions of this site: where are the equilibria, are they
-stable, and what happens when a parameter changes?
+This page studies mechanical systems with the tools of dynamical systems:
+equilibria and their stability, bifurcations, limit cycles and chaos. It
+follows the last three chapters of *Mecánica analítica* by F. J. Sanz Recio
+and G. Sánchez Arriaga, cited as **[MA]** below. That book builds the theory
+on a handful of mechanical examples, the pendulum above all, and this page
+uses the same examples and notation. A reference such as [MA §8.2.3, p. 199]
+points to the section of the book where the full derivations, figures and
+more examples are. The book is in Spanish; the complete references are at
+the [end of the page](#references).
 
-This page has four examples:
+The five examples:
 
-1. the **damped pendulum**: energy, a stable and an unstable equilibrium,
-   and the escape over the top;
-2. the **buckling beam** (a double-well oscillator): a pitchfork
-   bifurcation, where symmetry breaks;
-3. the **van der Pol oscillator**: self-sustained oscillations that turn
-   into relaxation oscillations;
-4. the **Lorenz equations**, a model of a fluid in a loop: chaos and
-   sensitive dependence on initial conditions.
+1. the **pendulum**, without and with friction: energy, centres and saddles,
+   separatrices, and a period that depends on the amplitude
+   [MA §6.6.1, §8.2];
+2. the **pendulum on a rotating hoop**: a pitchfork bifurcation
+   [MA §6.6.1, §9.1.1];
+3. the **pendulum with a vibrating support**: the upside-down position made
+   stable, and parametric resonance [MA §9.2.1, §8.4.3];
+4. the **van der Pol oscillator** as a model of flutter: a Hopf bifurcation
+   and the method of averaging [MA §9.1.1, §9.2.3];
+5. the **forced, damped pendulum**: period doubling and chaos
+   [MA §8.1, §10.1, §10.3].
 
 Save each model under the name in its first line, in the folder where you
 run the Python. The snippets of a page run one after the other, in a single
-script. The ideas used (equilibria, eigenvalues, bifurcations) are
-summarised at the start of the
-[neuroscience page](neuroscience.md#theory-in-five-paragraphs).
+script.
 
 ## Theory for mechanical systems
 
-**Conservative and dissipative systems.** If the force comes from a
-potential `U(x)`, the energy `E = v^2/2 + U(x)` is constant along the
-motion. Orbits are the level curves of `E`: closed curves around the minima
-of `U` (the stable equilibria) and curves that touch the maxima (the
-unstable ones). Friction takes energy away, `E' = -c v^2` for a linear
-damping `c`, and the closed orbits become spirals that end in a minimum.
+**From Lagrange's equations to a dynamical system.** Lagrange's equations
+for a system with `n` degrees of freedom are `n` second order equations in
+the generalised coordinates `q`. Take the coordinates and their velocities
+together as the state, `x = (q, q')`, and they become `2n` first order
+equations, `x' = f(x, t)`: the form that an ODE solver, and XPPAUT, needs.
+The system is *autonomous* when `t` does not appear in `f` [MA §8.1,
+p. 190]. Most of this page uses one equation, the pendulum with viscous
+friction and a periodic force [MA eq. (8.2), p. 191]:
 
-**Equilibria of `x'' = F(x)`.** At an equilibrium `v = 0` and `F(x*) = 0`.
-The Jacobian is `[[0, 1], [F'(x*), -c]]`. If `F' < 0` (a minimum of the
-potential) the equilibrium is a stable node or focus when `c > 0`. If
-`F' > 0` (a maximum) it is a saddle for every `c`.
+```
+θ'' + 2γ θ' + ω0² sin θ = a0 cos Ωt
+```
 
-**Symmetry breaking.** When a system has a symmetry (`x -> -x`), an
-equilibrium on the symmetry axis can lose stability to a pair of
-equilibria that the symmetry exchanges. This is the **pitchfork
-bifurcation**; in a structure it is **buckling**.
+Here `θ` is the angle from the downward vertical, `ω0 = sqrt(g/ℓ)` the
+frequency of small swings, `γ` the friction coefficient, and `a0` and `Ω`
+the amplitude and frequency of the force. The state is `(θ, θ')`.
 
-**Self-sustained oscillations.** A damped oscillator comes to rest. To
-oscillate for ever the system needs an energy source, with negative damping
-at small amplitude and positive damping at large amplitude: a **limit
-cycle** that attracts nearby orbits. Clocks, bowed strings, and the heart
-are such oscillators.
+**First integrals and the energy function.** A function of the state that
+keeps its value along every motion is a *first integral* [MA §1.4.1, p. 22].
+When the Lagrangian does not depend on time explicitly, the *energy
+function* `E = Σ q_i' ∂L/∂q_i' − L` is one [MA §1.4.2–1.4.3, pp. 22–23]. It
+equals the familiar kinetic plus potential energy only when the kinetic
+energy is a quadratic form in the velocities; Example 2 has a case where it
+is not. With one degree of freedom a first integral decides the shape of
+the orbits, which are its level curves in the phase plane, and the time
+along them follows from one integral (a *quadrature*) [MA §6.6.1, p. 133].
 
-**Chaos.** A dissipative system with three or more variables can have an
-attractor on which nearby orbits separate exponentially fast, so that the
-long term behaviour cannot be predicted, although the equations are
-deterministic.
+**Volume in the state space.** Follow a small blob of initial states as the
+flow carries it: the divergence `∇·f` is the rate at which its volume grows,
+per unit volume [MA §8.1.3, p. 193]. Hamiltonian systems keep the volume
+[MA §6.6.4, p. 139]; friction makes it shrink. A system whose volumes shrink
+ends on *attractors*: equilibria, limit cycles, or strange attractors. For
+the pendulum, `∇·f = −2γ`.
 
-## Example 1: the damped pendulum
+**Equilibria and their stability.** An equilibrium `x_e` solves
+`f(x_e) = 0`. A small perturbation `y` of it obeys `y' = A y`, where `A` is
+the Jacobian matrix of `f` at `x_e`, so it grows or decays like `exp(λt)`
+with `λ` the eigenvalues of `A`. If all of them have negative real part the
+equilibrium is asymptotically stable; if one has positive real part it is
+unstable [MA §8.2.1, pp. 195–196]. In the plane the eigenvalues solve
+`λ² − tr(A) λ + det(A) = 0`, and their signs and the sign of the
+discriminant sort the equilibria into nodes, saddles, foci and centres
+[MA §8.2.2 and Box 8.6, p. 197]. A Hamiltonian system with one degree of
+freedom has only centres and saddles: nodes and foci need areas to shrink
+or grow [MA §6.6.1, p. 134; §8.2.2, p. 198].
 
-A pendulum of unit length and unit mass, with friction proportional to the
-angular velocity `c`:
+**When the eigenvalues are not enough: Lagrange's theorem.** At a centre the
+eigenvalues are purely imaginary, and the linear analysis cannot tell
+whether the neglected nonlinear terms make the point stable or unstable. A
+first integral can. If it has a strict minimum (or maximum) at the
+equilibrium, the orbits that start nearby stay on its small closed level
+surfaces around the point, so the equilibrium is stable [MA §8.2.3,
+p. 199]. For a Lagrangian `L = T − U(q)` this says that a strict minimum of
+the potential is a stable equilibrium.
+
+**Bifurcations.** As a parameter changes, an equilibrium can change its
+stability when an eigenvalue crosses the imaginary axis. A real eigenvalue
+crossing zero gives a saddle-node, a pitchfork or a transcritical
+bifurcation; a pair of complex eigenvalues crossing gives a Hopf
+bifurcation, where a branch of periodic orbits is born [MA §9.1.1,
+pp. 223–224]. A periodic orbit changes its stability when one of its Floquet
+multipliers (the eigenvalues of the map over one period) leaves the unit
+circle [MA §8.4.2, §9.1.2]. AUTO follows these branches and labels the
+special points (BP, LP, HB, PD, ...).
+
+**Chaos.** A chaotic orbit stays in a bounded region, never repeats, and
+separates from its neighbours exponentially fast:
+`|δx(t)| ≈ |δx0| exp(λ_L t)`, with `λ_L > 0` the largest *Lyapunov
+exponent* (called `μ` in [MA]). An initial error `δx0` then allows
+predictions for about the *Lyapunov time* `ln(L/|δx0|) / λ_L`, with `L` the
+size of the attractor [MA §10.1, pp. 248–249]. An autonomous system needs at
+least three dimensions to be chaotic; a periodically forced one, such as the
+pendulum above, needs only two [MA §10.1, p. 250].
+
+## Example 1: the pendulum
+
+Divide the Lagrangian of a pendulum of mass `m` and length `ℓ` by `mℓ²`:
+`L = θ'²/2 + ω0² cos θ`. The momentum is `p = θ'`, and the energy function
+is `E = p²/2 − ω0² cos θ` [MA §6.6.1, p. 134]. The equation of motion is
+the one above with `a0 = 0`:
 
 ```ode
 # pend.ode
-x' = v
-v' = -sin(x) - c*v
-par c=0.2
-init x=2, v=0
-@ total=60, dt=0.02, xp=x, yp=v, xlo=-4, xhi=8, ylo=-3, yhi=3
+th' = p
+p' = -2*gam*p - w0^2*sin(th)
+par gam=0, w0=1
+init th=2, p=0
+@ total=40, dt=0.01, xp=th, yp=p, xlo=-4, xhi=10, ylo=-3, yhi=3
 done
 ```
 
-The angle `x` is measured from the hanging position, so the equilibria are
-`x = 0` (hanging down) and `x = pi` (balanced upright), and also all
-`2 pi k` and `pi + 2 pi k`, which are the same positions after full turns.
+In the file, `th` is `θ`, `p` is `θ'`, `gam` is `γ` and `w0` is `ω0`. With
+`w0 = 1` the time is measured in units of `1/ω0`.
 
-**Hanging down.** The Jacobian is `[[0, 1], [-1, -c]]`, with eigenvalues
-`-c/2 ± i sqrt(1 - c^2/4)` = `-0.1 ± 0.995i` for `c = 0.2`. A **stable
-focus**: the pendulum swings back and forth with a slowly decaying
-amplitude, with frequency near 1.
-
-**Upright.** The Jacobian is `[[0, 1], [1, -c]]`, with real eigenvalues of
-opposite signs, 0.905 and -1.105: a **saddle**. A perfectly balanced
-pendulum is an equilibrium; any push, however small, takes it away.
-
-**Energy.** `E = v^2/2 + 1 - cos(x)` is zero at the bottom and 2 at the
-top. Along the motion `E' = -c v^2`, which is never positive.
+**Without friction** (`γ = 0`) the energy function is conserved. Its
+smallest value, `E0 = −ω0²`, is the pendulum at rest hanging down. The
+equilibria are `θ = 0` (hanging) and `θ = π` (upright), and their copies a
+whole turn away. At the bottom the Jacobian is `[[0, 1], [−ω0², 0]]`, with
+eigenvalues `±iω0`: a centre. At the top it is `[[0, 1], [ω0², 0]]`, with
+eigenvalues `±ω0`: a saddle. Small orbits around the bottom are ellipses;
+as `E0` grows they stretch, and at `E0 = ω0²` they reach the saddles. Above
+that energy the pendulum no longer swings but goes round and round. The
+orbits with `E0 = ω0²`, the *separatrices*, divide swinging from rotating,
+and take an infinite time to reach the saddle [MA §6.6.1, pp. 134–135 and
+Fig. 6.5; §7.6.1].
 
 ```python
 import numpy as np
 import xpplab as xs
 
 pend = xs.load("pend.ode")
-down = pend.equilibrium({"x": 0.1, "v": 0})
-up = pend.equilibrium({"x": 3.0, "v": 0})
-down.kind, down.eigenvalues            # 'stable focus', -0.1 +/- 0.995i
-up.kind, up.eigenvalues                # 'saddle', 0.905 and -1.105
+bottom = pend.equilibrium({"th": 0.1, "p": 0})
+top = pend.equilibrium({"th": 3.0, "p": 0})
+bottom.eigenvalues                     # +1j and -1j
+top.kind, top.eigenvalues              # 'saddle', +1 and -1
 
 sol = pend.run()
-E = 0.5 * sol["v"] ** 2 + 1 - np.cos(sol["x"])
-E[0], E[-1]                            # 1.416, 1e-5
-np.all(np.diff(E) <= 1e-9)             # True: energy never increases
+E = sol["p"] ** 2 / 2 - np.cos(sol["th"])
+E[0], np.ptp(E)                        # 0.416, and a spread below 1e-6
 ```
 
-**Escaping over the top.** From the bottom (`x = 0`) with an initial
-velocity `v0`, the pendulum needs enough energy to reach the top. Without
-friction that is `v0 = 2`. With friction some energy is lost on the way,
-and the threshold is higher; for `c = 0.2` it is `v0 = 2.415`.
+`bottom.kind` prints `'stable focus'`: the program sorts equilibria by the
+sign of the real parts of the eigenvalues, and here they are zero up to
+rounding. The linear analysis cannot tell a centre from a weakly stable or
+unstable focus. Lagrange's theorem can: `E` has a strict minimum at the
+bottom, so the bottom is stable, though not asymptotically stable, since
+nearby orbits circle it for ever [MA §8.2.3, p. 199].
+
+**The period depends on the amplitude.** Only small swings take the same
+time whatever their size [MA Box 8.7, p. 198]. A swing of amplitude `a`
+takes four times the time from `θ = 0` to `θ = a`, which is the quadrature
+of [MA §6.6.1, eq. (6.63)] with `p = sqrt(2ω0² (cos θ − cos a))`. The
+change of variable `sin(θ/2) = k sin φ`, with `k = sin(a/2)`, removes the
+infinity of the integrand at the turning point and gives
+
+```
+T(a) = (4/ω0) ∫ dφ / sqrt(1 − k² sin² φ),   φ from 0 to π/2
+```
+
+(a complete elliptic integral of the first kind). `T` grows without bound as
+`a → π`, the separatrix.
+
+```python
+def period(s):
+    p = s["p"]
+    down = s.t[1:][(p[:-1] > 0) & (p[1:] <= 0)]    # p crosses 0 going down
+    return np.diff(down).mean()
+
+def quadrature(a, n=100000):
+    phi = (np.arange(n) + 0.5) * (np.pi / 2) / n   # midpoint rule
+    k = np.sin(a / 2)
+    return 4 * np.sum(1 / np.sqrt(1 - (k * np.sin(phi)) ** 2)) * (np.pi / 2) / n
+
+pend.set(total=200)
+for a in (0.5, 2, 3, 3.1):
+    print(a, round(period(pend.run(th=a, p=0)), 2), round(quadrature(a), 2))
+# 0.5  6.38   6.38
+# 2    8.35   8.35
+# 3    16.16  16.16
+# 3.1  21.04  21.04
+```
+
+**With friction** (`γ > 0`) the divergence is `−2γ`, and along the motion
+`E' = −2γ p²`, which is never positive. At the bottom the Jacobian is
+`[[0, 1], [−ω0², −2γ]]`, with eigenvalues `−γ ± sqrt(γ² − ω0²)`: a stable
+focus when `γ < ω0` (the swings die out slowly) and a stable node when
+`γ > ω0` (the pendulum creeps back without swinging) [MA §8.2.2, Example 1,
+p. 198]. At the top the eigenvalues are `−γ ± sqrt(γ² + ω0²)`, real and of
+opposite signs: a saddle, whatever the friction.
+
+```python
+pend.parameters["gam"] = 0.1
+bottom = pend.equilibrium({"th": 0.1, "p": 0})
+bottom.kind, bottom.eigenvalues        # 'stable focus', -0.1 +/- 0.995i
+
+pend.set(total=40)
+sol = pend.run(th=2, p=0)
+E = sol["p"] ** 2 / 2 - np.cos(sol["th"])
+E[-1], np.diff(E).max()                # -0.9994 (the bottom is -1), below 1e-8
+```
+
+Every orbit now ends hanging down, but at which copy `θ = 2πk` depends on
+where it started. Push the pendulum from the bottom with a speed `p0`:
+without friction it goes over the top when `E0 = p0²/2 − 1` reaches `1`,
+that is for `p0 = 2`. With friction it loses energy on the way up, and
+needs more:
 
 ```python
 pend.set(total=100)
-slow = pend.run(x=0, v=1.0)            # swings and settles at x = 0
-fast = pend.run(x=0, v=2.5)            # goes over the top once
-slow["x"][-1] / np.pi, fast["x"][-1] / np.pi    # 0.0 and 2.0: one turn more
+[round(pend.run(th=0, p=p0)["th"][-1] / (2 * np.pi)) for p0 in (2.0, 2.5, 4.5)]
+# [0, 1, 2]: no turn, one turn, two turns before it settles
 ```
 
-The phase plane (`pend.phase_plane("x", "v")`, or the app's **Phase Plane**
-tab) shows the picture: spirals around the points `x = 2 pi k`, and the
-stable manifolds of the saddles, which separate the starting points that
-end in one well from those that end in the next. Use
-`pend.manifolds({"x": 3.1, "v": 0})` to compute those manifolds: it returns
-the saddle and four branches, two unstable and two stable.
+The boundaries between these outcomes are the stable manifolds of the
+saddles at `θ = π + 2πk`: the curves of initial states that end exactly on
+the upright position [MA §8.2.1, p. 196]. The app's **Phase Plane** tab
+draws them; in Python, `pend.manifolds({"th": 3.14, "p": 0})` returns the
+saddle and its four branches, two stable and two unstable.
 
 !!! note "Exercises"
-    1. Show that `E' = -c v^2`. With the run above, check that the energy
-       never increases.
-    2. Without friction (`c = 0`) the period of oscillation depends on the
-       amplitude. Measure it from `x = 2` and from `x = 3`. The exact
-       period for amplitude `a` is `4 K(sin(a/2))`, with `K` the complete
-       elliptic integral; it is `2 pi` for small `a` and tends to infinity
-       as `a -> pi`.
-    3. Find the threshold velocity 2.415 with a bisection, using `pend.run`
-       and the final value of `x`.
-    4. With `c = 0.2` the swings of a pendulum released from `x = 2` shrink.
-       Find the successive maxima of `x`, and fit a line to their logarithm
-       against time. What rate do you expect from the eigenvalues?
+    1. Show that `E' = −2γ p²` along the motion.
+    2. At which friction does the hanging equilibrium change from a focus
+       to a node? Check with `pend.equilibrium` for `gam` = 0.9 and 1.1.
+    3. For small swings, the Lindstedt-Poincaré method [MA §9.2.2,
+       pp. 235–236] gives the frequency of `x'' + ω0² x = −αx² − βx³` as
+       `ω ≈ ω0 + (9βω0² − 10α²) a² / (24ω0³)`. Expand `sin θ` to third
+       order to find `α` and `β` for the pendulum, and show that
+       `ω ≈ ω0 (1 − a²/16)`. Compare the period it predicts with the
+       measured ones for `a` = 0.5, 1 and 2.
+    4. With `gam = 0.1`, find by bisection the smallest `p0` that takes the
+       pendulum over the top.
 
 ??? success "Solutions"
-    1. `E' = v v' + sin(x) x' = v(-sin(x) - c v) + sin(x) v = -c v^2`.
-       The last line of the code checks the same on the run.
-    2. Set `c = 0` and `total=100`, and take the time between the maxima of
-       `x` (the points where `v` crosses zero downwards). The period is 8.34
-       for `x = 2` (the exact value is 8.350) and 16.16 for `x = 3` (the
-       exact value 16.156). The small oscillation value is 6.283.
-    3. The bisection on `v0` between 1 and 3, with the criterion
-       `abs(x[-1]) > pi`, converges to 2.4149.
-    4. The maxima of `x` are 0.887 at `t = 7.32`, 0.456 at `t = 13.82`,
-       0.240 at `t = 20.18`, and so on. The fitted line has slope -0.1003.
-       The eigenvalues of the hanging equilibrium have real part
-       `-c/2 = -0.1`: the amplitude decays at that rate.
+    1. `E' = p p' + ω0² sin θ θ' = p (−2γp − ω0² sin θ) + ω0² sin θ p
+       = −2γ p²`.
+    2. The discriminant `γ² − ω0²` changes sign at `γ = ω0 = 1`. For
+       `gam = 0.9` the program prints `'stable focus'` (eigenvalues
+       `−0.9 ± 0.436i`); for `gam = 1.1`, `'stable node'` (`−0.642` and
+       `−1.558`).
+    3. `sin θ ≈ θ − θ³/6`, so the equation is
+       `θ'' + ω0² θ = (ω0²/6) θ³`: `α = 0` and `β = −ω0²/6`. Then
+       `ω ≈ ω0 − 9 ω0⁴ a² / (6 · 24 ω0³) = ω0 (1 − a²/16)`. The predicted
+       periods `2π / (1 − a²/16)` are 6.383, 6.702 and 8.378; the measured
+       ones are 6.38, 6.70 and 8.35. The approximation is good while
+       `a²/16` is small, and is off by 0.3% at `a = 2`.
+    4. Bisect on `p0` between 1 and 3, with the criterion
+       `abs(th[-1]) > pi` after a long run: it converges to 2.4149.
 
-## Example 2: the buckling beam and the pitchfork
+## Example 2: the pendulum on a rotating hoop
 
-A thin elastic beam is compressed by a force `mu`. A simple model of its
-lateral displacement `x` has a double-well potential:
+A bead slides without friction on a vertical hoop of radius `ℓ` that turns
+about its vertical diameter at a constant rate `Ω0`. This is the same as a
+pendulum whose plane of swing turns about the vertical [MA §6.6.1, p. 137;
+§9.1.1, Example 2, p. 224]. With `θ` measured from the bottom, the
+Lagrangian divided by `mℓ²` is
 
 ```
-x'' = mu x - x^3 - c x'
+L = θ'²/2 + (Ω0²/2) sin² θ + ω0² cos θ
 ```
 
-For `mu < 0` the potential `U = -mu x^2/2 + x^4/4` has one well at
-`x = 0`: the beam is straight. For `mu > 0` the point `x = 0` is a maximum
-and there are two wells at `x = ±sqrt(mu)`: the beam is bent to the left or
-to the right.
+and the equation of motion is [MA eq. (9.2)]
+
+```
+θ'' = Ω0² sin θ (cos θ − ω0²/Ω0²)
+```
+
+The term `(Ω0²/2) sin² θ` is kinetic energy of the rotation, but it does
+not contain `θ'`, so the kinetic energy is not a quadratic form in the
+velocity. The energy function, `E = θ'²/2 − (Ω0²/2) sin² θ − ω0² cos θ`, is
+still conserved, because `L` does not depend on time, but it is not the
+kinetic plus potential energy: that one changes, since the motor that keeps
+the hoop turning does work on the bead [MA §1.4.2–1.4.3]. `E` is the energy
+of a particle moving in the *effective potential*
+`U_ef = −ω0² cos θ − (Ω0²/2) sin² θ`.
+
+**Equilibria.** `θ' = 0` and `sin θ (cos θ − ω0²/Ω0²) = 0`:
+
+- `θ = 0`, the bottom. Linearising gives `θ'' = (Ω0² − ω0²) θ`: a centre
+  while `Ω0 < ω0` (and a minimum of `U_ef`, so stable by Lagrange's
+  theorem), a saddle when `Ω0 > ω0`.
+- `θ = π`, the top: `θ'' = (Ω0² + ω0²)(θ − π)`, a saddle at every speed.
+- `θ = ±θ*` with `cos θ* = ω0²/Ω0²`, which exist only when `Ω0 > ω0`. They
+  are minima of `U_ef`, so stable, and the bead swings about them with the
+  frequency `Ω0 sin θ*` [MA §9.1.1, Example 2].
+
+At `Ω0 = ω0` the bottom loses its stability and hands it to two new
+equilibria, mirror images of each other: a **supercritical pitchfork**
+[MA §9.1.1, p. 223]. Spin the hoop faster than the pendulum's own frequency
+and the bead climbs to one side. Which side is decided by the smallest
+asymmetry in the start; the equations themselves do not prefer one.
+
+The book's example has no friction. Here we add viscous friction `2γθ'`,
+so that the centres become stable foci and the runs settle:
 
 ```ode
-# buckle.ode
-x' = v
-v' = mu*x - x^3 - c*v
-par mu=-0.5, c=0.5
-init x=0.1, v=0
-@ total=100, dt=0.05, xp=x, yp=v, xlo=-2, xhi=2, ylo=-2, yhi=2
+# hoop.ode
+th' = p
+p' = sin(th)*(Om^2*cos(th) - w0^2) - 2*gam*p
+par Om=0.5, w0=1, gam=0.1
+init th=0.5, p=0
+@ total=100, dt=0.02, xp=th, yp=p, xlo=-3.5, xhi=3.5, ylo=-2, yhi=2
 done
 ```
 
-The equilibria are `v = 0` and `x (mu - x^2) = 0`. For `mu < 0` the only
-equilibrium is `x = 0`, a stable focus or node. At `mu = 0` it loses
-stability by a real eigenvalue crossing zero, and for `mu > 0` there are
-three equilibria: the straight beam `x = 0`, now a saddle, and the two bent
-states `x = ±sqrt(mu)`, both stable. This is the **supercritical
-pitchfork bifurcation**: the symmetric state gives way to two states that
-are mirror images.
-
 ```python
-beam = xs.load("buckle.ode")
-beam.parameters["mu"] = 1.0
-found = beam.find_equilibria(100, box={"x": (-3, 3), "v": (-3, 3)})
-sorted((round(e["x"], 3), e.kind) for e in found)
-# [(-1.0, 'stable focus'), (0.0, 'saddle'), (1.0, 'stable focus')]
+hoop = xs.load("hoop.ode")
+hoop.parameters["Om"] = 1.5            # faster than w0 = 1
+straight = hoop.equilibrium({"th": 0, "p": 0})
+bent = hoop.equilibrium({"th": 1, "p": 0})
+straight.kind, bent.kind               # 'saddle', 'stable focus'
+bent["th"], np.arccos(1 / 1.5 ** 2)    # 1.1102 and 1.1102
 
-beam.run(x=0.05, v=0)["x"][-1]         # +1.0
-beam.run(x=-0.05, v=0)["x"][-1]        # -1.0
+hoop.run(th=0.01, p=0)["th"][-1], hoop.run(th=-0.01, p=0)["th"][-1]
+# 1.1102 and -1.1102: the start chooses the side
 ```
 
-The tiniest initial asymmetry decides which way the beam bends: that is the
-symmetry breaking. Now follow the equilibria, with AUTO from the straight
-state and with the equilibrium sweep from a bent one:
+Now let AUTO follow the equilibria as the hoop speeds up, first from the
+bottom, then from a bent state:
 
 ```python
-beam.parameters["mu"] = -0.5
-beam.initial_conditions.update(x=0, v=0)
-d = beam.auto.equilibria("mu", parmin=-1, parmax=2)
-d.special("BP")[0].value               # 0.0: the branch point
+hoop.parameters["Om"] = 0.5
+hoop.initial_conditions.update(th=0, p=0)
+d = hoop.auto.equilibria("Om", parmin=0, parmax=2.5)
+d.special("BP")[0].value               # 1.0: a branch point at Om = w0
 
-mus = np.linspace(0.25, 2, 8)
-tab = beam.equilibrium_sweep("mu", mus, guess={"x": 1, "v": 0})
-np.abs(tab["x"] - np.sqrt(mus)).max()  # below 1e-5: x = sqrt(mu)
+hoop.parameters["Om"] = 2
+hoop.equilibrium({"th": 1.3, "p": 0}, set_initial=True)
+side = hoop.auto.equilibria("Om", parmin=0.5, parmax=2.5, ds=-0.02)
+side.special("LP")[0].value            # 1.0 again
 ```
 
-AUTO marks the straight branch with a branch point (BP) at `mu = 0`, where
-the two bent branches leave it.
+On the branch of the bottom, AUTO marks the pitchfork as a branch point
+(BP), where other branches cross. Followed from a bent state, the branch
+turns back at the same point: as `θ*` shrinks to zero, `Ω0` reaches its
+smallest value `ω0` and grows again on the mirror state `−θ*`. AUTO marks
+that turn as a limit point (LP). Both labels are the same pitchfork, seen
+from different branches.
+
+Last, the energy function. Take the friction away and compare `E` with the
+kinetic plus potential energy along a run:
+
+```python
+hoop.parameters.update(Om=1.5, gam=0)
+s = hoop.run(th=0.5, p=0)
+th, p = s["th"], s["p"]
+E = p ** 2 / 2 - 1.5 ** 2 / 2 * np.sin(th) ** 2 - np.cos(th)    # energy function
+TU = p ** 2 / 2 + 1.5 ** 2 / 2 * np.sin(th) ** 2 - np.cos(th)   # T + U
+np.ptp(E), np.ptp(TU)                  # below 1e-6, and 1.73
+```
 
 !!! note "Exercises"
-    1. Show from the Jacobian at `x = 0` that the eigenvalues are
-       `(-c ± sqrt(c^2 + 4 mu))/2`, and that one crosses zero at `mu = 0`.
-       For `c = 0.5`, is the straight beam a focus or a node for
-       `mu = -0.5`? And at `mu = -0.01`?
-    2. For `mu = 1` the bent states have the eigenvalues
-       `(-c ± sqrt(c^2 - 8 mu))/2`. Are they a focus or a node? Check with
-       `beam.equilibrium`.
-    3. Change the cubic to `+ x^3` in `v'` with `mu` of opposite sign (a
-       **subcritical** pitchfork): `v' = mu*x + x^3 - c*v`. Where are the
-       equilibria for `mu < 0`? What happens to a trajectory started near
-       `x = 0` for `mu > 0`?
-    4. Add a small constant force `f` to the right side, `v' = ... + f`.
-       The pitchfork is broken (an **imperfect bifurcation**). For `f = 0.1`,
-       where is the fold, and which states does it create? Start AUTO from
-       the bent state `x = -1` at `mu = 1` and decrease `mu` (give
-       `ds=-0.02` to `auto.equilibria`).
+    1. With friction, show that the eigenvalues at the bottom are
+       `−γ ± sqrt(γ² + Ω0² − ω0²)`. For `γ = 0.1`, at which speed does the
+       bottom change from a focus to a node, and at which from a node to a
+       saddle?
+    2. Without friction and with `Om = 1.5`, start the bead at `θ* + 0.01`
+       and measure the period of its small swings. Compare with
+       `2π / (Ω0 sin θ*)`.
+    3. Expand the equation of motion to third order in `θ` and show that
+       near `Ω0 = ω0` it is `θ'' ≈ (Ω0² − ω0²) θ − (ω0²/2) θ³`. Which
+       `θ*` does this predict for `Om = 1.05`? Compare with
+       `arccos(ω0²/Ω0²)`.
+    4. Use `hoop.equilibrium_sweep` to follow the bent state for `Om` from
+       1.1 to 2.5 (with `gam = 0.1`) and compare with `arccos(1/Om²)`.
 
 ??? success "Solutions"
-    1. `J = [[0, 1], [mu, -c]]`: trace `-c`, determinant `-mu`. The
-       eigenvalues are `(-c ± sqrt(c^2 + 4 mu))/2`. One is zero when
-       `mu = 0`. For `c = 0.5` and `mu = -0.5` the square root is of
-       `0.25 - 2 < 0`: a stable focus. At `mu = -0.01` it is of `0.21 > 0`:
-       a stable node.
-    2. The square root is of `0.25 - 8 < 0`, so complex: a stable focus,
-       as in the run (it prints `'stable focus'`).
-    3. With `v' = mu*x + x^3 - c*v` the equilibria for `mu < 0` are
-       `x = 0` and `x = ±sqrt(-mu)`; the outer ones are saddles and the
-       straight one is stable. For `mu > 0` only `x = 0` is left, a saddle,
-       and trajectories run off to infinity: nothing in the model limits the
-       bending. A subcritical pitchfork is a sudden, dangerous buckling.
-    4. With `f > 0` the straight state is no longer an equilibrium: the
-       branch that comes from `mu < 0` bends smoothly into the right-hand
-       bent state, with no bifurcation. The other bent state and the saddle
-       are born together, in a saddle-node at `mu = 3 (f/2)^(2/3)` = 0.4072
-       for `f = 0.1`. AUTO, started from `x = -1` at `mu = 1` and
-       decreasing `mu`, reports a limit point (LP) at 0.4072.
+    1. The Jacobian at `θ = 0` is `[[0, 1], [Ω0² − ω0², −2γ]]`: trace
+       `−2γ`, determinant `ω0² − Ω0²`. The eigenvalues are real when
+       `γ² + Ω0² − ω0² > 0`, that is for `Ω0 > sqrt(ω0² − γ²) = 0.995`,
+       and one of them is positive when `Ω0 > ω0 = 1`. So the bottom is a
+       stable focus below 0.995, a stable node between 0.995 and 1, and a
+       saddle above 1.
+    2. `θ* = 1.1102`, `Ω0 sin θ* = 1.3437`, so the predicted period is
+       4.676; the run gives 4.677.
+    3. `sin θ cos θ ≈ θ − 2θ³/3` and `sin θ ≈ θ − θ³/6`, so
+       `θ'' ≈ (Ω0² − ω0²) θ − (2Ω0²/3 − ω0²/6) θ³`, and at `Ω0 = ω0` the
+       cubic coefficient is `ω0²/2`. The equilibria are then
+       `θ*² ≈ 2 (Ω0² − ω0²)/ω0²`: 0.453 for `Om = 1.05`, against the exact
+       0.435. The error shrinks as `Ω0 → ω0`. This cubic equation is the
+       normal form of the pitchfork.
+    4. `Oms = np.linspace(1.1, 2.5, 8)`,
+       `tab = hoop.equilibrium_sweep("Om", Oms, guess={"th": 1, "p": 0})`;
+       `np.abs(tab["th"] - np.arccos(1 / Oms**2)).max()` is below 1e-5.
 
-## Example 3: the van der Pol oscillator
+## Example 3: the pendulum with a vibrating support
 
-The van der Pol oscillator is a spring with a damping that changes sign:
+Move the point of support up and down as `Δ cos ωt`, fast (`ω ≫ ω0`) and by
+a small amount (`Δ ≪ ℓ`). In the frame of the support, the pendulum feels
+gravity plus the inertial force of the moving support, and its equation
+becomes
 
 ```
-x'' - mu (1 - x^2) x' + x = 0
+θ'' + 2γ θ' + (ω0² − (Δ/ℓ) ω² cos ωt) sin θ = 0
 ```
 
-For `|x| < 1` the damping is negative and pumps energy in; for `|x| > 1`
-it is positive and removes it. The balance is a limit cycle.
+The motion is then the sum of a slow part and a small, fast jiggle at the
+frequency `ω`. [MA §9.2.1] shows how to average the jiggle out: the slow
+part moves as if in an *effective potential*, which is the old one plus the
+mean kinetic energy of the jiggle. For this pendulum, per unit `mℓ²`,
+[MA §9.2.1, Example 10, pp. 234–235]
+
+```
+U_ef(θ) = −ω0² cos θ + (Δ²ω² / 4ℓ²) sin² θ
+```
+
+The new term has its minima at `θ = 0` and `θ = π`. The bottom stays a
+minimum of `U_ef`, and so stable. The top, a maximum of `−ω0² cos θ`,
+becomes a minimum of `U_ef` when the new term wins, that is when
+`Δ²ω² > 2gℓ`: then the upside-down pendulum is stable. Near the top, the
+slow motion is a swing with the frequency `sqrt(Δ²ω²/2ℓ² − ω0²)`. This
+system is often called Kapitza's pendulum.
+
+```ode
+# vibpend.ode
+th' = p
+p' = -2*gam*p - (w0^2 - d*w^2*cos(w*t))*sin(th)
+par d=0.1, w=30, w0=1, gam=0.02
+init th=2.9, p=0
+@ total=60, dt=0.002, xp=t, yp=th, xlo=0, xhi=60, ylo=2, yhi=4.3
+done
+```
+
+Here `d` is `Δ/ℓ`, and the time step is small because the run has to
+follow the fast jiggle (60 steps per period of the support).
+
+```python
+vib = xs.load("vibpend.ode")
+d, w = 0.1, 30
+d * w, np.sqrt(2)                      # 3.0 > 1.41: the top should be stable
+s = vib.run()                          # starts 0.24 rad from the top
+s["th"].min(), s["th"].max()           # 2.90 and 3.37: it stays up
+
+vib.parameters["gam"] = 0
+s = vib.run(th=np.pi - 0.1, p=0)
+th = s["th"]
+up = s.t[1:][(th[:-1] < np.pi) & (th[1:] >= np.pi)]
+np.diff(up).mean(), 2 * np.pi / np.sqrt(d ** 2 * w ** 2 / 2 - 1)
+# 3.343 and 3.359: the period of the slow swing about the top
+```
+
+The measured period of the slow swing is within 0.5% of the averaged
+theory; the difference shrinks as `ω/ω0` grows.
+
+**Parametric resonance.** Near the bottom, `sin θ ≈ θ`, and the same
+equation without friction is Mathieu's equation,
+`θ'' + (ω0² − ε cos ωt) θ = 0` with `ε = Δω²/ℓ`. Its rest state becomes
+unstable when the driving frequency is close to `2ω0/n` for a whole number
+`n`, most strongly for `ω = 2ω0`: a small swing grows, fed by the moving
+support. This is *parametric resonance*, which pumps a swing by changing a
+parameter instead of pushing [MA §8.4.3, pp. 207–208, and Box 8.14].
+
+!!! note "Exercises"
+    1. Show that `U_ef'' (π) = Δ²ω²/2ℓ² − ω0²`, which gives the condition
+       `Δ²ω² > 2gℓ` and the frequency of the slow swing.
+    2. Keep `w = 30` and `gam = 0.02` and lower `d`. Starting at
+       `th = pi - 0.1`, for which `d` does the pendulum still stay up?
+       Compare `d*w` at the threshold with `sqrt(2)`.
+    3. Show parametric resonance: with `d = 0.1`, `gam = 0`, `dt = 0.01`
+       and `total = 100`, start at `th = 0.01` and compare the largest
+       `|th|` for `w = 2`, `w = 1.5` and `w = 1`.
+
+??? success "Solutions"
+    1. `U_ef' = ω0² sin θ + (Δ²ω²/4ℓ²) sin 2θ` and
+       `U_ef'' = ω0² cos θ + (Δ²ω²/2ℓ²) cos 2θ`. At `θ = π` this is
+       `−ω0² + Δ²ω²/2ℓ²`, positive when `Δ²ω² > 2ω0²ℓ² = 2gℓ`. The slow
+       swing about a minimum of `U_ef` has the frequency `sqrt(U_ef'')`.
+    2. The pendulum stays up for `d = 0.0475` (`d*w = 1.425`) and falls for
+       `d = 0.045` (`d*w = 1.35`). The theory predicts the threshold
+       `d*w = sqrt(2) = 1.414`.
+    3. For `w = 2 = 2ω0` the swing grows from 0.01 to 1.73. For `w = 1.5`
+       it stays at 0.01. For `w = 1` (the resonance with `n = 2`) it grows
+       only very slowly: the higher resonances are much weaker for a small
+       `ε`, here 0.1.
+
+## Example 4: the van der Pol oscillator and flutter
+
+A wing in an airstream can start to vibrate by itself, taking energy from
+the flow: this is *flutter*. [MA ch. 9, exercise E2, p. 245] gives the van
+der Pol oscillator as a simple model of it:
+
+```
+u' = v,    v' = (μ − u²) v − u
+```
+
+For small `u` the term `μv` is a damping of the wrong sign when `μ > 0`: it
+feeds energy in. The term `−u²v` takes energy out at large amplitude. The
+balance of the two is a self-sustained oscillation, a limit cycle.
+
+**The Hopf bifurcation.** The only equilibrium is the origin. Its Jacobian
+`[[0, 1], [−1, μ]]` has trace `μ` and determinant 1, so the eigenvalues are
+`μ/2 ± i sqrt(1 − μ²/4)`: a stable focus for `μ < 0`, an unstable one for
+`μ > 0`. A complex pair crosses the imaginary axis at `μ = 0`: a Hopf
+bifurcation [MA §9.1.1, p. 224].
+
+**Averaging.** For small `μ` the orbit is nearly a circle of slowly
+changing radius. Write `u = a cos(t + φ)` and `v = −a sin(t + φ)` with `a`
+and `φ` slowly varying, and replace the equations for `a` and `φ` by their
+averages over one turn: the method of averaging, which [MA §9.2.3,
+pp. 237–238] applies to the Rayleigh oscillator. Here it gives
+
+```
+a' = (a/2) (μ − a²/4),    φ' = 0
+```
+
+For `μ < 0` every amplitude decays. For `μ > 0` the amplitude grows if
+`a < 2 sqrt(μ)` and decays if `a > 2 sqrt(μ)`: there is a stable limit
+cycle of amplitude `2 sqrt(μ)` and period close to `2π`. Because the cycle
+exists on the side where the equilibrium is unstable, and is stable, the
+Hopf bifurcation is *supercritical* [MA §9.1.1, pp. 223–224].
 
 ```ode
 # vdp.ode
-x' = y
-y' = mu*(1-x^2)*y - x
-par mu=1
-init x=2, y=0
-@ total=100, dt=0.01
+u' = v
+v' = (mu - u^2)*v - u
+par mu=-0.5
+init u=0.1, v=0
+@ total=200, dt=0.02, bound=1e4, xp=u, yp=v, xlo=-4, xhi=4, ylo=-4, yhi=4
 done
 ```
-
-**Small `mu`.** The origin is the only equilibrium. Its Jacobian
-`[[0, 1], [-1, mu]]` has trace `mu` and determinant 1: the eigenvalues are
-`mu/2 ± i sqrt(1 - mu^2/4)`. For `mu < 0` the origin is stable; for
-`mu > 0` it is unstable, and every orbit goes to one limit cycle, of
-amplitude about 2 and period close to `2 pi` for small `mu`.
-(At `mu = 0` the system is a linear center, a degenerate Hopf point.
-AUTO's branch of periodic orbits from it stays at `mu = 0` while the
-amplitude grows, which tells you nothing about the cycle; simulate
-instead.)
-
-**Large `mu`.** The motion is a **relaxation oscillation**. In Liénard's
-coordinates, `x' = mu (w - (x^3/3 - x))` and `w' = -x/mu`, the state stays
-close to the cubic `w = x^3/3 - x` for a long time, creeping along it, then
-jumps horizontally to the other branch. The period grows in proportion to
-`mu`:
-
-```
-T = (3 - 2 ln 2) mu + 3 a mu^(-1/3) + ...,    a = 2.338
-```
-
-where `a` is the first zero of the Airy function (negated), and
-`3 - 2 ln 2 = 1.614`.
 
 ```python
 vdp = xs.load("vdp.ode")
+vdp.equilibrium({"u": 0, "v": 0}).eigenvalues     # -0.25 +/- 0.968i
 
-def cycle(mu, total):
-    vdp.set(total=total, meth="stiff")
-    s = vdp.run(mu=mu)
-    x = s["x"]
-    up = s.t[1:][(x[:-1] < 0) & (x[1:] >= 0)]      # upward zero crossings
-    return np.diff(up)[-1], x[len(x) // 2:].max()
-
-for mu in (0.1, 1, 10, 50):
-    period, amplitude = cycle(mu, total=40 * max(mu, 2))
-    print(mu, round(period, 2), round(amplitude, 3))
-# 0.1  6.29  2.000
-# 1    6.66  2.009
-# 10   19.08 2.014
-# 50   82.50 2.003
+d = vdp.auto.equilibria("mu", parmin=-0.5, parmax=1)
+hb = d.special("HB")[0]
+hb.value                               # 0.0 (to 1e-7): the Hopf point
+cycles = vdp.auto.continue_from(hb, "periodic").to_pandas()
+cycles = cycles[cycles["periodic"] & (cycles["mu"] > 0)]
+small = cycles[cycles["mu"] < 0.2]
+np.abs(small["U_max"] - 2 * np.sqrt(small["mu"])).max()    # below 1e-3
+cycles["stable"].all()                 # True: a stable cycle, supercritical
 ```
 
-The amplitude barely changes (it stays near 2), but the period goes from
-6.29 to 82.5. The formula above gives 19.39 for `mu = 10` and 82.59 for
-`mu = 50`; for `mu = 50` it agrees to within 0.2%.
-For large `mu` use `meth="stiff"`: the fast jumps and the slow creeping
-need very different step sizes.
+AUTO's branch of cycles leaves the Hopf point with an amplitude that agrees
+with `2 sqrt(μ)` to three decimals while `μ` is small. Further out the
+agreement degrades slowly: the cycle is no longer a circle.
+
+For large `μ` the cycle changes its character. It creeps slowly along the
+curve where `v' = 0` and jumps quickly between its branches: a *relaxation
+oscillation*, whose period grows in proportion to `μ`. Its analysis needs
+other methods than the weakly nonlinear ones above (see Strogatz, ch. 7).
+With the substitution `u = sqrt(μ) x`, the model becomes the more common
+form `x'' − μ (1 − x²) x' + x = 0`, whose cycle has amplitude about 2 for
+every `μ`.
 
 !!! note "Exercises"
-    1. Show that for `mu = 0.1` the origin is an unstable focus with a
-       growth rate `mu/2 = 0.05`, and that the amplitude of the limit cycle
-       is 2 to three digits.
-    2. Plot `x(t)` for `mu = 0.1`, 1, and 10 on the same axes. How does the
-       shape change?
-    3. The period 6.66 for `mu = 1` is not `2 pi`. Why is the period of a
-       nonlinear oscillator not determined by the linear part?
-    4. Measure the period for `mu = 20` and compare it with the formula.
+    1. Derive the averaged equation for `a`. Hint: substitute `u` and `v`
+       into `v' = ...`, and use `⟨sin² θ⟩ = 1/2` and
+       `⟨sin² θ cos² θ⟩ = 1/8`.
+    2. Run `mu = 0.1` from `u = 0.1` and from `u = 3`. Where do both runs
+       end?
+    3. [MA §9.2.3] finds that the Rayleigh oscillator
+       `x'' + ω0² x = ε (x' − x'³)` has a limit cycle of amplitude
+       `2 / (sqrt(3) ω0)`. Write it as an `.ode` file and check the
+       amplitude for `ω0 = 1` and `ε = 0.1`.
+    4. Measure the period of the cycle for `mu = 10` (use `meth="stiff"`
+       and a long run). How does it compare with `2π`?
 
 ??? success "Solutions"
-    1. The eigenvalues are `0.05 ± 0.9987i`. The limit cycle amplitude in
-       the run is 2.0001. Averaging theory gives exactly 2 at leading
-       order.
-    2. For `mu = 0.1` it is a sine wave; for `mu = 1` it is slightly
-       distorted; for `mu = 10` it is a sawtooth-like shape with long slow
-       parts and fast jumps.
-    3. On the cycle the amplitude is 2, not small, so the nonlinear term is
-       not negligible: the period is a property of the whole cycle, and
-       changes with `mu` (6.29, 6.66, 11.6, 19.08, 82.5 for `mu` = 0.1, 1,
-       5, 10, 50).
-    4. The measured period is 34.68; the formula gives 34.86. The relative
-       difference, 0.5%, is smaller than for `mu = 10` (1.6%) and shrinks
-       as `mu` grows.
+    1. With `u = a cos θ`, `v = −a sin θ` and `θ = t + φ`, the condition
+       `a' cos θ − a φ' sin θ = 0` and the equation for `v` give
+       `a' = −(μ − a² cos² θ)(−a sin θ) sin θ`, averaged over `θ`:
+       `a' = a (μ/2 − a²/8)`.
+    2. Both end on the same cycle, of amplitude 0.632 = `2 sqrt(0.1)`: the
+       limit cycle attracts orbits from inside and from outside.
+    3. With `x' = y`, `y' = -w0^2*x + eps*(y - y^3)`, a run of 300 time
+       units from `x = 0.1` ends on a cycle of amplitude 1.156, and
+       `2/sqrt(3) = 1.1547`.
+    4. About 19.08, three times `2π`: the relaxation oscillation is much
+       slower than the small cycle near the Hopf point.
 
-## Example 4: the Lorenz equations and chaos
+## Example 5: the forced, damped pendulum and chaos
 
-Lorenz derived three equations from a model of convection in a fluid
-layer, heated from below. The same equations describe a water wheel with
-leaking buckets (see `waterwheel.ode` in the examples):
+Now switch on the force in the pendulum equation,
+`θ'' + 2γ θ' + ω0² sin θ = a0 cos Ωt`. The system is no longer autonomous:
+its state is `(θ, θ')` together with the phase of the force, which leaves
+room for chaos [MA §10.1, p. 250]. With a weak force the pendulum settles
+on an oscillation that repeats with the period of the force
+[MA Box 8.8, p. 199].
+
+A clear way to see what the motion does is to look at the state once per
+period `T = 2π/Ω` of the force. This *stroboscopic map* is a Poincaré
+section [MA §6.6.2, p. 138; §8.4, p. 203]. An orbit of period `T` shows up
+as one point, an orbit of period `2T` as two, a chaotic orbit as a cloud of
+points that never repeats.
 
 ```ode
-# lorenz.ode
-x' = s*(y-x)
-y' = r*x - y - x*z
-z' = x*y - b*z
-par s=10, r=28, b=2.6666667
-init x=1, y=1, z=1
-@ total=50, dt=0.005, xp=x, yp=z, xlo=-25, xhi=25, ylo=0, yhi=50
+# forced.ode
+th' = p
+p' = -2*gam*p - w0^2*sin(th) + a0*cos(Om*t)
+par gam=0.25, w0=1, a0=0.5, Om=0.6666667
+init th=0, p=0
+@ total=600, dt=0.01, bound=1e6, xp=th, yp=p, xlo=-4, xhi=4, ylo=-3, yhi=3
 done
 ```
 
-Write `b` as a decimal: in a `par` line XPPAUT reads `b=8/3` as `b=8`,
-because the value there must be a number, not an expression.
+When the pendulum goes round and round, `θ` grows without limit:
+`bound=1e6` keeps XPPAUT from stopping the run when `|θ|` passes its
+default bound of 100.
 
-The origin is an equilibrium for every `r`. It is stable for `r < 1`. At
-`r = 1` it loses stability in a pitchfork and two new equilibria,
-`C+` and `C-` at `x = y = ±sqrt(b (r - 1))`, `z = r - 1`, appear. They are
-the convection rolls turning one way or the other. For `s = 10`,
-`b = 8/3` they lose stability in a Hopf bifurcation at
-
-```
-r = s (s + b + 3)/(s - b - 1) = 24.74
-```
-
-and for `r = 28` they are unstable and the origin too, but the orbits stay
-bounded: they wind around `C+` for a while, switch to `C-`, and so on, in
-an irregular pattern that never repeats. The set they fill is the
-**strange attractor**, the butterfly.
+The Lyapunov exponent measures the same thing in a number. Follow two
+states a small distance `d0` apart for one period of the force, see by
+which factor their distance has grown, put the second state back at the
+distance `d0` in the direction it has moved to, and repeat. The average of
+the logarithms of the growth factors, per unit time, is the largest
+Lyapunov exponent: this is the definition of [MA §10.1, p. 249] turned into
+a computation.
 
 ```python
-lor = xs.load("lorenz.ode")
-c_plus = lor.equilibrium({"x": 8, "y": 8, "z": 27})
-c_plus.kind                            # 'saddle-focus'
-c_plus["x"], c_plus["z"]               # 8.485, 27.0
-c_plus.eigenvalues                     # -13.85 and 0.094 +/- 10.19i
+forced = xs.load("forced.ode")
+T = 2 * np.pi / forced.parameters["Om"]    # the period of the force
+forced.set(dt=T / 500)                     # 500 steps per period
 
-lor.parameters["r"] = 20               # below the Hopf value
-lor.equilibrium({"x": 7, "y": 7, "z": 19}).kind     # 'stable focus' (r = 20)
+def strobe(a0, periods=150):
+    """p once per period of the force, after 50 periods of transient."""
+    forced.parameters["a0"] = a0
+    s = forced.run(th=0, p=0, total=periods * T)
+    return s["p"][::500][50:]
+
+def one_period(th, p):
+    """The state one period of the force later, in full precision."""
+    forced.run(th=th, p=p, total=T)
+    forced.ic_last()
+    return forced.get("th"), forced.get("p")
+
+def lyapunov(a0, periods=500, d0=1e-8):
+    forced.parameters["a0"] = a0
+    th, p = 0.0, 0.0
+    for _ in range(100):                   # settle on the attractor
+        th, p = one_period(th, p)
+    th2, p2, logs = th + d0, p, 0.0
+    for _ in range(periods):
+        th, p = one_period(th, p)
+        th2, p2 = one_period(th2, p2)
+        gap = np.hypot(th2 - th, p2 - p)
+        logs += np.log(gap / d0)
+        th2, p2 = th + (th2 - th) * d0 / gap, p + (p2 - p) * d0 / gap
+    return logs / (periods * T)
+
+for a0 in (0.5, 1.07, 1.15, 1.5):
+    points = strobe(a0)
+    print(a0, len(np.unique(np.round(points, 3))), round(lyapunov(a0), 3))
+# 0.5   1   -0.25    period T
+# 1.07  2   -0.04    period 2T
+# 1.15  93  0.094    chaos
+# 1.5   98  0.117    chaos
 ```
 
-**Sensitive dependence.** Run the system twice, with initial values of `x`
-that differ by 1e-6:
+As the force grows the periodic orbit of period `T` loses its stability to
+one of period `2T`: a period doubling, where a Floquet multiplier passes
+through −1 [MA §9.1.2, p. 227]. More doublings follow at shorter and shorter
+intervals, and the orbit becomes chaotic. This is the *Feigenbaum cascade*
+[MA §10.3.1, pp. 266–267]. On the periodic orbits the exponent is negative
+(nearby states are drawn in); on the chaotic ones it is positive.
+
+XPPAUT has its own estimate, `forced.lyapunov()`, which follows a small
+perturbation along the stored run. It is not used here: XPPAUT stores runs
+in single precision, and when an angle winds up to thousands of radians, as
+`th` does when the pendulum goes round, the rounding of the stored values
+is as large as the perturbation, and the estimate goes wrong. For variables
+that stay of moderate size, as in `lorenz.ode`, it works.
+
+**Sensitive dependence.** Start on the attractor and run the chaotic case
+twice, with angles that differ by `10⁻⁶`:
 
 ```python
-lor.parameters["r"] = 28
-a = lor.run()
-lor.initial_conditions["x"] = 1.000001
-b = lor.run()
-lor.initial_conditions["x"] = 1.0
-gap = abs(a["x"] - b["x"])
-a.t[np.argmax(gap > 1)]                # 27.3: the two runs are no longer alike
-gap.max()                              # 30: as far apart as the attractor is wide
+forced.parameters["a0"] = 1.5
+th, p = 0.0, 0.0
+for _ in range(100):                       # start on the attractor
+    th, p = one_period(th, p)
+a = forced.run(th=th, p=p, total=300)
+b = forced.run(th=th + 1e-6, p=p, total=300)
+gap = np.abs(a["th"] - b["th"])
+a.t[np.argmax(gap > 1)], np.log(1e6) / 0.117    # 114, and 118
 ```
 
-At first the two runs are indistinguishable. The gap grows
-exponentially, a factor of about e every two time units, until at
-`t = 27.3` it is of order one, and then the two runs have nothing to do
-with each other. Halving the initial difference buys only about one more
-time unit of prediction. This is **sensitive dependence on initial conditions**,
-the property that makes long term weather forecasts impossible, and the
-reason that the numerical method and the step size matter for the details
-of a chaotic orbit but not for its statistics.
+The gap reaches a whole radian at `t = 114`, close to the Lyapunov time
+`ln(1/10⁻⁶) / λ_L = 118`. After that the two runs have nothing in common,
+although the equations are deterministic and the starts differ by a
+millionth of a radian [MA §10.1, p. 249].
 
 !!! note "Exercises"
-    1. Compute the Hopf value `r = 24.74` from the formula and confirm it:
-       find the eigenvalues of `C+` at `r = 24` and at `r = 25`.
-    2. Plot `z` against `x` (the butterfly): `a.plot("x", "z")`, or the
-       app's Phase Plane tab with `xp=x, yp=z`. Does the orbit switch from
-       one wing to the other at regular intervals?
-    3. For `r = 10` and `r = 20` run from `x = y = z = 1`. Where do the
-       orbits end? Compare with `x = ±sqrt(b (r - 1))`.
+    1. Draw the bifurcation diagram, as an experimenter would, turning the
+       force up slowly: for `a0` from 1.0 to 1.5 in steps of 0.01, run 200
+       periods starting where the previous run ended, and plot the
+       stroboscopic values of `p` from the last 100 periods against `a0`.
+       Find the period doublings and the windows where the motion is
+       periodic again.
+    2. Look at `a0 = 1.35`. How many stroboscopic points are there, what is
+       the Lyapunov exponent, and what does `th` do?
+    3. By the Lyapunov time, how much later should the gap reach a radian
+       if the initial difference is ten times smaller? Check with
+       `b = forced.run(th=th + 1e-7, p=p, total=300)`.
 
 ??? success "Solutions"
-    1. `10 (10 + 2.6667 + 3)/(10 - 2.6667 - 1) = 24.737`. At `r = 24` the
-       equilibrium `C+` has the eigenvalues `-13.62` and `-0.0225 ± 9.49i`:
-       stable. At `r = 25` they are `-13.68` and `+0.0079 ± 9.67i`: unstable.
-    2. No: the number of turns around one wing before the orbit crosses to
-       the other is irregular, and never settles into a pattern.
-    3. For `r = 10` the orbit ends at `C+`, `x = 4.899`; for `r = 20` at
-       `C-`, `x = -7.118`; both agree with `±sqrt(b (r - 1))`. Which of the
-       two is reached depends on the start.
+    1. Each run starts where the previous one ended:
+
+        ```python
+        import matplotlib.pyplot as plt
+        th, p = 0.0, 0.0
+        for a0 in np.arange(1.0, 1.5001, 0.01):
+            forced.parameters["a0"] = a0
+            s = forced.run(th=th, p=p, total=200 * T)
+            th, p = s["th"][-1] % (2 * np.pi), s["p"][-1]
+            pts = s["p"][::500][100:]
+            plt.plot([a0] * len(pts), pts, ",k")
+        ```
+
+        One point up to 1.06, two at 1.07 and four at 1.08: two period
+        doublings. From 1.09 the points fill a cloud (chaos), with a window
+        of period 3 from 1.12 to 1.14 and chaos again from 1.15 to about
+        1.28. From 1.30 to 1.42 there is a single point again, then period 2
+        from 1.43 to 1.45, and chaos near 1.5. Several attractors coexist for
+        some forces, so the picture depends a little on where each run
+        starts.
+    2. One point, and a Lyapunov exponent of −0.25: a stable periodic
+       orbit. `th` decreases by `2π` in each period of the force: the
+       pendulum goes round once per period, in step with the force.
+    3. `ln(10) / 0.117 ≈ 20` time units later. The run gives 147 instead of
+       114, 33 later: the growth rate varies along the orbit, and only its
+       long-time average is `λ_L`.
 
 ## Where to go next
 
-- The examples folder has `pend.ode` and `invpend.ode` (the inverted
-  pendulum with an animation), `doubpend.ode` (a double pendulum),
-  `waterwheel.ode` and `lorenz.ode`. Open them in the app: the `.ani`
-  animation files make the motion visible.
-- [Bifurcation analysis with AUTO](../manual/auto.md) for branch points and
-  their continuation.
+- [MA] continues with the double pendulum, a Hamiltonian system whose
+  Poincaré sections fill with chaos as the energy grows [MA §10.2.4,
+  pp. 258–265]; the examples folder has `doubpend.ode`. It also treats the
+  Lorenz equations, the classic dissipative chaos [MA Box 8.2, p. 191;
+  §10.1, p. 252]: open `lorenz.ode` and `waterwheel.ode`, a water wheel
+  with leaking buckets that obeys the same equations (Strogatz, ch. 9).
+- The examples folder also has `pend.ode`, `invpend.ode` (the pendulum with
+  a vibrating support, with an animation) and `forcpend.ode`. Open them in
+  the app: the `.ani` files make the motion visible.
+- [MA] comes with MATLAB programs for chapters 8 to 10, available from the
+  publisher, that explore the same examples.
+- [Bifurcation analysis with AUTO](../manual/auto.md) for branch points,
+  Hopf points and the continuation of periodic orbits.
 - [Data analysis](../python/analysis.md) for spectra, the Lyapunov exponent
   and the period of a limit cycle.
+
+## References
+
+- **[MA]** Sanz Recio, F. J. and Sánchez Arriaga, G. (2019). *Mecánica
+  analítica: lagrangiana, hamiltoniana y sistemas dinámicos*. Madrid:
+  McGraw-Hill/Interamericana de España. ISBN 978-84-486-1539-0 (print),
+  978-84-486-1541-3 (electronic). In Spanish. Chapters 8 (regular
+  solutions), 9 (bifurcations and approximate methods) and 10
+  (deterministic chaos) are the basis of this page.
+- Landau, L. D. and Lifshitz, E. M. (1976). *Mechanics*, 3rd edition
+  (Course of Theoretical Physics, vol. 1). Oxford: Butterworth-Heinemann.
+  ISBN 978-0-7506-2896-9. Chapter V, on small oscillations, includes
+  parametric resonance, nonlinear oscillations and motion in a rapidly
+  oscillating field, the topics of Examples 1 and 3.
+- Strogatz, S. H. (2024). *Nonlinear Dynamics and Chaos: With Applications
+  to Physics, Biology, Chemistry, and Engineering*, 3rd edition. Boca
+  Raton: CRC Press (Chapman & Hall). ISBN 978-0-367-02650-9. Chapter 3
+  (bifurcations) treats the bead on a rotating hoop in the overdamped
+  limit, chapter 7 (limit cycles) relaxation oscillations, and chapter 9
+  the Lorenz equations and the chaotic water wheel.

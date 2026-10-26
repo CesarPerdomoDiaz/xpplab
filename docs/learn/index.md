@@ -11,7 +11,7 @@ a course, or for self-study with the desktop app open beside the text.
 | [Neuroscience](neuroscience.md) | passive membrane, theta neuron, FitzHugh-Nagumo | equilibria and eigenvalues, excitability, saddle-node and Hopf onset of firing, relaxation oscillations |
 | [Ecology](ecology.md) | harvested population, Lotka-Volterra, Rosenzweig-MacArthur, competition | tipping points and hysteresis, conserved quantities, the paradox of enrichment, basins of attraction |
 | [Chemistry](chemistry.md) | consecutive reactions, Michaelis-Menten, Schlögl, Brusselator | exact solutions as tests, time scales and stiffness, bistability, chemical oscillators |
-| [Mechanics](mechanics.md) | damped pendulum, buckling beam, van der Pol, Lorenz | energy, pitchfork bifurcation, limit cycles and relaxation oscillations, chaos |
+| [Mechanics](mechanics.md) | pendulum, pendulum on a rotating hoop, pendulum with a vibrating support, van der Pol, forced pendulum | energy and Lagrange's theorem, pitchfork and Hopf bifurcations, averaging, parametric resonance, period doubling and chaos |
 
 ## How a page works
 

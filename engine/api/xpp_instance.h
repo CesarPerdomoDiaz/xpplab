@@ -85,7 +85,7 @@ extern "C" {
   X(int, xppe_auto_reset, (void))                                             \
   X(int, xppe_auto_run, (const char *))                                       \
   X(int, xppe_auto_run_form, (const char *, const char *))                    \
-  X(int, xppe_auto_grab, (int))                                             \
+  X(int, xppe_auto_grab, (int))                                               \
   X(int, xppe_auto_ungrab, (void))                                            \
   X(int, xppe_auto_save, (const char *))                                      \
   X(int, xppe_auto_load, (const char *))                                      \

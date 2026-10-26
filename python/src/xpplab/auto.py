@@ -365,17 +365,23 @@ class Auto:
                 if len(v) != len(names):
                     raise ValueError(f"expected {len(names)} values, "
                                      f"got {len(v)}")
-                return v
+                # float() and int(): the repr of a NumPy number is
+                # "np.float64(0.14)", which XPPAUT's atof() reads as 0.
+                return [float(x) for x in v]
 
             fields = []
             if unstable is not None:
-                fields.append(("dim unstable", unstable))
+                fields.append(("dim unstable", int(unstable)))
             if stable is not None:
-                fields.append(("dim stable", stable))
+                fields.append(("dim stable", int(stable)))
             fields += [(f"{n}_L", x) for n, x in zip(names, values(left))]
             if kind == "heteroclinic":
                 fields += [(f"{n}_R", x) for n, x in zip(names, values(right))]
             form = ";".join(f"{k}={v!r}" for k, v in fields)
+            # The engine keeps 511 characters of a dialog answer.
+            if len(form.encode()) >= 512:
+                raise ValueError(f"the {kind} form is {len(form.encode())} "
+                                 "bytes long; the engine reads at most 511")
         self.parameters(parameter, second)
         self._eng.call("xppe_auto_ungrab")
         return self._run(key, settings, form)

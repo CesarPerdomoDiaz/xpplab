@@ -15,9 +15,9 @@ from .analysis import Table
 from .animation import Animation
 from .auto import Diagram, Point
 from .control import Linearization
-from .model import METHODS, Equilibrium, EquilibriumList, Model, Trajectory, load
+from .model import METHODS, Ensemble, Equilibrium, EquilibriumList, Model, Trajectory, load
 
-__all__ = ["Model", "Trajectory", "Equilibrium", "EquilibriumList", "Linearization",
+__all__ = ["Model", "Trajectory", "Ensemble", "Equilibrium", "EquilibriumList", "Linearization",
            "Diagram", "Point", "Table", "Animation",
            "EngineError", "METHODS", "load", "find_engine_library",
            "__version__"]

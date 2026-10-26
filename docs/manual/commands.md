@@ -48,6 +48,7 @@ commands. `help` lists them all.
 | `ic u[1..20] = sin([j]/3)` | Initial values from a formula: one variable (`ic V = vk + 0.1`) or a numbered range, `[j]` the index (XPPAUT's formUla). |
 | `click -0.3 0`, `click keep` | Start a run at that point of the phase plane, as a click does; `click keep` keeps each such run (`click keep off` stops). |
 | `kinescope capture phase`, `kinescope play 200`, `kinescope save film.gif` | XPPAUT's Kinescope: a picture of a figure (time, phase, auto, auto2) as it is shown; play the frames (200 ms each); write them as an animated GIF (`kinescope frames NAME`: PNG files). `kinescope show 3`, `kinescope stop`, `kinescope clear`. |
+| `ensemble 50` | Run a noisy model 50 times and average: the mean and variance of every column at each time (XPPAUT's stocHastic > Compute). `export ens.csv analysis` saves them. |
 | `range iapp 0 0.3 10 film` | Film the Range: each run drawn alone and captured by the Kinescope (XPPAUT's Range with Movie). |
 | `eq` | Find an equilibrium and report its stability. |
 | `eq all 200` | Every equilibrium Newton's method finds from 200 random points (100 if left out) in the phase plane's window: XPPAUT's Sing pts > Monte Carlo. |

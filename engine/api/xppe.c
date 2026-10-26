@@ -573,6 +573,88 @@ int xppe_ic_formula(const char *target, const char *formula) {
   return n;
 }
 
+/* ---- Ensembles of noisy runs ---------------------------------------------- */
+
+static double *ens_data; /* mean, then variance: [which][column][row] */
+static int ens_rows, ens_cols;
+
+/* Numerics > stocHastic > Compute, as XPPAUT's batch mode does it with
+   @ stoch=1: a Range over the first parameter (or variable) from its value
+   to the same value, each run from the initial conditions, and the random
+   numbers going on from run to run; append_stoch() adds each run up and
+   do_stats() makes the mean and the variance, in single precision. */
+int xppe_ensemble(int trials) {
+  extern float *my_mean[], *my_variance[];
+  extern int stoch_len, STOCH_FLAG, STOCH_HERE;
+  void free_stoch(void);
+  void data_back(void);
+  void batch_integrate_once(void);
+  char item[64], v[32];
+  double cur = 0;
+  int rc, old_suppress, j, i;
+  if ((rc = xppe_require_model()) != XPPE_OK) return rc;
+  if (trials < 2) {
+    xppe_set_error("an ensemble needs at least 2 runs", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  snprintf(item, sizeof item, "%s", NUPAR > 0 ? upar_names[0] : uvar_names[0]);
+  xppe_get(item, &cur);
+  snprintf(v, sizeof v, "%d", trials - 1);
+  if ((rc = xppe_set("RANGEOVER", item)) != XPPE_OK || (rc = xppe_set("RANGESTEP", v)) != XPPE_OK ||
+      (rc = xppe_set_number("RANGELOW", cur)) != XPPE_OK ||
+      (rc = xppe_set_number("RANGEHIGH", cur)) != XPPE_OK ||
+      (rc = xppe_set("RANGERESET", "yes")) != XPPE_OK ||
+      (rc = xppe_set("RANGEOLDIC", "yes")) != XPPE_OK)
+    return rc;
+  xppe_begin_call();
+  old_suppress = SuppressOut;
+  SuppressOut = 1;
+  XPPE_GUARD_BEGIN((void)0);
+  free_stoch();
+  STOCH_FLAG = 1;
+  batch_integrate_once();
+  STOCH_FLAG = 0;
+  XPPE_GUARD_END;
+  SuppressOut = old_suppress;
+  xppe_end_call();
+  free(ens_data);
+  ens_data = NULL;
+  ens_rows = ens_cols = 0;
+  if (!STOCH_HERE || stoch_len <= 0) {
+    xppe_set_error("the ensemble's runs did not complete", NULL);
+    return XPPE_ERR_NUMERIC;
+  }
+  ens_cols = NEQ + 1;
+  ens_rows = stoch_len;
+  ens_data = malloc(sizeof(double) * 2 * (size_t)ens_cols * (size_t)ens_rows);
+  if (!ens_data) {
+    ens_rows = ens_cols = 0;
+    return XPPE_ERR_RANGE;
+  }
+  for (j = 0; j < ens_cols; j++)
+    for (i = 0; i < ens_rows; i++) {
+      ens_data[(size_t)j * ens_rows + i] = my_mean[j][i];
+      ens_data[((size_t)ens_cols + j) * ens_rows + i] = my_variance[j][i];
+    }
+  /* The browser shows the mean after a batch ensemble: back to the runs,
+     whose last one stays as the current run. */
+  data_back();
+  return ens_rows;
+}
+
+int xppe_ensemble_column(int col, int which, double *out, int n) {
+  int j, i;
+  if (!ens_data || col < -1 || col >= xppe_count(XPPE_COLUMNS) || which < 0 || which > 1) {
+    xppe_set_error(ens_data ? "no such column" : "no ensemble yet", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  j = col < 0 ? 0 : N_plist > 0 ? plotlist[col] : col;
+  if (j >= ens_cols) return XPPE_ERR_RANGE;
+  if (n > ens_rows) n = ens_rows;
+  for (i = 0; i < n; i++) out[i] = ens_data[((size_t)which * ens_cols + j) * ens_rows + i];
+  return n;
+}
+
 /* ---- Equilibria ------------------------------------------------------------ */
 
 int xppe_equilibrium(double *x, double *re, double *im) {

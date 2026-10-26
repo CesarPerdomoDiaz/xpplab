@@ -320,3 +320,35 @@ def test_equilibrium_html_empty_and_escaped():
     unstable = xs.Equilibrium({"x": 0.0}, np.array([0.5]))
     assert "Equilibrium: unstable (unstable node)" in unstable._repr_html_()
     _check_html(html)
+
+
+def test_ensemble_equals_xppaut_batch(tmp_path):
+    """The mean and variance of noisy runs, digit for digit as XPPAUT's
+    batch mode writes them with @ stoch=1 and @ stoch=2."""
+    ref = ROOT / "build" / "cli" / ("xppaut-headless" +
+                                    (".exe" if sys.platform == "win32" else ""))
+    with xs.load(ODE / "fhn_noise.ode") as m:
+        ens = m.ensemble(20, total=50)
+        assert ens.trials == 20 and len(ens.mean) == 1001
+        assert ens.mean.columns == ["T", "V", "W"]
+        assert np.all(ens.variance["V"][1:] > 0)        # the runs differ
+        np.testing.assert_allclose(ens.std["V"] ** 2, ens.variance["V"])
+        assert m.get("a") == 0.25                         # put back
+        t = ens.to_table()
+        assert t.columns == ["T", "V_mean", "V_var", "W_mean", "W_var"]
+    with xs.load(ODE / "fhn_noise.ode") as m, pytest.raises(xs.EngineError):
+        m.ensemble(1)
+    if not ref.exists():
+        pytest.skip("xppaut-headless not built")
+    text = (ODE / "fhn_noise.ode").read_text()
+    for stoch, part in ((1, ens.mean), (2, ens.variance)):
+        d = tmp_path / str(stoch)
+        d.mkdir()
+        (d / "m.ode").write_text(text.replace(
+            "done", "@ stoch=%d,rangeover=a,rangestep=19,rangelow=0.25,"
+                    "rangehigh=0.25,rangereset=yes,rangeoldic=yes,total=50\ndone" % stoch))
+        subprocess.run([str(ref), "m.ode", "-silent"], cwd=d, check=True,
+                       capture_output=True, stdin=subprocess.DEVNULL)
+        mine = [" ".join("%.8g" % v for v in row) for row in part.to_numpy()]
+        theirs = [" ".join(l.split()) for l in (d / "output.dat").read_text().splitlines()]
+        assert mine == theirs

@@ -225,6 +225,33 @@ class Model(AnalysisMixin):
                 for k in trajectory.columns if k in new}
         return Trajectory(data, log=new.log)
 
+    def ensemble(self, trials: int, **values) -> "Ensemble":
+        """Run a noisy model ``trials`` times and average (XPPAUT's
+        Numerics > stocHastic > Compute).
+
+        Every run starts from the same initial conditions while the random
+        numbers (``wiener`` and ``ran()``) go on, so the runs differ. The
+        result holds the mean and the variance of every column at each
+        output time, computed by XPPAUT as its batch mode does with
+        ``@ stoch=1`` (in single precision). Keyword arguments are applied
+        with :meth:`set` first. The last run stays as the engine's run.
+        """
+        if values:
+            self.set(**values)
+        n = self._engine.call("xppe_ensemble", int(trials))
+        parts = []
+        for which in (0, 1):
+            data = {}
+            buf = (ctypes.c_double * max(n, 1))()
+            for j, name in enumerate(self.columns):
+                k = self._engine.call("xppe_ensemble_column", j, which, buf, n)
+                data[name] = np.frombuffer(buf, dtype=float, count=k).copy()
+            if "T" not in data:  # an "only" statement dropped time
+                k = self._engine.call("xppe_ensemble_column", -1, which, buf, n)
+                data = {"T": np.frombuffer(buf, dtype=float, count=k).copy(), **data}
+            parts.append(Trajectory(data, log=self._engine.log))
+        return Ensemble(parts[0], parts[1], int(trials))
+
     def last_run(self) -> "Trajectory":
         """The engine's most recent run, such as the one period of the limit
         cycle that :meth:`phase_response` leaves behind."""
@@ -737,6 +764,57 @@ class Trajectory:
         rows = [[H.fmt(self._data[c][i]) for c in self.columns] for i in idx]
         return H.block(head, H.table(self.columns, rows),
                        "<p>... first and last rows</p>" if n > len(idx) else "")
+
+
+@dataclass
+class Ensemble:
+    """The mean and the variance over many runs of a noisy model, at each
+    output time (see :meth:`Model.ensemble`)."""
+
+    mean: Trajectory
+    variance: Trajectory
+    trials: int
+
+    @property
+    def std(self) -> Trajectory:
+        """The standard deviation, column by column (time as it is)."""
+        data = {k: (v if k == "T" else np.sqrt(np.clip(v, 0, None)))
+                for k, v in self.variance._data.items()}
+        return Trajectory(data)
+
+    @property
+    def t(self) -> np.ndarray:
+        return self.mean.t
+
+    def to_table(self) -> "Table":
+        """Time, then each column's mean and variance (``V_mean``,
+        ``V_var``, ...): the desktop app's ``export FILE.csv analysis``
+        after an ensemble writes the same."""
+        from .analysis import Table
+        data = {"T": self.mean.t}
+        for name in self.mean.columns:
+            if name != "T":
+                data[name + "_mean"] = self.mean[name]
+                data[name + "_var"] = self.variance[name]
+        return Table(data, title="ensemble of %d runs" % self.trials)
+
+    def to_csv(self, path) -> None:
+        self.to_table().to_csv(path)
+
+    def plot(self, *names: str, ax=None, band: float = 1.0):
+        """Each column's mean against time, with a band of ``band``
+        standard deviations around it."""
+        import matplotlib.pyplot as plt
+        ax = ax or plt.gca()
+        sd = self.std
+        for name in names or [c for c in self.mean.columns if c != "T"][:1]:
+            line, = ax.plot(self.t, self.mean[name], label=name + " mean")
+            ax.fill_between(self.t, self.mean[name] - band * sd[name],
+                            self.mean[name] + band * sd[name],
+                            color=line.get_color(), alpha=0.25, lw=0)
+        ax.set_xlabel("t")
+        ax.legend()
+        return ax
 
 
 @dataclass

@@ -176,8 +176,9 @@ XPPE_API int xppe_found_equilibrium(int i, double *x, double *re, double *im);
  * control design. Matrices are row-major. Since API version 7.
  */
 
-/* Linearise the right-hand side at the state x (one value per ODE
-   variable, at t = 0). A (n x n) receives the Jacobian, B (n x ninputs) the
+/* Linearise the right-hand side at the state x (one value per variable,
+   n = xppe_count(XPPE_VARIABLES), at t = 0; Markov variables get zero rows
+   and columns). A (n x n) receives the Jacobian, B (n x ninputs) the
    derivatives with respect to the parameters named in inputs, one column
    each. They are central differences extrapolated to zero step (Ridders'
    method, from three starting steps, each entry keeping the estimate with

@@ -17,7 +17,7 @@
 
 #include "xpplim.h"
 
-extern int NODE, NUPAR;
+extern int NODE, NMarkov, NUPAR;
 extern char upar_names[MAXPAR][11];
 void eigen(int n, double *a, double *ev, double *work, int *ierr);
 
@@ -25,7 +25,10 @@ void eigen(int n, double *a, double *ev, double *work, int *ierr);
 #define RIDDERS_SHRINK 1.4
 
 /* One derivative being taken: of the right-hand side at x0 with respect to
-   state variable j, or (par != NULL) to a parameter whose value is p0. */
+   state variable j, or (par != NULL) to a parameter whose value is p0. n
+   counts the Markov variables too, as xppe_count() does: the right-hand
+   side has no rows for them and does not read them, so their rows and
+   columns of A are zero. */
 typedef struct {
   int n, j;
   const char *par;
@@ -37,6 +40,8 @@ typedef struct {
 /* The central difference (f(+h) - f(-h)) / 2h. */
 static int central(Diff *d, double h, double *out) {
   int i, rc;
+  memset(d->fp, 0, sizeof(double) * (size_t)d->n);
+  memset(d->fm, 0, sizeof(double) * (size_t)d->n);
   if (d->par) {
     if ((rc = xppe_set_number(d->par, d->p0 + h)) != XPPE_OK) return rc;
     if ((rc = xppe_rhs(0.0, d->x0, d->fp)) != XPPE_OK) return rc;
@@ -143,9 +148,10 @@ int xppe_linearize(const double *x, int ninputs, const char *const *inputs,
                    double *B_error) {
   Diff d;
   double *col, *cerr, *saved, *scratch;
+  char why[256];
   int rc, n, i, j, k;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
-  n = NODE;
+  n = NODE + NMarkov;
   if (!x || !A || ninputs < 0 || (ninputs > 0 && (!inputs || !B))) {
     xppe_set_error("give the point, A, and for inputs their names and B", NULL);
     return XPPE_ERR_RANGE;
@@ -191,9 +197,12 @@ int xppe_linearize(const double *x, int ninputs, const char *const *inputs,
     }
     if (rc == XPPE_OK) rc = xppe_set_number(d.par, d.p0);
   }
-  /* The parameters as they were, whatever happened. */
+  /* The parameters as they were, whatever happened, and the error that
+     happened (setting them clears it). */
+  snprintf(why, sizeof why, "%s", xppe_error());
   if (xppe_loaded())
     for (k = 0; k < ninputs; k++) xppe_set_number(inputs[k], saved[k]);
+  if (rc != XPPE_OK) xppe_set_error("%s", why);
   free(scratch);
   return rc;
 }

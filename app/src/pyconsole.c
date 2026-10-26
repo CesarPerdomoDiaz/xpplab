@@ -14,6 +14,7 @@
 #include <SDL3/SDL.h>
 
 #include "channel.h"
+#include "pyfetch.h"
 
 #define QUEUE 16
 
@@ -23,11 +24,13 @@ static char *rbuf;           /* what has come from Python, up to a new line */
 static size_t rlen, rcap;
 static char code[16384];     /* the lines of a statement not complete yet */
 static bool more, ready, busy;
+static bool was_ready;       /* this process has said it is ready */
 static int next_id = 1;
 static char partial[4096];   /* output not ended by a new line yet */
 static char queue[QUEUE][1024]; /* lines typed while Python was busy */
 static int nqueue;
 static char python_used[1100];
+static bool needs_python; /* none found, or one without NumPy: offer ours */
 
 /* Completion: the word asked about, and what came back. */
 static int complete_id = -1;
@@ -50,9 +53,9 @@ static bool is_file(const char *p) {
   return SDL_GetPathInfo(p, &info) && info.type == SDL_PATHTYPE_FILE;
 }
 
-/* The user's choice, $XPPLAB_PYTHON, else the first python on PATH (on
-   Windows pythonw.exe, which opens no console window), else the py
-   launcher. */
+/* The user's choice, $XPPLAB_PYTHON, else XPP Lab's own once fetched, else
+   the first python on PATH (on Windows pythonw.exe, which opens no console
+   window), else the py launcher. */
 static bool find_python(App *a, char *out, size_t len, bool *launcher) {
   const char *env = getenv("XPPLAB_PYTHON"), *path = getenv("PATH");
 #ifdef _WIN32
@@ -74,6 +77,7 @@ static bool find_python(App *a, char *out, size_t len, bool *launcher) {
     snprintf(out, len, "%s", env);
     return true;
   }
+  if (pyfetch_python(out, len)) return true;
   for (p = path; p && *p; p = *e ? e + 1 : e) {
     e = strchr(p, sep);
     if (!e) e = p + strlen(p);
@@ -107,7 +111,7 @@ static void reset(void) {
   proc = NULL;
   to_py = from_py = NULL;
   rlen = 0;
-  more = ready = busy = false;
+  more = ready = busy = was_ready = false;
   code[0] = partial[0] = '\0';
   nqueue = 0;
   complete_id = vars_id = -1;
@@ -118,7 +122,7 @@ static void reset(void) {
    "cannot find the file specified"; copied variable by variable, leaving
    out names without a value and those starting with '=' (Windows' folder
    of each drive), it is accepted. */
-static SDL_Environment *child_environment(void) {
+SDL_Environment *pyconsole_environment(void) {
   SDL_Environment *env = SDL_CreateEnvironment(false);
   char **vars = SDL_GetEnvironmentVariables(SDL_GetEnvironment());
   int i;
@@ -133,19 +137,40 @@ static SDL_Environment *child_environment(void) {
   return env;
 }
 
+/* An interpreter inside the folder of XPP Lab's own Python. */
+static bool is_ours(const char *exe) {
+  char dir[1100];
+  pyfetch_folder(dir, sizeof dir);
+  return SDL_strncasecmp(exe, dir, strlen(dir)) == 0;
+}
+
+/* What to do without a usable Python: fetch ours, or choose one. */
+static void offer(App *a) {
+  int mb = pyfetch_megabytes();
+  needs_python = true;
+  if (mb > 0)
+    app_log(a, "  python fetch      download %s for XPP Lab (about %d MB, once)",
+            pyfetch_about(), mb);
+  else
+    app_log(a, "  python fetch      download %s for XPP Lab", pyfetch_about());
+  app_log(a, "  python use PATH   use a Python 3 of yours that has NumPy");
+}
+
 static bool start(App *a) {
   char python[1100], pkg[1100], pp[4200], *old;
   const char *args[8];
-  bool launcher;
+  bool launcher, ours;
   int n = 0;
   SDL_Environment *env;
   SDL_PropertiesID props;
   if (proc) return true;
+  if (pyfetch_running()) return false; /* lines wait for the Python on its way */
   if (!find_python(a, python, sizeof python, &launcher)) {
-    app_log(a, "error: no Python found. Install Python 3 with NumPy (python.org), "
-               "or choose one: python use C:/path/to/python.exe");
+    app_log(a, "error: the console found no Python on this computer.");
+    offer(a);
     return false;
   }
+  ours = is_ours(python);
 #ifdef _WIN32
   { /* pythonw.exe beside a python.exe: the same Python, without a console */
     size_t n = strlen(python);
@@ -158,14 +183,19 @@ static bool start(App *a) {
 #endif
   channel_start(a); /* app and m in the console come through it */
   snprintf(pkg, sizeof pkg, "%spython", a->base_dir);
-  old = getenv("PYTHONPATH");
+  /* XPP Lab's own Python takes nothing from another Python's settings. */
+  old = ours ? NULL : getenv("PYTHONPATH");
 #ifdef _WIN32
   snprintf(pp, sizeof pp, "%s%s%s", pkg, old && *old ? ";" : "", old ? old : "");
 #else
   snprintf(pp, sizeof pp, "%s%s%s", pkg, old && *old ? ":" : "", old ? old : "");
 #endif
-  env = child_environment();
+  env = pyconsole_environment();
   SDL_SetEnvironmentVariable(env, "PYTHONPATH", pp, true);
+  if (ours) {
+    SDL_UnsetEnvironmentVariable(env, "PYTHONHOME");
+    SDL_SetEnvironmentVariable(env, "PYTHONNOUSERSITE", "1", true);
+  }
   SDL_SetEnvironmentVariable(env, "XPPLAB_ENGINE", a->engine_path, true);
   if (channel_path()[0]) SDL_SetEnvironmentVariable(env, "XPPLAB_CHANNEL", channel_path(), true);
   SDL_SetEnvironmentVariable(env, "PYTHONIOENCODING", "utf-8", true);
@@ -201,6 +231,7 @@ bool pyconsole_start(App *a) { return start(a); }
 
 void pyconsole_stop(App *a) {
   (void)a;
+  needs_python = false;
   if (!proc) return;
   SDL_KillProcess(proc, true);
   SDL_DestroyProcess(proc);
@@ -263,7 +294,13 @@ static void exec_line(App *a, const char *line) {
   if (send_request("exec", "code", code, &id)) busy = true;
 }
 
+bool pyconsole_needs_python(void) { return needs_python && !proc; }
+
 bool pyconsole_send(App *a, const char *line) {
+  if (!proc && pyfetch_running()) { /* run once XPP Lab's Python is installed */
+    if (nqueue < QUEUE) snprintf(queue[nqueue++], sizeof queue[0], "%s", line);
+    return true;
+  }
   if (!proc && !start(a)) return false;
   if (busy || !ready) {
     if (nqueue < QUEUE) snprintf(queue[nqueue++], sizeof queue[0], "%s", line);
@@ -403,6 +440,8 @@ static void handle(App *a, const char *line) {
     ready = json_true(line, "ready");
     if (ready) {
       char *ver = json_take(line, "python"), *note = json_take(line, "note");
+      needs_python = false;
+      was_ready = true;
       app_log(a, "Python %s is ready: xs (xpplab), np, app and m (the model here) are "
                  "defined; m.run() runs it in the app.", ver ? ver : "");
       if (note && *note) app_log(a, "note: %s", note);
@@ -530,8 +569,14 @@ void pyconsole_poll(App *a) {
   }
   if (SDL_WaitProcess(proc, false, &code_exit)) {
     flush_partial(a);
-    app_log(a, "%sPython stopped (exit status %d); the next Python line starts it again.",
-            code_exit ? "error: " : "", code_exit);
+    if (!was_ready) { /* most often: no NumPy, which xpplab imports first */
+      app_log(a, "error: the console cannot start with %s; it needs a Python 3 with "
+                 "NumPy.", python_used);
+      if (!is_ours(python_used)) offer(a);
+    } else {
+      app_log(a, "%sPython stopped (exit status %d); the next Python line starts it again.",
+              code_exit ? "error: " : "", code_exit);
+    }
     SDL_DestroyProcess(proc);
     reset();
     return;
@@ -545,3 +590,26 @@ void pyconsole_poll(App *a) {
 }
 
 const char *pyconsole_python(void) { return python_used; }
+
+void pyconsole_fetched(App *a, bool ok) {
+  const char *env = getenv("XPPLAB_PYTHON");
+  if (!ok) {
+    if (nqueue > 0) app_log(a, "(%d line%s of Python not run)", nqueue, nqueue > 1 ? "s" : "");
+    nqueue = 0;
+    return;
+  }
+  needs_python = false;
+  if (a->python[0]) { /* fetched to be used: the old choice goes */
+    app_log(a, "The console no longer uses %s.", a->python);
+    a->python[0] = '\0';
+  }
+  if (env && *env) {
+    app_log(a, "note: the console uses $XPPLAB_PYTHON (%s) while it is set.", env);
+  } else if (proc) {
+    app_log(a, "python restart moves the console to it (its variables are lost).");
+  } else if (nqueue > 0 || a->py_mode) {
+    start(a); /* the lines typed meanwhile run when it is ready */
+  } else {
+    app_log(a, "The console uses it: type py, or click >> before the command line.");
+  }
+}

@@ -107,6 +107,8 @@ set(APP_SOURCES
   src/export.c
   src/channel.c
   src/pyconsole.c
+  src/pyfetch.c
+  src/sha256.c
   ${GEN}/font_roboto.c
   ${GEN}/font_cousine.c
   ${GEN}/icon_rgba.c
@@ -196,6 +198,18 @@ add_custom_command(TARGET xpplab POST_BUILD
   # The xpplab package, for the console's Python (pyconsole.c)
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${PROJECT_SOURCE_DIR}/python/src/xpplab ${APP_DATA_DIR}/python/xpplab)
+if(MINGW)
+  # SDL3 from MSYS2 needs its libiconv-2.dll. Found on the PATH instead, it
+  # can be another build (Git for Windows has one, made for another C
+  # runtime), and then SDL cuts the command lines of the processes the app
+  # starts short. The packages bundle it too (below).
+  get_filename_component(XPPS_ICONV_DIR ${CMAKE_C_COMPILER} DIRECTORY)
+  if(EXISTS ${XPPS_ICONV_DIR}/libiconv-2.dll)
+    add_custom_command(TARGET xpplab POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${XPPS_ICONV_DIR}/libiconv-2.dll
+              $<TARGET_FILE_DIR:xpplab>)
+  endif()
+endif()
 
 # Install a self-contained folder (or bundle) and package it with CPack.
 # Every package carries the licences: XPP Lab's, and the notices and

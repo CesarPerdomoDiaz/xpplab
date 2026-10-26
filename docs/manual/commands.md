@@ -50,6 +50,8 @@ commands. `help` lists them all.
 | `kinescope capture phase`, `kinescope play 200`, `kinescope save film.gif` | XPPAUT's Kinescope: a picture of a figure (time, phase, auto, auto2) as it is shown; play the frames (200 ms each); write them as an animated GIF (`kinescope frames NAME`: PNG files). `kinescope show 3`, `kinescope stop`, `kinescope clear`. |
 | `py CODE`, `py` | Run a line of Python in the console (`py` alone: the command window takes Python; see below). |
 | `python use PATH`, `python stop` | Choose the console's Python (remembered), or stop it. |
+| `python fetch` | Download and install XPP Lab's own Python for the console, with NumPy and Matplotlib (once; see below). `python fetch stop` stops it. |
+| `python install PACKAGE ...` | Install packages with pip for the console's Python, e.g. `python install pandas`. |
 | `show python` | Bring the Workspace's Python tab forward. |
 | `serve`, `serve off` | Let Python drive the app (`app = xpplab.app.connect()` in a notebook or script), or stop it. The app lets Python connect from the start unless it was started with `--no-serve`. |
 | `ensemble 50` | Run a noisy model 50 times and average: the mean and variance of every column at each time (XPPAUT's stocHastic > Compute). `export ens.csv analysis` saves them. |
@@ -155,10 +157,38 @@ endless loop or a crash in your code never stops the app. The
 values.
 
 The console uses the copy of the xpplab package that comes with the app,
-and a Python 3 with NumPy found on your computer: the one `python use
-C:/path/to/python.exe` chose (it is remembered), else `$XPPLAB_PYTHON`,
-else the first on the PATH. `python stop` ends it; `python` says which is
-in use.
+and a Python 3 with NumPy: the one `python use C:/path/to/python.exe`
+chose (it is remembered), else `$XPPLAB_PYTHON`, else XPP Lab's own
+Python if it has been installed, else the first on the PATH. `python stop`
+ends it; `python` says which is in use.
+
+### XPP Lab's own Python
+
+When the console finds no Python, or one without NumPy, the command
+window says so and offers **Install Python** (or type `python fetch`).
+It downloads a Python 3.13 made to run from any folder (a build of the
+[python-build-standalone](https://github.com/astral-sh/python-build-standalone)
+project, about 22 MB on Windows), checks that the file is exactly the
+one XPP Lab was built with (its SHA-256 digest), unpacks it and installs
+NumPy and Matplotlib into it with pip: about 55 MB to download, once,
+and about 200 MB on disk. A bar under the command window shows how far it
+has got; **Stop** stops it and keeps nothing. Lines of Python typed
+meanwhile run as soon as it is ready.
+
+It goes into a folder of its own in XPP Lab's settings folder
+(`%APPDATA%\XPPLab\XPPLab\python` on Windows, `~/Library/Application
+Support/XPPLab/XPPLab/python` on macOS, `~/.local/share/XPPLab/XPPLab/python`
+on Linux); `python` shows where. Nothing else on the computer changes, and
+deleting that folder removes it. More packages go in with `python install`,
+for example `python install pandas scipy`. Python is under the PSF
+License, and NumPy and Matplotlib under their own BSD-style licences.
+
+The download needs curl and tar, which Windows 10 and later, macOS and
+most Linux systems have. Where the internet is out of reach, a copy of the
+archive can come from elsewhere: set `XPPLAB_PYTHON_URL` to its address
+(`https://...` or `file:///...`) and `XPPLAB_PYTHON_SHA256` to its digest
+before starting the app. `XPPLAB_RUNTIME_DIR` puts the Python in another
+folder.
 
 ## Command-line options
 

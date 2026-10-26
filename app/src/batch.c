@@ -27,6 +27,7 @@
 #include "channel.h"
 #include "export.h"
 #include "pyconsole.h"
+#include "pyfetch.h"
 
 /* What the window would do. */
 void ui_show_help(App *a, const char *page) {
@@ -62,6 +63,16 @@ const char *pyconsole_prompt(void) { return "py>"; }
 bool pyconsole_running(void) { return false; }
 bool pyconsole_waiting(void) { return false; }
 const char *pyconsole_python(void) { return ""; }
+bool pyfetch_start(App *a) { return pyconsole_send(a, ""); }
+bool pyfetch_pip(App *a, const char *python, const char *packages) {
+  (void)python, (void)packages;
+  return pyconsole_send(a, "");
+}
+void pyfetch_cancel(App *a) { (void)a; }
+bool pyfetch_python(char *out, size_t len) {
+  (void)out, (void)len;
+  return false;
+}
 
 static size_t printed;
 static bool quiet;

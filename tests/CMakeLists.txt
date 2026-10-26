@@ -86,3 +86,22 @@ if(Python3_FOUND AND TARGET xpplab)
             $<TARGET_FILE:xpplab> ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode)
   set_tests_properties(app_console PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
 endif()
+
+# The SHA-256 that checks the console's downloaded Python.
+add_executable(sha256_check sha256_check.c ${PROJECT_SOURCE_DIR}/app/src/sha256.c)
+target_include_directories(sha256_check PRIVATE ${PROJECT_SOURCE_DIR}/app/src)
+add_test(NAME app_sha256 COMMAND sha256_check)
+
+if(Python3_FOUND AND TARGET xpplab)
+  # python fetch without the internet: an archive made by the test, with a
+  # stand-in for the downloaded Python.
+  add_executable(fake_python WIN32 fake_python.c)
+  if(WIN32)
+    target_link_libraries(fake_python PRIVATE shell32)
+  endif()
+  add_test(NAME app_python_fetch
+    COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/pyfetch_check.py
+            $<TARGET_FILE:xpplab> $<TARGET_FILE:fake_python>
+            ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode)
+  set_tests_properties(app_python_fetch PROPERTIES TIMEOUT 400 SKIP_RETURN_CODE 77)
+endif()

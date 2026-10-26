@@ -37,7 +37,10 @@ app.model()`: a Model whose `parameters`, `initial_conditions`, `set()`,
 `get()` and `run()` act in the app, so the lines the app writes for each
 action run there unchanged. `app.model()` works the same from a notebook.
 Other Model methods on it compute with a private copy of the model at the
-app's current values (`m.local()` returns that copy).
+app's current values (`m.local()` returns that copy). It needs no Python
+installed beforehand: on a computer without one, the app offers to
+download its own, with NumPy and Matplotlib
+([Python in the command window](../manual/commands.md#xpp-labs-own-python)).
 
 ## How it connects
 

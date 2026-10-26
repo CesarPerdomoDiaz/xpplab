@@ -11,6 +11,7 @@
 #include "channel.h"
 #include "export.h"
 #include "pyconsole.h"
+#include "pyfetch.h"
 
 void ui_show_help(App *a, const char *page);
 
@@ -71,7 +72,9 @@ static const char *usage =
     "  py CODE                  run a line of Python in the console (xs, np,\n"
     "                           app and m, the model here, are defined);\n"
     "                           py alone: the command window takes Python\n"
-    "  python [use PATH | stop] the console's Python: choose one, or stop it\n"
+    "  python [use PATH | stop] the console's Python: choose one, or stop it;\n"
+    "                           python fetch downloads XPP Lab's own (once);\n"
+    "                           python install PKG... runs pip for it\n"
     "  serve [on|off]           let Python drive the app: in Python,\n"
     "                           app = xpplab.app.connect()\n"
     "  bvp                      solve the boundary-value problem (bndry)\n"
@@ -551,9 +554,34 @@ void app_command(App *a, const char *line_in) {
       pyconsole_stop(a);
       app_log(a, "Python stopped; its variables are gone. The next Python line "
                  "starts a fresh one.");
+    } else if (w && !strcmp(w, "fetch")) {
+      /* python fetch [stop]: XPP Lab's own Python, downloaded once */
+      char *x = next_word(&rest);
+      if (x && (!strcmp(x, "stop") || !strcmp(x, "cancel")))
+        pyfetch_cancel(a);
+      else
+        pyfetch_start(a);
+    } else if (w && !strcmp(w, "install")) {
+      /* python install PKG...: pip, with the console's Python */
+      char *pkgs = skip_space(rest), py[1100];
+      if (!*pkgs)
+        app_log(a, "Write: python install PACKAGE ... (for example python install pandas)");
+      else if (pyconsole_running())
+        pyfetch_pip(a, pyconsole_python(), pkgs);
+      else if (a->python[0])
+        pyfetch_pip(a, a->python, pkgs);
+      else if (pyfetch_python(py, sizeof py))
+        pyfetch_pip(a, py, pkgs);
+      else
+        app_log(a, "error: start the console first (py), so that pip runs with its Python");
     } else {
+      char own[1100];
       app_log(a, pyconsole_running() ? "Python is running: %s" : "Python is not running%s",
               pyconsole_running() ? pyconsole_python() : " (py CODE starts it).");
+      if (pyfetch_python(own, sizeof own))
+        app_log(a, "XPP Lab's own Python: %s", own);
+      else
+        app_log(a, "XPP Lab's own Python is not installed (python fetch installs it).");
     }
   } else if (!strcmp(cmd, "serve")) {
     /* serve [on | off]: the channel through which Python drives the app */

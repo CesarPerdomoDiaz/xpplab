@@ -50,7 +50,7 @@ the app and Python as one environment; then analysis beyond XPPAUT; then
 scale. The other milestones (documentation, releases, coding agents) run
 alongside. The milestone in brackets is the one in progress.
 
-Path: M0 → M1 → M2 → M3 → M4 → M10 → [M9] → M7 → M11
+Path: M0 → M1 → M2 → M3 → M4 → M10 → M9 → [M7] → M11
 
 ## Milestones
 
@@ -195,7 +195,7 @@ To do:
 - [x] A batch command-line tool (XPPAUT's -silent, with AUTO): `xpplab-batch`
 - [x] Ensemble statistics over noisy runs (stocHastic > Compute), equal to XPPAUT's batch @ stoch=1 and 2
 
-### M9 The app and Python together
+### M9 The app and Python together: done
 - [x] Each action in the app written in the command window as the Python
       that does the same; File > Save session as Python script
 - [x] The saved script repeats the session bit for bit (`tests/replay.py`)
@@ -204,7 +204,9 @@ To do:
       agent) drives the running app: `xpplab.app.connect()`
 - [x] A Python console inside the app, its objects listed in the Workspace:
       the command window takes Python, run in a process of its own
-- [ ] A Python runtime fetched the first time the console is used
+- [x] A Python runtime fetched the first time the console is used
+      (Install Python in the command window, or `python fetch`), and
+      `python install PACKAGE` for more
 
 ### M11 Scale and reach
 - [ ] A compiled engine for large models, checked against XPPAUT's

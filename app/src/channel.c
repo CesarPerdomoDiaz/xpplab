@@ -194,6 +194,8 @@ void channel_stop(App *a) {
   }
 }
 
+const char *channel_path(void) { return file_path; }
+
 int channel_clients(void) {
   int i, n = 0;
   for (i = 0; i < MAX_CLIENTS; i++) n += clients[i].s != BAD_SOCK;
@@ -322,7 +324,9 @@ static void serve(App *a, Client *c, const char *line) {
     app_status(a, "A Python client is connected");
   } else if (!strcmp(op, "command")) {
     size_t log0 = a->log_len, echo0 = a->echo.len;
-    app_log(a, ">> %s", arg);
+    char quiet[4] = "";
+    json_str(line, "quiet", quiet, sizeof quiet);
+    if (strcmp(quiet, "1") != 0) app_log(a, ">> %s", arg); /* not for the console */
     app_command(a, arg);
     puts_(c, "{\"ok\": ");
     puts_(c, has_error(a->log + log0, a->log_len - log0) ? "false" : "true");

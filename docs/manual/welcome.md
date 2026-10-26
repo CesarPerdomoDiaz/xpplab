@@ -28,7 +28,7 @@ numerical code. Any XPPAUT `.ode` file works here as it is.
 | Time Series | Variables against time. |
 | Phase Plane | One variable against another, with nullclines and flow. |
 | Bifurcation | AUTO: follow equilibria and periodic orbits as a parameter varies. |
-| Command Window | A log of what happened, and a command line. |
+| Command Window | A log of what happened, and a command line that takes commands or Python. |
 | Help | This manual. Press F1 any time. |
 
 Every window can be dragged, docked, stacked in tabs or closed. To get the

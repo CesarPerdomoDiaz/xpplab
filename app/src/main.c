@@ -31,6 +31,7 @@
 #include <SDL3/SDL_main.h>
 
 #include "channel.h"
+#include "pyconsole.h"
 #include "export.h"
 #include "gui_backend.h"
 #include "ui.h"
@@ -333,6 +334,7 @@ int main(int argc, char **argv) {
     /* --then commands run once the windows have been drawn, so that, for
        example, figures exist and can be exported. */
     channel_poll(&app);
+    pyconsole_poll(&app);
     if (frame == 4)
       for (i = 0; i < nlater; i++) {
         app_log(&app, ">> %s", later[i]);
@@ -405,6 +407,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  pyconsole_stop(&app);
   channel_stop(&app);
   app_shutdown(&app);
   gui_backend_shutdown();

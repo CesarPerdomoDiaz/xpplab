@@ -40,23 +40,27 @@ def channel_file() -> Path:
     return Path(env) if env else Path.home() / ".xpplab" / "channel.json"
 
 
-def connect(timeout: float = 30.0) -> "App":
-    """Attach to the running XPP Lab app (start it first)."""
+def connect(timeout: float = 30.0, quiet: bool = False) -> "App":
+    """Attach to the running XPP Lab app (start it first). With ``quiet``
+    the app's command window does not repeat the commands it is sent (the
+    console's own Python is already there)."""
     path = channel_file()
     try:
         info = json.loads(path.read_text())
     except (OSError, ValueError):
         raise AppError("XPP Lab is not running, or does not let Python connect "
                        "(no %s): start the app first" % path) from None
-    return App(int(info["port"]), str(info["token"]), timeout)
+    return App(int(info["port"]), str(info["token"]), timeout, quiet)
 
 
 class App:
     """A connection to the running app. Close it with :meth:`close`, or use
     it in a ``with`` block."""
 
-    def __init__(self, port: int, token: str, timeout: float = 30.0):
+    def __init__(self, port: int, token: str, timeout: float = 30.0,
+                 quiet: bool = False):
         self._token = token
+        self._quiet = quiet
         try:
             self._sock = socket.create_connection(("127.0.0.1", port), timeout=timeout)
         except OSError as e:
@@ -70,7 +74,10 @@ class App:
     # -- the wire -------------------------------------------------------------
 
     def _request(self, op: str, text: str = "") -> dict:
-        msg = json.dumps({"token": self._token, "op": op, "text": text}) + "\n"
+        req = {"token": self._token, "op": op, "text": text}
+        if self._quiet:
+            req["quiet"] = "1"
+        msg = json.dumps(req) + "\n"
         try:
             self._sock.sendall(msg.encode("utf-8"))
             while b"\n" not in self._buf:
@@ -143,6 +150,13 @@ class App:
         self.model_path = self._request("hello").get("model", "")
         return self
 
+    def model(self) -> "AppModel":
+        """The app's model as a Model: setting values and running go through
+        the app, whose plots follow, so the Python the app writes for each
+        action runs unchanged (``m.parameters["iapp"] = 0.1``, ``sol =
+        m.run()``)."""
+        return AppModel(self)
+
     @property
     def parameters(self) -> dict:
         """The app's parameters and their values (a snapshot)."""
@@ -164,6 +178,123 @@ class App:
     @property
     def columns(self) -> list:
         return list(self._request("names")["columns"])
+
+
+class _AppValues:
+    """The app's parameters or initial values as a live mapping."""
+
+    def __init__(self, app: App, kind: str):
+        self._app, self._kind = app, kind
+
+    def _snapshot(self) -> dict:
+        return (self._app.parameters if self._kind == "parameters"
+                else self._app.initial_conditions)
+
+    def __getitem__(self, name: str) -> float:
+        for k, v in self._snapshot().items():
+            if k.lower() == name.lower():
+                return v
+        raise KeyError(f"no {self._kind[:-1] if self._kind == 'parameters' else 'variable'} {name!r}")
+
+    def __setitem__(self, name: str, value) -> None:
+        self[name]  # a name the model has, or KeyError
+        self._app.set(**{name: value})
+
+    def update(self, values: dict) -> None:
+        for k in values:
+            self[k]
+        self._app.set(**values)
+
+    def __iter__(self):
+        return iter(self._snapshot())
+
+    def __len__(self) -> int:
+        return len(self._snapshot())
+
+    def __contains__(self, name) -> bool:
+        return any(k.lower() == str(name).lower() for k in self._snapshot())
+
+    def keys(self):
+        return self._snapshot().keys()
+
+    def items(self):
+        return self._snapshot().items()
+
+    def values(self):
+        return self._snapshot().values()
+
+    def __repr__(self) -> str:
+        return repr(self._snapshot())
+
+
+class AppModel:
+    """The model open in the app, with the Model API (see App.model()).
+
+    ``parameters``, ``initial_conditions``, ``set``, ``get``, ``run`` and
+    ``last_run`` act in the app. Any other Model method (``equilibrium``,
+    ``sweep``, ``nullclines``, ``ensemble``, ``auto``, ...) computes with a
+    private copy of the model at the app's current values: its results come
+    back, but the app's plots do not show them; ``command()`` runs the
+    app's own version where there is one (``m.command("eq")``).
+    """
+
+    def __init__(self, app: App):
+        self.app = app
+        self.parameters = _AppValues(app, "parameters")
+        self.initial_conditions = _AppValues(app, "initial_conditions")
+        self.ics = self.initial_conditions
+        self._local = None
+        self._local_path = None
+
+    def __repr__(self) -> str:
+        return "<Model %s in XPP Lab>" % Path(self.app.model_path).name
+
+    def set(self, **values) -> "AppModel":
+        self.app.set(**values)
+        return self
+
+    def get(self, name: str):
+        return self.app.get(name)
+
+    def run(self, **values) -> Trajectory:
+        return self.app.run(**values)
+
+    def last_run(self) -> Trajectory:
+        return self.app.last_run()
+
+    def command(self, text: str) -> str:
+        return self.app.command(text)
+
+    @property
+    def variables(self) -> list:
+        return self.app.variables
+
+    @property
+    def columns(self) -> list:
+        return self.app.columns
+
+    def local(self):
+        """A private Model of the same file at the app's current values."""
+        from .model import load
+        path = self.app.model_path
+        if self._local is None or self._local_path != path:
+            if self._local is not None:
+                self._local.close()
+            self._local, self._local_path = load(path), path
+        r = self.app._request("values")
+        self._local.set(**dict(zip(r["parameters"], r["parameter_values"])),
+                        **dict(zip(r["variables"], r["initial_values"])))
+        for name in ("TOTAL", "DT", "T0", "TRANS", "BOUND", "NOUT"):
+            try:
+                self._local.set(**{name: self.app.get(name)})
+            except AppError:
+                pass
+        return self._local
+
+    def __getattr__(self, name: str):
+        if name.startswith("_"):
+            raise AttributeError(name)
+        return getattr(self.local(), name)
 
 
 def _num(v) -> str:

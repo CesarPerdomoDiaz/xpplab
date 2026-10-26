@@ -202,7 +202,8 @@ To do:
 - [x] Exact CSV exports: runs, bifurcation diagrams, Ranges, Analysis results
 - [x] A local channel through which Python (a notebook, a script, a coding
       agent) drives the running app: `xpplab.app.connect()`
-- [ ] A Python console inside the app, its objects listed in the Workspace
+- [x] A Python console inside the app, its objects listed in the Workspace:
+      the command window takes Python, run in a process of its own
 - [ ] A Python runtime fetched the first time the console is used
 
 ### M11 Scale and reach

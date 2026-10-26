@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "python" / "src"))
-app_exe, model = sys.argv[1], Path(sys.argv[2]).resolve()
+app_exe, model = str(Path(sys.argv[1]).resolve()), Path(sys.argv[2]).resolve()
 failures = []
 
 

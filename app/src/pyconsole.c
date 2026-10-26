@@ -244,7 +244,12 @@ static bool send_request(const char *op, const char *key, const char *text, int 
   n = snprintf(msg, 128, "{\"id\": %d, \"op\": \"%s\", \"%s\": ", *id, op, key);
   memmove(msg + n, body, strlen(body) + 1);
   strcat(msg, "}\n");
-  return SDL_WriteIO(to_py, msg, strlen(msg)) == strlen(msg) && SDL_FlushIO(to_py);
+  /* Sent once written: on macOS SDL_FlushIO() returns false on a pipe
+     although the line went out, and the next one must still wait for the
+     reply ("more" inside a block). */
+  if (SDL_WriteIO(to_py, msg, strlen(msg)) != strlen(msg)) return false;
+  SDL_FlushIO(to_py);
+  return true;
 }
 
 static void exec_line(App *a, const char *line) {

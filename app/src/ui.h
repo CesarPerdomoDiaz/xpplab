@@ -112,6 +112,67 @@ void ui_export_button(App *a, int figure);
 void ui_figure_limits(int figure); /* call inside BeginPlot/EndPlot */
 void ui_figure_rect(int figure);   /* call right after EndPlot */
 
+/* A plot that follows its data: its axes fit the data as it changes, until
+   the user zooms or pans it (wheel, left drag, right-drag box). Then the
+   view stays where the user put it, even as new data arrive, until a
+   double-click in the plot, its Fit button, another model, or the plot
+   showing other quantities. */
+typedef struct {
+  bool zoomed;     /* the user has moved the view */
+  bool over;       /* the plot or an axis was under the mouse ... */
+  int over_frame;  /* ... at the end of this frame */
+  bool held[2];    /* the left / right button went down over the plot */
+  unsigned shows;  /* the model and quantities the view was set on */
+} PlotView;
+
+/* This frame, read before ImPlot handles the mouse. */
+typedef struct {
+  int frame;           /* ImGui's frame count */
+  unsigned shows;      /* what the plot shows: its quantities and model */
+  bool wheel;
+  bool clicked[2];     /* left, right: pressed this frame */
+  bool down[2];
+  bool dragging[2];    /* moved past ImGui's drag threshold */
+  bool double_click;   /* left */
+} PlotInput;
+
+/* The follow / stop / resume decision, kept apart from ImGui so that it
+   can be checked on its own (tests/plot_view_check.c). Returns whether
+   the axes follow the data. */
+static inline bool plot_view_update(PlotView *v, const PlotInput *in) {
+  /* Only last frame's hover counts, not one from before a hidden tab. */
+  bool over = v->over && v->over_frame == in->frame - 1;
+  int b;
+  /* Zoomed on other quantities, or on another model's: show all. */
+  if (v->shows != in->shows) {
+    v->shows = in->shows;
+    v->zoomed = false;
+  }
+  /* A drag pans or zooms the plot only if it began over it. */
+  for (b = 0; b < 2; b++) {
+    if (in->clicked[b]) v->held[b] = over;
+    else if (!in->down[b]) v->held[b] = false;
+  }
+  if (over && in->double_click)
+    v->zoomed = false;
+  else if ((over && in->wheel) || (v->held[0] && in->dragging[0]) ||
+           (v->held[1] && in->dragging[1]))
+    v->zoomed = true;
+  return !v->zoomed;
+}
+
+/* Call after BeginPlot, before the Setup calls: true while the axes should
+   fit the data. It reads this frame's mouse before ImPlot does, so the
+   first turn of the wheel already zooms. x and y say what the axes show
+   (their labels, or NULL): when they change, the view follows again. */
+bool ui_view_follow(App *a, PlotView *v, const char *x, const char *y);
+/* Call just before EndPlot. hint: write "Zoomed..." in the plot's corner
+   while zoomed, for plots without a toolbar to show it. */
+void ui_view_end(PlotView *v, bool hint);
+/* On the toolbar's line: the "Zoomed..." hint while zoomed, else
+   `otherwise` (when not NULL). */
+void ui_view_hint(const PlotView *v, const char *otherwise);
+
 /* Show a help page (by file name, without .md). */
 void ui_show_help(App *a, const char *page);
 

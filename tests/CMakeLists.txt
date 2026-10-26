@@ -34,6 +34,17 @@ if(Python3_FOUND)
             ${CMAKE_CURRENT_SOURCE_DIR}/golden/auto/lecar_hopf_iapp.txt)
 endif()
 
+if(TARGET xpplab)
+  # The app's plots: when they follow their data and when the user's zoom
+  # holds (the decision only, from the app's headers; no window).
+  add_executable(plot_view_check plot_view_check.c)
+  target_include_directories(plot_view_check PRIVATE
+    ${PROJECT_SOURCE_DIR}/app/src ${PROJECT_SOURCE_DIR}/engine/api
+    ${PROJECT_SOURCE_DIR}/app/third_party/cimgui
+    ${PROJECT_SOURCE_DIR}/app/third_party/cimplot)
+  add_test(NAME app_plot_view COMMAND plot_view_check)
+endif()
+
 if(Python3_FOUND AND TARGET xpplab)
   # A scripted --screenshot or --record run exits non-zero and writes
   # <file>.err when it fails, and exits 0 when it works.

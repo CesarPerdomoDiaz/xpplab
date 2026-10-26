@@ -243,10 +243,20 @@ static void fit_axis(ImAxis axis, double lo, double hi) {
   ImPlot_SetupAxisLimits(axis, mid - d, mid + d, ImPlotCond_Always);
 }
 
+/* The one- and two-parameter diagrams' views. */
+static PlotView diagram_view[2];
+
 static void diagram_plot(App *a, bool two_param) {
   char ylabel[96];
   AutoUI *u = &a->au;
+  PlotView *v = &diagram_view[two_param];
   const char *xname = u->main_par >= 0 ? a->pars[u->main_par] : "parameter";
+  ui_export_button(a, two_param ? FIG_AUTO2 : FIG_AUTO);
+  igSameLine(0, -1);
+  if (Button("Fit")) v->zoomed = false;
+  Tooltip("Fit the axes to the diagram and keep them fitted as it grows. "
+          "Double-click the plot does the same.");
+  ui_view_hint(v, NULL);
   if (two_param)
     snprintf(ylabel, sizeof ylabel, "%s",
              u->second_par >= 0 ? a->pars[u->second_par] : "parameter 2");
@@ -258,24 +268,27 @@ static void diagram_plot(App *a, bool two_param) {
                        ImPlotFlags_NoTitle | ImPlotFlags_NoLegend)) {
     /* The axes follow the diagram's points inside AUTO's window, as
        autofit did, without a stray end point or rounding noise taking
-       over the scale. */
+       over the scale; once the user zooms in, they stay put. */
     double xlo, xhi, ylo, yhi;
-    diagram_extent(a, two_param, &xlo, &xhi, &ylo, &yhi);
-    if (!two_param && a->sw.n > 0 && a->sw.result_mode == SWEEP_MAXMIN && a->sw.result_kind == 0 && !a->sw.over_ic &&
-        a->sw.par == u->main_par && u->yvar == a->sw.var) {
-      int k;
-      for (k = 0; k < a->sw.n; k++) {
-        if (isfinite(a->sw.x[k])) {
-          xlo = fmin(xlo, a->sw.x[k]);
-          xhi = fmax(xhi, a->sw.x[k]);
-        }
-        if (isfinite(a->sw.ymax[k])) yhi = fmax(yhi, a->sw.ymax[k]);
-        if (isfinite(a->sw.ymin[k])) ylo = fmin(ylo, a->sw.ymin[k]);
-      }
-    }
+    bool follow = ui_view_follow(a, v, xname, ylabel);
     ImPlot_SetupAxes(xname, ylabel, ImPlotAxisFlags_None, ImPlotAxisFlags_None);
-    fit_axis(ImAxis_X1, xlo, xhi);
-    fit_axis(ImAxis_Y1, ylo, yhi);
+    if (follow) {
+      diagram_extent(a, two_param, &xlo, &xhi, &ylo, &yhi);
+      if (!two_param && a->sw.n > 0 && a->sw.result_mode == SWEEP_MAXMIN && a->sw.result_kind == 0 && !a->sw.over_ic &&
+          a->sw.par == u->main_par && u->yvar == a->sw.var) {
+        int k;
+        for (k = 0; k < a->sw.n; k++) {
+          if (isfinite(a->sw.x[k])) {
+            xlo = fmin(xlo, a->sw.x[k]);
+            xhi = fmax(xhi, a->sw.x[k]);
+          }
+          if (isfinite(a->sw.ymax[k])) yhi = fmax(yhi, a->sw.ymax[k]);
+          if (isfinite(a->sw.ymin[k])) ylo = fmin(ylo, a->sw.ymin[k]);
+        }
+      }
+      fit_axis(ImAxis_X1, xlo, xhi);
+      fit_axis(ImAxis_Y1, ylo, yhi);
+    }
     /* A brute-force sweep of the same parameter and variable, for
        comparison: simulations should sit on the stable branches. */
     if (!two_param && a->sw.n > 0 && a->sw.result_mode == SWEEP_MAXMIN && a->sw.result_kind == 0 &&
@@ -306,6 +319,7 @@ static void diagram_plot(App *a, bool two_param) {
     if (ImPlot_IsPlotHovered() && igIsMouseClicked_Bool(ImGuiMouseButton_Left, false))
       pick_point(a, two_param);
     ui_figure_limits(two_param ? FIG_AUTO2 : FIG_AUTO);
+    ui_view_end(v, false);
     ImPlot_EndPlot();
     ui_figure_rect(two_param ? FIG_AUTO2 : FIG_AUTO);
   }
@@ -466,6 +480,13 @@ static void selected_actions(App *a) {
 }
 
 void ui_auto(App *a) {
+  /* Fewer points than on the last frame: the diagram was cleared (Clear
+     diagram, auto reset, another model) or replaced by a smaller one.
+     Show all of it again; and an empty diagram has nothing to zoom on. */
+  static int last_count;
+  if (a->au.count < last_count || a->au.count == 0)
+    diagram_view[0].zoomed = diagram_view[1].zoomed = false;
+  last_count = a->au.count;
   if (!igBegin(WIN_AUTO, &a->show_auto, 0)) {
     igEnd();
     return;
@@ -485,12 +506,10 @@ void ui_auto(App *a) {
   if (igBeginChild_Str("autoplot", V2(0, 0), 0, 0)) {
     if (igBeginTabBar("autotabs", 0)) {
       if (igBeginTabItem("One parameter", NULL, 0)) {
-        ui_export_button(a, FIG_AUTO);
         diagram_plot(a, false);
         igEndTabItem();
       }
       if (igBeginTabItem("Two parameters", NULL, 0)) {
-        ui_export_button(a, FIG_AUTO2);
         diagram_plot(a, true);
         igEndTabItem();
       }

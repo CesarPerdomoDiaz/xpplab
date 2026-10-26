@@ -36,7 +36,9 @@ mistake, a red box above the text says what is wrong and on which line.
 ## 2. Simulate
 
 The model runs as soon as it loads. The **Time Series** tab shows v and w
-over 200 time units. Drag to pan, scroll to zoom, double-click to fit.
+over 200 time units. Drag to pan, scroll to zoom, double-click to fit. Once
+you zoom, the view stays where you put it while the model runs again;
+double-click or press **Fit** to follow the whole solution again.
 
 To run again after changing something, press **Run** in the toolbar, or F5.
 With **Live** ticked (the default) a change to a parameter reruns the model

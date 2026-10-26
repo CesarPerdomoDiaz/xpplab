@@ -66,8 +66,10 @@ def _near_homoclinic_orbit(m, b):
     labelled = [p for p in orbits if p.label and p.period > 50]
     assert labelled[-1].period > 1e6
     assert labelled[0].period < labelled[-1].period
-    longest = max(orbits, key=lambda p: p.period)
-    return longest, labelled[0]
+    # The first point along the branch with a huge period; the branch may
+    # run on past the homoclinic (on macOS it does), so not the last one.
+    diverged = next(p for p in orbits if p.period > 1e6)
+    return diverged, labelled[0]
 
 
 def test_homoclinic_start_follows_the_homoclinic_curve(tmp_path):

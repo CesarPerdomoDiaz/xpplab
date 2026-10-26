@@ -175,8 +175,17 @@ def test_diagram_and_point_html(lecar_hopf):
         assert html.startswith("<")
         HTMLParser().feed(html)
     html = d._repr_html_()
-    assert "HB" in html
+    special = d.special()
+    # "unstable" contains "stable", so count whole cells.
+    assert html.count("<td>stable</td>") == sum(p.stable for p in special)
+    assert html.count("<td>unstable</td>") == sum(not p.stable for p in special)
+    for p in d.special("HB"):
+        label = "stable" if p.stable else "unstable"
+        assert (f"<tr><td>HB</td><td>{p.label}</td><td>{label}</td>"
+                f"<td>{p.parameter}</td>") in html
     hb = d.first("HB")
-    assert f"<td>{'stable' if hb.stable else 'unstable'}</td>" in html
-    assert f"<td>{'stable' if hb.stable else 'unstable'}</td>" in hb._repr_html_()
-    assert "Hopf bifurcation" in d.first("HB")._repr_html_()
+    label = "stable" if hb.stable else "unstable"
+    ph = hb._repr_html_()
+    assert f"<tr><td>stability</td><td>{label}</td></tr>" in ph
+    assert f"<tr><td>label</td><td>{hb.label}</td></tr>" in ph
+    assert "<tr><td>type</td><td>HB (Hopf bifurcation)</td></tr>" in ph

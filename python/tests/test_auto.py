@@ -179,7 +179,14 @@ def test_homoclinic_tail_is_not_littered_with_limit_points():
         d = m.auto.equilibria("vw")
         orbits = m.auto.continue_from(d.first("HB"), "periodic")
         assert max(p.period for p in orbits) > 1e5
-        assert len([p for p in orbits if p.type in ("LP", "BP", "PD", "TR")]) <= 2
+        flagged = [p for p in orbits if p.type in ("LP", "BP", "PD", "TR")]
+        # None on the tail itself (ten times the first period and more),
+        # where they were about 65 before. On the way there AUTO's test
+        # functions are at the edge of rounding: the Windows build flags one
+        # BP, the manylinux wheel (an older glibc's libm) three.
+        first = orbits.points[0].period
+        assert not [p for p in flagged if p.period >= 10 * first]
+        assert len(flagged) <= 4
 
 
 def test_a_saved_diagram_comes_back_and_can_be_continued(lecar_hopf, tmp_path):

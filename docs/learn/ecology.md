@@ -320,7 +320,7 @@ and fatal in the field.
        `df/dx = 1 - 2x/K - y/(1+x)^2` and `dg/dy = x/(1+x) - d = 0`, so the
        trace is `df/dx`. With `y*` substituted, `y*/(1+x*)^2 =
        (1 - x*/K)/(1 + x*)`, and the trace becomes
-       `x*(1 - (1 + 2x*)/K)`. It is zero at `K = 1 + 2x*`, which is 5/3 for
+       `x*(K - 1 - 2x*)/(K(1 + x*))`. It is zero at `K = 1 + 2x*`, which is 5/3 for
        `d = 1/4`. It is negative (stable) below that value.
     2. `K_H = (1 + d)/(1 - d)` = 2.333, and `x* = d/(1 - d)` = 0.667. At
        `K = 3`, past the Hopf point, the cycle is much milder than for

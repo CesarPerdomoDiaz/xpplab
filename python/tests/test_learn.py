@@ -278,6 +278,12 @@ def test_ecology_rosenzweig_macarthur(runs):
     approx(eq["x"], 1 / 3, 1e-6)
     approx(eq["y"], 0.963, 5e-4)
     approx(eq.eigenvalues[0].real, -0.049, 5e-4)
+    # exercise 1: the trace is x*(K - 1 - 2x*)/(K(1 + x*)), half of it is Re(lambda)
+    xs_, K = 1 / 3, 1.2
+    trace = xs_ * (K - 1 - 2 * xs_) / (K * (1 + xs_))
+    approx(trace / 2, -0.0486, 5e-5)
+    approx(trace, 2 * eq.eigenvalues[0].real, 2e-3)
+    approx(xs_ * (1 - (1 + 2 * xs_) / K) / 2, -0.0648, 5e-5)   # the old, wrong form
     approx(abs(eq.eigenvalues[0].imag), 0.365, 5e-4)
     approx(r.ns["hb"].value, 5 / 3, 2e-4)
     Ks = r.ns["Ks"]

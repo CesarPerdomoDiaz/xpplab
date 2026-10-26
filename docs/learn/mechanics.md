@@ -666,6 +666,18 @@ intervals, and the orbit becomes chaotic. This is the *Feigenbaum cascade*
 [MA §10.3.1, pp. 266–267]. On the periodic orbits the exponent is negative
 (nearby states are drawn in); on the chaotic ones it is positive.
 
+The periodic lines of that table come out the same on every computer. The
+chaotic lines do not. The pendulum's equation calls the sine function, and
+different mathematical libraries round its last binary digit differently;
+on a chaotic orbit that tiny difference grows like any other perturbation,
+until the orbit is a different one. The numbers above come from the
+computer these pages were written on. On another one the count of points
+will differ (it stays a cloud of 80 to 100) and so will the second digit
+of the exponent (it stays positive, about 0.1). Single chaotic orbits
+cannot be reproduced; their statistics can, which is why the study of
+chaos turns to averaged quantities such as the Lyapunov exponent
+[MA §10.1, p. 250].
+
 XPPAUT has its own estimate, `forced.lyapunov()`, which follows a small
 perturbation along the stored run. It is not used here: XPPAUT stores runs
 in single precision, and when an angle winds up to thousands of radians, as
@@ -684,11 +696,14 @@ for _ in range(100):                       # start on the attractor
 a = forced.run(th=th, p=p, total=300)
 b = forced.run(th=th + 1e-6, p=p, total=300)
 gap = np.abs(a["th"] - b["th"])
-a.t[np.argmax(gap > 1)], np.log(1e6) / 0.117    # 114, and 118
+a.t[np.argmax(gap > 1)], np.log(1e6) / 0.117    # 114 here, and 118
 ```
 
 The gap reaches a whole radian at `t = 114`, close to the Lyapunov time
-`ln(1/10⁻⁶) / λ_L = 118`. After that the two runs have nothing in common,
+`ln(1/10⁻⁶) / λ_L = 118`. (In runs that differ only in rounding, as on
+another computer, this time ranges from about 100 to 170: one pair of
+orbits does not separate exactly at the average rate.) After that the two
+runs have nothing in common,
 although the equations are deterministic and the starts differ by a
 millionth of a radian [MA §10.1, p. 249].
 
@@ -729,9 +744,10 @@ millionth of a radian [MA §10.1, p. 249].
     2. One point, and a Lyapunov exponent of −0.25: a stable periodic
        orbit. `th` decreases by `2π` in each period of the force: the
        pendulum goes round once per period, in step with the force.
-    3. `ln(10) / 0.117 ≈ 20` time units later. The run gives 147 instead of
-       114, 33 later: the growth rate varies along the orbit, and only its
-       long-time average is `λ_L`.
+    3. `ln(10) / 0.117 ≈ 20` time units later. Here the run gives 147
+       instead of 114, 33 later; in runs that differ only in rounding the
+       delay ranges from about 5 to 50. The growth rate varies along the
+       orbit, and only its long-time average is `λ_L`.
 
 ## Where to go next
 

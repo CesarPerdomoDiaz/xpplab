@@ -153,3 +153,91 @@ def test_nonsmooth_point_warns():
     m = xs.Model.from_text("x'=if(x>0)then(1)else(0)\ninit x=0\ndone\n")
     with pytest.warns(UserWarning, match="not be smooth"):
         m.linearize(at={"x": 0.0})
+
+
+def test_eigenvalues_at_a_point_are_those_of_A():
+    m = xs.Model.from_text(NONLINEAR)
+    lin = m.linearize(at={"x": 0.3, "y": -0.2}, inputs=["u"])
+    key = lambda z: (round(z.real, 8), round(z.imag, 8))  # noqa: E731
+    np.testing.assert_allclose(sorted(lin.eigenvalues, key=key),
+                               sorted(np.linalg.eigvals(lin.A), key=key),
+                               rtol=1e-9, atol=1e-9)
+    assert lin.residual > 0.01  # not an equilibrium
+
+
+def test_singular_values_are_those_of_the_controllability_matrix():
+    lin = xs.Model.from_text(NONLINEAR).linearize(inputs=["u", "a"])
+    np.testing.assert_allclose(lin.singular_values,
+                               np.linalg.svd(lin.controllability, compute_uv=False),
+                               rtol=1e-12)
+    np.testing.assert_allclose(lin.controllability[:, :2], lin.B)
+    np.testing.assert_allclose(lin.controllability[:, 2:], lin.A @ lin.B, rtol=1e-12)
+
+
+MAP = """
+# the delayed logistic map
+par r=1.9, eps=0
+y(t+1)=x
+x(t+1)=r*x*(1-y)+eps
+init x=0.5, y=0.5
+@ meth=discrete, total=50
+done
+"""
+
+
+def test_map_is_linearised_as_a_map():
+    m = xs.Model.from_text(MAP)
+    lin = m.linearize(inputs=["eps"])
+    xstar = 1 - 1 / 1.9
+    np.testing.assert_allclose([lin.point["X"], lin.point["Y"]], [xstar, xstar], atol=1e-6)
+    # F(x, y) = (x, r x (1 - y)): rows y, x as the model declares them
+    np.testing.assert_allclose(lin.A, [[0, 1], [-1.9 * xstar, 1.9 * (1 - xstar)]], atol=1e-6)
+    np.testing.assert_allclose(lin.B, [[0], [1]], atol=1e-9)
+    assert lin.discrete and lin.residual < 1e-6
+    # |eigenvalue|^2 = det A = r - 1: stable for r < 2
+    np.testing.assert_allclose(np.abs(lin.eigenvalues) ** 2, [0.9, 0.9], rtol=1e-6)
+
+
+def test_to_csv(tmp_path):
+    m = xs.Model.from_text(OSC)
+    lin = m.linearize(inputs=["u"])
+    path = tmp_path / "lin.csv"
+    lin.to_csv(path)
+    lines = path.read_text().splitlines()
+    assert lines[0] == "state,at,A_X,A_V,B_u,eig_re,eig_im,rank,residual"
+    first, second = (line.split(",") for line in lines[1:])
+    assert first[0] == "X" and second[0] == "V" and len(lines) == 3
+    assert [float(c) for c in first[2:5]] == [lin.A[0, 0], lin.A[0, 1], lin.B[0, 0]]
+    assert complex(float(second[5]), float(second[6])) == lin.eigenvalues[1]
+    assert first[7] == "2" and float(first[8]) == lin.residual
+    assert second[7:] == ["", ""]
+
+
+def test_overflowing_controllability_matrix():
+    text = "par u=0\nx'=1e200*y\ny'=1e200*z\nz'=u\ninit x=0, y=0, z=0\ndone\n"
+    with pytest.warns(UserWarning, match="rank could not be computed"):
+        lin = xs.Model.from_text(text).linearize(at={"x": 0, "y": 0, "z": 0},
+                                                 inputs=["u"])
+    assert lin.rank == -1 and not lin.controllable
+    np.testing.assert_allclose(lin.A[0, 1], 1e200)
+
+
+def test_step_must_be_positive():
+    with pytest.raises(ValueError):
+        xs.Model.from_text(OSC).linearize(inputs=["u"], step=0)
+
+
+def test_plot():
+    matplotlib = pytest.importorskip("matplotlib")
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    lin = xs.Model.from_text(OSC).linearize(inputs=["u"])
+    ax = lin.plot()
+    x0, x1 = ax.get_xlim()
+    assert x0 < -0.25 < 0 < x1  # the eigenvalues and the imaginary axis
+    assert ax.get_ylim()[1] > 1.98
+    assert any(line.get_label() == "eigenvalues" for line in ax.lines)
+    plt.close(ax.figure)
+    ax = xs.Model.from_text(MAP).linearize().plot()
+    assert ax.get_xlim()[0] < -1 and ax.get_xlim()[1] > 1  # the unit circle
+    plt.close(ax.figure)

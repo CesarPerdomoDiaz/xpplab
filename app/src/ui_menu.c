@@ -51,6 +51,14 @@ static void menu_run(App *a) {
     a->sw.reveal = true;
     a->show_workspace = true;
   }
+  if (igMenuItem_Bool("Linearise...", NULL, false, ok)) {
+    a->an.tool = AN_LINEARIZE;
+    a->show_analysis = true;
+    igSetWindowFocus_Str(WIN_ANALYSIS);
+  }
+  if (igIsItemHovered(0))
+    igSetTooltip("A and B at the equilibrium, its eigenvalues in the complex "
+                 "plane, and whether chosen parameters can steer the state.");
   if (igMenuItem_Bool("Nullclines", "N N", a->pp.nullclines, ok))
     app_command(a, a->pp.nullclines ? "nullclines off" : "nullclines");
   if (igMenuItem_Bool("Direction field", "D D", a->pp.dirfield, ok))
@@ -243,7 +251,8 @@ void ui_toolbar(App *a, float height) {
   }
   if (tool("Analysis",
            "Spectra, histograms, correlations, Liapunov exponents, phase "
-           "response curves and curve fitting on the last run.",
+           "response curves and curve fitting on the last run; the "
+           "linearisation at an equilibrium.",
            ok)) {
     a->show_analysis = true;
     igSetWindowFocus_Str(WIN_ANALYSIS);

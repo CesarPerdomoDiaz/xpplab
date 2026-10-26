@@ -98,6 +98,12 @@ static const char *usage =
     "                           primed names are the other cell (V'-V)\n"
     "  fitdata FILE VARS COLS PARS\n"
     "                           fit parameters to data (comma lists)\n"
+    "Control:\n"
+    "  linearize [at eq|ic] [inputs] P1 P2 ...\n"
+    "                           A and B at the equilibrium (or the initial\n"
+    "                           values), the eigenvalues, and whether the\n"
+    "                           parameters P1 ... can steer every state\n"
+    "                           (export F.csv analysis saves the table)\n"
     "  open FILE | new | save   models\n"
     "  export FILE.csv [WHAT]   save data as CSV: the last run, or auto (the\n"
     "                           bifurcation diagram), range, analysis or\n"
@@ -197,7 +203,7 @@ static void cmd_kinescope(App *a, char *rest) {
 }
 
 /* spectrum, fourier, power, hist, hist2d, xcorr, mean, prc, hfun, fitdata,
-   ensemble */
+   ensemble, linearize */
 static void cmd_analysis(App *a, const char *cmd, char *rest) {
   AnalysisUI *n = &a->an;
   char *w = NULL;
@@ -208,6 +214,30 @@ static void cmd_analysis(App *a, const char *cmd, char *rest) {
   if (!strcmp(cmd, "ensemble")) {
     n->tool = AN_ENSEMBLE;
     if ((w = next_word(&rest)) && is_number(w)) n->trials = atoi(w);
+  } else if (!strcmp(cmd, "linearize") || !strcmp(cmd, "linearise")) {
+    /* linearize [at eq|ic] [inputs] [P1 P2 ...] */
+    char list[512];
+    size_t k = 0;
+    list[0] = '\0';
+    n->tool = AN_LINEARIZE;
+    n->lin_at = 0;
+    while ((w = next_word(&rest))) {
+      if (!strcmp(w, "at")) {
+        char *where = next_word(&rest);
+        if (where && (!strcmp(where, "eq") || !strcmp(where, "equilibrium")))
+          n->lin_at = 0;
+        else if (where && (!strcmp(where, "ic") || !strcmp(where, "initial")))
+          n->lin_at = 1;
+        else {
+          app_log(a, "Write: linearize [at eq | at ic] [inputs] P1 P2 ..., "
+                     "e.g. linearize at eq inputs iapp");
+          return;
+        }
+      } else if (strcmp(w, "inputs") != 0 && k < sizeof list - 1) {
+        k += (size_t)snprintf(list + k, sizeof list - k, "%s%s", k ? ", " : "", w);
+      }
+    }
+    snprintf(n->lin_inputs, sizeof n->lin_inputs, "%s", list);
   } else if (!strcmp(cmd, "prc")) {
     n->tool = AN_PRC;
     if ((w = next_word(&rest)) && is_number(w)) n->transient = atof(w);
@@ -683,7 +713,8 @@ void app_command(App *a, const char *line_in) {
              !strcmp(cmd, "hist2d") || !strcmp(cmd, "xcorr") ||
              !strcmp(cmd, "mean") || !strcmp(cmd, "prc") ||
              !strcmp(cmd, "hfun") || !strcmp(cmd, "fitdata") ||
-             !strcmp(cmd, "ensemble")) {
+             !strcmp(cmd, "ensemble") || !strcmp(cmd, "linearize") ||
+             !strcmp(cmd, "linearise")) {
     cmd_analysis(a, cmd, rest);
   } else if (!strcmp(cmd, "bvp")) {
     app_bvp(a);

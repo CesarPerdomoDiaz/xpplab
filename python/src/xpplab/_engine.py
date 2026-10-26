@@ -19,7 +19,7 @@ from pathlib import Path
 
 __all__ = ["Engine", "EngineError", "find_engine_library"]
 
-API_VERSION = 6
+API_VERSION = 7
 
 OK = 0
 ERR_STATE = -1
@@ -175,6 +175,16 @@ _SIGNATURES = {
                               ctypes.POINTER(ctypes.c_double)], ctypes.c_int),
     "xppe_found_equilibrium": ([ctypes.c_int] + [ctypes.POINTER(ctypes.c_double)] * 3,
                                ctypes.c_int),
+    "xppe_linearize": ([ctypes.POINTER(ctypes.c_double), ctypes.c_int,
+                        ctypes.POINTER(ctypes.c_char_p), ctypes.c_double]
+                       + [ctypes.POINTER(ctypes.c_double)] * 4, ctypes.c_int),
+    "xppe_eigenvalues": ([ctypes.c_int] + [ctypes.POINTER(ctypes.c_double)] * 3,
+                         ctypes.c_int),
+    "xppe_controllability": ([ctypes.c_int, ctypes.c_int,
+                              ctypes.POINTER(ctypes.c_double),
+                              ctypes.POINTER(ctypes.c_double), ctypes.c_double,
+                              ctypes.POINTER(ctypes.c_double),
+                              ctypes.POINTER(ctypes.c_double)], ctypes.c_int),
     "xppe_fourier": ([ctypes.c_char_p], ctypes.c_int),
     "xppe_power": ([ctypes.c_char_p], ctypes.c_int),
     "xppe_spectrum": ([ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p,

@@ -13,10 +13,12 @@ tests whether the chosen parameters can steer it.
 
 `A` is the Jacobian of the right-hand side and `B` holds the derivative with
 respect to each input, one column per input. Both come from central
-differences of `m.rhs()`. No step size has to be chosen: the differences are
-taken at a sequence of shrinking steps and extrapolated to zero step
-(Ridders' method), from three starting step sizes, and the estimate with the
-smallest error wins. This keeps `A` and `B` accurate (typically 1e-9 or
+differences of the right-hand side, computed by the engine
+(`xppe_linearize` in the C API), which the desktop app's *Linearise* also
+calls: the app and Python give the same numbers, bit for bit. No step size
+has to be chosen: the differences are taken at a sequence of shrinking
+steps and extrapolated to zero step (Ridders' method), from three starting
+step sizes, and the estimate with the smallest error wins. This keeps `A` and `B` accurate (typically 1e-9 or
 better) for models with fast oscillations, steep exponentials, or states
 that are very large or very small. `lin.A_error` and `lin.B_error` hold the
 error estimate for each entry; look at them if a model is not smooth.
@@ -47,10 +49,25 @@ is not a linearisation about a periodic orbit, which is time-varying; use
 the Floquet tools for that.
 
 The result has `A`, `B`, `eigenvalues`, `controllability` (the matrix
-[B, AB, ..., A^(n-1) B]), `rank`, `controllable` (the rank equals the number
-of states) and `residual` (the largest |f| at the point, near zero at an
-equilibrium). The rank comes from the singular values of the controllability
-matrix, with a cutoff you can change with `tol=`.
+[B, AB, ..., A^(n-1) B]), `singular_values` (of that matrix, largest first),
+`rank`, `controllable` (the rank equals the number of states) and `residual`
+(the largest |f| at the point, near zero at an equilibrium; for a map
+|F(x) - x|). The rank counts the singular values above a cutoff,
+max(n, n m) * 1e-8 times the largest, which you can change with `tol=`. For a
+model with very many states A^(n-1) B can overflow; then `rank` is -1, with
+a warning. At a point given in `at` the eigenvalues are those of `A`, from
+XPPAUT's own eigenvalue routine (the one *Sing pts* uses).
+
+```python
+lin.plot()               # the eigenvalues in the complex plane
+lin.to_csv("lin.csv")    # one row per state: the point, A, B, an eigenvalue
+```
+
+`plot()` draws what the app's *Linearise* view shows: the eigenvalues, with
+the stable region shaded (the left half-plane; for a map, the inside of the
+unit circle). `to_csv()` writes the file the app's `export lin.csv analysis`
+writes: `state`, `at`, `A_<state>` ..., `B_<input>` ..., `eig_re`, `eig_im`,
+and on the first row `rank` and `residual`.
 
 ### Example: a damped oscillator pushed by a force
 

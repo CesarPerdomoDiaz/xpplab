@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include <SDL3/SDL.h>
+
 #include "app.h"
 
 /* A variable of the console's namespace, for the Workspace. */
@@ -33,5 +35,11 @@ bool pyconsole_completion(char *out, size_t len);
 /* The namespace's variables, asked for and then read. */
 void pyconsole_request_vars(App *a);
 const PyVar *pyconsole_vars(int *n);
+/* No Python was found, or one without NumPy: the window offers ours. */
+bool pyconsole_needs_python(void);
+/* XPP Lab's Python has been fetched (or not): run what waits for it. */
+void pyconsole_fetched(App *a, bool ok);
+/* This process's environment, as a child process can take it. */
+SDL_Environment *pyconsole_environment(void);
 
 #endif

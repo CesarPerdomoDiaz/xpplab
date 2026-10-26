@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "pyconsole.h"
+#include "pyfetch.h"
 #include "ui.h"
 
 static char input[1024];
@@ -79,6 +80,8 @@ static void remember(App *a, const char *line) {
 void ui_console(App *a) {
   float input_h = igGetFrameHeightWithSpacing() + 4;
   bool reclaim = false;
+  /* a row more for XPP Lab's Python: on its way, or offered */
+  if (pyfetch_running() || pyconsole_needs_python()) input_h += igGetFrameHeightWithSpacing();
   if (!igBegin(WIN_CONSOLE, &a->show_console, 0)) {
     igEnd();
     return;
@@ -112,6 +115,36 @@ void ui_console(App *a) {
     }
   }
   igEndChild();
+  /* XPP Lab's own Python on its way, or offered when there is none. */
+  if (pyfetch_running()) {
+    float frac;
+    const char *what = pyfetch_status(&frac);
+    char label[200];
+    if (frac >= 0)
+      snprintf(label, sizeof label, "%s  %.0f%%", what, 100 * frac);
+    else
+      snprintf(label, sizeof label, "%s ...", what);
+    igProgressBar(frac >= 0 ? frac : -1.0f * (float)igGetTime(),
+                  V2(-igGetFrameHeight() * 3.5f, 0), label);
+    igSameLine(0, -1);
+    if (ButtonW("Stop##fetch", -1)) app_command(a, "python fetch stop");
+    Tooltip("Stop installing; nothing that was downloaded is kept.");
+  } else if (pyconsole_needs_python()) {
+    char tip[300];
+    int mb = pyfetch_megabytes();
+    if (Button("Install Python")) app_command(a, "python fetch");
+    if (mb > 0)
+      snprintf(tip, sizeof tip,
+               "Download %s for XPP Lab's console (about %d MB, once). It goes into a "
+               "folder of its own; nothing else on this computer changes.",
+               pyfetch_about(), mb);
+    else
+      snprintf(tip, sizeof tip, "Download %s for XPP Lab's console.", pyfetch_about());
+    Tooltip(tip);
+    igSameLine(0, -1);
+    if (Button("Choose a Python...")) ui_dialog_python(a);
+    Tooltip("A Python 3 of yours that has NumPy (remembered).");
+  }
   /* The prompt says which language the line takes; a click switches. */
   igPushStyleColor_Vec4(ImGuiCol_Text, a->dark ? HEX(0x64b5f6) : HEX(0x1565c0));
   igPushStyleColor_Vec4(ImGuiCol_Button, V4(0, 0, 0, 0));

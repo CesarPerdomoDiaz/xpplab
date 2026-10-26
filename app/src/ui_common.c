@@ -135,7 +135,7 @@ void ui_apply_theme(App *a) {
 
 enum { DLG_NONE, DLG_OPEN, DLG_SAVE_AS, DLG_EXPORT, DLG_PNG, DLG_SVG, DLG_ANI,
        DLG_SCRIPT, DLG_DATA, DLG_AUTO_SAVE, DLG_AUTO_OPEN, DLG_IC_READ, DLG_IC_WRITE,
-       DLG_NULLCLINES, DLG_KINE_GIF, DLG_KINE_PNG };
+       DLG_NULLCLINES, DLG_KINE_GIF, DLG_KINE_PNG, DLG_PYTHON };
 static SDL_Mutex *dlg_lock;
 static int dlg_kind;
 static char dlg_result[1024];
@@ -249,6 +249,19 @@ void ui_dialog_ics(App *a, bool save) {
                            (SDL_Window *)a->window, ic_filters, 2, NULL, false);
 }
 
+#ifdef _WIN32
+static const SDL_DialogFileFilter python_filters[] = {
+    {"Python (python.exe)", "exe"}, {"All files", "*"}};
+#else
+static const SDL_DialogFileFilter python_filters[] = {{"All files", "*"}};
+#endif
+
+void ui_dialog_python(App *a) {
+  if (!dlg_lock) dlg_lock = SDL_CreateMutex();
+  SDL_ShowOpenFileDialog(dialog_done, (void *)(intptr_t)DLG_PYTHON, (SDL_Window *)a->window,
+                         python_filters, SDL_arraysize(python_filters), NULL, false);
+}
+
 /* With a dot and an extension, or the one given. */
 static void with_extension(const char *path, const char *ext, char *out, size_t len) {
   size_t n = strlen(path), e = strlen(ext);
@@ -286,6 +299,11 @@ void ui_dialog_poll(App *a) {
     app_auto_save(a, p);
   }
   if (kind == DLG_AUTO_OPEN) app_auto_load(a, path);
+  if (kind == DLG_PYTHON) {
+    char cmd[1100];
+    snprintf(cmd, sizeof cmd, "python use %s", path);
+    app_command(a, cmd);
+  }
   if (kind == DLG_IC_READ) app_ic_read(a, path);
   if (kind == DLG_KINE_GIF) {
     char p[1100];

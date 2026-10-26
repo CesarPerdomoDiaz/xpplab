@@ -32,6 +32,7 @@
 
 #include "channel.h"
 #include "pyconsole.h"
+#include "pyfetch.h"
 #include "export.h"
 #include "gui_backend.h"
 #include "ui.h"
@@ -335,6 +336,7 @@ int main(int argc, char **argv) {
        example, figures exist and can be exported. */
     channel_poll(&app);
     pyconsole_poll(&app);
+    pyfetch_poll(&app);
     if (frame == 4)
       for (i = 0; i < nlater; i++) {
         app_log(&app, ">> %s", later[i]);
@@ -407,6 +409,7 @@ int main(int argc, char **argv) {
     }
   }
 
+  pyfetch_cancel(&app);
   pyconsole_stop(&app);
   channel_stop(&app);
   app_shutdown(&app);

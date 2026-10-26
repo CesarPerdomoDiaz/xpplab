@@ -102,3 +102,36 @@ def test_homoclinic_start_asks_for_what_it_needs(tmp_path):
             m.auto.start("homoclinic", "a", second="b")
         with pytest.raises(ValueError, match="right"):
             m.auto.start("heteroclinic", "a", second="b", left=[0, 0])
+
+
+def _captured_form(m, kind, **kw):
+    seen = {}
+
+    def run(key, settings, form=None):
+        seen["form"] = form
+
+    m.auto._run = run
+    m.auto.start(kind, "a", second="b", **kw)
+    return seen["form"]
+
+
+def test_homoclinic_form_writes_plain_numbers_from_numpy(tmp_path):
+    with _load(tmp_path, HOM) as m:
+        form = _captured_form(m, "homoclinic", left=np.array([0.25, -1.5]),
+                              unstable=np.int64(1), stable=1)
+        assert form == "dim unstable=1;dim stable=1;X_L=0.25;Y_L=-1.5"
+        form = _captured_form(m, "heteroclinic",
+                              left=np.array([0.25, -1.5], dtype=np.float32),
+                              right={"X": np.float64(2.0), "Y": 3})
+        assert form == "X_L=0.25;Y_L=-1.5;X_R=2.0;Y_R=3.0"
+
+
+def test_homoclinic_form_too_long_for_the_engine_is_refused(tmp_path):
+    with _load(tmp_path, HOM) as m:
+        m.auto._run = lambda *a, **k: pytest.fail("must not run")
+        big = 1.2345678901234567e-100
+        with pytest.raises(ValueError, match="511"):
+            # A 401-digit dimension pushes the form past 511 bytes.
+            m.auto.start("heteroclinic", "a", second="b",
+                         left=[big, big], right=[big] * 2,
+                         unstable=10**400)

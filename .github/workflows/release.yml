@@ -55,6 +55,32 @@ jobs:
                -ArgumentList 'examples/lecar.ode', '--cmd', '"auto steady iapp"', '--screenshot', 'shot.png', '--frames', '10'
           if (Test-Path (Join-Path $dir "shot.png.err")) { Get-Content (Join-Path $dir "shot.png.err") }
           if (-not (Test-Path (Join-Path $dir "shot.png"))) { throw "no screenshot (exit code $($p.ExitCode))" }
+      # The console's own Python (python fetch), really downloaded: the
+      # Python pinned for Windows, then NumPy and Matplotlib with pip, and a
+      # line run with it (as tests/release_fetch.sh does elsewhere).
+      - name: python fetch from the unzipped app
+        shell: pwsh
+        timeout-minutes: 20
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP "pkg\XPPLab-Windows-x64"
+          $t = Join-Path $env:RUNNER_TEMP "fetch"
+          New-Item -ItemType Directory -Force $t | Out-Null
+          $env:XPPLAB_RUNTIME_DIR = Join-Path $t "runtime"
+          $env:XPPLAB_CHANNEL = Join-Path $t "channel.json"
+          $env:Path = "C:\Windows\System32;C:\Windows"
+          $log = Join-Path $t "app.log"
+          $argv = @(
+            'examples/lecar.ode', '--serve', '--cmd', '"python fetch"',
+            '--cmd', '"py import sys, numpy, matplotlib; print(''fetched'', sys.version.split()[0], numpy.__version__, matplotlib.__version__)"',
+            '--cmd', '"py app.command(''quit'')"', '--screenshot', ('"' + (Join-Path $t "shot.png") + '"'),
+            '--frames', '100000000', '--log', ('"' + $log + '"')
+          )
+          $p = Start-Process -FilePath (Join-Path $dir "xpplab.exe") -WorkingDirectory $dir -Wait -PassThru -ArgumentList $argv
+          $text = if (Test-Path $log) { Get-Content $log -Raw } else { "(no log)" }
+          $ok = ($text -match "is installed in") -and ($text -match "(?m)^fetched 3\.") -and
+                (Test-Path (Join-Path $env:XPPLAB_RUNTIME_DIR "python\xpplab-runtime.txt"))
+          if (-not $ok) { Write-Output $text; throw "python fetch did not work (exit code $($p.ExitCode))" }
+          $text -split "`n" | Where-Object { $_ -match "^(Downloading|  checked|Python|fetched|Starting)" }
       - uses: actions/upload-artifact@v4
         with:
           name: app-windows
@@ -109,6 +135,20 @@ jobs:
             echo "::warning::no Rosetta on this runner: the Intel half was not started"
           fi
           hdiutil detach /tmp/xpps
+      # The console's own Python (python fetch), really downloaded, by each
+      # half of the universal app: the Python pinned for Apple silicon, and
+      # through Rosetta the one for Intel.
+      - name: python fetch from the packaged app
+        timeout-minutes: 30
+        run: |
+          yes | hdiutil attach build/XPPLab-*.dmg -mountpoint /tmp/xpps -nobrowse -readonly
+          bundle=$(ls -d /tmp/xpps/*.app | head -1)
+          exe="$bundle/Contents/MacOS/$(defaults read "$bundle/Contents/Info" CFBundleExecutable)"
+          sh tests/release_fetch.sh "$PWD/engine/xppaut/ode/lecar.ode" "$exe"
+          if arch -x86_64 /usr/bin/true 2>/dev/null; then
+            sh tests/release_fetch.sh "$PWD/engine/xppaut/ode/lecar.ode" arch -x86_64 "$exe"
+          fi
+          hdiutil detach /tmp/xpps
       # The disk image alone in its artifact: with the screenshots beside
       # it, it landed in a build/ subfolder that publish did not look in.
       - uses: actions/upload-artifact@v4
@@ -148,6 +188,11 @@ jobs:
             --screenshot shot.png --frames 10 || true
           cat shot.png.err 2>/dev/null || true
           test -s shot.png
+      - name: python fetch from the unpacked app
+        timeout-minutes: 20
+        run: |
+          cd /tmp/pkg/XPPLab-Linux-x86_64
+          sh "$GITHUB_WORKSPACE/tests/release_fetch.sh" "$PWD/examples/lecar.ode" xvfb-run -a ./xpplab
       - uses: actions/upload-artifact@v4
         with:
           name: app-linux
@@ -165,6 +210,9 @@ jobs:
         image: ["ubuntu:24.04", "debian:12", "fedora:41", "archlinux:latest"]
     container: ${{ matrix.image }}
     steps:
+      # Only for tests/release_fetch.sh; before the download, which it
+      # would clean away.
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: app-linux
@@ -172,13 +220,16 @@ jobs:
         run: |
           if command -v apt-get >/dev/null; then
             apt-get update
+            # wget and not curl, as on a fresh Ubuntu desktop: python fetch
+            # then downloads with wget.
             DEBIAN_FRONTEND=noninteractive apt-get install -y xvfb libgl1 libegl1 \
               libgl1-mesa-dri libx11-6 libxext6 libxcursor1 libxi6 libxrandr2 \
-              libxkbcommon0 libxss1 libxtst6 libdbus-1-3
+              libxkbcommon0 libxss1 libxtst6 libdbus-1-3 wget ca-certificates
           elif command -v dnf >/dev/null; then
             dnf install -y xorg-x11-server-Xvfb mesa-libGL mesa-libEGL mesa-dri-drivers \
               libX11 libXext libXcursor libXi libXrandr libxkbcommon libXScrnSaver libXtst \
-              dbus-libs tar gzip
+              dbus-libs tar gzip ca-certificates
+            command -v curl >/dev/null || dnf install -y curl
           elif command -v pacman >/dev/null; then
             pacman -Syu --noconfirm xorg-server-xvfb mesa libx11 libxext libxcursor libxi \
               libxrandr libxkbcommon libxss libxtst
@@ -194,6 +245,8 @@ jobs:
             --screenshot shot.png --frames 10 || true
           cat shot.png.err 2>/dev/null || true
           test -s shot.png
+          # The console's own Python, really downloaded (curl here or wget).
+          DISPLAY=:99 sh "$GITHUB_WORKSPACE/tests/release_fetch.sh" "$PWD/examples/lecar.ode" ./xpplab
 
   wheels:
     name: Wheel (${{ matrix.os }})

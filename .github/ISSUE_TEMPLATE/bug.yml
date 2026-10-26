@@ -24,6 +24,6 @@ body:
     id: system
     attributes:
       label: System
-      placeholder: e.g. Windows 11, XPP Lab 0.1.1
+      placeholder: e.g. Windows 11, XPP Lab 0.1.2
     validations:
       required: true

@@ -7,6 +7,7 @@ import re
 import shutil
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -36,8 +37,25 @@ def test_python_snippets_run(tmp_path, monkeypatch):
     assert [round(p.value, 4) for p in hb] == [0.2625, 0.4569]
     assert ns["eq"].kind == "unstable focus"
     assert ns["rest"]["v"][-1] == pytest.approx(-0.375, abs=1e-3)
-    assert len(ns["orbits"].special("LP")) > 0
+    folds = ns["orbits"].special("LP")
+    assert [round(p.value, 4) for p in folds] == [0.2484, 0.4657]
+    assert folds[0].period == pytest.approx(25.8, abs=0.1)
+    stable = [p.period for p in ns["orbits"] if p.periodic and p.stable]
+    assert 14 < min(stable) and max(stable) < 26
+    assert [ns["fires"](v0) for v0 in (-0.24, -0.1, -0.35)] == [False, True, True]
+    # step 7: the file's own values, then the set hom
+    iv = ns["steady_current"]
+    assert (np.diff(iv(ns["m"], ns["v"])) > 0).all()
+    assert not (np.diff(iv(ns["m2"], ns["v"])) > 0).all()   # phi leaves it alone
+    assert ns["rest2"].kind == "stable node"
+    assert [(p.type, round(p.value, 4)) for p in ns["d2"].special()] == [
+        ("LP", 0.0833), ("LP", -0.0207), ("HB", 0.2038)]
+    assert ns["periods"] == pytest.approx([77, 56, 41, 27, 20], abs=1)
+    scaled = ns["periods"] * np.sqrt(ns["above"])
+    assert 1.7 < scaled.min() and scaled.max() < 2.05
+    assert ns["period"](ns["m2"].run(iapp=0.084)) == pytest.approx(4.6, abs=0.05)
     ns["m"].close()
+    ns["m2"].close()
 
 
 def app_commands():

@@ -49,12 +49,20 @@ Commands: `hist V 50`, `hist V 50 -0.5 0.5`, `hist2d V W 20`, `xcorr V`,
 ## Statistics and the Liapunov exponent
 
 **Statistics** reports the mean and standard deviation of a column, and
-the largest Liapunov exponent of the run. XPPAUT computes it by carrying a
-small perturbation along the run one output step at a time, renormalising
-it each step and averaging the logarithms of its growth. It is negative
-near a stable equilibrium, close to zero on a limit cycle and positive for
-chaos (about 0.9 for the Lorenz attractor). Use a long run that has
-settled.
+the largest Liapunov exponent of the run. It is computed as XPPAUT does, by
+carrying a small perturbation (`JAC_EPS`) along the run one output step at
+a time, putting it back to its size after each step and averaging the
+logarithms of its growth. It is negative near a stable equilibrium, close
+to zero on a limit cycle and positive for chaos (about 0.9 for the Lorenz
+attractor). Use a long run that has settled.
+
+XPP Lab does this during a second integration from the initial values, in
+double precision. XPPAUT works from the stored run, which is in single
+precision, times included: in long runs (Lorenz to t = 1000 gives 7.6
+instead of 0.9) and for large variables its rounding is as large as the
+perturbation, and XPPAUT's number is wrong. With an adaptive
+method, keep `TOL` well below `JAC_EPS`. Models with delays, integrals or
+noise get no exponent.
 
 Command: `mean V`.
 

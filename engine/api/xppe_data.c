@@ -49,6 +49,14 @@ void data_back(void);
 void new_adjoint(void);
 void new_h_fun(int silent);
 int hrw_liapunov(double *liap, int batch, double eps);
+void norm_vec(double *v, double *mu, int n);
+
+/* The integration (integrate.c, numerics, delay, Volterra, noise) */
+extern double DELTA_T, TEND, T0, TRANS, BOUND;
+extern int METHOD, NJMP, DelayFlag, NKernel, NMarkov, NWiener;
+void get_ic(int it, double *x);
+void evaluate_derived(void);
+void end_cv(void);
 
 /* do_fit.c (its functions are declared in do_fit.h), browse.c */
 extern FITINFO fin;
@@ -411,6 +419,113 @@ int xppe_lyapunov(double *exponent) {
     return XPPE_ERR_NUMERIC;
   }
   if (exponent) *exponent = z;
+  return XPPE_OK;
+}
+
+/* hrw_liapunov()'s method carried out during an integration from the
+   initial conditions, in double precision. A copy of the state perturbed
+   by eps goes along with it; after each output step (DT times NOUT) the
+   distance between the two is measured, the logarithm of its growth added
+   up, and the copy put back at the distance eps in the direction it has
+   moved to. Both are stepped with XPPAUT's one_step_int(), as in
+   hrw_liapunov(). There each step starts from the stored run, which is in
+   single precision, times included: once the time or a variable is large
+   the rounding of the stored values and of the step length is comparable
+   to eps, and a folded variable jumps by its period. Steps that start
+   before TRANS carry the perturbation along without counting, and the
+   integration stops, as a run does, when a variable passes BOUND. Nothing
+   is stored. */
+enum { METHOD_DISCRETE = 0, METHOD_GEAR = 5, METHOD_CVODE = 10 };
+
+int xppe_lyapunov_integrate(double eps, double *exponent) {
+  double y[MAXODE], y2[MAXODE], dy[MAXODE];
+  double h, t, t1, nrm, sum = 0, span = 0;
+  int rc, i, k, nsteps, istart, ok = 1, out = 0;
+  const char *why = NULL;
+  if ((rc = xppe_require_model()) != XPPE_OK) return rc;
+  if (DelayFlag || NKernel > 0) {
+    xppe_set_error("the Liapunov exponent needs a model without delays or "
+                   "integrals: the perturbed copy would need a history of "
+                   "its own", NULL);
+    return XPPE_ERR_STATE;
+  }
+  if (NWiener > 0 || NMarkov > 0) {
+    xppe_set_error("the Liapunov exponent needs a model without noise "
+                   "(wiener or Markov variables)", NULL);
+    return XPPE_ERR_STATE;
+  }
+  if (!(eps > 0)) eps = NEWT_ERR;
+  /* The output steps of integrate(): a map takes steps of 1 (or -1). */
+  if (METHOD == METHOD_DISCRETE) {
+    nsteps = (int)TEND;
+    h = DELTA_T / fabs(DELTA_T);
+  } else {
+    nsteps = (int)((TEND + fabs(DELTA_T) * .1) / fabs(DELTA_T));
+    h = DELTA_T;
+  }
+  nsteps = (nsteps + NJMP - 1) / NJMP;
+  h *= NJMP;
+  xppe_begin_call();
+  XPPE_GUARD_BEGIN((void)0);
+  evaluate_derived();
+  get_ic(2, y);
+  for (i = 0; i < NODE; i++) dy[i] = 0;
+  dy[0] = eps;
+  for (k = 0; k < nsteps; k++) {
+    t = T0 + k * h;
+    t1 = T0 + (k + 1) * h;
+    for (i = 0; i < NODE; i++) y2[i] = y[i] + dy[i];
+    /* Each call starts the method afresh, since the two states take turns
+       (gear() takes 0 for a fresh start, as integrate() gives it). */
+    istart = METHOD == METHOD_GEAR ? 0 : 1;
+    ok = one_step_int(y, t, t1, &istart);
+    istart = METHOD == METHOD_GEAR ? 0 : 1;
+#ifdef CVODE_YES
+    if (METHOD == METHOD_CVODE) end_cv(); /* start_cv() would leak it */
+#endif
+    if (ok) ok = one_step_int(y2, t, t1, &istart);
+#ifdef CVODE_YES
+    if (METHOD == METHOD_CVODE) end_cv();
+#endif
+    if (!ok) {
+      why = "the integration failed";
+      break;
+    }
+    for (i = 0; i < NODE && fabs(y[i]) <= BOUND; i++)
+      ;
+    if (i < NODE) { /* out of bounds or NaN: the run would end here */
+      out = 1;
+      break;
+    }
+    for (i = 0; i < NODE; i++) dy[i] = y2[i] - y[i];
+    norm_vec(dy, &nrm, NODE);
+    if (!(nrm > 0) || !isfinite(nrm)) {
+      why = nrm == 0 ? "the perturbation shrank to nothing (an exponent of "
+                       "minus infinity)"
+                     : "the perturbed copy blew up";
+      ok = 0;
+      break;
+    }
+    if (fabs(t) >= TRANS) {
+      sum += log(nrm / eps);
+      span += t1 - t;
+    }
+    for (i = 0; i < NODE; i++) dy[i] *= eps;
+  }
+  XPPE_GUARD_END;
+  xppe_end_call();
+  if (!ok) {
+    xppe_set_error("the Liapunov exponent could not be computed: %s", why);
+    return XPPE_ERR_NUMERIC;
+  }
+  if (span == 0) {
+    xppe_set_error(out ? "a variable passed BOUND before there was a step "
+                         "to average over"
+                       : "no output step after the transient (TRANS) to "
+                         "average over", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  if (exponent) *exponent = sum / span;
   return XPPE_OK;
 }
 

@@ -178,6 +178,31 @@ int main(int argc, char **argv) {
           second_end);
   }
 
+  /* The Liapunov exponent integrates on its own: the run stays as it was,
+     and a second call gives the same number. */
+  {
+    double z1 = 0, z2 = 0, end_before, end_after;
+    int c = xppe_count(XPPE_COLUMNS) > 1 ? 1 : 0;
+    xppe_column(c, col, rows);
+    end_before = col[rows - 1];
+    rc = xppe_lyapunov_integrate(0, &z1);
+    printf("lyapunov rc=%d: %.6g\n", rc, z1);
+    if (rc == XPPE_OK) {
+      CHECK(xppe_lyapunov_integrate(0, &z2) == XPPE_OK && z1 == z2,
+            "lyapunov repeats: %.17g vs %.17g", z1, z2);
+      if (strstr(argv[1], "lorenz"))
+        CHECK(z1 > 0.6 && z1 < 1.2, "lorenz exponent %g, not about 0.9", z1);
+    } else
+      CHECK(rc == XPPE_ERR_STATE || rc == XPPE_ERR_NUMERIC ||
+                rc == XPPE_ERR_RANGE,
+            "lyapunov: %d %s", rc, xppe_error());
+    CHECK(xppe_rows() == rows, "lyapunov changed the rows");
+    xppe_column(c, col, rows);
+    end_after = col[rows - 1];
+    CHECK(end_before == end_after, "lyapunov changed the run: %.17g vs %.17g",
+          end_before, end_after);
+  }
+
   if (xppe_count(XPPE_PARAMETERS) > 0) {
     const char *p = xppe_name(XPPE_PARAMETERS, 0);
     double before, after;

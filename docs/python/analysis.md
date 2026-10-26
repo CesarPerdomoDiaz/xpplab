@@ -53,11 +53,45 @@ m.run(total=200)
 m.lyapunov()                    # about 0.9: chaos
 ```
 
-XPPAUT's estimate of the largest exponent: a small perturbation is carried
-along the run one output step at a time and renormalised, and the logs of
-its growth are averaged. Use a long run that has settled onto the
-attractor; the result is negative for a stable equilibrium and near zero on
-a limit cycle.
+The largest exponent by XPPAUT's method. A copy of the state, moved by
+`JAC_EPS` (0.001 unless set), is integrated along with it. After each
+output step the logarithm of the factor by which the distance between the
+two has grown is added up, and the copy is put back at the distance
+`JAC_EPS`; the exponent is the sum divided by the time. `lyapunov()` does
+this during an integration from the initial conditions, in double
+precision, over the same times a run would cover. It stores nothing, so the
+last run stays as it was, and after `m.run(...)` it follows the same
+trajectory. Keyword arguments are set first, as for `run()`:
+`m.lyapunov(total=1000, trans=100)`.
+
+Use a long run that has settled onto the attractor, or skip the start with
+`trans`. The result is negative for a stable equilibrium and near zero on a
+limit cycle. With a fixed-step method a smaller `jac_eps` (such as 1e-6)
+comes closer to the exponent of the linearised equations; with an adaptive
+method keep `tol` well below `jac_eps` (CVODE at its default `tol=0.001`
+gives nonsense). Models with delays, integrals or noise are refused.
+
+`m.lyapunov(stored=True)` is XPPAUT's own routine (stocHastic > Liapunov),
+along the stored last run: each output step is integrated again from a
+stored point and compared with the next one. XPPAUT stores runs, times
+included, in single precision (about seven digits). Once the time or a
+variable is large, the rounding of the stored values and of the step
+length is comparable to the perturbation, and that estimate goes wrong:
+
+| Run | `lyapunov()` | `lyapunov(stored=True)` |
+|---|---|---|
+| `lorenz.ode`, `total=200` | 0.88 | 0.86 |
+| `lorenz.ode`, `total=1000` | 0.88 | 7.6 |
+| `vdp.ode` (a limit cycle), `total=5000` | -0.001 | -2.5 |
+| Forced pendulum, 1500 periods | 0.113 | -0.185 |
+| The same with `fold=th` | 0.113 | 1.47 |
+
+The forced pendulum is `th' = p`, `p' = -0.5*p - sin(th) + 1.5*cos(Om*t)`
+with `Om = 0.6666667`, `dt` a 500th of the period `2*pi/Om` and
+`bound=1e6`, from `th = p = 0`. It is chaotic, with a largest exponent of
+about 0.11. In 1500 periods the time reaches 14000, where single
+precision keeps only three decimals, while a step is 0.019 long. With
+`fold=th` the stored angle also jumps by `2*pi` at each turn.
 
 ## Phase response curves
 

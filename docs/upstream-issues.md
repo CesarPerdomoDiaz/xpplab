@@ -101,6 +101,32 @@ still moves the model onto it. The app's bifurcation plot fits its axes to
 the points inside the window AUTO was asked to cover, so a stray end point
 no longer sets the scale.
 
+### The Liapunov exponent is computed from the single-precision stored run
+
+`hrw_liapunov()` in `adj2.c` (stocHastic > Liapunov, also with a Range)
+integrates each output step again from the stored point, moved by
+`NEWT_ERR` (`JAC_EPS`, 0.001), and compares the result with the next
+stored point. XPPAUT stores runs as `float`, times included. Once the time
+or a variable is large, the rounding of the stored values and of the step
+length is comparable to the perturbation, and the exponent is wrong:
+`lorenz.ode` to t = 1000 gives 7.6 (the exponent is about 0.9), `vdp.ode`,
+a limit cycle, to t = 5000 gives -2.5, and a chaotic forced pendulum run
+for 1500 periods of its force (to t = 14000) gives -0.185 instead of about
+0.11. A folded variable (`fold=`) jumps by its period at every turn: the
+same pendulum with `fold=th` gives 1.47. Several methods make it worse
+even for short runs (Lorenz to t = 200 after a transient of 20: 42 with
+`gear`, 57 with `2rb`, 189 with `adams`, 110 with `cvode`, against 0.88
+with `rk4`). `one_step_int()` is called with `istart = 1`, which `gear()`
+takes as "continue", and with CVODE every step allocates new memory
+without freeing the old.
+
+XPP Lab leaves `adj2.c` alone. The engine API's `xppe_lyapunov_integrate()`
+applies the same method during an integration from the initial
+conditions, in double precision, starting each method afresh at each step;
+the app, Python's `Model.lyapunov()` and the MCP server use it.
+`xppe_lyapunov()` and `Model.lyapunov(stored=True)` still give XPPAUT's
+number.
+
 ### The Volterra history has room for 50 variables
 
 `parserslow2.c` defines `double *Memory[MAXKER]` (50 entries), while

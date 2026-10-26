@@ -293,10 +293,11 @@ def create_server(session: Optional[Session] = None):
     @tool
     def lyapunov(model: ModelArg, values: Values = None,
                  parameter_set: ParameterSet = None) -> str:
-        """The largest Liapunov exponent along one run, XPPAUT's way, with a
-        reading. Positive suggests chaos; a stable equilibrium gives a clearly
-        negative value, and a limit cycle a value near zero or somewhat
-        below. Use a long run (total) that has settled."""
+        """The largest Liapunov exponent of one run (XPPAUT's method, computed
+        in double precision during the run), with a reading. Positive
+        suggests chaos; a stable equilibrium gives a clearly negative value,
+        and a limit cycle a value near zero. Use a long run (total) that has
+        settled."""
         return call("lyapunov", model=model, values=values,
                     parameter_set=parameter_set)
 

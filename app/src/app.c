@@ -1262,7 +1262,7 @@ bool app_sweep(App *a) {
     if (!app_run(a)) break;
     if (s->mode == SWEEP_LYAPUNOV) {
       double z = 0;
-      if (a->eng->api.xppe_lyapunov(&z) != XPPE_OK) z = NAN;
+      if (a->eng->api.xppe_lyapunov_integrate(0, &z) != XPPE_OK) z = NAN;
       s->x[s->n] = v;
       s->x2[s->n] = v2;
       s->ymax[s->n] = s->ymin[s->n] = z;

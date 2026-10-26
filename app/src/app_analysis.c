@@ -825,7 +825,7 @@ static bool analysis_run(App *a, bool outer) {
     double mean = 0, sd = 0, lyap = 0;
     rc = x->xppe_mean(c1, &mean, &sd);
     if (rc == XPPE_OK) {
-      int lr = x->xppe_lyapunov(&lyap);
+      int lr = x->xppe_lyapunov_integrate(0, &lyap);
       if (outer) echo_analysis(a, c1, c2, 0, lr == XPPE_OK);
       if (lr == XPPE_OK)
         snprintf(n->summary, sizeof n->summary,

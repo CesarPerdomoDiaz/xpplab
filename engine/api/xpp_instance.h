@@ -76,6 +76,7 @@ extern "C" {
   X(int, xppe_correlation, (const char *, const char *, int, int))            \
   X(int, xppe_mean, (const char *, double *, double *))                       \
   X(int, xppe_lyapunov, (double *))                                           \
+  X(int, xppe_lyapunov_integrate, (double, double *))                         \
   X(int, xppe_adjoint, (int, double))                                         \
   X(int, xppe_hfunction, (int, const char *const *))                          \
   X(int, xppe_fit, (const char *, int, int, const char *, const char *,       \

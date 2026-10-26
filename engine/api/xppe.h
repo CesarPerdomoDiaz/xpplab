@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 8
+#define XPPE_API_VERSION 9
 
 enum {
   XPPE_OK = 0,
@@ -268,8 +268,22 @@ XPPE_API int xppe_correlation(const char *column, const char *column2,
                               int nbins, int use_fft);
 /* Mean and standard deviation of a column (Mean). */
 XPPE_API int xppe_mean(const char *column, double *mean, double *sd);
-/* The largest Liapunov exponent along the current run (Liapunov). */
+/* The largest Liapunov exponent along the current run (Liapunov). XPPAUT
+   computes it from the stored run, which is in single precision, times
+   included, so it goes wrong in long runs (Lorenz to t = 1000), for large
+   or folded variables and with some methods; xppe_lyapunov_integrate()
+   does not. */
 XPPE_API int xppe_lyapunov(double *exponent);
+/* The largest Liapunov exponent of a run from the initial conditions,
+   computed during the integration in double precision by XPPAUT's method:
+   a copy perturbed by eps (JAC_EPS when eps <= 0) is stepped along with the
+   state by the current method, and after each output step (DT times NOUT)
+   the log of its growth is added up and the copy put back at the distance
+   eps. Steps before TRANS do not count; the integration stops where a run
+   would stop, when a variable passes BOUND. The last run is left as it
+   was. Refuses delay equations, Volterra integrals and noise (wiener,
+   Markov variables). Since API version 9. */
+XPPE_API int xppe_lyapunov_integrate(double eps, double *exponent);
 
 /* The adjoint of the linearised equations along the current run, which
    must be exactly one period of a stable limit cycle (Averaging > New

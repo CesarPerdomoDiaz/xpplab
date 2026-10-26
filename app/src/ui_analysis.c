@@ -181,6 +181,15 @@ static void count_unstable(const LinearSystem *L, int *unstable, int *edge) {
   }
 }
 
+enum { GOOD, BAD, DOUBT };
+
+/* Lighter on the dark theme, as the command window's colours. */
+static ImVec4_c verdict_color(const App *a, int kind) {
+  if (kind == GOOD) return a->dark ? HEX(0x81c784) : HEX(0x2e7d32);
+  if (kind == BAD) return a->dark ? HEX(0xe57373) : HEX(0xd62728);
+  return a->dark ? HEX(0xffb74d) : HEX(0xe65100);
+}
+
 /* What the numbers say, in words. */
 static void linear_verdict(App *a) {
   const LinearSystem *L = &a->an.lin;
@@ -219,9 +228,9 @@ static void linear_verdict(App *a) {
       snprintf(buf, sizeof buf, "Stable: every eigenvalue %s.",
                L->discrete ? "lies inside the unit circle"
                            : "has a negative real part");
-    igPushStyleColor_Vec4(ImGuiCol_Text, unstable > 0 ? HEX(0xd62728)
-                                         : edge > 0  ? HEX(0xff7f0e)
-                                                     : HEX(0x2e7d32));
+    igPushStyleColor_Vec4(ImGuiCol_Text, verdict_color(a, unstable > 0 ? BAD
+                                                       : edge > 0  ? DOUBT
+                                                                   : GOOD));
     TextWrapped(buf);
     igPopStyleColor(1);
   }
@@ -251,7 +260,7 @@ static void linear_verdict(App *a) {
                "directions of the state (the controllability matrix has rank "
                "%d). Add an input, or choose another one.",
                names, L->m == 1 ? "reaches" : "reach", L->rank, L->n, L->rank);
-    igPushStyleColor_Vec4(ImGuiCol_Text, L->rank == L->n ? HEX(0x2e7d32) : HEX(0xd62728));
+    igPushStyleColor_Vec4(ImGuiCol_Text, verdict_color(a, L->rank == L->n ? GOOD : BAD));
     TextWrapped(buf);
     igPopStyleColor(1);
   }
@@ -265,7 +274,7 @@ static void linear_verdict(App *a) {
       snprintf(buf, sizeof buf, "The derivatives are only good to about %.1e: "
                "the right-hand side may not be smooth here (hover over an entry "
                "for its error).", L->worst);
-      igPushStyleColor_Vec4(ImGuiCol_Text, HEX(0xff7f0e));
+      igPushStyleColor_Vec4(ImGuiCol_Text, verdict_color(a, DOUBT));
       TextWrapped(buf);
       igPopStyleColor(1);
     }

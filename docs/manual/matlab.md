@@ -120,7 +120,7 @@ prints the Python line it corresponds to in the command window, starting
 with `>>>`. Type these commands (open the model first):
 
 ```commands
-set total=20 meth=5dp
+set total=30 meth=5dp
 run
 eq
 linearize at eq inputs u
@@ -129,12 +129,12 @@ auto set parmin=-1 parmax=2
 auto steady mu
 ```
 
-The command window answers with these lines (`xpplab-batch --echo` prints the
-same):
+The command window answers with these lines (`xpplab-batch vdp.ode --echo -c ...` prints
+the same; the file says `total=20`, so only changed values are written):
 
 ```text
 >>> m.set(meth="5dp")
->>> m.set(total=20.0, dt=0.05, nout=1.0)
+>>> m.set(total=30.0, dt=0.05, nout=1.0)
 >>> sol = m.run()
 >>> eq = m.equilibrium()
 >>> lin = m.linearize(inputs=["u"])

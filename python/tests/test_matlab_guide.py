@@ -5,6 +5,7 @@ namespace, every name the table gives exists, and every command the page
 tells the reader to type is one the desktop app has.
 """
 import re
+import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -99,17 +100,42 @@ def test_commands_exist():
         assert ln.split()[0] in known, f"unknown app command: {ln}"
 
 
-def test_echoed_lines_are_calls_of_the_package(ns):
-    """Each line of the echo block calls something the package has."""
+def batch_exe():
+    for name in ("xpplab-batch.exe", "xpplab-batch"):
+        exe = ROOT / "build" / "app" / name
+        if exe.exists():
+            return exe
+    return None
+
+
+def test_echoed_lines_are_what_the_app_prints(tmp_path):
+    """Run the page's commands in xpplab-batch and compare its echo."""
+    exe = batch_exe()
+    if exe is None:
+        pytest.skip("build/app/xpplab-batch is not built")
+    (ode,) = blocks("ode")
+    (tmp_path / "vdp.ode").write_text(ode, encoding="utf-8")
+    (cmds,) = blocks("commands")
+    args = [str(exe), "vdp.ode", "--echo"]
+    for ln in cmds.splitlines():
+        if ln:
+            args += ["-c", ln]
+    out = subprocess.run(args, cwd=tmp_path, capture_output=True, text=True,
+                         timeout=120, check=True).stdout
+    got = [ln for ln in out.splitlines() if ln.startswith(">>> ")]
+    # the first two lines load the model and run it once; not from the page
+    assert got[0].startswith(">>> m = xs.load(")
+    assert got[1] == ">>> sol = m.run()"
     (echo,) = blocks("text")
-    lines = [ln for ln in echo.splitlines() if ln]
-    assert len(lines) >= 5
-    for ln in lines:
+    assert got[2:] == [ln for ln in echo.splitlines() if ln]
+
+
+def test_echoed_lines_are_calls_of_the_package(ns):
+    """Each echoed line runs in the package, as it is written."""
+    (echo,) = blocks("text")
+    for ln in echo.splitlines():
         assert ln.startswith(">>> ")
-        path = re.search(r"[ =](m(?:\.\w+)+)", ln).group(1).split(".")[1:]
-        obj = ns["m"]
-        for name in path:
-            obj = getattr(obj, name)
+        exec(compile(ln[4:], "echo", "exec"), {"m": ns["m"], "sol": None})
 
 
 def test_page_is_linked():

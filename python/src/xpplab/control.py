@@ -303,8 +303,12 @@ class Linearization:
             terms = "".join(f"-({float(g)!r})*({v}-({float(self.point[v])!r}))"
                             for g, v in zip(row, names))
             laws.append(f"{p}={float(p0)!r}{terms}")
-        done = [i for i, ln in enumerate(lines) if ln.strip().lower() == "done"]
-        at = done[0] if done else len(lines)
+        # XPPAUT evaluates fixed variables in the order written, so the laws
+        # stand where the first input's parameter entry was: before anything
+        # that could use an input
+        marks = [i for i, ln in enumerate(lines) if ln == _LAW_HERE]
+        lines = [ln for ln in lines if ln != _LAW_HERE]
+        at = marks[0]
         lines[at:at] = ["# feedback u = u0 - K (x - x*), from place_poles"] + laws
         if path is None:
             path = Path(tempfile.mkdtemp(prefix="xpplab-closed-")) / (
@@ -359,6 +363,8 @@ def _match_distance(got, want) -> float:
     return worst
 
 
+_LAW_HERE = "@@law@@"
+
 _PAR_LINE = re.compile(
     r"^(\s*)(par|params?|parameters?|number|numbers|num)\b(?!\s*[=('])\s*(.*)$",
     re.IGNORECASE)
@@ -382,6 +388,7 @@ def _remove_parameter(lines: list[str], name: str) -> list[str]:
             found = True
             if keep:
                 out.append(f"{m.group(1)}{m.group(2)} " + ", ".join(keep))
+            out.append(_LAW_HERE)  # the feedback law goes where the input was
         else:
             out.append(line)
     if not found:

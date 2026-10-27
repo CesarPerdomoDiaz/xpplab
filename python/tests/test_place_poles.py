@@ -162,3 +162,31 @@ def test_closed_loop_keeps_session_state():
     assert cl.get("a") == 2.0
     assert cl.get("total") == 7.0
     assert cl.ics["y"] == 0.25
+
+
+# the input feeds a fixed variable that is written before the equations
+FEEDS_FIXED = """
+par u=0, c=0.5
+drive=u*(1+x*x)
+x'=v
+v'=2*x-c*v+drive
+init x=0.2, v=0
+@ total=20, dt=0.01
+done
+"""
+
+
+def test_closed_loop_input_feeding_a_fixed_variable():
+    m = xs.Model.from_text(FEEDS_FIXED)
+    lin = m.linearize(at={"x": 0.0, "v": 0.0}, inputs=["u"])
+    K = lin.place_poles([-2.0, -3.0])
+    cl = lin.closed_loop(K)
+    # the closed loop must equal the open loop with u = -K (x - x*) put in by hand
+    for state in ([0.2, 0.0], [-0.4, 0.7]):
+        x, v = state
+        u = -float(K[0, 0]) * x - float(K[0, 1]) * v
+        m.set(u=u)
+        np.testing.assert_allclose(cl.rhs(state), m.rhs(state), rtol=1e-12, atol=1e-12)
+    cl.ics["x"], cl.ics["v"] = 0.2, 0.0
+    sol = cl.run()
+    assert abs(sol["x"][-1]) < 1e-6 and abs(sol["v"][-1]) < 1e-6

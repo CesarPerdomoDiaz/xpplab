@@ -121,7 +121,9 @@ unchanged, so the closed loop is the full nonlinear model. The new model
 is loaded with the same options as the original and takes over its current
 parameter values, initial conditions and numerical options (except the
 replaced inputs). The file is in a
-temporary directory unless you pass `path=`. The input must be declared on a
+temporary directory unless you pass `path=`. The feedback laws stand where the first input was declared, because
+XPPAUT evaluates fixed variables in the order they are written; a fixed
+variable that uses an input therefore sees the feedback value. The input must be declared on a
 `par` or `number` line (not continued with a backslash).
 
 ### Example: balancing a pendulum upright

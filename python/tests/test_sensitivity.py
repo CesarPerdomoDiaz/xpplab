@@ -142,13 +142,15 @@ def test_events_raise(line):
             m.sensitivity("a")
 
 
-def test_abs_of_a_negative_argument():
-    text = "x'=-p*x
+NEGATIVE = """x'=-p*x
 y'=-y+r*abs(x)
 par p=0.8,r=0.5
 init x=-2,y=1
 @ meth=rungekutta,total=4,dt=0.01
 done
-"
-    with xs.Model.from_text(text) as m:
+"""
+
+
+def test_abs_of_a_negative_argument():
+    with xs.Model.from_text(NEGATIVE) as m:
         check(m, ["p", "r"])

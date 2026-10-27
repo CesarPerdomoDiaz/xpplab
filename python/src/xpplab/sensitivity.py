@@ -265,8 +265,8 @@ class _Model:
                     f"events and boundary conditions are not supported by "
                     f"sensitivity(): {line!r}")
             if re.match(
-                    r"(par|param|params|parameter|parameters|p|init|i|aux|"
-                    r"number|numbers|n|options?|o)\s+[a-z_]\w*\s*=", low) \
+                    r"(par|param|params|parameter|parameters|p|init|i|aux|num|"
+                    r"number|numbers|n|options?|o)\s+[a-z_]", low) \
                     or re.match(r"set\s+\S+\s*\{", low):
                 continue
             if re.match(r"[a-z_]\w*\(\s*0\s*\)\s*=", low):
@@ -304,7 +304,7 @@ def _lines(text):
     is where XPPAUT stops reading; a backslash joins a line to the next."""
     out = []
     for line in re.sub(r"\\\r?\n", "", text).splitlines():
-        if re.match(r"\s*done\b", line, re.I):
+        if re.match(r"\s*(done\b|d\s*$)", line, re.I):
             break
         out.append(line)
     return out

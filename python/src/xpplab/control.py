@@ -366,12 +366,12 @@ def _match_distance(got, want) -> float:
 _LAW_HERE = "@@law@@"
 
 _PAR_LINE = re.compile(
-    r"^(\s*)(par|params?|parameters?|number|numbers|num)\b(?!\s*[=('])\s*(.*)$",
+    r"^(\s*)(par|params?|parameters?|p)\b(?!\s*[=('])\s*(.*)$",
     re.IGNORECASE)
 
 
 def _remove_parameter(lines: list[str], name: str) -> list[str]:
-    """The model lines without parameter ``name`` on its par/number line."""
+    """The model lines without parameter ``name`` on its par line."""
     out, found = [], False
     for line in lines:
         m = _PAR_LINE.match(line)
@@ -392,8 +392,9 @@ def _remove_parameter(lines: list[str], name: str) -> list[str]:
         else:
             out.append(line)
     if not found:
-        raise ValueError(f"input {name!r} is not declared on a par/number line "
-                         "of the model, so the feedback cannot replace it")
+        raise ValueError(
+            f"input {name!r} is not declared on a line starting with p, par, "
+            "param or parameters, so the feedback law cannot replace it")
     return out
 
 

@@ -190,3 +190,71 @@ def test_closed_loop_input_feeding_a_fixed_variable():
     cl.ics["x"], cl.ics["v"] = 0.2, 0.0
     sol = cl.run()
     assert abs(sol["x"][-1]) < 1e-6 and abs(sol["v"][-1]) < 1e-6
+
+
+# a map with a fixed point away from zero: x* = -0.5, y* = 0
+MAP_OFFSET = """
+par u=0
+x(t+1)=1.2*x+0.5*y+u+0.1
+y(t+1)=0.9*y+0.3*u
+init x=-0.3, y=0.2
+@ meth=discrete, total=80
+done
+"""
+
+
+def test_closed_loop_of_a_map_settles_to_its_fixed_point():
+    m = xs.Model.from_text(MAP_OFFSET)
+    lin = m.linearize(at={"x": -0.5, "y": 0.0}, inputs=["u"])
+    assert lin.discrete and lin.residual < 1e-12
+    K = lin.place_poles([0.2, -0.3])
+    check_poles(lin, K, [0.2, -0.3])
+    cl = lin.closed_loop(K)
+    assert cl.get("METH") == "discrete"
+    sol = cl.run()
+    np.testing.assert_allclose([sol["x"][-1], sol["y"][-1]], [-0.5, 0.0], atol=1e-9)
+    # the open map is unstable (pole 1.2): it leaves the fixed point
+    assert abs(m.run()["x"][-1] + 0.5) > 1.0
+
+
+# an equilibrium with a nonzero state and a nonzero nominal input:
+# x'' = -sin(x) - 0.3 x' + u, held at sin(x*) = u0 = 0.8
+HELD = """
+par u=0.8
+x'=v
+v'=-sin(x)-0.3*v+u
+init x=0.9, v=0
+@ total=30, dt=0.01
+done
+"""
+
+
+def test_closed_loop_around_a_nonzero_equilibrium():
+    m = xs.Model.from_text(HELD)
+    lin = m.linearize(inputs=["u"])
+    xstar = float(np.arcsin(0.8))
+    assert lin.point["X"] == pytest.approx(xstar, abs=1e-6)
+    assert lin.point["V"] == pytest.approx(0.0, abs=1e-6)
+    K = lin.place_poles([-2.0, -3.0])
+    check_poles(lin, K, [-2.0, -3.0])
+    cl = lin.closed_loop(K)
+    # at the equilibrium the feedback law gives back u0, so nothing moves
+    np.testing.assert_allclose(cl.rhs([xstar, 0.0]), [0.0, 0.0], atol=1e-5)  # the equilibrium is found to ~1e-6
+    cl.ics["x"], cl.ics["v"] = xstar + 0.4, 0.0
+    sol = cl.run()
+    assert sol["x"][-1] == pytest.approx(xstar, abs=1e-6)
+    assert sol["v"][-1] == pytest.approx(0.0, abs=1e-6)
+
+
+def test_parameter_line_keyword_p_and_a_clear_error():
+    ode = "p c=0.5, u=0\nx'=-c*x+u\ninit x=1\ndone\n"
+    lin = xs.Model.from_text(ode).linearize(at={"x": 0.0}, inputs=["u"])
+    cl = lin.closed_loop(lin.place_poles([-2.0]))
+    assert "u" not in cl._parameter_names and cl._parameter_names == ["c"]
+    # an input the file does not declare on a parameter line
+    lin2 = xs.Model.from_text("par c=0.5\nx'=-c*x\ninit x=1\ndone\n").linearize(
+        at={"x": 0.0}, inputs=["c"])
+    lin2._model.path.write_text("c=0.5\nx'=-c*x\ninit x=1\ndone\n")
+    with pytest.raises(ValueError, match=r"^input 'c' is not declared on a line "
+                                         r"starting with p, par, param or parameters"):
+        lin2.closed_loop(np.array([[1.0]]))

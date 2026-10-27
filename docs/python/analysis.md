@@ -143,8 +143,9 @@ name or a list (default: every parameter). `s.trajectory` is the run of the
 augmented model.
 
 Functions that can be differentiated: `sin`, `cos`, `tan`, `exp`, `ln`,
-`log10`, `sqrt`, `abs`, `tanh`, `sinh`, `cosh`, `atan`, `asin`, `acos`, and
-`heav`, `sign`, `flr` and `int` (derivative zero), with `+ - * / ^` and
+`log` (the natural log, as in XPPAUT), `log10`, `sqrt`, `abs`, `tanh`, `sinh`,
+`cosh`, `atan`, `asin`, `acos`, and
+`heav`, `sign`, `flr`, `int` and `not` (derivative zero), with `+ - * / ^` and
 `if(...)then(...)else(...)`.
 
 Notes:
@@ -154,9 +155,10 @@ Notes:
   times are the same.
 - The copy runs with `BOUND` set very high, because the sensitivities of an
   oscillator grow with time and would stop the run at the model's bound.
-- Tables, delays, maps, noise, events (`global`), boundary conditions and
+- Arrays (`x[1..n]'=...`), derived parameters (`!a=...`), tables, delays, maps,
+  noise (`wiener`), events (`global`), boundary conditions (`bndry`) and
   functions without a derivative here (`max`, `min`, `atan2`, ...) raise a
-  `ValueError`.
+  `ValueError` that names the feature. `only` lines are ignored.
 - The engine returns single-precision output, so to check a result against
   finite differences of repeated `m.run()` calls use a relative step near
   1e-3; `python/tests/test_sensitivity.py` does this.

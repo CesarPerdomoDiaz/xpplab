@@ -17,6 +17,8 @@ import shutil
 
 import numpy as np
 
+from . import _engine as E
+
 __all__ = ["Sensitivity", "augmented_text"]
 
 
@@ -227,6 +229,7 @@ _DERIVATIVE = {
     "tan": lambda a: _div(_num(1), _pow(_call("cos", a), 2)),
     "exp": lambda a: _call("exp", a),
     "ln": lambda a: _div(_num(1), a),
+    "log": lambda a: _div(_num(1), a),  # XPPAUT's log is the natural log
     "log10": lambda a: _div(_num(1), _mul(a, _num(np.log(10.0)))),
     "sqrt": lambda a: _div(_num(1), _mul(_num(2), _call("sqrt", a))),
     "tanh": lambda a: _sub(_num(1), _pow(_call("tanh", a), 2)),
@@ -236,9 +239,20 @@ _DERIVATIVE = {
     "asin": lambda a: _div(_num(1), _call("sqrt", _sub(_num(1), _pow(a, 2)))),
     "acos": lambda a: _div(_num(-1), _call("sqrt", _sub(_num(1), _pow(a, 2)))),
 }
-_ZERO_DERIVATIVE = {"heav", "sign", "flr", "int"}
+_ZERO_DERIVATIVE = {"heav", "sign", "flr", "int", "not"}
 _UNSUPPORTED = {"delay", "shift", "ran", "normal", "table", "max", "min",
                 "atan2", "mod", "lgamma", "erf", "erfc", "poisson", "hom_bcs"}
+
+
+# lines of an .ode file that sensitivity() cannot follow, with what to call them
+_UNSUPPORTED_LINES = [
+    (r"[^=]*\[[^\]=]*\.\.", "arrays (x[1..n])"),
+    (r"!", "derived parameters (!a=...)"),
+    (r"(global|g)\s+[-+]?\d", "events (global)"),
+    (r"(b|bndry|bdry)\s+[^=\s]", "boundary conditions"),
+    (r"(w|wiener)\s+[^=\s]", "noise (wiener)"),
+    (r"(table|tabular)\b", "tables"),
+]
 
 
 class _Model:
@@ -260,10 +274,12 @@ class _Model:
             if not line or line[0] in '#@"':
                 continue
             low = line.lower()
-            if re.match(r"(global|g)\s+[-+]?\d|bdry\s+\S", low):
-                raise SensitivityError(
-                    f"events and boundary conditions are not supported by "
-                    f"sensitivity(): {line!r}")
+            if re.match(r"only\s+\S", low):
+                continue  # an output option
+            for pattern, what in _UNSUPPORTED_LINES:
+                if re.match(pattern, low):
+                    raise SensitivityError(
+                        f"{what} are not supported by sensitivity(): {line!r}")
             if re.match(
                     r"(par|param|params|parameter|parameters|p|init|i|aux|num|"
                     r"number|numbers|n|options?|o)\s+[a-z_]", low) \
@@ -404,7 +420,7 @@ def augmented_text(text, states, parameters, wanted):
             d = D(mod.odes[s]) or _num(0)
             out.append(f"d{sname[s]}/dt={_show(d)}")
             out.append(f"init {sname[s]}=0")
-    body = _lines(text)
+    body = [ln for ln in _lines(text) if not re.match(r"\s*only\s", ln, re.I)]
     return "\n".join(body + ["# sensitivity equations (XPP Lab)"] + out + ["done", ""]), names
 
 
@@ -436,7 +452,7 @@ def run(model, params=None, **values):
                   "NEWT_ITER", "JAC_EPS"):
             try:
                 aug.set(**{o: model.get(o)})
-            except Exception:
+            except E.EngineError:
                 pass
         # Sensitivities of an oscillator grow with time; the model's BOUND
         # would stop the run when one passes it.

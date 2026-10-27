@@ -197,3 +197,46 @@ def test_adaptive_methods(method):
             fd = finite_difference(m, name, 1e-3)
             scale = np.abs(fd).max(axis=0)
             assert (np.abs(s[name] - fd) / scale).max() < RTOL
+
+
+LOG_NOT = """\
+flag=not(x>5)
+x'=-p*log(1+x^2)+q*flag
+y'=-y+log(1+x)*r
+par p=0.8,q=0.4,r=0.5
+init x=1.5,y=1
+@ meth=rungekutta,total=4,dt=0.01
+done
+"""
+
+
+def test_log_and_not():
+    with xs.Model.from_text(LOG_NOT) as m:
+        check(m, ["p", "q", "r"])
+        # log is the natural log, as in XPPAUT: compare with ln
+        a = m.sensitivity("p")["P"]
+    with xs.Model.from_text(LOG_NOT.replace("log(", "ln(")) as m:
+        np.testing.assert_array_equal(m.sensitivity("p")["P"], a)
+
+
+@pytest.mark.parametrize("line, what", [
+    ("v[1..3]'=-v[j]", "arrays"),
+    ("!e=2*a", "derived parameters"),
+    ("b x-y'", "boundary conditions"),
+    ("bndry x-x'", "boundary conditions"),
+    ("w nz", "noise"),
+    ("wiener nz", "noise"),
+    ("tabular f % 5 0 1 1/5", "tables"),
+])
+def test_unsupported_lines_are_named(line, what):
+    text = LOTKA.replace("done", line + chr(10) + "done")
+    with xs.Model.from_text(text) as m:
+        with pytest.raises(ValueError) as e:
+            m.sensitivity("a")
+    assert str(e.value).startswith(what)
+
+
+def test_only_is_ignored():
+    text = LOTKA.replace("done", "only x" + chr(10) + "done")
+    with xs.Model.from_text(text) as m:
+        assert m.sensitivity("a")["A"].shape[1] == 2

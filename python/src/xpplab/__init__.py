@@ -15,6 +15,7 @@ from .analysis import Table
 from .animation import Animation
 from .auto import Diagram, Point
 from .control import Linearization
+from .sensitivity import Sensitivity
 from .model import METHODS, Ensemble, Equilibrium, EquilibriumList, Model, Trajectory, load
 from . import app  # xs.app.connect(): drive the running desktop app
 

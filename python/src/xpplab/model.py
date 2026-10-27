@@ -99,6 +99,8 @@ class Model(AnalysisMixin):
     def __init__(self, path: str | os.PathLike, *, options: list[str] = (),
                  engine_library: str | None = None):
         self.path = Path(path).resolve()
+        self._options = list(options)
+        self._engine_library = engine_library
         if not self.path.exists():
             raise FileNotFoundError(self.path)
         self._engine = E.Engine(engine_library)

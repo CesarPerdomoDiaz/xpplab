@@ -210,9 +210,12 @@ class Linearization:
     def _kautsky(self, poles) -> np.ndarray:
         A, B = self.A, self.B
         n, k = B.shape
-        U, Z = np.linalg.qr(B, mode="complete")
-        U0, U1 = U[:, :k], U[:, k:]
-        Z = Z[:k]
+        # B spans r <= min(n, k) directions; with more inputs than states
+        # (or dependent inputs) the extra columns add nothing to place
+        U, sv, _ = np.linalg.svd(B)
+        r = int(np.sum(sv > max(n, k) * np.finfo(float).eps * sv[0]))
+        U0, U1 = U[:, :r], U[:, r:]
+        Z = U0.T @ B  # r x k
         # second[j] is True for the conjugate partner of an earlier pole
         partner = [-1] * n
         second = [False] * n
@@ -228,8 +231,11 @@ class Linearization:
         S = []
         for lam in poles:
             M = U1.T @ (A - lam * np.eye(n))
+            if M.shape[0] == 0:  # B has full row rank: any direction will do
+                S.append(np.eye(n, dtype=complex))
+                continue
             _, _, vh = np.linalg.svd(M)
-            S.append(vh[M.shape[0]:].conj().T)  # n x k basis
+            S.append(vh[M.shape[0]:].conj().T)  # n x r basis
         X = np.zeros((n, n), dtype=complex)
         for j in range(n):
             if second[j]:
@@ -248,7 +254,12 @@ class Linearization:
                 u, _, _ = np.linalg.svd(rest, full_matrices=True)
                 cand = S[j] @ (S[j].conj().T @ u[:, rest.shape[1]:])
                 norms = np.linalg.norm(cand, axis=0)
-                col = cand[:, int(np.argmax(norms))]
+                order = np.argsort(-norms)
+                col = cand[:, order[0]]
+                if partner[j] >= 0 and len(order) > 1:
+                    # a complex pair needs a genuinely complex vector, or
+                    # it and its conjugate would be parallel
+                    col = col + 1j * cand[:, order[1]]
                 nrm = np.linalg.norm(col)
                 if nrm < 1e-14:
                     continue
@@ -264,7 +275,7 @@ class Linearization:
             raise ValueError("cannot place these poles: a pole is repeated more "
                              "often than there are inputs")
         M = X @ np.diag(poles) @ np.linalg.inv(X)  # = A - B K
-        K = -np.linalg.solve(Z, U0.T @ (M - A))  # B (-K) = M - A
+        K = -np.linalg.pinv(Z) @ (U0.T @ (M - A))  # B (-K) = M - A
         if np.max(np.abs(K.imag)) > 1e-8 * max(1.0, float(np.max(np.abs(K.real)))):
             raise ValueError("cannot place these poles: the gain is not real")
         return K.real
@@ -301,7 +312,21 @@ class Linearization:
         path = Path(path)
         path.write_text("\n".join(lines) + "\n")
         from .model import Model
-        return Model(path)
+        new = Model(path, options=self._model._options,
+                    engine_library=self._model._engine_library)
+        # carry the session over: current parameters, initial conditions and
+        # numerical options (the replaced inputs are now fixed variables)
+        old = self._model
+        for p in old._parameter_names:
+            if p not in self.inputs and p in new._parameter_names:
+                new.set(**{p: old.get(p)})
+        for v in old.variables:
+            if v in new.variables:
+                new.set(**{v: old.get(v)})
+        for o, val in old.options.items():
+            if o in new.options:
+                new.set(**{o: val})
+        return new
 
     def __repr__(self) -> str:
         return (f"Linearization(n={self.A.shape[0]}, inputs={self.inputs}, "

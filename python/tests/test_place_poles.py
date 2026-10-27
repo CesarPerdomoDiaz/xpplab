@@ -126,3 +126,39 @@ def test_closed_loop_two_inputs():
     sol = cl.run()
     for v in "xyz":
         assert abs(sol[v][-1]) < 1e-5
+
+
+FULL = """
+par u1=0, u2=0
+x'=y+u1
+y'=-x+0.5*y+u2
+init x=0, y=0
+@ total=10
+done
+"""
+
+
+def test_as_many_inputs_as_states_and_more():
+    m = xs.Model.from_text(FULL)
+    lin = m.linearize(at={"x": 0.0, "y": 0.0}, inputs=["u1", "u2"])
+    for poles in ([-1.0, -2.0], [-1 + 1j, -1 - 1j], [-1.0, -1.0]):
+        K = lin.place_poles(poles)
+        assert K.shape == (2, 2)
+        check_poles(lin, K, poles)
+    # three inputs on two states: one input is a copy of another
+    m3 = xs.Model.from_text(FULL.replace("par u1=0, u2=0", "par u1=0, u2=0, u3=0")
+                            .replace("y+u1", "y+u1+u3"))
+    lin3 = m3.linearize(at={"x": 0.0, "y": 0.0}, inputs=["u1", "u2", "u3"])
+    assert lin3.B.shape == (2, 3)
+    check_poles(lin3, lin3.place_poles([-3.0, -4.0]), [-3.0, -4.0])
+
+
+def test_closed_loop_keeps_session_state():
+    m = xs.Model.from_text(THREE)
+    m.set(a=2.0, total=7.0)
+    m.ics["y"] = 0.25
+    lin = m.linearize(at={"x": 0.0, "y": 0.0, "z": 0.0}, inputs=["u1", "u2"])
+    cl = lin.closed_loop(lin.place_poles([-1.0, -2.0, -3.0]))
+    assert cl.get("a") == 2.0
+    assert cl.get("total") == 7.0
+    assert cl.ics["y"] == 0.25

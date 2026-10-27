@@ -111,11 +111,16 @@ the distance from the linearisation point.
   poles and a pole repeated more often than there are inputs raise
   `ValueError`. A warning is raised when the gain is very large, which
   means the pair is nearly uncontrollable.
+- With as many inputs as states or more, the poles are placed exactly; the
+  gain is the smallest one that does it.
 
 `lin.closed_loop(K)` writes the closed-loop model as an `.ode` file and
 loads it. Each input is taken off the model's `par` line and defined as a
 fixed variable holding the feedback law; the rest of the model text is
-unchanged, so the closed loop is the full nonlinear model. The file is in a
+unchanged, so the closed loop is the full nonlinear model. The new model
+is loaded with the same options as the original and takes over its current
+parameter values, initial conditions and numerical options (except the
+replaced inputs). The file is in a
 temporary directory unless you pass `path=`. The input must be declared on a
 `par` or `number` line (not continued with a backslash).
 

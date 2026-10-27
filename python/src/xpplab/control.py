@@ -182,6 +182,12 @@ class Linearization:
         if not np.all(np.isfinite(poles)):
             raise ValueError("the poles must be finite numbers")
         _check_conjugate(poles)
+        if self.residual > 1e-4:
+            warnings.warn(
+                f"the point is not an equilibrium (residual {self.residual:.2g}): "
+                "the closed loop u = u0 - K (x - x*) will not settle at x*, "
+                "because the model still moves there with no feedback",
+                stacklevel=2)
         K = self._ackermann(poles) if k == 1 else self._kautsky(poles)
         got = np.linalg.eigvals(self.A - self.B @ K)
         scale = max(1.0, float(np.max(np.abs(poles))))

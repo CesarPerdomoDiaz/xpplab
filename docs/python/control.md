@@ -111,6 +111,9 @@ the distance from the linearisation point.
   poles and a pole repeated more often than there are inputs raise
   `ValueError`. A warning is raised when the gain is very large, which
   means the pair is nearly uncontrollable.
+- If the point is not an equilibrium (`lin.residual` not near zero) a
+  warning says that the closed loop will not settle at `x*`: the model keeps
+  moving there even with no feedback.
 - With as many inputs as states or more, the poles are placed exactly; the
   gain is the smallest one that does it.
 
@@ -144,7 +147,7 @@ init th=0, w=0
 """)
 
 lin = m.linearize(at={"th": 0, "w": 0}, inputs=["u"])
-lin.eigenvalues                       # +-3.0 : the upright position is unstable
+lin.eigenvalues                       # 3.03, -3.23 : the upright position is unstable
 K = lin.place_poles([-2 + 1j, -2 - 1j])
 cl = lin.closed_loop(K)               # a new Model with u = -K (x - x*)
 cl.ics["th"] = 0.3                    # start well away from upright

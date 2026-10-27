@@ -1,3 +1,6 @@
+import warnings
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -258,6 +261,45 @@ def test_parameter_line_keyword_p_and_a_clear_error():
     with pytest.raises(ValueError, match=r"^input 'c' is not declared on a line "
                                          r"starting with p, par, param or parameters"):
         lin2.closed_loop(np.array([[1.0]]))
+
+
+ODE_DIR = Path(__file__).resolve().parents[2] / "engine" / "xppaut" / "ode"
+
+
+@pytest.mark.parametrize("name, inp, poles", [
+    ("lecar.ode", "iapp", [-0.5, -1.0]),
+    ("lecar.ode", "iapp", [-0.6 + 0.4j, -0.6 - 0.4j]),
+    ("fhn.ode", "a", [-0.5, -1.0]),
+    ("fhn.ode", "a", [-0.6 + 0.4j, -0.6 - 0.4j]),
+])
+def test_shipped_models_at_their_equilibrium(name, inp, poles):
+    m = xs.load(ODE_DIR / name)
+    lin = m.linearize(inputs=[inp])
+    assert lin.controllable and lin.residual < 1e-6
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # an equilibrium must not warn
+        K = lin.place_poles(poles)
+    check_poles(lin, K, poles)
+    cl = lin.closed_loop(K)
+    for v, x in lin.point.items():
+        cl.ics[v] = x + 1e-3
+    cl.set(total=150)
+    sol = cl.run()
+    for v, x in lin.point.items():
+        assert abs(sol[v][-1] - x) < 1e-6
+
+
+def test_warns_when_the_point_is_not_an_equilibrium():
+    m = xs.Model.from_text(PENDULUM)
+    lin = m.linearize(at={"th": 0.5, "w": 0.0}, inputs=["u"])
+    assert lin.residual > 1.0
+    with pytest.warns(UserWarning, match=r"^the point is not an equilibrium "
+                                         r"\(residual [0-9.]+\)"):
+        K = lin.place_poles([-2.0, -3.0])
+    # the warning is right: the closed loop does not stay at the point
+    cl = lin.closed_loop(K)
+    cl.ics["th"], cl.ics["w"] = 0.5, 0.0
+    assert abs(cl.run()["th"][-1] - 0.5) > 0.3
 
 
 def test_backslash_only_matters_on_the_inputs_own_line():

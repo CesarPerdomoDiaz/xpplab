@@ -266,6 +266,8 @@ class _Model:
                     r"number|numbers|n|bdry|global|g|option|options|o)\s+[^=\s]",
                     low) or low.startswith(("set ", "aux ")):
                 continue
+            if re.match(r"[a-z_]\w*\(\s*0\s*\)\s*=", low):
+                continue  # x(0)=...: an initial condition, which stays fixed
             if re.match(r"(table|wiener|markov|volterra|0\s*=|solv|vol|special|"
                         r"import|export|fourier|spec)\b", low):
                 raise SensitivityError(f"not supported by sensitivity(): {line!r}")

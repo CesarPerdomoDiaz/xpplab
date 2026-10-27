@@ -109,3 +109,12 @@ def test_unsupported_models_raise():
     with xs.Model.from_text(LOTKA) as m:
         with pytest.raises(KeyError):
             m.sensitivity("nope")
+
+
+def test_initial_condition_line_x0():
+    text = LOTKA.replace("init x=2,y=1", "x(0)=2" + chr(10) + "y(0)=1")
+    with xs.Model.from_text(text) as m:
+        assert m.get("y") == 1.0
+        s = m.sensitivity("b")
+        assert np.abs(s["b"]).max() > 1e-3
+        assert np.all(s["b"][0] == 0)

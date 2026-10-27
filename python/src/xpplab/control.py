@@ -378,14 +378,14 @@ def _remove_parameter(lines: list[str], name: str) -> list[str]:
         if m is None:
             out.append(line)
             continue
-        if line.rstrip().endswith("\\"):
-            raise ValueError("a parameter line continued with a backslash "
-                             "cannot be rewritten")
         body = re.sub(r"\s*=\s*", "=", m.group(3))
         items = [i for i in re.split(r"[,\s]+", body.strip()) if i]
         keep = [i for i in items if i.split("=")[0].lower() != name.lower()]
         if len(keep) != len(items):
             found = True
+            if line.rstrip().endswith("\\"):
+                raise ValueError("the parameter line of an input is continued "
+                                 "with a backslash and cannot be rewritten")
             if keep:
                 out.append(f"{m.group(1)}{m.group(2)} " + ", ".join(keep))
             out.append(_LAW_HERE)  # the feedback law goes where the input was

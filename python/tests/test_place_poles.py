@@ -258,3 +258,17 @@ def test_parameter_line_keyword_p_and_a_clear_error():
     with pytest.raises(ValueError, match=r"^input 'c' is not declared on a line "
                                          r"starting with p, par, param or parameters"):
         lin2.closed_loop(np.array([[1.0]]))
+
+
+def test_backslash_only_matters_on_the_inputs_own_line():
+    # the engine reads no backslash continuation on a par line, so the line
+    # rewriter is tested on the text itself
+    from xpplab.control import _LAW_HERE, _remove_parameter
+    lines = ["par c=0.5, \\", "  d=1", "par u=0, k=2", "x'=-c*x+u"]
+    assert _remove_parameter(lines, "u") == [
+        "par c=0.5, \\", "  d=1", "par k=2", _LAW_HERE, "x'=-c*x+u"]
+    with pytest.raises(ValueError, match=r"^the parameter line of an input is "
+                                         r"continued with a backslash"):
+        _remove_parameter(["par u=0, \\", "  k=2"], "u")
+
+

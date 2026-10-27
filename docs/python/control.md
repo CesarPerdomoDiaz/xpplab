@@ -127,8 +127,8 @@ XPPAUT evaluates fixed variables in the order they are written, so the
 feedback laws stand where the first input was declared; a fixed variable
 that uses an input therefore sees the feedback value. Each input must be
 declared on a line that starts with `p`, `par`, `param` or `parameters`,
-and that line must not be continued with a backslash; otherwise
-`closed_loop` raises `ValueError`.
+and that line must not end in a backslash; otherwise `closed_loop`
+raises `ValueError`. Other parameter lines are left as they are.
 
 ### Example: balancing a pendulum upright
 

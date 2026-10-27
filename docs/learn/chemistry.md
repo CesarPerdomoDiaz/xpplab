@@ -2,11 +2,21 @@
 
 Chemical kinetics gives differential equations directly: the rate of change
 of a concentration is the sum of the rates of the reactions that make it,
-minus those that consume it. The law of mass action says that a reaction
-step proceeds at a rate proportional to the product of the concentrations of
-its reactants. Mass action turns reaction schemes into polynomial ODEs, and
-polynomial ODEs can have almost any behaviour: relaxation to equilibrium,
-switching between two steady states, and sustained oscillations.
+minus those that consume it. Mass action turns reaction schemes into
+polynomial differential equations, and these can do much more than relax to
+equilibrium: they can switch between two steady states, and they can
+oscillate.
+
+The chemistry of such behaviour is the subject of Epstein and Pojman's
+*An Introduction to Nonlinear Chemical Dynamics*, cited as **[EP]** below.
+Enzyme kinetics and the quasi-steady-state approximation are treated in
+Murray's *Mathematical Biology I* **[MB]** and in Keener and Sneyd's
+*Mathematical Physiology I* **[KS]**, the elementary kinetics in *Atkins'
+Physical Chemistry* **[A]**. The general theory (equilibria, stability,
+saddle-node and Hopf bifurcations) is the one of the
+[mechanics page](mechanics.md#theory-for-mechanical-systems), with its
+references to Sanz Recio and Sánchez Arriaga's *Mecánica analítica*
+**[MA]**. The complete references are at the [end of the page](#references).
 
 This page has four examples:
 
@@ -20,40 +30,54 @@ This page has four examples:
 
 Save each model under the name in its first line, in the folder where you
 run the Python. The snippets of a page run one after the other, in a single
-script. The ideas used (equilibria, eigenvalues, Hopf and fold
-bifurcations) are summarised at the start of the
-[neuroscience page](neuroscience.md#theory-in-five-paragraphs).
+script.
 
 ## Theory for reactions
 
-**Mass action.** For the step `A + B -> C` with rate constant `k`, the rate
-is `k [A][B]`; the concentrations of `A` and `B` fall at that rate and `C`
-rises at it. A step with two molecules of `A` (`2A -> ...`) has the rate
-`k [A]^2`. Writing each step this way gives the rate equations.
+**Mass action.** An elementary step proceeds at a rate proportional to the
+product of the concentrations of the molecules that must meet for it. For
+`A + B -> C` with rate constant `k` the rate is `k [A][B]`, and a step in
+which two molecules of `A` meet, `2A -> ...`, has the rate `k [A]^2`. The
+concentrations of the reactants fall at that rate and those of the
+products rise at it. Writing every step this way gives the rate equations
+[A, Focus 17; KS ch. 1].
 
 **Conservation laws.** Most reaction networks conserve something: the total
-amount of an element, or the total enzyme, whether free or bound. Each
-conservation law is a linear combination of concentrations that does not
-change, so it removes one equation. Checking that the numerical solution
-keeps the conserved quantity constant is the best test of a simulation of
-kinetics.
+amount of an element, or the total enzyme, free or bound. A conservation
+law is a linear combination of concentrations that does not change, so it
+removes one equation. Checking that a numerical solution keeps the
+conserved quantity constant is a cheap and strong test of a simulation.
 
-**Time scales and stiffness.** The rate constants of a network may differ
-by many orders of magnitude. Fast steps relax in a short time, after which
-the slow ones go on alone. The equations are then **stiff**, and a method
-made for them (`meth=stiff` in `.ode` files, XPPAUT's implicit solver) is
-much faster than the default. The fast steps can often be replaced by an
-algebraic relation: the **quasi-steady-state approximation**.
+**Time scales and the quasi-steady state.** The rate constants of a network
+can differ by many orders of magnitude. The fast steps relax in a short
+time, after which the slow ones go on alone, and an intermediate that is
+made and consumed fast stays close to the value at which its rate of
+change vanishes. Setting that rate to zero replaces a differential
+equation by an algebraic one: the *steady-state* or *quasi-steady-state
+approximation* [A, Focus 17; MB ch. 6; KS ch. 1]. Equations with widely
+different time scales are also *stiff*: a solver made for them
+(`meth=stiff` in `.ode` files, XPPAUT's implicit method) takes steps
+suited to the slow motion without becoming unstable.
 
-**Open systems.** A closed system relaxes to chemical equilibrium and
-cannot oscillate for ever. Oscillations and switches need a flow of matter
-through the system, and in the models the flow appears as constant feed
-terms: concentrations of species held fixed by a reservoir.
+**Open systems.** A closed reacting system ends at chemical equilibrium,
+and no oscillation in it can last. Sustained oscillations and switches need
+the system to be kept away from equilibrium by a flow of matter, as in the
+continuously stirred tank reactors used in experiments [EP ch. 1, ch. 3].
+In the models the flow appears as feed terms, or as the concentrations of
+reservoir species held fixed.
+
+**Feedback and bifurcations.** The nonlinear behaviour comes from feedback,
+above all *autocatalysis*, where a product speeds up its own formation. In
+a flow system, autocatalysis can give two stable steady states for the same
+flow, with folds (saddle-node bifurcations) where one of them disappears and
+hysteresis between them. Adding a slower negative feedback can turn the
+system into an oscillator, typically through a Hopf bifurcation
+[EP ch. 2, ch. 4; MA §9.1.1; S ch. 8].
 
 ## Example 1: consecutive reactions, A to B to C
 
 An intermediate `B` is made from `A` and consumed to `C`, both by first
-order steps:
+order steps, the textbook case of consecutive reactions [A, Focus 17]:
 
 ```ode
 # abc.ode
@@ -117,7 +141,8 @@ abs(sol["b"] - exact_b).max()          # below 1e-6
 ## Example 2: an enzyme, and two time scales
 
 An enzyme `E` binds a substrate `S` reversibly to form a complex `C`, and
-the complex releases the product `P` and the enzyme:
+the complex releases the product `P` and the enzyme. This is the basic
+enzyme reaction of [MB ch. 6] and [KS ch. 1]:
 
 ```
 E + S <-> C -> E + P         rate constants  k1 (forward), km1 (back), k2
@@ -154,6 +179,8 @@ and the product forms at the rate `p' = k2 c = Vmax s/(Km + s)`, with
 
 The reduced model has one equation. The approximation is good when the
 enzyme is a small fraction of the substrate and `Km`, `e0/(Km + s0) << 1`.
+When and why the quasi-steady-state assumption holds is a classic case
+study in perturbation theory (Segel and Slemrod 1989).
 
 ```ode
 # mmreduced.ode
@@ -216,91 +243,112 @@ a visible part of it.
 
 ## Example 3: a chemical switch (Schlögl's model)
 
-Autocatalytic steps such as `A + 2X <-> 3X` (the product catalyses its own
-formation) produce cubic rate laws. With a reservoir that feeds and drains
-`X`, the rate equation takes the form
+Schlögl (1972) studied the scheme `A + 2X <-> 3X`, `B <-> X`, in which `X`
+catalyses its own formation, with `A` and `B` held fixed by reservoirs.
+Mass action gives a cubic rate law,
+
+```
+x' = k1 a x^2 - k2 x^3 - k3 x + k4 b
+```
+
+and scaling `x` and the time brings it to the form
 
 ```
 x' = mu - f(x),     f(x) = x^3 - 3 x^2 + c x
 ```
 
-where `mu` is a constant net feed. The model below uses `c = 2`.
+where `mu` is the scaled feed of `X` from the reservoir `B`, and `c` the
+scaled rate of the reverse step `X -> B`. Both are positive, and so is the
+concentration `x`. The model below uses `c = 2.5`.
 
 ```ode
 # schlogl.ode
-x' = mu - (x^3 - 3*x^2 + 2*x)
-par mu=0
-init x=0
-@ total=30, dt=0.01, xlo=0, xhi=30, ylo=-0.5, yhi=2.5
+x' = mu - (x^3 - 3*x^2 + c*x)
+par mu=0.5, c=2.5
+init x=0.2
+@ total=30, dt=0.01, xlo=0, xhi=30, ylo=0, yhi=2.5
 done
 ```
 
 The equilibria solve `f(x) = mu`. The cubic `f` rises, falls and rises
-again; it has a local maximum at `x = 1 - 1/sqrt(3) = 0.4226` and a
-local minimum at `x = 1 + 1/sqrt(3) = 1.5774`, where its values are
-`+0.3849` and `-0.3849` (that is, `2/(3 sqrt(3))`). So for `mu` between
-`-0.3849` and `+0.3849` there are three equilibria: the outer two are
-stable and the middle one is unstable; outside that range, there is one.
-The two values of `mu` where an equilibrium appears or disappears are
-saddle-node (fold) bifurcations.
+again; for `c = 2.5` it has a local maximum at `x = 1 - 1/sqrt(6) = 0.5918`
+and a local minimum at `x = 1 + 1/sqrt(6) = 1.4082`, where its values are
+0.6361 and 0.3639. So for a feed `mu` between 0.3639 and 0.6361 there are
+three equilibria: the outer two are stable and the middle one is unstable.
+Outside that range there is one. The two values of `mu` where an
+equilibrium appears or disappears are saddle-node (fold) bifurcations
+[MA §9.1.1; DSN §3.3.4].
 
 ```python
 sch = xs.load("schlogl.ode")
-sch.parameters["mu"] = 0.0
-found = sch.find_equilibria(50, box={"x": (-1, 3)})
-[(round(e["x"], 3), e.kind) for e in found]
-# 0 (stable), 1 (unstable), 2 (stable)
+found = sch.find_equilibria(50, box={"x": (0, 3)})
+[(round(e["x"], 4), e.kind) for e in found]
+# 0.2929 (stable), 1 (unstable), 1.7071 (stable), at mu = 0.5
 
-d = sch.auto.equilibria("mu", parmin=-1, parmax=1)    # from x = 0, on the lower branch
-[round(p.value, 4) for p in d.special("LP")]     # [0.3849, -0.3849]
+sch.parameters["mu"] = 0.2
+sch.initial_conditions["x"] = 0.0
+sch.equilibrium(set_initial=True)                 # the low state at mu = 0.2
+d = sch.auto.equilibria("mu", parmin=0, parmax=1)
+[round(p.value, 4) for p in d.special("LP")]     # [0.6361, 0.3639]
 ```
 
-**Hysteresis.** Change `mu` slowly, up and then down, always starting each
-run where the last one ended (`continue_runs=True`):
+**Hysteresis.** Change the feed slowly, up and then down, always starting
+each run where the last one ended (`continue_runs=True`):
 
 ```python
 sch.set(total=60)
-mus = np.linspace(-0.6, 0.6, 13)
+mus = np.linspace(0.2, 0.8, 13)
 up = sch.sweep("mu", mus, measure=lambda s: s["x"][-1], continue_runs=True)
 down = sch.sweep("mu", mus[::-1], measure=lambda s: s["x"][-1],
                  continue_runs=True)[::-1]
 ```
 
-Going up, `x` follows the lower branch until `mu` passes 0.3849 and then
-jumps to the upper branch (`up` is 0.21 at `mu = 0.3` and 2.16 at 0.4).
-Coming down, it stays on the upper branch until `mu` is below -0.3849
-(`down` is 1.79 at -0.3 and -0.16 at -0.4). Between -0.3849 and 0.3849 the
-state depends on the history: the system is a **memory**, a one-bit chemical
-switch. Bistable switches of this kind are found in cells, for example in gene regulation.
+Going up, `x` follows the low branch until the feed passes 0.6361 and then
+jumps to the high branch (`up` is 0.430 at `mu = 0.6` and 1.826 at 0.65).
+Coming down, it stays on the high branch until the feed is below 0.3639
+(`down` is 1.570 at 0.4 and 0.174 at 0.35). Between the two folds the
+state depends on the history: the system is a **memory**, a one-bit
+chemical switch. Bistability and hysteresis of this kind are observed in
+flow reactors, and they are the starting point of the systematic design of
+chemical oscillators [EP ch. 4].
 
 !!! note "Exercises"
     1. Check the fold values: solve `f'(x) = 0` and evaluate `f`. Then
-       change the `2` in the model's cubic to `3`. How many equilibria are
-       there for `mu = 0`, and what happens to the folds?
-    2. With `mu = 0.2`, where does the trajectory go from `x = 0.5`? From
-       `x = 1.3`? Find the unstable equilibrium that separates them.
-    3. For a general coefficient `c` the folds are at `x = 1 ± sqrt(1 - c/3)`.
-       Find the value of `c` at which they merge, and the `mu` there.
+       change `c` to 3. How many equilibria are there for `mu = 0.5`, and
+       what happens to the folds?
+    2. With `mu = 0.45`, where does the trajectory go from `x = 0.5`? From
+       `x = 1.2`? Find the unstable equilibrium that separates them.
+    3. For a general `c` the folds are at `x = 1 ± sqrt(1 - c/3)`. Find the
+       value of `c` at which they merge, and the `mu` there. Show that both
+       folds lie at a positive feed only if `c > 9/4`.
 
 ??? success "Solutions"
-    1. `f'(x) = 3x^2 - 6x + 2 = 0` gives `x = 1 ± 1/sqrt(3)`, and `f` there
-       is `±0.3849`. With a 3 instead of the 2, `f'(x) = 3(x - 1)^2 >= 0`:
-       `f` is monotonic, so there is exactly one equilibrium for every
-       `mu`, and the two folds have merged into one point.
-    2. With `mu = 0.2` there are three equilibria, at 0.1211 and 2.088
-       (both stable) and 0.7909 (unstable). From `x = 0.5` the trajectory
-       goes down to 0.1211; from 1.3 it goes up to 2.088. The starting
-       point 0.7 also goes to 0.1211, because it is below 0.7909.
+    1. `f'(x) = 3x^2 - 6x + 2.5 = 0` gives `x = 1 ± 1/sqrt(6)`, and `f`
+       there is 0.6361 and 0.3639. With `c = 3`, `f(x) = (x - 1)^3 + 1` and
+       `f'(x) = 3(x - 1)^2 >= 0`: `f` is monotonic, so there is exactly one
+       equilibrium for every `mu` (for `mu = 0.5`, `x = 1 - 0.5^(1/3)`
+       = 0.2063), and the two folds have merged into one point.
+    2. With `mu = 0.45` there are three equilibria, at 0.2474 and 1.6505
+       (both stable) and 1.1021 (unstable). From `x = 0.5` the trajectory
+       goes down to 0.2474; from 1.2 it goes up to 1.6505. The starting
+       point 0.9 also goes to 0.2474, because it is below 1.1021.
     3. The folds coincide when the square root vanishes: `c = 3`, at
-       `x = 1`. Then `mu = f(1) = 1 - 3 + 3 = 1`. The point `(c, mu) =
-       (3, 1)` is a **cusp**: for `c < 3` there is a range of `mu` with
-       bistability, for `c > 3` there is none.
+       `x = 1`, where `mu = f(1) = 1 - 3 + 3 = 1`. The point
+       `(c, mu) = (3, 1)` is a **cusp**: for `c < 3` there is a range of
+       `mu` with bistability, for `c > 3` there is none [DSN §6.3.2,
+       pp. 192–193]. With `s = sqrt(1 - c/3)`, the lower fold is at
+       `mu = f(1 + s) = 1 - 3 s^2 - 2 s^3`, which is positive for
+       `s < 1/2`, that is `c > 9/4`. For a smaller `c` the lower fold needs
+       a negative feed, which no reservoir can supply: switched on, the
+       high state could then never be switched off by lowering the feed.
 
 ## Example 4: the Brusselator, a chemical clock
 
-The Brusselator (Prigogine and Lefever) is the simplest model of an
-oscillating chemical reaction that can be written with mass action. In
-dimensionless form, with the reservoirs `A` and `B` held constant:
+The Brusselator, proposed by Prigogine and Lefever (1968), is not the
+mechanism of any real reaction but a minimal mass-action scheme that
+oscillates. One of its steps, `2X + Y -> 3X`, needs three molecules to meet
+at once, which real elementary steps rarely do. In dimensionless form, with
+the reservoirs `A` and `B` held constant:
 
 ```ode
 # bruss.ode
@@ -323,7 +371,7 @@ The step `2X + Y -> 3X` is the autocatalytic one. The only equilibrium is
 with trace `B - 1 - A^2` and determinant `A^2 > 0`. So the equilibrium is
 stable for `B < 1 + A^2` and unstable above it. At `B = 1 + A^2` the trace
 is zero and the eigenvalues are `± i A`: a **Hopf bifurcation**, with an
-oscillation of period `2 pi/A` at its birth. For `A = 1` the Hopf point is
+oscillation of period `2 pi/A` at its birth [MA §9.1.1; S ch. 8]. For `A = 1` the Hopf point is
 at `B = 2` and the period is 6.283.
 
 ```python
@@ -357,7 +405,9 @@ t[["B", "period", "X_max", "X_min"]].iloc[::4].head(5)
 
 The branch leaves the Hopf point to the right (`B` increases): the Hopf
 bifurcation is **supercritical**, and the amplitude grows like the square
-root of the distance from `B = 2`. Simulation agrees:
+root of the distance from `B = 2`, as in the normal form
+`r' = r (a - r^2)` of [MA §9.1.1, Example 4, p. 225], whose cycle has the
+radius `sqrt(a)`. Simulation agrees:
 
 ```python
 br.set(total=300)
@@ -374,7 +424,9 @@ for B in (1.8, 2.2, 3.0):
 The concentration of `X` oscillates with a relaxation-like shape when `B` is
 larger: a slow rise and a quick spike, the period longer, 7.15 at `B = 3`.
 Matter flows in as `A` and `B` and out as products, and the oscillation
-feeds on the flow.
+feeds on the flow. [EP ch. 1] tells the history of real chemical clocks,
+from the Belousov-Zhabotinsky reaction on, and [EP ch. 5] how their
+mechanisms are worked out.
 
 !!! note "Exercises"
     1. Derive the equilibrium and the Jacobian, and check that the Hopf
@@ -412,3 +464,42 @@ feeds on the flow.
   parameters.
 - [Data analysis](../python/analysis.md) for the Fourier transform and the
   period of a limit cycle.
+
+## References
+
+- **[EP]** Epstein, I. R. and Pojman, J. A. (1998). *An Introduction to
+  Nonlinear Chemical Dynamics: Oscillations, Waves, Patterns, and Chaos*
+  (Topics in Physical Chemistry). New York: Oxford University Press.
+  ISBN 978-0-19-509670-5. Chapters 1 (history), 2 (fundamentals),
+  3 (apparatus), 4 (synthesis of chemical oscillations) and 5 (analysis of
+  chemical oscillations).
+- **[MB]** Murray, J. D. (2002). *Mathematical Biology I: An
+  Introduction*, 3rd edition (Interdisciplinary Applied Mathematics 17).
+  New York: Springer. ISBN 978-0-387-95223-9. Chapter 6 (reaction
+  kinetics: enzyme kinetics and the Michaelis-Menten quasi-steady state).
+- **[KS]** Keener, J. and Sneyd, J. (2009). *Mathematical Physiology I:
+  Cellular Physiology*, 2nd edition (Interdisciplinary Applied Mathematics
+  8/I). New York: Springer. ISBN 978-0-387-75846-6. Chapter 1
+  (biochemical reactions, including enzyme kinetics).
+- **[A]** Atkins, P., de Paula, J. and Keeler, J. (2018). *Atkins'
+  Physical Chemistry*, 11th edition. Oxford: Oxford University Press.
+  ISBN 978-0-19-876986-6. Focus 17 (chemical kinetics).
+- **[S]** Strogatz, S. H. (2024). *Nonlinear Dynamics and Chaos: With
+  Applications to Physics, Biology, Chemistry, and Engineering*, 3rd
+  edition. Boca Raton: CRC Press (Chapman & Hall). ISBN 978-0-367-02650-9.
+  Chapter 8 (bifurcations revisited, including Hopf bifurcations and
+  oscillating chemical reactions).
+- **[MA]** Sanz Recio, F. J. and Sánchez Arriaga, G. (2019). *Mecánica
+  analítica: lagrangiana, hamiltoniana y sistemas dinámicos*. Madrid:
+  McGraw-Hill/Interamericana de España. ISBN 978-84-486-1539-0. Cited for
+  the saddle-node and Hopf bifurcations and their normal forms.
+- **[DSN]** Izhikevich, E. M. (2007). *Dynamical Systems in Neuroscience:
+  The Geometry of Excitability and Bursting*. Cambridge, MA: MIT Press.
+  ISBN 978-0-262-09043-8. Cited for the saddle-node and cusp bifurcations.
+- Prigogine, I. and Lefever, R. (1968). Symmetry breaking instabilities in
+  dissipative systems. II. *The Journal of Chemical Physics* 48,
+  1695–1700.
+- Schlögl, F. (1972). Chemical reaction models for non-equilibrium phase
+  transitions. *Zeitschrift für Physik* 253, 147–161.
+- Segel, L. A. and Slemrod, M. (1989). The quasi-steady-state assumption:
+  a case study in perturbation. *SIAM Review* 31, 446–477.

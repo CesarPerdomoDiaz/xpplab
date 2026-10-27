@@ -415,29 +415,43 @@ def test_chemistry_schlogl(runs):
     r = runs["chemistry"]
     sch = r.ns["sch"]
     found = r.first("found")
-    got = sorted((round(e["x"], 3), e.kind) for e in found)
-    assert got == [(0.0, "stable node"), (1.0, "unstable node"), (2.0, "stable node")]
+    got = sorted((round(e["x"], 4), e.kind) for e in found)
+    assert got == [(0.2929, "stable node"), (1.0, "unstable node"),
+                   (1.7071, "stable node")]
     d = r.first("d")
-    assert [round(p.value, 4) for p in d.special("LP")] == [0.3849, -0.3849]
-    approx(2 / (3 * np.sqrt(3)), 0.3849, 5e-5)
+    assert [round(p.value, 4) for p in d.special("LP")] == [0.6361, 0.3639]
+    s = 1 / np.sqrt(6)
+    approx(1 - s, 0.5918, 5e-5)
+    approx(1 + s, 1.4082, 5e-5)
+    f = lambda x: x ** 3 - 3 * x ** 2 + 2.5 * x
+    approx(f(1 - s), 0.6361, 5e-5)
+    approx(f(1 + s), 0.3639, 5e-5)
     mus = r.ns["mus"]
     up, down = np.asarray(r.ns["up"]), np.asarray(r.ns["down"])
-    k03, k04 = int(np.argmin(abs(mus - 0.3))), int(np.argmin(abs(mus + 0.3)))
-    approx(up[int(np.argmin(abs(mus - 0.3)))], 0.214, 5e-4)
-    approx(up[int(np.argmin(abs(mus - 0.4)))], 2.16, 5e-3)
-    approx(down[int(np.argmin(abs(mus + 0.3)))], 1.786, 5e-3)
-    approx(down[int(np.argmin(abs(mus + 0.4)))], -0.16, 5e-3)
+    assert mus.min() > 0 and up.min() > 0 and down.min() > 0   # physical
+    at = lambda m: int(np.argmin(abs(mus - m)))
+    approx(up[at(0.6)], 0.430, 5e-4)
+    approx(up[at(0.65)], 1.826, 5e-4)
+    approx(down[at(0.4)], 1.570, 5e-4)
+    approx(down[at(0.35)], 0.174, 5e-4)
+    # exercise 1: c = 3
+    approx(1 - 0.5 ** (1 / 3), 0.2063, 5e-5)
+    sch.set(mu=0.5, c=3, total=30)
+    found = sch.find_equilibria(100, box={"x": (0, 3)})
+    assert [round(e["x"], 4) for e in found] == [0.2063]
     # exercise 2
-    sch.set(mu=0.2, total=30)
-    found = sch.find_equilibria(100, box={"x": (-1, 3)})
-    assert sorted(round(e["x"], 4) for e in found) == [0.1211, 0.7909, 2.088]
-    approx(sch.run(x=0.5)["x"][-1], 0.1211, 5e-4)
-    approx(sch.run(x=1.3)["x"][-1], 2.088, 5e-4)
-    approx(sch.run(x=0.7)["x"][-1], 0.1211, 5e-4)
-    # exercise 1 and 3
-    x = 1 - 1 / np.sqrt(3)
-    approx(x ** 3 - 3 * x ** 2 + 2 * x, 0.3849, 5e-5)
+    sch.set(mu=0.45, c=2.5, total=30)
+    found = sch.find_equilibria(100, box={"x": (0, 3)})
+    assert sorted(round(e["x"], 4) for e in found) == [0.2474, 1.1021, 1.6505]
+    approx(sch.run(x=0.5)["x"][-1], 0.2474, 5e-4)
+    approx(sch.run(x=1.2)["x"][-1], 1.6505, 5e-4)
+    approx(sch.run(x=0.9)["x"][-1], 0.2474, 5e-4)
+    # exercise 3: the cusp, and the lower fold at zero feed when c = 9/4
     approx(1 ** 3 - 3 + 3, 1.0, 0)
+    s = np.sqrt(1 - (9 / 4) / 3)
+    approx(s, 0.5, 1e-12)
+    approx((1 + s) ** 3 - 3 * (1 + s) ** 2 + 9 / 4 * (1 + s), 0.0, 1e-12)
+    approx(1 - 3 * s ** 2 - 2 * s ** 3, 0.0, 1e-12)
 
 
 def test_chemistry_brusselator(runs):
@@ -502,177 +516,206 @@ def test_chemistry_brusselator(runs):
 
 def test_mechanics_pendulum(runs):
     r = runs["mechanics"]
-    down, up = r.first("down"), r.first("up")
-    assert (down.kind, up.kind) == ("stable focus", "saddle")
-    approx(down.eigenvalues[0].real, -0.1, 1e-6)
-    approx(abs(down.eigenvalues[0].imag), 0.995, 5e-4)
-    assert sorted(up.eigenvalues.real) == pytest.approx([-1.105, 0.905], abs=5e-4)
-    E = r.ns["E"]
-    approx(E[0], 1.416, 5e-4)
-    assert E[-1] < 1e-4
-    assert np.all(np.diff(E) <= 1e-9)
-    approx(r.ns["slow"]["x"][-1] / np.pi, 0.0, 1e-3)
-    approx(r.ns["fast"]["x"][-1] / np.pi, 2.0, 1e-3)
-    # exercise 2: the period without friction, against the elliptic integral
     pend = r.ns["pend"]
-
-    def exact(amplitude):
-        a, b = 1.0, np.cos(amplitude / 2)
-        for _ in range(40):
-            a, b = (a + b) / 2, np.sqrt(a * b)
-        return 2 * np.pi / a
-
+    bottom, top = r.history["bottom"][0], r.first("top")
+    assert top.kind == "saddle"
+    assert sorted(top.eigenvalues.real) == pytest.approx([-1, 1], abs=1e-5)
+    assert np.abs(bottom.eigenvalues.real).max() < 1e-6
+    assert sorted(bottom.eigenvalues.imag) == pytest.approx([-1, 1], abs=1e-6)
+    assert bottom.kind == "stable focus"           # what the text says it prints
+    E0 = r.history["E"][0]
+    approx(E0[0], 0.416, 5e-4)
+    assert np.ptp(E0) < 1e-6
+    # the period against the quadrature
+    period, quadrature = r.ns["period"], r.ns["quadrature"]
+    pend.set(total=200)
+    pend.parameters["gam"] = 0.0
+    for a, value in ((0.5, 6.38), (2, 8.35), (3, 16.16), (3.1, 21.04)):
+        approx(period(pend.run(th=a, p=0)), value, 0.006)
+        approx(quadrature(a), value, 0.006)
+    # with friction
+    damped = r.history["bottom"][1]
+    assert damped.kind == "stable focus"
+    approx(damped.eigenvalues[0].real, -0.1, 1e-6)
+    approx(abs(damped.eigenvalues[0].imag), 0.995, 5e-4)
+    E1 = r.history["E"][1]
+    approx(E1[-1], -0.9994, 5e-5)
+    assert np.diff(E1).max() < 1e-8
+    pend.parameters["gam"] = 0.1
     pend.set(total=100)
-    for amplitude, text in ((2.0, 8.34), (3.0, 16.16)):
-        s = pend.run(c=0.0, x=amplitude, v=0.0)
-        v = s["v"]
-        down_ = s.t[1:][(v[:-1] > 0) & (v[1:] <= 0)]
-        approx(np.diff(down_)[0], text, 0.011)
-        approx(exact(amplitude), text, 0.01)
-    approx(exact(2.0), 8.350, 5e-4)
-    approx(exact(3.0), 16.156, 5e-4)
-    # exercise 3: the threshold velocity
-    pend.parameters["c"] = 0.2
+    assert [round(pend.run(th=0, p=p0)["th"][-1] / (2 * np.pi))
+            for p0 in (2.0, 2.5, 4.5)] == [0, 1, 2]
+    saddle, branches = pend.manifolds({"th": 3.14, "p": 0})
+    assert saddle.kind == "saddle"
+    assert sorted(k for k, _ in branches) == ["stable", "stable", "unstable", "unstable"]
+    # exercise 2: focus to node at gam = w0
+    for gam, kind, ev in ((0.9, "stable focus", (-0.9, 0.436)),
+                          (1.1, "stable node", (-1.558, -0.642))):
+        pend.parameters["gam"] = gam
+        e = pend.equilibrium({"th": 0.1, "p": 0})
+        assert e.kind == kind
+        if kind == "stable focus":
+            approx(e.eigenvalues[0].real, ev[0], 1e-6)
+            approx(abs(e.eigenvalues[0].imag), ev[1], 5e-4)
+        else:
+            assert sorted(e.eigenvalues.real) == pytest.approx(ev, abs=5e-4)
+    # exercise 3: Lindstedt-Poincare against the measured periods
+    pend.parameters["gam"] = 0.0
+    pend.set(total=200)
+    for a, predicted, measured in ((0.5, 6.383, 6.38), (1, 6.702, 6.70),
+                                   (2, 8.378, 8.35)):
+        approx(2 * np.pi / (1 - a ** 2 / 16), predicted, 5e-4)
+        approx(period(pend.run(th=a, p=0)), measured, 0.006)
+    # exercise 4: the threshold speed
+    pend.parameters["gam"] = 0.1
+    pend.set(total=100)
     lo, hi = 1.0, 3.0
     for _ in range(25):
         mid = (lo + hi) / 2
-        if abs(pend.run(x=0, v=mid)["x"][-1]) > np.pi:
+        if abs(pend.run(th=0, p=mid)["th"][-1]) > np.pi:
             hi = mid
         else:
             lo = mid
     approx(lo, 2.4149, 2e-4)
-    # exercise 4: the amplitude decays at c/2
-    pend.set(total=60)
-    s = pend.run(x=2, v=0)
-    x, t = s["x"], s.t
-    peaks = [i for i in range(1, len(x) - 1)
-             if x[i] > x[i - 1] and x[i] >= x[i + 1] and x[i] > 0.001]
-    approx(t[peaks[0]], 7.32, 0.011)
-    approx(x[peaks[0]], 0.887, 5e-4)
-    approx(t[peaks[1]], 13.82, 0.011)
-    approx(x[peaks[1]], 0.456, 5e-4)
-    approx(t[peaks[2]], 20.18, 0.011)
-    approx(x[peaks[2]], 0.240, 5e-4)
-    slope = np.polyfit(t[peaks], np.log(x[peaks]), 1)[0]
-    approx(slope, -0.1003, 5e-4)
-    # the manifolds named in the text: two unstable and two stable branches
-    saddle, branches = pend.manifolds({"x": 3.1, "v": 0})
-    assert saddle.kind == "saddle"
-    assert sorted(k for k, _ in branches) == ["stable", "stable", "unstable", "unstable"]
 
 
-def test_mechanics_beam(runs):
+def test_mechanics_hoop(runs):
     r = runs["mechanics"]
-    beam = r.ns["beam"]
-    assert sorted((round(e["x"], 3), e.kind) for e in r.first("found")) == [
-        (-1.0, "stable focus"), (0.0, "saddle"), (1.0, "stable focus")]
-    beam.parameters["mu"] = 1.0
-    approx(beam.run(x=0.05, v=0)["x"][-1], 1.0, 1e-3)
-    approx(beam.run(x=-0.05, v=0)["x"][-1], -1.0, 1e-3)
+    hoop = r.ns["hoop"]
+    assert (r.first("straight").kind, r.first("bent").kind) == ("saddle", "stable focus")
+    approx(r.first("bent")["th"], np.arccos(1 / 1.5 ** 2), 1e-5)
+    approx(np.arccos(1 / 1.5 ** 2), 1.1102, 5e-5)
     bp = r.first("d").special("BP")
     assert len(bp) == 1
-    approx(bp[0].value, 0.0, 1e-6)
-    assert np.abs(r.ns["tab"]["x"] - np.sqrt(r.ns["mus"])).max() < 1e-5
-    # exercise 1
-    for mu, kind in ((-0.5, "stable focus"), (-0.01, "stable node")):
-        beam.parameters["mu"] = mu
-        beam.initial_conditions.update(x=0, v=0)
-        assert beam.equilibrium().kind == kind
-    # exercise 2
-    beam.parameters["mu"] = 1.0
-    assert beam.equilibrium({"x": 1, "v": 0}).kind == "stable focus"
-    # exercise 3: the subcritical form
-    text = r.files["buckle.ode"].replace("mu*x - x^3", "mu*x + x^3")
-    sub = xs.Model.from_text(text)
-    sub.parameters["mu"] = -0.25
-    found = sub.find_equilibria(100, box={"x": (-3, 3), "v": (-3, 3)})
-    assert sorted((round(e["x"], 3), e.kind) for e in found) == [
-        (-0.5, "saddle"), (0.0, "stable focus"), (0.5, "saddle")]
-    sub.parameters["mu"] = 0.25
-    found = sub.find_equilibria(100, box={"x": (-3, 3), "v": (-3, 3)})
-    assert [(round(e["x"], 3), e.kind) for e in found] == [(0.0, "saddle")]
-    sub.close()
-    # exercise 4: the fold of the imperfect pitchfork
-    imperfect = xs.Model.from_text(
-        r.files["buckle.ode"].replace("mu*x - x^3 - c*v", "mu*x - x^3 - c*v + f")
-        .replace("par mu=-0.5, c=0.5", "par mu=1, c=0.5, f=0.1")
-        .replace("init x=0.1, v=0", "init x=-1, v=0"))
-    imperfect.equilibrium(set_initial=True)
-    dd = imperfect.auto.equilibria("mu", parmin=-1, parmax=2, ds=-0.02)
-    lp = dd.special("LP")
+    approx(bp[0].value, 1.0, 1e-6)
+    lp = r.ns["side"].special("LP")
     assert len(lp) == 1
-    approx(lp[0].value, 3 * (0.05) ** (2 / 3), 2e-3)
-    approx(3 * (0.05) ** (2 / 3), 0.4072, 5e-5)
-    imperfect.close()
+    approx(lp[0].value, 1.0, 1e-5)
+    E, TU = r.history["E"][-1], r.ns["TU"]
+    assert np.ptp(E) < 1e-6
+    approx(np.ptp(TU), 1.73, 5e-3)
+    hoop.parameters.update(Om=1.5, gam=0.1)
+    approx(hoop.run(th=0.01, p=0)["th"][-1], 1.1102, 5e-4)
+    approx(hoop.run(th=-0.01, p=0)["th"][-1], -1.1102, 5e-4)
+    # exercise 1: focus below 0.995, node up to 1, saddle above
+    approx(np.sqrt(1 - 0.1 ** 2), 0.995, 5e-4)
+    for Om, kind in ((0.99, "stable focus"), (0.997, "stable node"), (1.01, "saddle")):
+        hoop.parameters["Om"] = Om
+        assert hoop.equilibrium({"th": 0, "p": 0}).kind == kind
+    # exercise 2: small swings about the bent state
+    hoop.parameters.update(Om=1.5, gam=0)
+    star = np.arccos(1 / 1.5 ** 2)
+    approx(1.5 * np.sin(star), 1.3437, 5e-5)
+    approx(2 * np.pi / (1.5 * np.sin(star)), 4.676, 5e-4)
+    s = hoop.run(th=star + 0.01, p=0)
+    p = s["p"]
+    down = s.t[1:][(p[:-1] > 0) & (p[1:] <= 0)]
+    approx(np.diff(down).mean(), 4.677, 2e-3)
+    # exercise 3: the normal form
+    approx(np.sqrt(2 * (1.05 ** 2 - 1)), 0.453, 5e-4)
+    approx(np.arccos(1 / 1.05 ** 2), 0.435, 5e-4)
+    # exercise 4
+    hoop.parameters["gam"] = 0.1
+    Oms = np.linspace(1.1, 2.5, 8)
+    tab = hoop.equilibrium_sweep("Om", Oms, guess={"th": 1, "p": 0})
+    assert np.abs(tab["th"] - np.arccos(1 / Oms ** 2)).max() < 1e-5
+
+
+def test_mechanics_vibrating_support(runs):
+    r = runs["mechanics"]
+    vib = r.ns["vib"]
+    vib.parameters.update(d=0.1, w=30, gam=0.02)
+    s0 = vib.run(th=2.9, p=0)
+    approx(s0["th"].min(), 2.90, 5e-3)
+    approx(s0["th"].max(), 3.37, 5e-3)
+    up = r.ns["up"]
+    approx(np.diff(up).mean(), 3.343, 2e-3)
+    approx(2 * np.pi / np.sqrt(0.1 ** 2 * 30 ** 2 / 2 - 1), 3.359, 5e-4)
+    # exercise 2: the threshold
+    vib.parameters.update(w=30, gam=0.02)
+    for d, stays in ((0.0475, True), (0.045, False)):
+        vib.parameters["d"] = d
+        s = vib.run(th=np.pi - 0.1, p=0)
+        assert (np.abs(s["th"] - np.pi).max() < 1.0) == stays
+    # exercise 3: parametric resonance
+    vib.parameters.update(d=0.1, gam=0)
+    vib.set(dt=0.01, total=100)
+    for w, top in ((2, 1.73), (1.5, 0.01), (1, 0.0102)):
+        vib.parameters["w"] = w
+        approx(np.abs(vib.run(th=0.01, p=0)["th"]).max(), top, 5e-3 if w == 2 else 5e-4)
 
 
 def test_mechanics_van_der_pol(runs):
     r = runs["mechanics"]
     vdp = r.ns["vdp"]
-    cycle = r.ns["cycle"]
-    expect = {0.1: (6.29, 2.000), 1: (6.66, 2.009), 10: (19.08, 2.014),
-              50: (82.5, 2.003)}
-    for mu, (period, amplitude) in expect.items():
-        p, a = cycle(mu, 40 * max(mu, 2))
-        approx(p, period, 0.011)
-        approx(a, amplitude, 1.5e-3)
-    p5, _ = cycle(5, 200)
-    approx(p5, 11.61, 0.011)
-
-    def formula(mu):
-        return (3 - 2 * np.log(2)) * mu + 3 * 2.338107 * mu ** (-1 / 3)
-
-    approx(formula(10), 19.39, 0.006)
-    approx(formula(50), 82.59, 0.006)
-    assert abs(formula(50) / 82.5 - 1) < 0.002
-    approx(3 - 2 * np.log(2), 1.614, 5e-4)
-    # exercise 4
-    p20, _ = cycle(20, 800)
-    approx(p20, 34.68, 0.011)
-    approx(formula(20), 34.86, 0.006)
-    # exercise 1: eigenvalues at mu = 0.1
-    vdp.set(meth="rungekutta", total=100)
+    hb = r.ns["hb"]
+    approx(hb.value, 0.0, 1e-6)
+    small = r.ns["small"]
+    assert len(small) >= 3
+    assert np.abs(small["U_max"] - 2 * np.sqrt(small["mu"])).max() < 1e-3
+    assert r.ns["cycles"]["stable"].all()
+    # exercise 2: one cycle from inside and outside
     vdp.parameters["mu"] = 0.1
-    eig = vdp.equilibrium({"x": 0.1, "y": 0.1}).eigenvalues
-    approx(eig[0].real, 0.05, 1e-6)
-    approx(abs(eig[0].imag), 0.9987, 5e-5)
+    vdp.set(total=400)
+    for u0 in (0.1, 3):
+        u = vdp.run(u=u0, v=0)["u"]
+        approx(u[len(u) // 2:].max(), 0.632, 5e-4)
+    # exercise 3: the Rayleigh oscillator
+    ray = xs.Model.from_text("x' = y\ny' = -w0^2*x + eps*(y - y^3)\n"
+                             "par w0=1, eps=0.1\ninit x=0.1, y=0\n"
+                             "@ total=300, dt=0.02\ndone\n")
+    x = ray.run()["x"]
+    approx(x[len(x) // 2:].max(), 1.156, 1e-3)
+    approx(2 / np.sqrt(3), 1.1547, 5e-5)
+    ray.close()
+    # exercise 4: the relaxation oscillation
+    vdp.parameters["mu"] = 10
+    vdp.set(total=600, meth="stiff")
+    s = vdp.run(u=0.1, v=0)
+    u = s["u"]
+    up = s.t[1:][(u[:-1] < 0) & (u[1:] >= 0)]
+    approx(np.diff(up)[-1], 19.08, 0.011)
 
 
-def test_mechanics_lorenz(runs):
+def test_mechanics_forced_pendulum(runs):
+    # Periodic results are the same on every platform. Chaotic ones are not:
+    # the model calls sin(), whose last bit differs between C libraries, and
+    # chaos amplifies it. Chaotic numbers are checked against the ranges the
+    # page gives (found by perturbing sin() by 1e-15 in every step).
     r = runs["mechanics"]
-    lor = r.ns["lor"]
-    cp = r.first("c_plus")
-    assert cp.kind == "saddle-focus"
-    approx(cp["x"], 8.485, 5e-4)
-    approx(cp["z"], 27.0, 1e-6)
-    ev = sorted(cp.eigenvalues, key=lambda z: z.real)
-    approx(ev[0].real, -13.85, 5e-3)
-    approx(ev[1].real, 0.094, 5e-4)
-    approx(abs(ev[1].imag), 10.19, 5e-3)
-    gap = r.ns["gap"]
-    a = r.ns["a"]
-    approx(a.t[np.argmax(gap > 1)], 27.3, 0.06)
-    approx(gap.max(), 30.0, 0.1)
-    # the equilibrium at r = 20 is stable; the b = 8/3 note
-    lor.parameters["r"] = 20
-    assert lor.equilibrium({"x": 7, "y": 7, "z": 19}).kind == "stable focus"
-    approx(lor.parameters["b"], 2.6666667, 1e-9)
-    odd = xs.Model.from_text("x' = -x\npar b=8/3\ndone\n")
-    assert odd.parameters["b"] == 8.0
-    odd.close()
-    # exercise 1
-    approx(10 * (10 + 8 / 3 + 3) / (10 - 8 / 3 - 1), 24.737, 5e-4)
-    for rr, sign, imag in ((24, -1, 9.49), (25, 1, 9.67)):
-        lor.parameters["r"] = rr
-        e = lor.equilibrium({"x": 8, "y": 8, "z": rr - 1})
-        pair = [z for z in e.eigenvalues if z.imag > 0][0]
-        assert np.sign(pair.real) == sign
-        approx(pair.imag, imag, 5e-3)
-        real = [z for z in e.eigenvalues if z.imag == 0][0]
-        approx(real.real, {24: -13.62, 25: -13.68}[rr], 5e-3)
-    # exercise 3
-    lor.set(total=100)
-    for rr, end in ((10, 4.899), (20, -7.118)):
-        lor.parameters["r"] = rr
-        approx(lor.run(x=1, y=1, z=1)["x"][-1], end, 2e-3)
-        approx(np.sqrt(8 / 3 * (rr - 1)), abs(end), 2e-3)
+    forced, strobe, lyapunov = r.ns["forced"], r.ns["strobe"], r.ns["lyapunov"]
+    for a0, points, exponent in ((0.5, 1, -0.25), (1.07, 2, -0.04)):
+        assert len(np.unique(np.round(strobe(a0), 3))) == points
+        approx(lyapunov(a0), exponent, 5e-3)
+    for a0, (lo, hi) in {1.15: (0.07, 0.12), 1.5: (0.095, 0.13)}.items():
+        assert len(np.unique(np.round(strobe(a0), 3))) > 60
+        assert lo < lyapunov(a0) < hi
+    gap, a = r.ns["gap"], r.ns["a"]
+    assert 70 < a.t[np.argmax(gap > 1)] < 220
+    approx(np.log(1e6) / 0.117, 118, 0.5)
+    # exercise 2: the window at 1.35
+    assert len(np.unique(np.round(strobe(1.35), 3))) == 1
+    approx(lyapunov(1.35), -0.25, 5e-3)
+    T = r.ns["T"]
+    s = forced.run(th=0, p=0, total=150 * T)
+    th = s["th"][::500]
+    approx(abs(th[-1] - th[-2]) / (2 * np.pi), 1.0, 1e-3)
+    # exercise 3: ten times smaller
+    forced.parameters["a0"] = 1.5
+    th0, p0 = r.ns["th"], r.ns["p"]
+    b = forced.run(th=th0 + 1e-7, p=p0, total=300)
+    gap7 = np.abs(a["th"] - b["th"])
+    assert 80 < a.t[np.argmax(gap7 > 1)] < 280
+    approx(np.log(10) / 0.117, 20, 0.5)
+    # exercise 1: following the attractor as the force grows
+    th, p = 0.0, 0.0
+    seen = {}
+    for a0 in np.arange(1.0, 1.5001, 0.01):
+        forced.parameters["a0"] = a0
+        s = forced.run(th=th, p=p, total=200 * T)
+        th, p = s["th"][-1] % (2 * np.pi), s["p"][-1]
+        seen[round(a0, 2)] = len(np.unique(np.round(s["p"][::500][100:], 3)))
+    assert all(seen[round(a0, 2)] == 1 for a0 in np.arange(1.0, 1.065, 0.01))
+    assert (seen[1.07], seen[1.08], seen[1.13], seen[1.44]) == (2, 4, 3, 2)
+    assert all(seen[round(a0, 2)] == 1 for a0 in np.arange(1.30, 1.425, 0.01))
+    assert all(seen[a0] > 30 for a0 in (1.09, 1.2, 1.25, 1.5))

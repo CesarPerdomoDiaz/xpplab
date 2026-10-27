@@ -7,6 +7,17 @@ ones the equations answer well: which populations coexist, which collapse,
 which oscillate, and how a small change in the environment can turn one
 outcome into another.
 
+The models on this page are the standard ones of mathematical ecology, as
+in Murray's *Mathematical Biology I*, cited as **[MB]** below, and
+Strogatz's *Nonlinear Dynamics and Chaos*, cited as **[S]**: chapters 1
+and 3 of [MB] treat single populations and interacting populations, and
+chapters 2, 3 and 6 of [S] use populations as examples of flows on a line,
+bifurcations and the phase plane. The general theory (equilibria,
+stability, bifurcations, first integrals) is the one of the
+[mechanics page](mechanics.md#theory-for-mechanical-systems), with its
+references to Sanz Recio and Sánchez Arriaga's *Mecánica analítica*
+**[MA]**. The complete references are at the [end of the page](#references).
+
 This page has four examples:
 
 1. a **harvested population**, where a saddle-node bifurcation is the
@@ -20,41 +31,55 @@ This page has four examples:
 
 Save each model under the name in its first line, in the folder where you
 run the Python. The snippets of a page run one after the other in a single
-script. A reminder of the theory of equilibria, stability and bifurcations
-is at the start of the [neuroscience page](neuroscience.md#theory-in-five-paragraphs);
-the ecological reading of it follows.
+script.
 
 ## Theory for populations
 
-**Population models.** A population `x` has a per-capita growth rate
-`g(x)`, so `x' = x g(x)`. Exponential growth is `g = r`; the **logistic
-equation** `x' = r x (1 - x/K)` lets `g` fall to zero at the carrying
-capacity `K`. Two species add interaction terms: predation takes from the
-prey and feeds the predator, competition takes from both.
+**Growth and its limits.** A population `x` changes at the rate
+`x' = x g(x)`, where `g` is the growth rate per individual. A constant `g = r`
+gives exponential growth; the **logistic equation** `x' = r x (1 - x/K)`
+lets the growth per individual fall to zero at the carrying capacity `K`,
+the largest population the environment sustains [MB ch. 1; S ch. 2]. A
+one-dimensional equation like this one can only approach equilibria
+monotonically: it cannot oscillate.
 
-**Equilibria are coexistence states.** An equilibrium with every population
-positive is a coexistence state. One with a population at zero is an
-extinction or exclusion state. Its stability tells you whether the missing
-species can invade: if it is unstable in the direction of the missing
-species, a few individuals will grow.
+**Two species.** Two populations interact through extra terms. Predation
+takes from the prey and feeds the predator; competition takes from both
+[MB ch. 3]. An equilibrium with every population positive is a
+*coexistence* state; one with a population at zero is an *extinction* or
+*exclusion* state. The stability of an exclusion state answers an
+ecological question: whether the missing species can invade. If the state
+is unstable in the direction of the missing species, a few individuals of
+it will grow.
 
-**Functional response.** How much one predator eats as a function of prey
-density `x` is the functional response. Type I is linear (`a x`). Type II
-saturates (`a x/(1 + a h x)`) because the predator needs handling time `h`.
-Saturation is destabilising, and the Rosenzweig-MacArthur model below is
-the textbook example.
+**Functional response.** How much one predator eats per unit time, as a
+function of the prey density `x`, is its *functional response*. The
+simplest is linear, `a x`. A predator that needs time to handle each prey
+saturates instead, as in `a x/(1 + a h x)` with handling time `h`.
+Rosenzweig and MacArthur showed graphically how the shape of the prey's
+nullcline, which a saturating response bends into a hump, decides the
+stability of coexistence (Rosenzweig and MacArthur 1963), and Example 3
+follows their argument.
 
-**Structural stability.** A model is structurally stable if small changes in
-its equations leave the phase portrait qualitatively the same. A model with
-a centre (closed orbits all around an equilibrium, as in Lotka-Volterra) is
-not: an arbitrarily small extra term turns the centre into a stable or an
-unstable focus. Be wary of ecological conclusions from such models.
+**Conserved quantities and structural stability.** A first integral
+confines the orbits to its level curves. If it has a strict minimum at an
+equilibrium, the equilibrium is stable, but not attracting: Lagrange's
+theorem [MA §8.2.3]. The Lotka-Volterra model has such an integral, and
+its orbits are closed curves, a family of cycles whose size is set by the
+initial state. That is the behaviour of a frictionless pendulum, and like
+the pendulum it is fragile: a change in the model as small as you like can
+turn the centre into a stable or an unstable focus. A model whose phase
+portrait changes qualitatively under small changes of its equations is
+*structurally unstable*, and its predictions should be read with care
+[MA §8.1.3, p. 194; §9.1, p. 222].
 
-**Bifurcations in ecology.** A saddle-node is a **tipping point**: a
-parameter crosses a threshold, a stable state disappears, and the
-population drops to the other state. A Hopf bifurcation is the onset of
-cycles. In both cases the key fact for management is that the system moves
-at a critical value of a parameter that changes slowly and smoothly.
+**Tipping points and cycles.** A saddle-node bifurcation, where a stable
+state meets an unstable one and both disappear, is a *tipping point*: the
+population drops to a distant state although the parameter changed only
+a little, and returning the parameter to its old value does not undo the
+change (hysteresis) [MA §9.1.1; S ch. 3]. A Hopf bifurcation is the onset
+of cycles [MA §9.1.1]. In both cases the system changes at a critical
+value of a parameter that moves slowly and smoothly.
 
 ## Example 1: the harvested population
 
@@ -79,10 +104,14 @@ The equilibria solve `x^2 - x + h = 0`, so
 and none above it. For `h = 0.2` they are 0.7236, which is stable, and
 0.2764, which is unstable: it is the **threshold** below which the harvest
 exceeds the growth, and the population collapses. At `h = 1/4` the two
-meet and disappear in a saddle-node bifurcation. The largest sustainable
-yield is `1/4` of the carrying capacity per unit time, but it is a bad
-place to operate: any further push collapses the population, and so does a
-small drop in the stock.
+meet and disappear in a saddle-node bifurcation. Writing the equation as
+`x' = (1/4 - h) - (x - 1/2)^2` shows that it is exactly the normal form of
+the saddle-node, the first example of [MA §9.1.1, p. 224]. The largest
+sustainable yield is `1/4` of the carrying capacity per unit time, but it
+is a bad place to operate: any further push collapses the population, and
+so does a small drop in the stock. [MB ch. 1] discusses harvesting a
+single population, and the difference between a fixed quota and a fixed
+effort, which Exercise 3 explores.
 
 ```python
 import numpy as np
@@ -139,15 +168,17 @@ the fold), and then nothing.
        0.8162. Restoring the stock needs a harvest well below the one that
        caused the collapse.
     3. `x' = x(1 - x - h)` has the equilibria `x = 0` and `x = 1 - h`: a
-       transcritical exchange of stability at `h = 1`, no fold. The yield
+       transcritical exchange of stability at `h = 1`, no fold. It is the
+       logistic equation `x' = x(a - x)` of [MA §9.1.1, Example 3,
+       p. 225], with `a = 1 - h`. The yield
        is `h x* = h (1 - h)`, with the maximum 1/4 at `h = 1/2`, where the
        population is at half the carrying capacity and nothing is near a
        cliff. A proportional harvest is safer than a fixed quota.
 
 ## Example 2: Lotka-Volterra, a centre
 
-The classical predator-prey model has prey `x` that grows by itself and
-predators `y` that only grow by eating prey:
+The classical predator-prey model of Lotka and Volterra has prey `x` that
+grows by itself and predators `y` that only grow by eating prey [MB ch. 3]:
 
 ```
 x' = a x - b x y
@@ -174,8 +205,17 @@ H = d x - c ln(x) + b y - a ln(y)
 ```
 
 which is constant along every trajectory; the orbits are its level curves
-and are all closed. The populations oscillate for ever, with a period that
-depends on the amplitude: it is `2 pi/sqrt(a c)` = 6.28 for small
+and are all closed. `H` has a strict minimum at the equilibrium, so by
+Lagrange's theorem the equilibrium is stable, though not attracting
+[MA §8.2.3, p. 199]. There is more to it: in the variables `u = ln x` and
+`v = ln y` the equations become `u' = a - b e^v` and `v' = -c + d e^u`,
+which are Hamilton's equations `v' = ∂H/∂u`, `u' = -∂H/∂v`, with `H` as
+the Hamiltonian, `v` as the coordinate and `u` as its momentum. The model is a
+Hamiltonian system with one degree of freedom in disguise, so its
+equilibria can only be centres or saddles, and it keeps areas in the
+`(ln x, ln y)` plane, which rules out any attractor [MA §6.6.1, §8.1.3].
+The populations oscillate for ever, with a period that depends on the
+amplitude, as for the pendulum: it is `2 pi/sqrt(a c)` = 6.28 for small
 oscillations and longer for large ones (6.38 for the orbit that starts at
 `x = 1.5`).
 
@@ -192,13 +232,15 @@ H(rk).max() - H(rk).min()              # about 1e-7: conserved by the integrator
 
 lv.set(meth="euler")
 eu = lv.run()
-H(eu).max() - H(eu).min()              # 0.16: Euler's method adds energy
+H(eu).max() - H(eu).min()              # 0.16: Euler's method does not keep H
 lv.set(meth="rungekutta")
 ```
 
 The second run shows why the choice of method matters when a model has a
 conserved quantity: Euler's method makes the orbit spiral outwards, and the
-numerical error looks like a biological effect.
+numerical error looks like a biological effect. For long runs of
+Hamiltonian systems, integrators built to respect their structure
+(symplectic integrators) are the right tool [MA Box 8.2, p. 191].
 
 !!! note "Exercises"
     1. Add a logistic term for the prey, `x' = a*x*(1 - x/K) - b*x*y`, with
@@ -226,8 +268,8 @@ numerical error looks like a biological effect.
 
 ## Example 3: the paradox of enrichment
 
-Rosenzweig and MacArthur gave the prey logistic growth and the predator a
-saturating functional response:
+The model named after Rosenzweig and MacArthur gives the prey logistic
+growth and the predator a saturating functional response:
 
 ```
 x' = x (1 - x/K) - x y/(1 + x)
@@ -261,10 +303,11 @@ K_H = 1 + 2 x* = (1 + d)/(1 - d)
 ```
 
 which is 5/3 = 1.667 here. For `K < K_H` the equilibrium is a stable
-focus. For `K > K_H` it is an unstable focus and the populations cycle.
-Making the environment richer does not make the populations more stable:
-it makes them swing, and the swings take the prey and predator to ever
-smaller densities. That is the paradox of enrichment.
+focus. For `K > K_H` it is an unstable focus and the populations cycle:
+a Hopf bifurcation at `K = K_H` [MA §9.1.1]. Making the environment richer
+does not make the populations more stable: it makes them swing, and the
+swings take the prey and predator to ever smaller densities. Rosenzweig
+(1971) called this the *paradox of enrichment*.
 
 ```python
 rm = xs.load("rm.ode")
@@ -336,12 +379,14 @@ and fatal in the field.
        left of the line, so the equilibrium sits on the falling side and is
        stable. The Hopf bifurcation is where the top of the hump passes the
        line, `(K - 1)/2 = x*`. Beyond it the equilibrium is on the rising
-       side and is unstable.
+       side and is unstable. This is the graphical criterion of Rosenzweig
+       and MacArthur (1963).
 
 ## Example 4: two competing species
 
 Two species compete for the same resource. Each limits itself (the `1` in
-the brackets) and the other (the coefficients `a` and `b`):
+the brackets) and the other (the coefficients `a` and `b`). This is the
+Lotka-Volterra competition model [MB ch. 3; S ch. 6]:
 
 ```
 x' = x (1 - x - a y)
@@ -368,7 +413,8 @@ stronger than competition within a species:
 - `a = b > 1` (strong): coexistence is a saddle, and `(1, 0)` and `(0, 1)`
   are stable nodes. **Winner takes all**, and which one wins depends on
   where you start. The stable manifold of the saddle separates the two
-  basins.
+  basins. When one species always wins, whatever the start, ecologists
+  speak of *competitive exclusion* [MB ch. 3]; Exercise 2 has a case.
 
 ```python
 comp = xs.load("comp.ode")
@@ -407,8 +453,11 @@ You can see the basins by drawing the nullclines and the flow in the app
     1. The Jacobian at `(2/3, 2/3)` is `-(2/3) [[1, a], [b, 1]]` for `r = 1`:
        eigenvalues `-(2/3)(1 ± sqrt(ab))`, real and negative, so the point
        is a node. In fact the Lotka-Volterra competition model in two
-       species has no periodic orbits at all; cycles need three species or
-       another mechanism.
+       species has no periodic orbits at all. Dulac's criterion proves it:
+       with the function `1/(xy)`, the divergence of the vector field
+       multiplied by it is `-1/y - r/x`, negative everywhere in the open
+       quadrant, so no closed orbit can exist there [MA §8.4.1, p. 203].
+       Cycles need three species or another mechanism.
     2. `x` wins. The equilibrium with both species would be at `x = 2`,
        `y = -2`, outside the quadrant, so `find_equilibria` finds only
        `(0, 0)` (unstable), `(0, 1)` (a saddle) and `(1, 0)` (stable). From
@@ -421,8 +470,34 @@ You can see the basins by drawing the nullclines and the flow in the app
 
 - The examples folder has `ecofilip.ode` (a population with a harvest that
   switches on above a threshold) and `logbif.ode` (the logistic map and
-  its period-doubling route to chaos). Open them in the app.
+  its period-doubling route to chaos, which [MA §9.1, §10.3.1] uses to
+  introduce the Feigenbaum cascade). Open them in the app.
+- [MB ch. 1] and [S ch. 3] both treat an insect-outbreak model (the spruce
+  budworm), a population with two stable states and a fold on each side.
 - [Bifurcation analysis with AUTO](../manual/auto.md) for two-parameter
   continuation of the Hopf point in `(K, d)`.
 - [Phase plane](../python/phase-plane.md) for nullclines, the flow and
   manifolds from Python.
+
+## References
+
+- **[MB]** Murray, J. D. (2002). *Mathematical Biology I: An
+  Introduction*, 3rd edition (Interdisciplinary Applied Mathematics 17).
+  New York: Springer. ISBN 978-0-387-95223-9. Chapter 1 (continuous
+  population models for single species, including harvesting and an
+  insect-outbreak model) and chapter 3 (models for interacting
+  populations: predator-prey and competition).
+- **[S]** Strogatz, S. H. (2024). *Nonlinear Dynamics and Chaos: With
+  Applications to Physics, Biology, Chemistry, and Engineering*, 3rd
+  edition. Boca Raton: CRC Press (Chapman & Hall). ISBN 978-0-367-02650-9.
+  Chapters 2 (flows on the line), 3 (bifurcations) and 6 (phase plane).
+- **[MA]** Sanz Recio, F. J. and Sánchez Arriaga, G. (2019). *Mecánica
+  analítica: lagrangiana, hamiltoniana y sistemas dinámicos*. Madrid:
+  McGraw-Hill/Interamericana de España. ISBN 978-84-486-1539-0. Cited for
+  the general theory: first integrals and Lagrange's theorem, Hamiltonian
+  systems, Dulac's criterion, bifurcations.
+- Rosenzweig, M. L. and MacArthur, R. H. (1963). Graphical representation
+  and stability conditions of predator-prey interactions. *The American
+  Naturalist* 97, 209–223.
+- Rosenzweig, M. L. (1971). Paradox of enrichment: destabilization of
+  exploitation ecosystems in ecological time. *Science* 171, 385–387.

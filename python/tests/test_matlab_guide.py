@@ -101,9 +101,14 @@ def test_commands_exist():
 
 
 def batch_exe():
+    """The built xpplab-batch, if the engine library sits next to it.
+
+    The tool copies that library to load it; a build that keeps it elsewhere
+    (the macOS CI build does) cannot run it from here."""
     for name in ("xpplab-batch.exe", "xpplab-batch"):
         exe = ROOT / "build" / "app" / name
-        if exe.exists():
+        if exe.exists() and any((exe.parent / lib).exists() for lib in (
+                "libxppe.dll", "libxppe.dylib", "libxppe.so")):
             return exe
     return None
 
@@ -112,7 +117,7 @@ def test_echoed_lines_are_what_the_app_prints(tmp_path):
     """Run the page's commands in xpplab-batch and compare its echo."""
     exe = batch_exe()
     if exe is None:
-        pytest.skip("build/app/xpplab-batch is not built")
+        pytest.skip("xpplab-batch is not built with its engine library")
     (ode,) = blocks("ode")
     (tmp_path / "vdp.ode").write_text(ode, encoding="utf-8")
     (cmds,) = blocks("commands")

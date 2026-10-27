@@ -142,6 +142,11 @@ options, from its current parameters and initial conditions. `params` is a
 name or a list (default: every parameter). `s.trajectory` is the run of the
 augmented model.
 
+Functions that can be differentiated: `sin`, `cos`, `tan`, `exp`, `ln`,
+`log10`, `sqrt`, `abs`, `tanh`, `sinh`, `cosh`, `atan`, `asin`, `acos`, and
+`heav`, `sign`, `flr` and `int` (derivative zero), with `+ - * / ^` and
+`if(...)then(...)else(...)`.
+
 Notes:
 
 - With an adaptive method the step is controlled on the sensitivities too, so
@@ -149,7 +154,8 @@ Notes:
   times are the same.
 - The copy runs with `BOUND` set very high, because the sensitivities of an
   oscillator grow with time and would stop the run at the model's bound.
-- Tables, delays, maps, noise and functions such as `max` raise a
+- Tables, delays, maps, noise, events (`global`), boundary conditions and
+  functions without a derivative here (`max`, `min`, `atan2`, ...) raise a
   `ValueError`.
 - The engine returns single-precision output, so to check a result against
   finite differences of repeated `m.run()` calls use a relative step near

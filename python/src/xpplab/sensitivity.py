@@ -261,9 +261,13 @@ class _Model:
             if not line or line[0] in '#@"':
                 continue
             low = line.lower()
+            if re.match(r"(global|g|bdry)\s+[^=\s]", low):
+                raise SensitivityError(
+                    f"events and boundary conditions are not supported by "
+                    f"sensitivity(): {line!r}")
             if re.match(r"done\b", low) or re.match(
                     r"(par|param|params|parameter|parameters|p|init|i|aux|set|"
-                    r"number|numbers|n|bdry|global|g|option|options|o)\s+[^=\s]",
+                    r"number|numbers|n|option|options|o)\s+[^=\s]",
                     low) or low.startswith(("set ", "aux ")):
                 continue
             if re.match(r"[a-z_]\w*\(\s*0\s*\)\s*=", low):
@@ -367,6 +371,11 @@ def augmented_text(text, states, parameters, wanted):
             if name in _UNSUPPORTED:
                 raise SensitivityError(
                     f"{name}() is not supported by sensitivity()")
+            if name == "abs" and len(args) == 1:
+                du = D(args[0])
+                if du is None:
+                    return None
+                return ("if", ("bin", "<", args[0], _num(0)), ("neg", du), du)
             if name in _ZERO_DERIVATIVE:
                 return None
             if name not in _DERIVATIVE or len(args) != 1:

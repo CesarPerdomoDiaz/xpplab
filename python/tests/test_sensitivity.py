@@ -118,3 +118,37 @@ def test_initial_condition_line_x0():
         s = m.sensitivity("b")
         assert np.abs(s["b"]).max() > 1e-3
         assert np.all(s["b"][0] == 0)
+
+
+ABSPOW = """x'=-p*abs(x)+q*y^2
+y'=-y+r*abs(sin(x))
+par p=0.8,q=0.3,r=0.5
+init x=1.5,y=1
+@ meth=rungekutta,total=5,dt=0.01
+done
+"""
+
+
+def test_abs():
+    with xs.Model.from_text(ABSPOW) as m:
+        check(m, ["p", "q", "r"])
+
+
+@pytest.mark.parametrize("line", ["global 1 {x-1} {y=0}", "g 1 {x-1} {y=0}"])
+def test_events_raise(line):
+    text = LOTKA.replace("done", line + chr(10) + "done")
+    with xs.Model.from_text(text) as m:
+        with pytest.raises(ValueError, match="events"):
+            m.sensitivity("a")
+
+
+def test_abs_of_a_negative_argument():
+    text = "x'=-p*x
+y'=-y+r*abs(x)
+par p=0.8,r=0.5
+init x=-2,y=1
+@ meth=rungekutta,total=4,dt=0.01
+done
+"
+    with xs.Model.from_text(text) as m:
+        check(m, ["p", "r"])

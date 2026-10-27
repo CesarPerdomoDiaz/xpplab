@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import ctypes
+import re
+import tempfile
 import warnings
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 
@@ -145,9 +148,221 @@ class Linearization:
         ax.legend(loc="upper center", ncol=2, fontsize="small", frameon=False)
         return ax
 
+    def place_poles(self, poles) -> np.ndarray:
+        """Feedback gain K (inputs x states) so that A - B K has ``poles``.
+
+        With the control law du = -K dx the closed loop dx' = (A - B K) dx
+        has the requested eigenvalues. One input uses Ackermann's formula
+        with the controllability matrix; several inputs use the robust
+        method of Kautsky, Nichols and Van Dooren (the one behind
+        ``scipy.signal.place_poles``), which spends the spare inputs on
+        keeping the closed-loop eigenvectors well conditioned. Only NumPy is
+        needed. The poles are n numbers, complex ones in conjugate pairs; for
+        a map they belong inside the unit circle.
+
+        Raises ``ValueError`` when the pair (A, B) is not controllable, when
+        there are no inputs, or when the poles are not admissible (wrong
+        count, not conjugate pairs, a pole repeated more often than there
+        are inputs)."""
+        n, k = self.B.shape
+        if k == 0:
+            raise ValueError("cannot place poles: no inputs were chosen "
+                             "(linearize(inputs=[...]))")
+        if self.rank < 0:
+            raise ValueError("cannot place poles: the controllability rank "
+                             "could not be computed")
+        if not self.controllable:
+            raise ValueError(
+                f"cannot place poles: the pair (A, B) is not controllable "
+                f"(rank {self.rank} of {n} states); the poles of the "
+                "uncontrollable part cannot be moved")
+        poles = np.atleast_1d(np.asarray(poles, dtype=complex)).ravel()
+        if len(poles) != n:
+            raise ValueError(f"need {n} poles, one per state, got {len(poles)}")
+        if not np.all(np.isfinite(poles)):
+            raise ValueError("the poles must be finite numbers")
+        _check_conjugate(poles)
+        K = self._ackermann(poles) if k == 1 else self._kautsky(poles)
+        got = np.linalg.eigvals(self.A - self.B @ K)
+        scale = max(1.0, float(np.max(np.abs(poles))))
+        err = _match_distance(got, poles)
+        if err > 1e-6 * scale:
+            warnings.warn(f"the placed poles differ from the requested ones by "
+                          f"{err:.1e}: the problem is badly conditioned",
+                          stacklevel=2)
+        elif np.linalg.norm(K) > 1e6 * scale:
+            warnings.warn("the gain is very large (norm "
+                          f"{np.linalg.norm(K):.1e}): the pair is nearly "
+                          "uncontrollable", stacklevel=2)
+        return K
+
+    def _ackermann(self, poles) -> np.ndarray:
+        n = self.A.shape[0]
+        coef = np.poly(poles).real
+        phi = np.zeros((n, n))
+        for c in coef:  # Horner: phi(A)
+            phi = phi @ self.A + c * np.eye(n)
+        C = self.controllability[:, :n]
+        last = np.zeros(n)
+        last[-1] = 1.0
+        return np.linalg.solve(C.T, last)[None, :] @ phi
+
+    def _kautsky(self, poles) -> np.ndarray:
+        A, B = self.A, self.B
+        n, k = B.shape
+        U, Z = np.linalg.qr(B, mode="complete")
+        U0, U1 = U[:, :k], U[:, k:]
+        Z = Z[:k]
+        # second[j] is True for the conjugate partner of an earlier pole
+        partner = [-1] * n
+        second = [False] * n
+        for j in range(n):
+            if second[j] or poles[j].imag == 0:
+                continue
+            for i in range(j + 1, n):
+                if not second[i] and abs(poles[i] - poles[j].conjugate()) \
+                        <= 1e-12 * max(1.0, abs(poles[j])):
+                    partner[j], second[i] = i, True
+                    break
+        # null spaces of U1^T (A - lambda I): the allowed eigenvector directions
+        S = []
+        for lam in poles:
+            M = U1.T @ (A - lam * np.eye(n))
+            _, _, vh = np.linalg.svd(M)
+            S.append(vh[M.shape[0]:].conj().T)  # n x k basis
+        X = np.zeros((n, n), dtype=complex)
+        for j in range(n):
+            if second[j]:
+                continue
+            X[:, j] = S[j][:, 0] / np.linalg.norm(S[j][:, 0])
+            if partner[j] >= 0:
+                X[:, partner[j]] = X[:, j].conj()
+        for _ in range(50):
+            moved = 0.0
+            for j in range(n):
+                if second[j]:
+                    continue
+                drop = [j] + ([partner[j]] if partner[j] >= 0 else [])
+                rest = np.delete(X, drop, axis=1)
+                # directions orthogonal to the other eigenvectors, projected into S_j
+                u, _, _ = np.linalg.svd(rest, full_matrices=True)
+                cand = S[j] @ (S[j].conj().T @ u[:, rest.shape[1]:])
+                norms = np.linalg.norm(cand, axis=0)
+                col = cand[:, int(np.argmax(norms))]
+                nrm = np.linalg.norm(col)
+                if nrm < 1e-14:
+                    continue
+                col = col / nrm
+                col = col * np.exp(-1j * np.angle(col[int(np.argmax(np.abs(col)))]))
+                moved = max(moved, float(np.linalg.norm(col - X[:, j])))
+                X[:, j] = col
+                if partner[j] >= 0:
+                    X[:, partner[j]] = col.conj()
+            if moved < 1e-10:
+                break
+        if np.linalg.cond(X) > 1e12:
+            raise ValueError("cannot place these poles: a pole is repeated more "
+                             "often than there are inputs")
+        M = X @ np.diag(poles) @ np.linalg.inv(X)  # = A - B K
+        K = -np.linalg.solve(Z, U0.T @ (M - A))  # B (-K) = M - A
+        if np.max(np.abs(K.imag)) > 1e-8 * max(1.0, float(np.max(np.abs(K.real)))):
+            raise ValueError("cannot place these poles: the gain is not real")
+        return K.real
+
+    def closed_loop(self, K, path=None):
+        """Write the closed-loop model, u = u0 - K (x - x*), and load it.
+
+        Each input parameter is removed from the model's parameter lines and
+        defined instead as a fixed variable: its nominal value minus the row
+        of ``K`` times the distance of the states from the linearisation
+        point. The rest of the model text is kept as it is. The file goes to
+        ``path`` (a temporary directory by default); the new
+        :class:`~xpplab.Model` is returned, and the path is its ``.path``."""
+        K = np.atleast_2d(np.asarray(K, dtype=float))
+        names = list(self.point)
+        if K.shape != (len(self.inputs), len(names)):
+            raise ValueError(f"K must have shape ({len(self.inputs)}, "
+                             f"{len(names)}), got {K.shape}")
+        src = Path(self._model.path).read_text(errors="replace")
+        lines = src.splitlines()
+        for p in self.inputs:
+            lines = _remove_parameter(lines, p)
+        laws = []
+        for p, p0, row in zip(self.inputs, self._p0, K):
+            terms = "".join(f"-({float(g)!r})*({v}-({float(self.point[v])!r}))"
+                            for g, v in zip(row, names))
+            laws.append(f"{p}={float(p0)!r}{terms}")
+        done = [i for i, ln in enumerate(lines) if ln.strip().lower() == "done"]
+        at = done[0] if done else len(lines)
+        lines[at:at] = ["# feedback u = u0 - K (x - x*), from place_poles"] + laws
+        if path is None:
+            path = Path(tempfile.mkdtemp(prefix="xpplab-closed-")) / (
+                Path(self._model.path).stem + "_closed_loop.ode")
+        path = Path(path)
+        path.write_text("\n".join(lines) + "\n")
+        from .model import Model
+        return Model(path)
+
     def __repr__(self) -> str:
         return (f"Linearization(n={self.A.shape[0]}, inputs={self.inputs}, "
                 f"rank={self.rank}, controllable={self.controllable})")
+
+
+def _check_conjugate(poles) -> None:
+    """Complex poles must come with their conjugates, or K would be complex."""
+    left = list(poles)
+    while left:
+        z = left.pop(0)
+        if z.imag == 0:
+            continue
+        hit = [i for i, w in enumerate(left)
+               if abs(w - z.conjugate()) <= 1e-12 * max(1.0, abs(z))]
+        if not hit:
+            raise ValueError(f"complex pole {z} has no conjugate partner: "
+                             "poles of a real system come in conjugate pairs")
+        left.pop(hit[0])
+
+
+def _match_distance(got, want) -> float:
+    """Largest distance between two pole sets, matched greedily."""
+    rest = list(want)
+    worst = 0.0
+    for z in got:
+        i = int(np.argmin([abs(z - w) for w in rest]))
+        worst = max(worst, abs(z - rest[i]))
+        rest.pop(i)
+    return worst
+
+
+_PAR_LINE = re.compile(
+    r"^(\s*)(par|params?|parameters?|number|numbers|num)\b(?!\s*[=('])\s*(.*)$",
+    re.IGNORECASE)
+
+
+def _remove_parameter(lines: list[str], name: str) -> list[str]:
+    """The model lines without parameter ``name`` on its par/number line."""
+    out, found = [], False
+    for line in lines:
+        m = _PAR_LINE.match(line)
+        if m is None:
+            out.append(line)
+            continue
+        if line.rstrip().endswith("\\"):
+            raise ValueError("a parameter line continued with a backslash "
+                             "cannot be rewritten")
+        body = re.sub(r"\s*=\s*", "=", m.group(3))
+        items = [i for i in re.split(r"[,\s]+", body.strip()) if i]
+        keep = [i for i in items if i.split("=")[0].lower() != name.lower()]
+        if len(keep) != len(items):
+            found = True
+            if keep:
+                out.append(f"{m.group(1)}{m.group(2)} " + ", ".join(keep))
+        else:
+            out.append(line)
+    if not found:
+        raise ValueError(f"input {name!r} is not declared on a par/number line "
+                         "of the model, so the feedback cannot replace it")
+    return out
 
 
 def _complex_plane_window(ev, discrete: bool):

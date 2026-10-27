@@ -92,3 +92,56 @@ lin.controllable   # True
 If the force cannot reach a state, the rank drops. In
 `x' = -x + u, y' = -2y` the second state is independent of `u`:
 `rank` is 1 and `controllable` is `False`.
+
+## Pole placement
+
+`lin.place_poles(poles)` returns the feedback gain `K` (one row per input,
+one column per state) so that `A - B K` has the eigenvalues you ask for. The
+control law is `u = u0 - K (x - x*)`: the nominal input minus the gain times
+the distance from the linearisation point.
+
+- With one input it uses Ackermann's formula and the controllability matrix.
+- With several inputs it uses the method of Kautsky, Nichols and Van Dooren
+  (the one behind `scipy.signal.place_poles`), which uses the spare inputs
+  to keep the closed-loop eigenvectors well conditioned. Only NumPy is
+  needed.
+- `poles` has one number per state; complex poles must come in conjugate
+  pairs. For a map (`meth=discrete`) the poles belong inside the unit circle.
+- A pair that is not controllable, a model with no inputs, a wrong number of
+  poles and a pole repeated more often than there are inputs raise
+  `ValueError`. A warning is raised when the gain is very large, which
+  means the pair is nearly uncontrollable.
+
+`lin.closed_loop(K)` writes the closed-loop model as an `.ode` file and
+loads it. Each input is taken off the model's `par` line and defined as a
+fixed variable holding the feedback law; the rest of the model text is
+unchanged, so the closed loop is the full nonlinear model. The file is in a
+temporary directory unless you pass `path=`. The input must be declared on a
+`par` or `number` line (not continued with a backslash).
+
+### Example: balancing a pendulum upright
+
+```python
+import xpplab as xs
+
+m = xs.Model.from_text("""
+par g=9.8, l=1, u=0
+th'=w
+w'=g/l*sin(th)-0.2*w+u
+init th=0, w=0
+@ total=20, dt=0.01
+""")
+
+lin = m.linearize(at={"th": 0, "w": 0}, inputs=["u"])
+lin.eigenvalues                       # +-3.0 : the upright position is unstable
+K = lin.place_poles([-2 + 1j, -2 - 1j])
+cl = lin.closed_loop(K)               # a new Model with u = -K (x - x*)
+cl.ics["th"] = 0.3                    # start well away from upright
+sol = cl.run()
+sol["th"][-1]                         # ~ 0: the loop settles
+```
+
+The same start without the feedback (`m.ics["th"] = 0.3; m.run()`) falls
+away. Check `lin.valid_radius()` to see how far from the point the linear
+design can be trusted; the closed-loop model above is the nonlinear one, so
+simulating it is the test.

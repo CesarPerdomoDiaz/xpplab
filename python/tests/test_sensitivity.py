@@ -154,3 +154,46 @@ done
 def test_abs_of_a_negative_argument():
     with xs.Model.from_text(NEGATIVE) as m:
         check(m, ["p", "r"])
+
+
+def test_text_after_done_is_ignored():
+    text = LOTKA + "global 1 {x-1} {y=0}\ntable w % 3 0 2 1 2 3\nz'=bogus(\n"
+    with xs.Model.from_text(LOTKA) as m:
+        plain = m.sensitivity("a")["A"]
+    with xs.Model.from_text(text) as m:
+        np.testing.assert_array_equal(m.sensitivity("a")["A"], plain)
+
+
+def test_temporary_directory_is_removed(monkeypatch):
+    import tempfile
+    made = []
+    real = tempfile.mkdtemp
+
+    def record(*a, **kw):
+        d = Path(real(*a, **kw))
+        if d.name.startswith("xpplab-model-"):  # from_text's, not the engine's
+            made.append(d)
+        return str(d)
+
+    monkeypatch.setattr(tempfile, "mkdtemp", record)
+    with xs.Model.from_text(LOTKA) as m:
+        assert len(made) == 1  # the model's own directory
+        m.sensitivity("a")
+        assert len(made) == 2  # the augmented copy's
+        assert made[1].parent == made[0].parent and not made[1].exists()
+        assert made[0].exists()
+
+
+@pytest.mark.parametrize("method", ["dopri5", "cvode"])
+def test_adaptive_methods(method):
+    with xs.Model.from_text(LOTKA) as m:
+        m.set(meth=method, tol=1e-9, atol=1e-9, total=6)
+        s = m.sensitivity(["a", "b", "k"])
+        base = m.run()
+        assert len(s.t) == len(base)
+        # the variables may differ slightly: the step also follows S
+        np.testing.assert_allclose(s.trajectory["X"], base["X"], rtol=1e-5)
+        for name in ("a", "b", "k"):
+            fd = finite_difference(m, name, 1e-3)
+            scale = np.abs(fd).max(axis=0)
+            assert (np.abs(s[name] - fd) / scale).max() < RTOL

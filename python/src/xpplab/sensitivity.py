@@ -13,6 +13,7 @@ formula gives (df/dx) S + df/dp in one pass). The engine is not changed.
 from __future__ import annotations
 
 import re
+import shutil
 
 import numpy as np
 
@@ -253,22 +254,20 @@ class _Model:
         self._read(text)
 
     def _read(self, text):
-        text = text.replace("\r", "")
-        text = re.sub(r"\\\n", "", text)
-        for raw in text.split("\n"):
+        for raw in _lines(text):
             line = raw.strip()
             self.names.update(w.lower() for w in re.findall(r"[A-Za-z_]\w*", line))
             if not line or line[0] in '#@"':
                 continue
             low = line.lower()
-            if re.match(r"(global|g|bdry)\s+[^=\s]", low):
+            if re.match(r"(global|g)\s+[-+]?\d|bdry\s+\S", low):
                 raise SensitivityError(
                     f"events and boundary conditions are not supported by "
                     f"sensitivity(): {line!r}")
-            if re.match(r"done\b", low) or re.match(
-                    r"(par|param|params|parameter|parameters|p|init|i|aux|set|"
-                    r"number|numbers|n|option|options|o)\s+[^=\s]",
-                    low) or low.startswith(("set ", "aux ")):
+            if re.match(
+                    r"(par|param|params|parameter|parameters|p|init|i|aux|"
+                    r"number|numbers|n|options?|o)\s+[a-z_]\w*\s*=", low) \
+                    or re.match(r"set\s+\S+\s*\{", low):
                 continue
             if re.match(r"[a-z_]\w*\(\s*0\s*\)\s*=", low):
                 continue  # x(0)=...: an initial condition, which stays fixed
@@ -298,6 +297,17 @@ class _Model:
             raise SensitivityError(
                 f"no ODE found for {', '.join(missing)} (is it a map or a "
                 f"model with algebraic equations?)")
+
+
+def _lines(text):
+    """The logical lines of an .ode file up to its first ``done`` line, which
+    is where XPPAUT stops reading; a backslash joins a line to the next."""
+    out = []
+    for line in re.sub(r"\\\r?\n", "", text).splitlines():
+        if re.match(r"\s*done\b", line, re.I):
+            break
+        out.append(line)
+    return out
 
 
 def _unique_prefix(names):
@@ -394,7 +404,7 @@ def augmented_text(text, states, parameters, wanted):
             d = D(mod.odes[s]) or _num(0)
             out.append(f"d{sname[s]}/dt={_show(d)}")
             out.append(f"init {sname[s]}=0")
-    body = [ln for ln in text.splitlines() if not re.match(r"\s*done\b", ln, re.I)]
+    body = _lines(text)
     return "\n".join(body + ["# sensitivity equations (XPP Lab)"] + out + ["done", ""]), names
 
 
@@ -439,3 +449,4 @@ def run(model, params=None, **values):
         return Sensitivity(traj.t, model.variables, data, traj)
     finally:
         aug.close()
+        shutil.rmtree(aug.path.parent, ignore_errors=True)

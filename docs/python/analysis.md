@@ -121,6 +121,40 @@ are returned as a dict. The model's initial conditions apply at the first
 data time, and XPPAUT integrates from each data time to the next with the
 current method, so the data need not be evenly spaced.
 
+## Sensitivity to parameters
+
+```python
+m = xs.load("lecar.ode")
+m.set(total=10, dt=0.05, meth="rungekutta", iapp=0.1)
+s = m.sensitivity(["iapp", "gk"])
+s.t               # the output times
+s["gk"]           # array (time, variables): d(V, W)/d gk at each time
+s["gk"][:, 0]     # d V(t) / d gk
+```
+
+The sensitivity S(t) = ∂x(t)/∂p obeys the variational equations
+dS/dt = (∂f/∂x) S + ∂f/∂p, with S = 0 at the start (the initial conditions
+are held fixed, even if they are written in terms of the parameter). XPP Lab
+differentiates the model's formulas, including fixed variables, user
+functions and `if(...)then(...)else(...)`, adds the equations to a copy of
+the model as new ODEs, and integrates them with the model's own method and
+options, from its current parameters and initial conditions. `params` is a
+name or a list (default: every parameter). `s.trajectory` is the run of the
+augmented model.
+
+Notes:
+
+- With an adaptive method the step is controlled on the sensitivities too, so
+  the variables can differ slightly from `m.run()`. With a fixed step the
+  times are the same.
+- The copy runs with `BOUND` set very high, because the sensitivities of an
+  oscillator grow with time and would stop the run at the model's bound.
+- Tables, delays, maps, noise and functions such as `max` raise a
+  `ValueError`.
+- The engine returns single-precision output, so to check a result against
+  finite differences of repeated `m.run()` calls use a relative step near
+  1e-3; `python/tests/test_sensitivity.py` does this.
+
 ## Many noisy runs: the ensemble
 
 ```python

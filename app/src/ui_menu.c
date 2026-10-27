@@ -169,6 +169,8 @@ static void menu_help(App *a) {
     ui_show_help(a, "commands");
   if (igMenuItem_Bool("Coming from XPPAUT", NULL, false, true))
     ui_show_help(a, "xppaut");
+  if (igMenuItem_Bool("Coming from MATLAB", NULL, false, true))
+    ui_show_help(a, "matlab");
   igSeparator();
   if (igMenuItem_Bool("About XPP Lab", NULL, false, true))
     ui_show_help(a, "about");

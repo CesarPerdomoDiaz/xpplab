@@ -120,7 +120,8 @@ static const char *usage =
     "  layout side | tabs       the phase plane beside the time series, or\n"
     "                           all plots in tabs\n"
     "  help [TOPIC]             open the manual (topics: tutorial,\n"
-    "                           neuron-tutorial, auto, analysis, odefile, numerics, commands, xppaut)\n";
+    "                           neuron-tutorial, auto, analysis, odefile, numerics, commands, xppaut,\n"
+    "                           matlab)\n";
 
 static char *skip_space(char *s) {
   while (*s && isspace((unsigned char)*s)) s++;

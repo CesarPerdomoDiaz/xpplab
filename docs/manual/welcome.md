@@ -57,6 +57,7 @@ original arrangement back, use **View > Reset window layout**.
 - [Bifurcation analysis with AUTO](auto.md).
 - [The .ode file format](odefile.md), the complete reference.
 - [Coming from XPPAUT](xppaut.md), if you already know XPPAUT.
+- [Coming from MATLAB](matlab.md), if you know `ode45`, `fsolve` and `eig`.
 
 > Tip: if you know XPPAUT's keyboard commands, they still work: I G
 > integrates, N N draws nullclines, S G finds an equilibrium. See

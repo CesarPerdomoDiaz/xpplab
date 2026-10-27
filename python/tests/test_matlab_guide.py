@@ -120,8 +120,10 @@ def test_echoed_lines_are_what_the_app_prints(tmp_path):
     for ln in cmds.splitlines():
         if ln:
             args += ["-c", ln]
-    out = subprocess.run(args, cwd=tmp_path, capture_output=True, text=True,
-                         timeout=120, check=True).stdout
+    done = subprocess.run(args, cwd=tmp_path, capture_output=True, text=True,
+                          timeout=120)
+    assert done.returncode == 0, done.stdout + done.stderr
+    out = done.stdout
     got = [ln for ln in out.splitlines() if ln.startswith(">>> ")]
     # the first two lines load the model and run it once; not from the page
     assert got[0].startswith(">>> m = xs.load(")

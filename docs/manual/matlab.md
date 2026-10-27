@@ -107,8 +107,8 @@ For the bifurcation tools, make `mu` run through zero and follow the steady
 state:
 
 ```python
-m.set(mu=-1)
-d = m.auto.equilibria("mu", parmin=-1, parmax=2)
+m.set(mu=-0.5)
+d = m.auto.equilibria("mu", parmin=-1, parmax=1)
 hb = d.first("HB")            # a Hopf point
 hb.value                      # 0 (to 1e-7): the oscillation appears at mu = 0
 ```
@@ -124,8 +124,8 @@ set total=30 meth=5dp
 run
 eq
 linearize at eq inputs u
-set mu=-1
-auto set parmin=-1 parmax=2
+set mu=-0.5
+auto set parmin=-1 parmax=1
 auto steady mu
 ```
 
@@ -138,8 +138,8 @@ the same; the file says `total=20`, so only changed values are written):
 >>> sol = m.run()
 >>> eq = m.equilibrium()
 >>> lin = m.linearize(inputs=["u"])
->>> m.parameters["mu"] = -1.0
->>> m.auto.set(parmin=-1.0)
+>>> m.parameters["mu"] = -0.5
+>>> m.auto.set(parmin=-1.0, parmax=1.0)
 >>> m.auto.equilibria("mu")
 ```
 

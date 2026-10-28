@@ -15,12 +15,13 @@ from .analysis import Table
 from .animation import Animation
 from .auto import Diagram, Point
 from .control import Linearization
+from .figure import Figure
 from .model import (METHODS, Ensemble, Equilibrium, EquilibriumList, Model, RunList,
                     Trajectory, Values, load)
 from . import app  # xs.app.connect(): drive the running desktop app
 
 __all__ = ["Model", "Trajectory", "RunList", "Values", "Ensemble", "Equilibrium", "EquilibriumList", "Linearization",
-           "Diagram", "Point", "Table", "Animation",
+           "Diagram", "Point", "Table", "Figure", "Animation",
            "EngineError", "METHODS", "load", "find_engine_library", "app",
            "__version__"]
 

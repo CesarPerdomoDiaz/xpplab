@@ -106,6 +106,42 @@ unstable focus. The random points come from XPPAUT's generator, which
 repeats from one session to the next, so the same search finds the same
 equilibria every time.
 
+## Many runs and shooting
+
+**Workspace > Many runs** runs the model from many initial values at once
+and keeps every run, coloured in the phase plane and the time series by the
+way it ended.
+
+**Random initial values**: tick the variables to draw, each uniformly
+between two values (the others keep their initial value), the number of
+runs and a seed. **keep where** keeps only the draws where a column, a
+variable or an `aux` quantity, lies between two values: `tens` from 0 to
+`inf` keeps the states where a tether is taut. The same seed gives the same
+initial values here and in Python (`Model.sample_initial`).
+
+A run ends early when a global flag of the model stops it, such as
+
+```
+global -1 gam {arret=1}      # gam crosses zero going down: the ground
+global -1 tn {arret=stop}    # a tension through zero; stop=0 turns it off
+```
+
+and the runs are counted by the flag that stopped them, or as having run to
+the end. The command window and the status bar give the counts.
+
+**Shoot from an equilibrium** finds the equilibrium near the initial values
+(Newton's method), linearises there, and runs from a small step off it
+along each real eigenvector, both ways: forward in time along the unstable
+directions, backward along the stable ones, or both. These runs trace the
+start of the invariant manifolds, as XPPAUT's *Initial conds > sHoot* does
+after *Sing pts*; here they include a node's two unstable directions as
+well as a saddle's.
+
+`many 100 seed 1 V -0.5 0.5 W 0 1 keep tens 0 inf` and
+`shoot eps 1e-5 time 50 unstable` do the same from the command window, and
+`export runs.csv many` writes every run with its ending. The
+[Figure window](figures.md) draws them for a paper.
+
 ## Frozen nullclines
 
 **Freeze...** in the Phase Plane is XPPAUT's *Nullcline > Freeze*: it keeps

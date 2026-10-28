@@ -25,6 +25,37 @@ static ImVec4_c faded(ImVec4_c c) {
 
 static PlotView time_view;
 
+/* The many runs (Workspace > Many runs), coloured by how each ended: the
+   flag that stopped it, or the direction it was shot in. */
+static ImVec4_c ending_colour(const RunSet *r, int i) {
+  static const unsigned c[] = {0x2ca02c, 0xd62728, 0x1f77b4, 0x7f7f7f, 0x9467bd,
+                               0xff7f0e, 0x8c564b, 0xe377c2};
+  int k = r->shoot ? i / 2 : r->event[i];
+  return HEX(c[((k % 8) + 8) % 8]);
+}
+
+static void draw_many(App *a, int xc, int yc) {
+  RunSet *r = &a->many;
+  int i;
+  bool shown[64] = {0};
+  if (!r->show || xc < 0 || yc < 0) return;
+  for (i = 0; i < r->n; i++) {
+    const Trajectory *t = &r->runs[i];
+    char id[96];
+    int e = r->shoot ? i / 2 : r->event[i];
+    if (xc >= t->ncols || yc >= t->ncols) continue;
+    if (e >= 0 && e < 64 && !shown[e]) {
+      if (r->shoot) snprintf(id, sizeof id, "eigenvalue %.4g##m%d", r->lambda[i], i);
+      else if (e == 0) snprintf(id, sizeof id, "ran to the end##m%d", i);
+      else snprintf(id, sizeof id, "stopped by flag %d##m%d", e, i);
+      shown[e] = true;
+    } else
+      snprintf(id, sizeof id, "##m%d", i);
+    ImPlot_PlotLine_doublePtrdoublePtr(id, t->cols[xc], t->cols[yc], t->nrows,
+                                       Spec(ending_colour(r, i), 1.0f));
+  }
+}
+
 void ui_time_plot(App *a) {
   int j, k;
   ImPlotAxisFlags fit;
@@ -70,6 +101,11 @@ void ui_time_plot(App *a) {
                                                 1.0f));
       }
     }
+    for (j = 1; j < a->ncols; j++)
+      if (a->plot_col[j]) {
+        draw_many(a, 0, j);
+        break; /* the first variable shown: many runs of all are a tangle */
+      }
     if (a->have_traj)
       for (j = 1; j < a->traj.ncols; j++) {
         if (!a->plot_col[j]) continue;
@@ -361,8 +397,8 @@ static void draw_equilibria(App *a) {
 
 static int column_of_var(App *a, int v) {
   int j;
-  for (j = 1; j < a->traj.ncols; j++)
-    if (SDL_strcasecmp(a->traj.names[j], a->vars[v]) == 0) return j;
+  for (j = 1; j < a->ncols; j++)
+    if (SDL_strcasecmp(a->cols[j], a->vars[v]) == 0) return j;
   return -1;
 }
 
@@ -468,6 +504,7 @@ void ui_phase_plot(App *a) {
       ImPlot_PlotLine_doublePtrdoublePtr(id, t->cols[fx], t->cols[fy], t->nrows,
                                          Spec(faded(palette[0]), 1.0f));
     }
+    draw_many(a, column_of_var(a, p->xvar), column_of_var(a, p->yvar));
     if (jx > 0 && jy > 0) {
       ImPlot_PlotLine_doublePtrdoublePtr("trajectory", a->traj.cols[jx],
                                          a->traj.cols[jy], a->traj.nrows,

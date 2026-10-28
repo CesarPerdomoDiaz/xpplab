@@ -122,6 +122,7 @@ static void menu_view(App *a) {
   igMenuItem_BoolPtr(WIN_VIEW3D, NULL, &a->show_view3d, true);
   igMenuItem_BoolPtr(WIN_ANI, NULL, &a->show_ani, true);
   igMenuItem_BoolPtr(WIN_KINE, NULL, &a->show_kine, true);
+  igMenuItem_BoolPtr(WIN_FIGURE, NULL, &a->show_figure, true);
   igMenuItem_BoolPtr(WIN_HELP, "F1", &a->show_help, true);
   igSeparator();
   if (igMenuItem_Bool("Reset window layout", NULL, false, true))

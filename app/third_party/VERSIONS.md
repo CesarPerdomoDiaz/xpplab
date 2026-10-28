@@ -9,7 +9,10 @@
 | [stb_image_write](https://github.com/nothings/stb) | 1.16 | 003501f | public domain / MIT |
 
 The fonts in imgui/fonts are Roboto Medium and Cousine (Apache License 2.0),
-as distributed with Dear ImGui.
+as distributed with Dear ImGui. The fonts in fonts/ are DejaVu Sans, DejaVu
+Sans Oblique, STIX General and STIX General Italic as matplotlib 3.10
+distributes them, with their licences (LICENSE_DEJAVU, LICENSE_STIX): the
+figures (src/fig_*.c) draw their text with them, as matplotlib does.
 
 ## Regenerating the C bindings
 

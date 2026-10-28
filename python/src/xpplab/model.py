@@ -989,6 +989,18 @@ class RunList(list):
         ax.set_ylabel(y)
         return ax
 
+    def to_csv(self, path) -> None:
+        """Every run in one CSV file: ``run`` (from 0), ``event``, then the
+        columns, one row per output time, every number exact. The desktop
+        app's ``export FILE.csv many`` writes the same file."""
+        from .analysis import write_csv
+        rows = []
+        cols = self[0].columns if len(self) else ["T"]
+        for k, s in enumerate(self):
+            data = s.to_numpy()
+            rows += [[k, s.event] + list(r) for r in data]
+        write_csv(path, ["run", "event"] + cols, rows)
+
     def __repr__(self) -> str:
         return f"<RunList: {len(self)} runs, ended by {self.counts()}>"
 

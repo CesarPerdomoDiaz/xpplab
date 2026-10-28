@@ -134,7 +134,7 @@ SOFTWARE.
 
 ## stb_image_write
 
-https://github.com/nothings/stb. Writes PNG screenshots. Licence: MIT (or public domain).
+https://github.com/nothings/stb. Writes PNG screenshots and figures, and compresses PDF figures. Licence: MIT (or public domain).
 
 ```text
 Copyright (c) 2017 Sean Barrett
@@ -186,6 +186,17 @@ freely, subject to the following restrictions:
 Roboto Medium (Christian Robertson, Google) and Cousine Regular (Steve Matteson,
 Google), as distributed with Dear ImGui, are built into the desktop app.
 Licence: Apache License 2.0, in [licenses/Apache-2.0.txt](licenses/Apache-2.0.txt).
+
+## DejaVu Sans and STIX fonts
+
+DejaVu Sans and DejaVu Sans Oblique (Bitstream Vera Sans with the DejaVu
+changes, which are in the public domain) and STIX General and STIX General
+Italic (the STIX Fonts project), as distributed with matplotlib, are built
+into the desktop app in `app/third_party/fonts` and draw the text of its
+figures. Licences: the Bitstream Vera licence with the Arev additions, in
+[licenses/DejaVu.txt](licenses/DejaVu.txt), and the SIL Open Font License
+1.1, in [licenses/STIX.txt](licenses/STIX.txt). The fonts are used
+unmodified; the figures carry the letters' outlines, not the fonts.
 
 ## libiconv (Windows download only)
 

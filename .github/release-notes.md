@@ -1,14 +1,16 @@
 **XPP Lab @VERSION@**: XPPAUT 8.0's engine, giving the same numbers as XPPAUT, with a desktop app for Windows, macOS and Linux and a Python package. It needs no X server, compiler or Terminal.
 
-## New in 0.1.2
+## New in 0.1.3
 
-- **The app and Python together.** Each action in the app now appears in the command window as the line of Python (the `xpplab` package) that does the same, and *File > Save session as Python script* saves them: the script repeats the session exactly. The command window also takes Python: click its `>>` prompt, and `m.run()` runs the open model in the app while its plots follow. On a computer without Python, **Install Python** downloads one for XPP Lab, with NumPy and Matplotlib (about 55 MB, once).
-- **Drive the open app from outside.** `xpplab.app.connect()` in a notebook or a script, or a coding agent through the MCP tools `app_status`, `app_command` and `app_run`, acts in the window you have open, and you watch the plots change.
-- **The rest of XPPAUT's interface:** equilibria over a parameter and every equilibrium in a box (*Sing pts > Range* and *Monte Carlo*); Range over two parameters; initial values from a file, a formula, *Shift* and several clicks; frozen and saved nullclines; the Kinescope, with animated GIFs and a film of the Range; statistics over many noisy runs (*stocHastic > Compute*). `xpplab-batch` is XPPAUT's `-silent` mode, and also runs the app's commands, AUTO included, without a window.
-- **AUTO:** diagrams save and load exactly (XPPAUT keeps 6 digits), and an orbit can be imported. Boundary-value and homoclinic starts are now tested, and a homoclinic start answers XPPAUT's info box. A periodic branch that ends on a homoclinic orbit no longer shows spurious limit and branch points on its tail.
-- **Linearise** (*Run > Linearise*): the A and B matrices at an equilibrium for the inputs you choose, the eigenvalues in the complex plane, and whether the inputs can steer the system. The app and `Model.linearize` give the same numbers.
-- **Plots keep your zoom** until a double-click or *Fit*.
-- **Learn by example** on the [website](https://cesarperdomodiaz.github.io/xpplab/learn/): field tutorials in neuroscience, ecology, chemistry and mechanics. In Jupyter, models, runs, equilibria and AUTO diagrams show as tables.
+- **Control design**, in the app (the *Linearise* tool) and in Python, with the same numbers in both:
+  - **Pole placement:** drag the closed loop's poles in the complex plane, or type them, and the feedback gain follows. *Simulate the closed loop* writes the model with each input replaced by the feedback law, opens it and runs it, so you see how far from the point the linear design still works (`lin.place_poles`, `lin.closed_loop`).
+  - **Optimal control (LQR):** the gain that minimises a weighted cost of the states and the inputs, for continuous models and maps (`lin.lqr`).
+  - **Root locus** over a gain or a parameter, with the values where a pole crosses into or out of stability: over a parameter, a Hopf point shows up as a pair crossing the imaginary axis (`lin.root_locus`, `m.root_locus`).
+- **Figures for papers:** the *Figure* window puts several plots, insets and labels with mathematical notation on one page, and exports it as PDF, SVG, EPS or PNG at any size. `xpplab.Figure` draws the same figure from Python.
+- **Many runs and shooting:** a batch of starting points with the flag that stopped each run, and runs along the eigenvectors of an equilibrium. Auxiliary quantities at a state and along a bifurcation diagram, and Floquet multipliers along a branch of periodic orbits.
+- **Sensitivity** to parameters along a trajectory, from the variational equations (`Model.sensitivity`).
+- **The Liapunov exponent is fixed.** XPPAUT computes it from the stored run, which keeps single precision, times included, so long runs went wrong: Lorenz to t = 1000 gave 7.6 for an exponent of about 0.9. XPP Lab now computes it during the integration in double precision, in *Statistics*, in *Range* and in `Model.lyapunov()`. XPPAUT's number is still there as `Model.lyapunov(stored=True)`.
+- **Learn by example:** a kite on a tether, from its Lagrangian to its bifurcations, and the neuron tutorial with the theory behind it. A *Coming from MATLAB* guide maps MATLAB's ODE and control functions to XPP Lab.
 
 ## Download and run
 
@@ -46,7 +48,8 @@ Then see the [Python guide](https://cesarperdomodiaz.github.io/xpplab/python/qui
   - phase response curves and the H function;
   - spectra, histograms, correlations and the Liapunov exponent;
   - fitting to data.
-- **Editor, command window and figure export.** The editor's errors point at the line, and the command window takes XPPAUT's two-key commands, and Python. Figures export as PNG and SVG, data as CSV.
+- **Control:** linearisation with a controllability check, pole placement, LQR and root loci, and the closed loop run as a model.
+- **Editor, command window and figure export.** The editor's errors point at the line, and the command window takes XPPAUT's two-key commands, and Python. Figures export as PDF, SVG, EPS and PNG, data as CSV.
 - **Everything as Python.** Each action in the app is also a line of Python, and a session saves as a script that repeats it.
 
 Found a problem, or a model that works in XPPAUT but not here? Please [open an issue](https://github.com/CesarPerdomoDiaz/xpplab/issues/new/choose).

@@ -126,6 +126,11 @@ static const char *usage =
     "                           poles (one per state: -2, -1+2i, -1-2i)\n"
     "  closedloop [FILE]        write the closed loop u = u0 - K (x - x*) as\n"
     "                           a model next to this one, open it and run it\n"
+    "  locus gain LO HI [N]     root locus: the poles of A - g B K for N gains\n"
+    "                           g from LO to HI (K from poles); locus feedback\n"
+    "                           INPUT STATE LO HI [N] feeds one state back;\n"
+    "                           locus par P LO HI [N] follows the equilibrium\n"
+    "                           as P changes (export F.csv locus saves it)\n"
     "  open FILE | new | save   models\n"
     "  export FILE.csv [WHAT]   save data as CSV: the last run, or auto (the\n"
     "                           bifurcation diagram), range, analysis or\n"
@@ -227,6 +232,80 @@ static void cmd_kinescope(App *a, char *rest) {
 
 /* spectrum, fourier, power, hist, hist2d, xcorr, mean, prc, hfun, fitdata,
    ensemble, linearize */
+static int name_index(char (*names)[APP_NAME_LEN], int n, const char *name) {
+  int i;
+  for (i = 0; i < n; i++)
+    if (SDL_strcasecmp(names[i], name) == 0) return i;
+  return -1;
+}
+
+/* locus gain FROM TO [STEPS]             the gain K from pole placement
+   locus feedback INPUT STATE FROM TO [STEPS]
+   locus par NAME FROM TO [STEPS]         a parameter, the equilibrium followed */
+static void cmd_locus(App *a, char *rest) {
+  const LinearSystem *L = &a->an.lin;
+  RootLocusUI *R = &a->an.locus;
+  char *kind = next_word(&rest), *w;
+  int input = -1, state = -1, par = -1, steps = 0;
+  double lo, hi;
+  if (!a->model_ok) {
+    app_log(a, "error: open a model first");
+    return;
+  }
+  if (kind && !strcmp(kind, "feedback")) {
+    char *u = next_word(&rest), *v = next_word(&rest);
+    if (u && L->inputs) input = name_index(L->inputs, L->m, u);
+    if (v) state = name_index(a->vars, a->nvars, v);
+    if (input < 0 || state < 0) {
+      app_log(a, "error: write locus feedback INPUT STATE FROM TO, an input of "
+                 "the linearisation and a state");
+      return;
+    }
+  } else if (kind && (!strcmp(kind, "par") || !strcmp(kind, "parameter"))) {
+    char *p = next_word(&rest);
+    if (!p || (par = name_index(a->pars, a->npars, p)) < 0) {
+      app_log(a, "error: write locus par NAME FROM TO with a parameter's name");
+      return;
+    }
+  } else if (!kind || strcmp(kind, "gain") != 0) {
+    app_log(a, "Write: locus gain FROM TO [STEPS] (the gain from poles), "
+               "locus feedback INPUT STATE FROM TO [STEPS], or locus par NAME "
+               "FROM TO [STEPS]");
+    return;
+  }
+  if (!(w = next_word(&rest)) || !is_number(w)) {
+    app_log(a, "error: give the range, FROM TO");
+    return;
+  }
+  lo = atof(w);
+  if (!(w = next_word(&rest)) || !is_number(w)) {
+    app_log(a, "error: give the range, FROM TO");
+    return;
+  }
+  hi = atof(w);
+  if ((w = next_word(&rest)) && is_number(w)) steps = atoi(w);
+  a->show_analysis = true;
+  if (par >= 0) {
+    R->mode = 2;
+    R->par = par;
+    R->p_lo = lo;
+    R->p_hi = hi;
+    R->p_steps = steps ? steps : 101;
+    app_parameter_locus(a, par, lo, hi, R->p_steps);
+  } else {
+    R->mode = input >= 0 ? 1 : 0;
+    if (input >= 0) {
+      R->input = input;
+      R->state = state;
+    }
+    R->g_lo = lo;
+    R->g_hi = hi;
+    R->g_steps = steps ? steps : 201;
+    app_gain_locus(a, R->mode, input, state, lo, hi, R->g_steps);
+  }
+  R->form_set = true;
+}
+
 static void cmd_analysis(App *a, const char *cmd, char *rest) {
   AnalysisUI *n = &a->an;
   char *w = NULL;
@@ -1009,6 +1088,8 @@ void app_command(App *a, const char *line_in) {
     cmd_analysis(a, cmd, rest);
   } else if (!strcmp(cmd, "poles")) {
     app_place_poles_text(a, rest);
+  } else if (!strcmp(cmd, "locus")) {
+    cmd_locus(a, rest);
   } else if (!strcmp(cmd, "closedloop") || !strcmp(cmd, "closed")) {
     char *w = next_word(&rest);
     if (w && !strcmp(w, "loop")) w = next_word(&rest);
@@ -1185,9 +1266,11 @@ void app_command(App *a, const char *line_in) {
       app_export_equilibria_csv(a, file);
     } else if (which && !strcmp(which, "many")) {
       app_export_many_csv(a, file);
+    } else if (which && !strcmp(which, "locus")) {
+      app_export_locus_csv(a, file);
     } else if (which && strcmp(which, "run") != 0) {
       app_log(a, "error: export FILE.csv takes run, auto, range, analysis, "
-                 "equilibria or many, not '%s'", which);
+                 "equilibria, many or locus, not '%s'", which);
     } else {
       app_export_csv(a, file);
     }

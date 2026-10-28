@@ -27,9 +27,18 @@ static void free_linear(LinearSystem *L) {
   memset(L, 0, sizeof *L);
 }
 
+static void free_locus(RootLocusUI *R) {
+  free(R->values); /* one block holds all the numbers */
+  R->values = R->re = R->im = R->x = NULL;
+  R->kind = LOCUS_NONE;
+  R->steps = R->n = R->nx = 0;
+  R->crossings[0] = '\0';
+}
+
 void app_analysis_free(App *a) {
   app_free_trajectory(&a->an.res);
   free_linear(&a->an.lin);
+  free_locus(&a->an.locus);
   free(a->an.coupling);
   a->an.coupling = NULL;
   a->an.have = false;
@@ -648,6 +657,7 @@ static bool linearize(App *a, bool outer) {
   if (n < 1) return false;
   if (!parse_inputs(a, an->lin_inputs, &inputs, &m)) return false;
   free_linear(L);
+  if (an->locus.kind == LOCUS_GAIN) free_locus(&an->locus); /* it was of the old A, B */
   app_free_trajectory(&an->res);
   an->have = false;
   an->summary[0] = '\0';
@@ -1112,6 +1122,263 @@ done:
   free(vnames);
   free(pv);
   return ok;
+}
+
+/* ---- Root locus ------------------------------------------------------------ */
+
+/* Where a branch crosses the edge of stability, as RootLocus.crossings()
+   finds it: linearly between the two steps around the crossing. */
+static void find_crossings(RootLocusUI *R) {
+  size_t k = 0;
+  int b, s, count = 0;
+  R->crossings[0] = '\0';
+  for (b = 0; b < R->n; b++)
+    for (s = 0; s + 1 < R->steps; s++) {
+      double r0 = R->re[b * R->steps + s], r1 = R->re[b * R->steps + s + 1];
+      double i0 = R->im[b * R->steps + s], i1 = R->im[b * R->steps + s + 1];
+      double d0 = R->discrete ? hypot(r0, i0) - 1 : r0;
+      double d1 = R->discrete ? hypot(r1, i1) - 1 : r1;
+      double f, v, zr, zi;
+      if (!isfinite(d0) || !isfinite(d1) || d0 == d1 || (d0 < 0) == (d1 < 0)) continue;
+      f = -d0 / (d1 - d0);
+      v = R->values[s] + f * (R->values[s + 1] - R->values[s]);
+      zr = r0 + f * (r1 - r0);
+      zi = i0 + f * (i1 - i0);
+      if (zi < 0) continue; /* the pair is told once, by its upper pole */
+      if (count++ < 6 && k < sizeof R->crossings - 160) {
+        if (zi > 0)
+          k += (size_t)snprintf(R->crossings + k, sizeof R->crossings - k,
+                                "%s%s = %.6g: a pair of poles becomes %s, at "
+                                "%.4g +/- %.4gi",
+                                k ? "\n" : "", R->name, v,
+                                d1 > 0 ? "unstable" : "stable", zr, zi);
+        else
+          k += (size_t)snprintf(R->crossings + k, sizeof R->crossings - k,
+                                "%s%s = %.6g: a pole becomes %s, at %.4g",
+                                k ? "\n" : "", R->name, v,
+                                d1 > 0 ? "unstable" : "stable", zr);
+      }
+    }
+  if (count > 6 && k < sizeof R->crossings - 40)
+    snprintf(R->crossings + k, sizeof R->crossings - k, "\n(and %d more)", count - 6);
+}
+
+static bool locus_alloc(RootLocusUI *R, int steps, int n, int nx) {
+  free_locus(R);
+  R->values = malloc(sizeof(double) * ((size_t)steps * (size_t)(2 * n + nx + 1) + 1));
+  if (!R->values) return false;
+  R->re = R->values + steps;
+  R->im = R->re + (size_t)steps * n;
+  R->x = R->im + (size_t)steps * n;
+  R->steps = steps;
+  R->n = n;
+  R->nx = nx;
+  return true;
+}
+
+static void log_locus(App *a) {
+  const RootLocusUI *R = &a->an.locus;
+  app_log(a, "Root locus over %s from %g to %g (%d steps)%s", R->name, R->values[0],
+          R->values[R->steps - 1], R->steps,
+          R->crossings[0] ? ":" : ": no pole crosses the edge of stability");
+  if (R->crossings[0]) {
+    char copy[sizeof R->crossings], *line;
+    snprintf(copy, sizeof copy, "%s", R->crossings);
+    for (line = strtok(copy, "\n"); line; line = strtok(NULL, "\n"))
+      app_log(a, "  %s", line);
+  }
+}
+
+bool app_gain_locus(App *a, int mode, int input, int state, double lo, double hi,
+                    int steps) {
+  LinearSystem *L = &a->an.lin;
+  RootLocusUI *R = &a->an.locus;
+  xpp_engine_api *x;
+  double *K, *g, *re, *im;
+  int n = L->n, m = L->m, s, b;
+  bool outer;
+  if (!a->model_ok || !L->A || m == 0) {
+    app_log(a, "error: linearise with inputs first, e.g. linearize inputs u");
+    return false;
+  }
+  if (mode == 0 && !L->have_K) {
+    app_log(a, "error: no gain K yet: place the poles first (poles ...)");
+    return false;
+  }
+  if (mode != 0 && (input < 0 || input >= m || state < 0 || state >= n)) {
+    app_log(a, "error: choose an input and a state for the feedback");
+    return false;
+  }
+  if (!isfinite(lo) || !isfinite(hi)) {
+    app_log(a, "error: the gains must be finite numbers");
+    return false;
+  }
+  if (steps < 2 || steps > 100000) steps = 201;
+  x = &a->eng->api;
+  K = calloc((size_t)(m * n) + (size_t)steps * (size_t)(2 * n + 1) + 1, sizeof(double));
+  if (!K) return false;
+  g = K + m * n;
+  re = g + steps;
+  im = re + (size_t)steps * n;
+  if (mode == 0)
+    memcpy(K, L->K, sizeof(double) * (size_t)(m * n));
+  else
+    K[input * n + state] = 1;
+  if (x->xppe_gain_locus(n, m, L->A, L->B, K, lo, hi, steps, g, re, im) != XPPE_OK) {
+    app_log(a, "error: %s", x->xppe_error());
+    free(K);
+    return false;
+  }
+  if (!locus_alloc(R, steps, n, 0)) {
+    free(K);
+    return false;
+  }
+  R->kind = LOCUS_GAIN;
+  R->discrete = L->discrete;
+  snprintf(R->name, sizeof R->name, "gain");
+  memcpy(R->values, g, sizeof(double) * (size_t)steps);
+  for (s = 0; s < steps; s++)
+    for (b = 0; b < n; b++) {
+      R->re[(size_t)b * steps + s] = re[(size_t)s * n + b];
+      R->im[(size_t)b * steps + s] = im[(size_t)s * n + b];
+    }
+  find_crossings(R);
+  outer = echo_begin(a);
+  if (outer) {
+    char klist[4096], num[64], lo_s[64], hi_s[64], poles[4096];
+    if (mode == 0) {
+      if (!L->K_written) {
+        echo_poles(a, L, poles, sizeof poles);
+        echo_line(a, "K = lin.place_poles(%s)", poles);
+        L->K_written = true;
+      }
+      snprintf(klist, sizeof klist, "K");
+    } else if (m * n <= 64) {
+      size_t k = (size_t)snprintf(klist, sizeof klist, "[");
+      int i, j;
+      for (i = 0; i < m; i++) {
+        k += (size_t)snprintf(klist + k, sizeof klist - k, "%s[", i ? ", " : "");
+        for (j = 0; j < n; j++)
+          k += (size_t)snprintf(klist + k, sizeof klist - k, "%s%s", j ? ", " : "",
+                                echo_num(K[i * n + j], num, sizeof num));
+        k += (size_t)snprintf(klist + k, sizeof klist - k, "]");
+      }
+      snprintf(klist + k, sizeof klist - k, "]");
+    } else {
+      /* too long to list: zeros and the one 1 */
+      echo_line(a, "Kfb = [[0.0] * %d for _ in range(%d)]", n, m);
+      echo_line(a, "Kfb[%d][%d] = 1.0", input, state);
+      snprintf(klist, sizeof klist, "Kfb");
+    }
+    echo_line(a, "rl = lin.root_locus(%s, gain=(%s, %s), steps=%d)", klist,
+              echo_num(lo, lo_s, sizeof lo_s), echo_num(hi, hi_s, sizeof hi_s), steps);
+  }
+  echo_end(a);
+  free(K);
+  a->an.refit = true;
+  log_locus(a);
+  return true;
+}
+
+bool app_parameter_locus(App *a, int par, double lo, double hi, int steps) {
+  RootLocusUI *R = &a->an.locus;
+  xpp_engine_api *x;
+  double *guess, *col;
+  int n = a->nvars, s, b, j;
+  bool outer, ok = false;
+  if (!a->model_ok || par < 0 || par >= a->npars) {
+    app_log(a, "error: choose a parameter");
+    return false;
+  }
+  if (!isfinite(lo) || !isfinite(hi)) {
+    app_log(a, "error: the ends must be finite numbers");
+    return false;
+  }
+  if (steps < 2 || steps > 100000) steps = 101;
+  x = &a->eng->api;
+  guess = malloc(sizeof(double) * (size_t)(n + steps + 1));
+  if (!guess) return false;
+  col = guess + n;
+  for (j = 0; j < n; j++) x->xppe_get(a->vars[j], &guess[j]);
+  outer = echo_begin(a);
+  if (x->xppe_parameter_locus(a->pars[par], lo, hi, steps, guess) != XPPE_OK) {
+    app_log(a, "error: %s", x->xppe_error());
+    goto done;
+  }
+  /* the ODE variables only: Markov variables have no equilibrium equation,
+     so the table holds the parameter, NODE states and NODE eigenvalues */
+  n = (x->xppe_result_count() - 1) / 3;
+  if (x->xppe_result_rows() != steps || n < 1 || n > a->nvars ||
+      !locus_alloc(R, steps, n, n))
+    goto done;
+  R->kind = LOCUS_PARAMETER;
+  R->discrete = a->meth == 0;
+  snprintf(R->name, sizeof R->name, "%s", a->pars[par]);
+  if (x->xppe_result_column(0, R->values, steps) != steps) goto failed;
+  for (j = 0; j < n; j++) {
+    if (x->xppe_result_column(1 + j, col, steps) != steps) goto failed;
+    for (s = 0; s < steps; s++) R->x[(size_t)s * n + j] = col[s];
+  }
+  for (b = 0; b < n; b++)
+    if (x->xppe_result_column(1 + n + 2 * b, R->re + (size_t)b * steps, steps) != steps ||
+        x->xppe_result_column(2 + n + 2 * b, R->im + (size_t)b * steps, steps) != steps)
+      goto failed;
+  find_crossings(R);
+  if (outer) {
+    char name[160], lo_s[64], hi_s[64];
+    echo_line(a, "rl = m.root_locus(%s, (%s, %s), steps=%d)",
+              echo_str(a->pars[par], name, sizeof name), echo_num(lo, lo_s, sizeof lo_s),
+              echo_num(hi, hi_s, sizeof hi_s), steps);
+  }
+  a->an.refit = true;
+  log_locus(a);
+  ok = true;
+  goto done;
+failed:
+  app_log(a, "error: the root locus table is not complete");
+  free_locus(R);
+done:
+  echo_end(a);
+  free(guess);
+  return ok;
+}
+
+bool app_write_locus_csv(App *a, const char *path) {
+  const RootLocusUI *R = &a->an.locus;
+  char num[40];
+  FILE *f;
+  int s, b, j;
+  if (R->kind == LOCUS_NONE) {
+    app_log(a, "error: there is no root locus to export");
+    return false;
+  }
+  f = fopen(path, "w");
+  if (!f) {
+    app_log(a, "error: cannot write %s", path);
+    return false;
+  }
+  fputs(R->name, f);
+  for (j = 0; j < R->nx; j++) fprintf(f, ",%s", a->vars[j]);
+  for (b = 0; b < R->n; b++) fprintf(f, ",re%d,im%d", b + 1, b + 1);
+  fputc('\n', f);
+  for (s = 0; s < R->steps; s++) {
+    app_format_double(num, sizeof num, R->values[s]);
+    fputs(num, f);
+    for (j = 0; j < R->nx; j++) {
+      app_format_double(num, sizeof num, R->x[(size_t)s * R->nx + j]);
+      fprintf(f, ",%s", num);
+    }
+    for (b = 0; b < R->n; b++) {
+      app_format_double(num, sizeof num, R->re[(size_t)b * R->steps + s]);
+      fprintf(f, ",%s", num);
+      app_format_double(num, sizeof num, R->im[(size_t)b * R->steps + s]);
+      fprintf(f, ",%s", num);
+    }
+    fputc('\n', f);
+  }
+  fclose(f);
+  app_log(a, "Exported the root locus (%d steps) to %s", R->steps, path);
+  return true;
 }
 
 static bool analysis_run(App *a, bool outer);

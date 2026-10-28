@@ -152,6 +152,13 @@ CASES = [
     ("pole_placement_2", "lecar.ode", [
         "linearize inputs gca gk", "poles -0.3 -0.7",
         "closedloop {out}/closed2.ode", "export {out}/run.csv"]),
+    # Root loci: over the gain from pole placement, over one state fed
+    # back, and over a parameter with the equilibrium followed.
+    ("root_locus", "lecar.ode", [
+        "set iapp=0.08", "linearize inputs iapp", "poles -0.5+0.3i -0.5-0.3i",
+        "locus gain 0 2 51", "export {out}/gain.csv locus",
+        "locus feedback iapp V -1 1 41", "export {out}/feedback.csv locus",
+        "locus par phi 0.1 1 31", "export {out}/phi.csv locus"]),
     # Many runs with their stopping flags, shooting along eigenvectors, and
     # a figure built from them (the script must draw and save it too).
     ("many_shoot", "tests/models/kite.ode", [

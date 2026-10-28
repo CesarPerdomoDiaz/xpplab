@@ -180,7 +180,9 @@ To do:
       (`xppe_place_poles`), Python (`Linearization.place_poles`) and the app
       (drag the poles in the complex plane, or `poles`); the closed loop
       written and run as an `.ode` model (`closed_loop`, `closedloop`)
-- [ ] Root locus over a gain or a parameter
+- [x] Root locus over a gain (the eigenvalues of A - g B K) or a parameter (along
+      the equilibrium), with the crossings of the edge of stability, in the C
+      API, Python (`root_locus`) and the app (`locus`)
 - [ ] Optimal control (LQR)
 - [x] Floquet multipliers along a branch of periodic orbits: plotted against the
       parameter or in the complex plane (the Figure window, `xpplab.Figure`)

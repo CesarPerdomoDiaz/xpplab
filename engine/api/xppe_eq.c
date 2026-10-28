@@ -6,6 +6,7 @@
  * Sing pts > Go without its dialogs and drawing, as xppe_equilibrium() does.
  */
 #include <math.h>
+#include <stdio.h>
 #include <setjmp.h>
 #include <string.h>
 
@@ -114,6 +115,72 @@ int xppe_equilibrium_sweep(const char *parameter, const double *values, int n,
   return XPPE_OK;
 }
 
+
+/* The eigenvalues along a branch of equilibria (Sing pts > Range with the
+   eigenvalues kept), matched from step to step. */
+int xppe_parameter_locus(const char *parameter, double from, double to, int steps,
+                         const double *guess) {
+  static const char *names[3 * MAXODE + 1];
+  static char labels[2 * MAXODE][16];
+  char name[256];
+  static double pre[MAXODE], pim[MAXODE]; /* the last good step, off the stack */
+  double x[MAXODE], re[MAXODE], im[MAXODE], old = 0;
+  int rc, i, j, ierr, have_prev = 0;
+  if ((rc = xppe_require_model()) != XPPE_OK) return rc;
+  if (steps < 1 || !guess || !isfinite(from) || !isfinite(to)) {
+    xppe_set_error("give finite ends, at least one step and a starting guess", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  if (strlen(parameter) >= sizeof name) {
+    xppe_set_error("parameter name too long", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  strcpy(name, parameter);
+  if (find_user_name(PARAM_BOX, name) < 0) {
+    xppe_set_error("no parameter named %s", parameter);
+    return XPPE_ERR_NAME;
+  }
+  names[0] = parameter;
+  for (j = 0; j < NODE; j++) {
+    names[j + 1] = uvar_names[j];
+    snprintf(labels[2 * j], sizeof labels[0], "re%d", j + 1);
+    snprintf(labels[2 * j + 1], sizeof labels[0], "im%d", j + 1);
+    names[NODE + 1 + 2 * j] = labels[2 * j];
+    names[NODE + 2 + 2 * j] = labels[2 * j + 1];
+  }
+  if ((rc = xppe_result_start(steps, 1 + 3 * NODE, names)) != XPPE_OK) return rc;
+  get_val(name, &old);
+  for (j = 0; j < NODE; j++) x[j] = guess[j];
+  xppe_begin_call();
+  XPPE_GUARD_BEGIN((void)0);
+  for (i = 0; i < steps; i++) {
+    double v = xppe_locus_value(from, to, steps, i);
+    set_val(name, v);
+    evaluate_derived();
+    redo_all_fun_tables();
+    ierr = 0;
+    /* each search starts where the last one ended, as in do_eq_range() */
+    do_sing_info(x, NEWT_ERR, EVEC_ERR, BOUND, EVEC_ITER, NODE, re, im, &ierr);
+    if (!ierr) {
+      if (have_prev) xppe_match_eigenvalues(NODE, pre, pim, re, im);
+      memcpy(pre, re, sizeof(double) * (size_t)NODE);
+      memcpy(pim, im, sizeof(double) * (size_t)NODE);
+      have_prev = 1;
+    }
+    xppe_result_put(0, i, v);
+    for (j = 0; j < NODE; j++) {
+      xppe_result_put(j + 1, i, ierr ? NAN : x[j]);
+      xppe_result_put(NODE + 1 + 2 * j, i, ierr ? NAN : re[j]);
+      xppe_result_put(NODE + 2 + 2 * j, i, ierr ? NAN : im[j]);
+    }
+  }
+  set_val(name, old);
+  evaluate_derived();
+  redo_all_fun_tables();
+  XPPE_GUARD_END;
+  xppe_end_call();
+  return XPPE_OK;
+}
 /* monte_carlo() (integrate.c) with its dialog's answers as arguments. */
 int xppe_find_equilibria(int guesses, double tolerance, const double *lo,
                          const double *hi) {

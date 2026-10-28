@@ -167,3 +167,41 @@ The same start without the feedback (`m.ics["th"] = 0.3; m.run()`) falls
 away. Check `lin.valid_radius()` to see how far from the point the linear
 design can be trusted; the closed-loop model above is the nonlinear one, so
 simulating it is the test.
+
+## Root locus
+
+`lin.root_locus(K, gain=(lo, hi), steps=201)` returns a `RootLocus`: the
+eigenvalues of `A - g B K` for `steps` gains g evenly from `lo` to `hi`
+(the last exactly `hi`). With the `K` from `place_poles`, g = 0 is the open
+loop and g = 1 the poles placed. `K` can also feed one state back through
+one input: `[[1, 0]]` is `u = -g * (first state)`.
+
+`m.root_locus("iapp", (0.1, 0.3), steps=101)` follows the equilibrium as a
+parameter changes, Newton's method starting from the initial conditions
+(or `guess=`) and then from the last equilibrium, as
+`m.equilibrium_sweep()` does, and keeps its eigenvalues.
+
+- `rl.values` are the gains or the parameter's values; `rl.poles` has one
+  row per value and one column per branch. The engine matches each step's
+  eigenvalues with the last ones (the closest pairs first), so a column
+  follows one eigenvalue; over a parameter `rl.x` holds the equilibria
+  (NaN where Newton's method failed).
+- `rl.crossings()` lists the `(value, pole)` pairs where a branch crosses
+  the edge of stability (the imaginary axis; for a map the unit circle),
+  interpolated between the two steps around the crossing. Over a parameter,
+  a complex pair crossing is a Hopf bifurcation.
+- `rl.plot()` draws the branches in the complex plane, each from an x (the
+  first value) to an o (the last); `rl.to_csv(path)` writes the value, the
+  equilibrium and `re1, im1, re2, ...` per row, the file the desktop app's
+  `export F.csv locus` writes.
+
+```python
+m = xs.load("lecar.ode")
+m.set(iapp=0.1)
+rl = m.root_locus("iapp", (0.1, 0.3))
+rl.crossings()   # [(0.2037, 1.26j), (0.2037, -1.26j)]: the Hopf point
+rl.plot()
+```
+
+The engine computes both loci (`xppe_gain_locus`, `xppe_parameter_locus`),
+so the app's Root locus section gives the same numbers.

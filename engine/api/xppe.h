@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 10
+#define XPPE_API_VERSION 11
 
 enum {
   XPPE_OK = 0,
@@ -175,6 +175,16 @@ XPPE_API int xppe_manifold(int k, int *type);
    parameter is restored afterwards. Since API version 3. */
 XPPE_API int xppe_equilibrium_sweep(const char *parameter, const double *values,
                                     int n, const double *guess);
+/* Root locus over a parameter: the same steps as xppe_equilibrium_sweep()
+   for steps values evenly from from to to (the last exactly to), keeping
+   the eigenvalues at each equilibrium. Each step's eigenvalues are put in
+   the order that follows on from the last good step (the closest pairs
+   first), so that a column follows one eigenvalue. Result table: the
+   parameter, each variable, then re1, im1, re2, im2, ...; NaN after the
+   parameter where Newton's method failed. The parameter is restored
+   afterwards. Since API version 11. */
+XPPE_API int xppe_parameter_locus(const char *parameter, double from, double to,
+                                  int steps, const double *guess);
 
 /* Every equilibrium Newton's method finds from `guesses` random starting
    points in a box (XPPAUT's Sing pts > Monte Carlo): lo and hi give the
@@ -253,6 +263,14 @@ XPPE_API int xppe_closed_loop(const char *source, int m,
                               int n, const char *const *states,
                               const double *x, const double *K, char *out,
                               int size);
+/* Root locus over a gain: the eigenvalues of A - g B K (K m x n) for steps
+   gains g evenly from from to to (the last exactly to), written to gains
+   (may be NULL) and to re and im, steps x n each, row by row. Each row is
+   put in the order that follows on from the row before (the closest pairs
+   first), so that a column follows one eigenvalue. Since API version 11. */
+XPPE_API int xppe_gain_locus(int n, int m, const double *A, const double *B,
+                             const double *K, double from, double to, int steps,
+                             double *gains, double *re, double *im);
 
 /* ---- Data analysis --------------------------------------------------------
  *

@@ -12,7 +12,7 @@ import numpy as np
 
 from ._engine import EngineError
 
-__all__ = ["Linearization", "linearize"]
+__all__ = ["Linearization", "RootLocus", "linearize"]
 
 
 @dataclass
@@ -265,9 +265,159 @@ class Linearization:
                 new.set(**{o: val})
         return new
 
+    def root_locus(self, K, gain=(0.0, 1.0), steps: int = 201) -> "RootLocus":
+        """How the poles move as the feedback u = u0 - g K (x - x*) grows:
+        the eigenvalues of A - g B K for ``steps`` gains g evenly from
+        ``gain[0]`` to ``gain[1]``.
+
+        ``K`` is a gain (inputs x states), for example the one
+        :meth:`place_poles` gave (then g = 0 is the open loop and g = 1 the
+        poles placed), or the feedback of one state through one input
+        (``[[0, 1]]``: u = -g * (the second state)). The engine computes
+        and matches the eigenvalues (``xppe_gain_locus``), so the desktop
+        app's root locus gives the same numbers."""
+        n, k = self.B.shape
+        if k == 0:
+            raise ValueError("a root locus over a gain needs inputs "
+                             "(linearize(inputs=[...]))")
+        K = np.atleast_2d(np.asarray(K, dtype=float))
+        if K.shape != (k, n):
+            raise ValueError(f"K must have shape ({k}, {n}), got {K.shape}")
+        lo, hi = (float(g) for g in gain)
+        steps = int(steps)
+        if steps < 2:
+            raise ValueError("steps must be at least 2")
+        g, re, im = _doubles(steps), _doubles(steps * n), _doubles(steps * n)
+        try:
+            self._model._engine.call("xppe_gain_locus", n, k, _array(self.A),
+                                     _array(self.B), _array(K), lo, hi, steps,
+                                     g, re, im)
+        except EngineError as e:
+            raise ValueError(e.args[0]) from None
+        poles = (np.array(re[:steps * n]) + 1j * np.array(im[:steps * n])).reshape(steps, n)
+        return RootLocus("gain", np.array(g[:steps]), poles, self.discrete)
+
     def __repr__(self) -> str:
         return (f"Linearization(n={self.A.shape[0]}, inputs={self.inputs}, "
                 f"rank={self.rank}, controllable={self.controllable})")
+
+
+@dataclass
+class RootLocus:
+    """How the eigenvalues move as a gain or a parameter changes.
+
+    ``values`` are the gains (or the parameter's values), ``poles`` the
+    eigenvalues there: one row per value and one column per branch. The
+    engine matches each step's eigenvalues to the last ones, so a column
+    follows one eigenvalue. Over a parameter, ``x`` holds the equilibrium at
+    each value (NaN where Newton's method failed) and ``variables`` names
+    its columns."""
+
+    name: str  # "gain", or the parameter
+    values: np.ndarray
+    poles: np.ndarray
+    discrete: bool = False
+    x: np.ndarray | None = None
+    variables: list[str] = field(default_factory=list)
+
+    def crossings(self) -> list[tuple[float, complex]]:
+        """Where a branch crosses the edge of stability (the imaginary axis,
+        for a map the unit circle): (value, pole) pairs, interpolated
+        linearly between the two steps around each crossing, in order of
+        value."""
+        out = []
+        edge = (np.abs(self.poles) - 1.0) if self.discrete else self.poles.real
+        for b in range(self.poles.shape[1]):
+            d = edge[:, b]
+            for i in range(len(d) - 1):
+                d0, d1 = d[i], d[i + 1]
+                if not (np.isfinite(d0) and np.isfinite(d1)) or d0 == d1:
+                    continue
+                if (d0 < 0) != (d1 < 0):
+                    f = -d0 / (d1 - d0)
+                    v = self.values[i] + f * (self.values[i + 1] - self.values[i])
+                    z = self.poles[i, b] + f * (self.poles[i + 1, b] - self.poles[i, b])
+                    out.append((float(v), complex(z)))
+        return sorted(out, key=lambda c: c[0])
+
+    def to_csv(self, path) -> None:
+        """One row per value, every number exact: the value, the
+        equilibrium (over a parameter), then each branch's real and
+        imaginary part (re1, im1, re2, ...). The desktop app's
+        ``export FILE.csv locus`` writes the same file."""
+        from .analysis import write_csv
+        n = self.poles.shape[1]
+        cols = [self.name] + list(self.variables)
+        for b in range(n):
+            cols += [f"re{b + 1}", f"im{b + 1}"]
+        rows = []
+        for i, v in enumerate(self.values):
+            row = [float(v)] + ([float(c) for c in self.x[i]] if self.x is not None else [])
+            for b in range(n):
+                z = complex(self.poles[i, b])
+                row += [z.real, z.imag]
+            rows.append(row)
+        write_csv(path, cols, rows)
+
+    def plot(self, ax=None):
+        """The branches in the complex plane, each from an x (the first
+        value) to an o (the last), with the stable region shaded."""
+        import matplotlib.pyplot as plt
+        if ax is None:
+            _, ax = plt.subplots()
+        ev = self.poles[np.isfinite(self.poles)]
+        lo, hi, ylo, yhi = _complex_plane_window(ev, self.discrete)
+        if self.discrete:
+            t = np.linspace(0, 2 * np.pi, 257)
+            ax.fill(np.cos(t), np.sin(t), color="#2ca02c", alpha=0.15, lw=0)
+            ax.plot(np.cos(t), np.sin(t), color="0.4", lw=1)
+        else:
+            ax.axvspan(min(lo, 0), 0, color="#2ca02c", alpha=0.15, lw=0)
+            ax.axvline(0, color="0.4", lw=1)
+        ax.axhline(0, color="0.6", lw=0.8)
+        for b in range(self.poles.shape[1]):
+            z = self.poles[:, b]
+            line, = ax.plot(z.real, z.imag, lw=1.5)
+            ok = np.flatnonzero(np.isfinite(z))
+            if len(ok):
+                ax.plot(z.real[ok[0]], z.imag[ok[0]], "x", color=line.get_color())
+                ax.plot(z.real[ok[-1]], z.imag[ok[-1]], "o", mfc="none",
+                        color=line.get_color())
+        ax.set_xlim(lo, hi)
+        ax.set_ylim(ylo, yhi)
+        if self.discrete:
+            ax.set_aspect("equal", adjustable="box")
+        ax.set_xlabel("real part")
+        ax.set_ylabel("imaginary part")
+        ax.set_title(f"root locus: {self.name} from {self.values[0]:.6g} (x) "
+                     f"to {self.values[-1]:.6g} (o)")
+        return ax
+
+    def __repr__(self) -> str:
+        return (f"RootLocus({self.name} from {self.values[0]:.6g} to "
+                f"{self.values[-1]:.6g}, {len(self.values)} steps, "
+                f"{self.poles.shape[1]} branches)")
+
+
+def root_locus(model, parameter: str, values, steps: int = 101,
+               guess=None) -> RootLocus:
+    """See :meth:`xpplab.Model.root_locus`."""
+    name = model.parameters._lookup(parameter)
+    lo, hi = (float(v) for v in values)
+    steps = int(steps)
+    if steps < 2:
+        raise ValueError("steps must be at least 2")
+    model._engine.call("xppe_parameter_locus", name.encode("latin-1"), lo, hi,
+                       steps, model._state(guess))
+    t = model._result(f"Root locus over {name}")
+    # the ODE variables only: Markov variables have no equilibrium equation,
+    # so the table holds the parameter, n states and n eigenvalues
+    n = (len(t.columns) - 1) // 3
+    variables = t.columns[1:1 + n]
+    x = np.column_stack([t[v] for v in variables])
+    poles = np.column_stack([t[f"re{b + 1}"] + 1j * t[f"im{b + 1}"] for b in range(n)])
+    return RootLocus(name, t[name], poles, model.get("METH") == "discrete", x,
+                     list(variables))
 
 
 def _check_conjugate(poles) -> None:

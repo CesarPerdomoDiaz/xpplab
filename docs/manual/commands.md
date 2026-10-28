@@ -57,6 +57,7 @@ commands. `help` lists them all.
 | `ensemble 50` | Run a noisy model 50 times and average: the mean and variance of every column at each time (XPPAUT's stocHastic > Compute). `export ens.csv analysis` saves them. |
 | `linearize at eq inputs iapp gca` | Linearise at the equilibrium found from the initial values (`at ic`: at the initial values): A and B, the eigenvalues in the complex plane, and whether the inputs (parameters) can steer every state. `export lin.csv analysis` saves the table; `linearise` works too. |
 | `poles -2+1i -2-1i` | After `linearize` with inputs: the feedback gain K for which A - B K has these poles, one per state (complex ones in conjugate pairs: `-1+2i -1-2i`). |
+| `locus gain 0 2 [N]` | Root locus over the gain from `poles`: the eigenvalues of A - g B K for N gains g from 0 to 2. `locus feedback U X 0 10` feeds state X back through input U; `locus par iapp 0.1 0.3` follows the equilibrium as a parameter changes. The crossings of the edge of stability are listed; `export F.csv locus` saves the locus. |
 | `closedloop [FILE]` | Write the closed loop u = u0 - K (x - x*) as a model (`NAME_closed_loop.ode` next to this one by default), open it with the current values and run it. |
 | `range iapp 0 0.3 10 film` | Film the Range: each run drawn alone and captured by the Kinescope (XPPAUT's Range with Movie). |
 | `eq` | Find an equilibrium and report its stability. |

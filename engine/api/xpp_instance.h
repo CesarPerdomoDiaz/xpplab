@@ -71,6 +71,11 @@ extern "C" {
   X(int, xppe_closed_loop,                                                    \
     (const char *, int, const char *const *, const double *, int,             \
      const char *const *, const double *, const double *, char *, int))       \
+  X(int, xppe_gain_locus,                                                     \
+    (int, int, const double *, const double *, const double *, double,        \
+     double, int, double *, double *, double *))                              \
+  X(int, xppe_parameter_locus,                                                \
+    (const char *, double, double, int, const double *))                      \
   X(int, xppe_fourier, (const char *))                                        \
   X(int, xppe_power, (const char *))                                          \
   X(int, xppe_spectrum, (int, const char *, const char *, int, int))          \

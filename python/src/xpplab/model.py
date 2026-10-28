@@ -13,9 +13,10 @@ import numpy as np
 
 from . import _engine as E
 from .analysis import AnalysisMixin
+from .sensitivity import Sensitivity
 
 __all__ = ["Model", "Trajectory", "RunList", "Values", "Equilibrium",
-           "EquilibriumList", "load", "METHODS"]
+           "EquilibriumList", "load", "METHODS", "Sensitivity"]
 
 # XPPAUT's integrators, by the names its ODE files use. The value is the
 # key XPPAUT recognises (the first letter it reads).
@@ -104,6 +105,7 @@ class Model(AnalysisMixin):
             raise FileNotFoundError(self.path)
         self._engine = E.Engine(engine_library)
         self._engine.cwd = self.path.parent
+        self._load_options = list(options)
         opts = [_b(o) for o in options]
         argv = (ctypes.c_char_p * max(1, len(opts)))(*opts)
         try:
@@ -303,6 +305,22 @@ class Model(AnalysisMixin):
         data = {k: np.concatenate([trajectory[k], new[k][1:]])
                 for k in trajectory.columns if k in new}
         return Trajectory(data, log=new.log)
+
+    def sensitivity(self, params=None, **values) -> "Sensitivity":
+        """Sensitivity of the trajectory to parameters: S(t) = dx/dp.
+
+        Builds the variational equations dS/dt = (df/dx) S + df/dp from the
+        model's formulas, adds them to the model, and integrates the lot with
+        the model's own method and options from the current initial
+        conditions (S = 0 at the start). ``params`` is one name or a list
+        (default: every parameter). Keyword arguments are applied with
+        :meth:`set` first. Returns a :class:`Sensitivity`: ``s["gk"]`` has
+        shape (time, variables). Models with tables, delays, maps, noise or
+        functions the symbolic derivative does not know raise a
+        ``ValueError``.
+        """
+        from . import sensitivity as _sens
+        return _sens.run(self, params, **values)
 
     def ensemble(self, trials: int, **values) -> "Ensemble":
         """Run a noisy model ``trials`` times and average (XPPAUT's

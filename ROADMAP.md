@@ -178,7 +178,8 @@ To do:
 - [ ] Root locus over a gain or a parameter
 - [ ] Optimal control (LQR)
 - [ ] Floquet multipliers shown on the bifurcation diagram
-- [ ] Sensitivity of trajectories to parameters
+- [x] Sensitivity of trajectories to parameters (`Model.sensitivity`, by
+      variational equations)
 - [ ] Isochrons and phase reduction
 - [ ] Codimension-two bifurcations through AUTO, explained in the manual
 

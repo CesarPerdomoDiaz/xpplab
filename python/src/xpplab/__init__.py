@@ -15,6 +15,7 @@ from .analysis import Table
 from .animation import Animation
 from .auto import Diagram, Point
 from .control import Linearization
+from .sensitivity import Sensitivity
 from .figure import Figure
 from .model import (METHODS, Ensemble, Equilibrium, EquilibriumList, Model, RunList,
                     Trajectory, Values, load)

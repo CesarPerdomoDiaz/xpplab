@@ -1,7 +1,7 @@
 # Learn by example
 
 These pages teach the mathematics of dynamical systems through models from
-four fields. Each page opens with the theory it needs, then works through
+five fields. Each page opens with the theory it needs, then works through
 examples: a model you can save and run, what to expect and why, the Python
 that reproduces it, and exercises with worked solutions. They are meant for
 a course, or for self-study with the desktop app open beside the text.
@@ -10,10 +10,11 @@ The theory follows established textbooks and cites them by chapter and
 section, so that every page can be read next to a book that treats the
 subject in full:
 
-- mechanics: Sanz Recio and Sánchez Arriaga, *Mecánica analítica:
-  lagrangiana, hamiltoniana y sistemas dinámicos* (McGraw-Hill, 2019),
-  whose chapters 8 to 10 on dynamical systems are also the general theory
-  the other pages refer to;
+- mechanics and the kite: Sanz Recio and Sánchez Arriaga, *Mecánica
+  analítica: lagrangiana, hamiltoniana y sistemas dinámicos* (McGraw-Hill,
+  2019), whose chapters 8 to 10 on dynamical systems are also the general
+  theory the other pages refer to, and which follows the kite from its
+  first chapter to its last;
 - neuroscience: Izhikevich, *Dynamical Systems in Neuroscience* (MIT Press,
   2007);
 - ecology: Murray, *Mathematical Biology I* (Springer, 2002), and Strogatz,
@@ -29,6 +30,7 @@ The full references are at the end of each page.
 | [Neuroscience](neuroscience.md) | passive membrane, theta neuron, FitzHugh-Nagumo | equilibria and eigenvalues, excitability, saddle-node and Hopf onset of firing, relaxation oscillations |
 | [Ecology](ecology.md) | harvested population, Lotka-Volterra, Rosenzweig-MacArthur, competition | tipping points and hysteresis, conserved quantities, the paradox of enrichment, basins of attraction |
 | [Chemistry](chemistry.md) | consecutive reactions, Michaelis-Menten, Schlögl, Brusselator | exact solutions as tests, time scales and stiffness, bistability, chemical oscillators |
+| [Aerospace: a kite on a tether](kite.md) | single-line kite, from the Lagrangian to the lab | fold and subcritical Hopf, unstable orbits and Floquet multipliers, tether tension, invariant manifolds, which flights survive, scaling of the minimum wind, figures for a report |
 | [Mechanics](mechanics.md) | pendulum, pendulum on a rotating hoop, pendulum with a vibrating support, van der Pol, forced pendulum | energy and Lagrange's theorem, pitchfork and Hopf bifurcations, averaging, parametric resonance, period doubling and chaos |
 
 ## How a page works

@@ -123,6 +123,28 @@ static void check_place_poles(void) {
   printf("pole placement checked\n");
 }
 
+/* Root locus over a gain: x'' + 2x' + 0.1x = u with u = -g x has the
+   poles -1 +- sqrt(0.9 - g), real until g = 0.9, then a pair at re -1. */
+static void check_gain_locus(void) {
+  const double A[4] = {0, 1, -0.1, -2}, B[2] = {0, 1}, K[2] = {1, 0};
+  double g[4], re[8], im[8];
+  int s;
+  CHECK(xppe_gain_locus(2, 1, A, B, K, 0, 3, 4, g, re, im) == XPPE_OK, "locus: %s",
+        xppe_error());
+  CHECK(g[0] == 0 && g[1] == 1 && g[2] == 2 && g[3] == 3, "gains %g %g %g %g", g[0],
+        g[1], g[2], g[3]);
+  CHECK(fabs(re[0] + re[1] + 2) < 1e-12 && fabs(re[0] * re[1] - 0.1) < 1e-12,
+        "open loop %g %g", re[0], re[1]);
+  for (s = 1; s < 4; s++)
+    CHECK(fabs(re[2 * s] + 1) < 1e-9 && fabs(re[2 * s + 1] + 1) < 1e-9 &&
+              fabs(fabs(im[2 * s]) - sqrt(s - 0.9)) < 1e-9 && im[2 * s] == -im[2 * s + 1],
+          "g = %d: %g%+gi %g%+gi", s, re[2 * s], im[2 * s], re[2 * s + 1], im[2 * s + 1]);
+  /* matched: each column keeps the sign of its imaginary part */
+  CHECK(im[2] * im[4] > 0 && im[4] * im[6] > 0, "branches swap: %g %g %g", im[2], im[4],
+        im[6]);
+  printf("gain locus checked\n");
+}
+
 int main(int argc, char **argv) {
   int i, n, rows, rc;
   double v, *col;
@@ -271,6 +293,7 @@ int main(int argc, char **argv) {
   }
   check_control_known();
   check_place_poles();
+  check_gain_locus();
 
   CHECK(xppe_load(argv[1], 0, NULL) == XPPE_ERR_STATE, "second load refused");
   free(col);

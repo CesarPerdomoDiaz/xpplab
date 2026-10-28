@@ -491,6 +491,24 @@ class Model(AnalysisMixin):
             self.set(**ics)
         return out
 
+    def root_locus(self, parameter: str, values, steps: int = 101, *,
+                   guess: dict | None = None):
+        """How the eigenvalues of an equilibrium move as a parameter
+        changes: a root locus over the parameter.
+
+        ``values`` is ``(low, high)``; the parameter takes ``steps`` values
+        evenly between them and, as in :meth:`equilibrium_sweep`, Newton's
+        method follows the equilibrium from the initial conditions (or
+        ``guess``). Returns a :class:`~xpplab.RootLocus`: ``rl.poles`` has
+        one row per value and one column per eigenvalue, matched from step
+        to step; ``rl.crossings()`` gives the values where one crosses into
+        or out of the stable region (a Hopf bifurcation, say); ``rl.plot()``
+        draws them in the complex plane. The parameter is restored
+        afterwards. The engine computes it (``xppe_parameter_locus``), so
+        the desktop app's root locus gives the same numbers."""
+        from .control import root_locus
+        return root_locus(self, parameter, values, steps, guess)
+
     def equilibrium_sweep(self, parameter: str, values, *,
                           guess: dict | None = None):
         """Follow an equilibrium as a parameter changes: XPPAUT's Sing pts >

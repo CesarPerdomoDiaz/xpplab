@@ -24,6 +24,13 @@ void xppe_mark_broken(void);
 int xppe_result_start(int nrows, int ncols, const char *const *names);
 void xppe_result_put(int col, int row, double value);
 
+/* Root loci (xppe_design.c): step i of steps from from to to, the last one
+   exactly to; and the n eigenvalues re/im reordered so that each follows
+   on from prev (the closest pairs first). */
+double xppe_locus_value(double from, double to, int steps, int i);
+void xppe_match_eigenvalues(int n, const double *pre, const double *pim, double *re,
+                            double *im);
+
 /* Run the statements between XPPE_GUARD_BEGIN and XPPE_GUARD_END in a
    guarded region. If the engine calls exit() inside it, `cleanup` runs and
    the enclosing function returns XPPE_ERR_FATAL. */

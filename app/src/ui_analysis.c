@@ -52,8 +52,9 @@ static const char *about[AN_COUNT] = {
     "parameters that act as controls). The eigenvalues of A are plotted in "
     "the complex plane, and the rank of [B, AB, ..., A^(n-1) B] says whether "
     "the inputs can steer every state. The derivatives are extrapolated to "
-    "zero step, so no step has to be chosen. Not in XPPAUT; in Python, "
-    "m.linearize()."};
+    "zero step, so no step has to be chosen. With inputs that can, place the "
+    "closed loop's poles and simulate it; draw a root locus over a gain or a "
+    "parameter. Not in XPPAUT; in Python, m.linearize()."};
 
 /* The result's view stays where the user zoomed it when the same result is
    computed again; another one, or another scale, is shown whole. */
@@ -324,10 +325,21 @@ static bool placing(const LinearSystem *L) {
   return L->m > 0 && L->rank == L->n && L->want_re;
 }
 
-static void plane_window(const LinearSystem *L, double w[4]) {
+/* The root locus's points, branch by branch, for framing the plane. */
+static void locus_extent(const RootLocusUI *R, double *lo, double *hi, double *h) {
+  int i;
+  for (i = 0; i < R->n * R->steps; i++) {
+    if (!isfinite(R->re[i]) || !isfinite(R->im[i])) continue;
+    if (R->re[i] < *lo) *lo = R->re[i];
+    if (R->re[i] > *hi) *hi = R->re[i];
+    if (fabs(R->im[i]) > *h) *h = fabs(R->im[i]);
+  }
+}
+
+static void plane_window(const LinearSystem *L, const RootLocusUI *R, double w[4]) {
   double edge = L->discrete ? 1.0 : 0.0, lo = -edge, hi = edge, h = edge, span, pad;
   int i, k;
-  /* the eigenvalues, and the poles asked for when they are shown */
+  /* the eigenvalues, the poles asked for and the root locus, when shown */
   for (k = 0; k < (placing(L) ? 2 : 1); k++)
     for (i = 0; i < L->n; i++) {
       double re = k ? L->want_re[i] : L->re[i], im = k ? L->want_im[i] : L->im[i];
@@ -336,6 +348,7 @@ static void plane_window(const LinearSystem *L, double w[4]) {
       if (re > hi) hi = re;
       if (fabs(im) > h) h = fabs(im);
     }
+  if (R->kind != LOCUS_NONE) locus_extent(R, &lo, &hi, &h);
   span = hi - lo > 2 * h ? hi - lo : 2 * h;
   if (!(span > 0)) span = 1;
   pad = 0.15 * span;
@@ -346,6 +359,35 @@ static void plane_window(const LinearSystem *L, double w[4]) {
   w[1] = hi;
   w[2] = -h;
   w[3] = h;
+}
+
+/* The root locus: a line per branch, from an x at the first value to an o
+   at the last, all in one colour so that it reads as one curve. */
+static void draw_locus(const RootLocusUI *R) {
+  ImPlotSpec_c line = Spec(HEX(0x9467bd), 1.8f);
+  ImPlotSpec_c start = SpecMarker(HEX(0x9467bd), ImPlotMarker_Cross, 5.0f);
+  ImPlotSpec_c end = SpecMarker(HEX(0x9467bd), ImPlotMarker_Circle, 4.0f);
+  char label[64];
+  int b, s;
+  line.Flags = ImPlotLineFlags_SkipNaN;
+  start.MarkerLineColor = HEX(0x9467bd);
+  end.MarkerFillColor = V4(0, 0, 0, 0);
+  end.MarkerLineColor = HEX(0x9467bd);
+  snprintf(label, sizeof label, "locus over %s", R->name);
+  for (b = 0; b < R->n; b++) {
+    const double *x = R->re + (size_t)b * R->steps, *y = R->im + (size_t)b * R->steps;
+    int first = -1, last = -1;
+    ImPlot_PlotLine_doublePtrdoublePtr(label, x, y, R->steps, line);
+    for (s = 0; s < R->steps; s++)
+      if (isfinite(x[s]) && isfinite(y[s])) {
+        if (first < 0) first = s;
+        last = s;
+      }
+    if (first >= 0) {
+      ImPlot_PlotScatter_doublePtrdoublePtr("##locus start", x + first, y + first, 1, start);
+      ImPlot_PlotScatter_doublePtrdoublePtr("##locus end", x + last, y + last, 1, end);
+    }
+  }
 }
 
 /* The other pole of a conjugate pair, or -1 for a real pole. */
@@ -401,7 +443,7 @@ static void eigen_plane(App *a) {
                      ImPlotLegendFlags_Outside | ImPlotLegendFlags_Horizontal);
   if (follow) {
     double w[4];
-    plane_window(L, w);
+    plane_window(L, &a->an.locus, w);
     if (L->discrete && plane_size.x > 0 && plane_size.y > 0) {
       /* one scale on both axes, so that the unit circle is round */
       double sx = (w[1] - w[0]) / plane_size.x, sy = (w[3] - w[2]) / plane_size.y;
@@ -450,6 +492,7 @@ static void eigen_plane(App *a) {
     ImPlot_PlotScatter_doublePtrdoublePtr(placing(L) ? "open loop" : "eigenvalues",
                                           L->re, L->im, L->n, s);
   }
+  if (a->an.locus.kind != LOCUS_NONE) draw_locus(&a->an.locus);
   if (placing(L)) drag_poles(a);
   plane_size = ImPlot_GetPlotSize();
   ui_view_end(&plane_view, true);
@@ -517,6 +560,97 @@ static void pole_editor(App *a) {
     igPopID();
   }
   if (changed) app_place_poles(a);
+}
+
+/* Root locus: over the gain from pole placement, over the feedback of one
+   state through one input, or over a parameter with the equilibrium
+   followed. */
+static void locus_section(App *a) {
+  LinearSystem *L = &a->an.lin;
+  RootLocusUI *R = &a->an.locus;
+  static const char *modes[] = {"the gain K above", "one state fed back",
+                                "a parameter"};
+  bool can[3];
+  int i;
+  can[0] = L->have_K;
+  can[1] = L->m > 0;
+  can[2] = a->npars > 0;
+  if (!R->form_set) {
+    R->mode = can[0] ? 0 : can[1] ? 1 : 2;
+    R->g_lo = 0;
+    R->g_hi = 2;
+    R->g_steps = 201;
+    R->par = 0;
+    R->p_lo = a->npars > 0 ? a->par[0].lo : 0;
+    R->p_hi = a->npars > 0 ? a->par[0].hi : 1;
+    R->p_steps = 101;
+    R->form_set = true;
+  }
+  if (!can[R->mode]) R->mode = can[1] ? 1 : 2;
+  if (!can[2] && R->mode == 2) return;
+  heading("Root locus",
+          "How the poles move as a gain or a parameter changes. Over the gain g "
+          "of the feedback u = u0 - g K (x - x*): the eigenvalues of A - g B K, "
+          "with K the gain above (g = 0 is the open loop, 1 the poles placed) "
+          "or one state fed back through one input. Over a parameter: the "
+          "eigenvalues of the equilibrium, followed by Newton's method from the "
+          "initial values as the parameter changes (Sing pts > Range). Each "
+          "branch runs from an x to an o; where one crosses the edge of "
+          "stability is listed below. In Python: lin.root_locus(K, gain=(...)) "
+          "and m.root_locus(\"P\", (...)); the command: locus.");
+  igSetNextItemWidth(-1);
+  if (igBeginCombo("##locus over", modes[R->mode], 0)) {
+    for (i = 0; i < 3; i++)
+      if (can[i] && igSelectable_Bool(modes[i], i == R->mode, 0, V2(0, 0))) {
+        R->mode = i;
+        if (i == 2 && R->par < a->npars) {
+          R->p_lo = a->par[R->par].lo;
+          R->p_hi = a->par[R->par].hi;
+        }
+      }
+    igEndCombo();
+  }
+  igPushItemWidth(-95);
+  if (R->mode == 1) {
+    if (R->input >= L->m) R->input = 0;
+    if (R->state >= a->nvars) R->state = 0;
+    Combo("input", &R->input, L->inputs, L->m);
+    Combo("from state", &R->state, a->vars, a->nvars);
+    Tooltip("u = u0 - g (the state's distance from the point)");
+  }
+  if (R->mode == 2) {
+    int was = R->par;
+    Combo("parameter", &R->par, a->pars, a->npars);
+    if (R->par != was) {
+      R->p_lo = a->par[R->par].lo;
+      R->p_hi = a->par[R->par].hi;
+    }
+    InputDouble("from", &R->p_lo, "%.6g");
+    InputDouble("to", &R->p_hi, "%.6g");
+    igInputInt("steps", &R->p_steps, 10, 100, 0);
+  } else {
+    InputDouble("from g", &R->g_lo, "%.6g");
+    InputDouble("to g", &R->g_hi, "%.6g");
+    igInputInt("steps", &R->g_steps, 10, 100, 0);
+  }
+  igPopItemWidth();
+  if (R->p_steps < 2) R->p_steps = 2;
+  if (R->g_steps < 2) R->g_steps = 2;
+  if (ButtonW("Draw the locus", -1)) {
+    if (R->mode == 2)
+      app_parameter_locus(a, R->par, R->p_lo, R->p_hi, R->p_steps);
+    else
+      app_gain_locus(a, R->mode, R->input, R->state, R->g_lo, R->g_hi, R->g_steps);
+  }
+  if (R->kind != LOCUS_NONE) {
+    if (R->crossings[0]) {
+      igPushStyleColor_Vec4(ImGuiCol_Text, verdict_color(a, DOUBT));
+      TextWrapped(R->crossings);
+      igPopStyleColor(1);
+    } else {
+      igTextDisabled("No pole crosses the edge of stability.");
+    }
+  }
 }
 
 static void gain_section(App *a) {
@@ -593,6 +727,8 @@ static void linear_result(App *a) {
       igSpacing();
       gain_section(a);
     }
+    igSpacing();
+    locus_section(a);
   }
   igEndChild();
   igSameLine(0, -1);

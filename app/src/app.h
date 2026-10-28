@@ -193,6 +193,27 @@ typedef struct {
   char K_error[300];
 } LinearSystem;
 
+/* A root locus (xppe_gain_locus, xppe_parameter_locus): the eigenvalues of
+   A - g B K as the gain g changes, or of the equilibrium as a parameter
+   does, one branch per eigenvalue. */
+enum { LOCUS_NONE, LOCUS_GAIN, LOCUS_PARAMETER };
+typedef struct {
+  int kind;
+  char name[APP_NAME_LEN]; /* "gain", or the parameter */
+  int steps, n, nx;        /* values, branches, variables in x */
+  double *values;          /* steps; one block holds all the numbers */
+  double *re, *im;         /* branch by branch: re[b * steps + s] */
+  double *x;               /* the equilibria, step by step (parameter) */
+  bool discrete;
+  char crossings[700];     /* where a branch crosses the edge of stability */
+  /* the form */
+  int mode;                /* 0 the gain K, 1 an input from a state, 2 a parameter */
+  int input, state, par;
+  double g_lo, g_hi, p_lo, p_hi;
+  int g_steps, p_steps;
+  bool form_set;
+} RootLocusUI;
+
 typedef struct {
   int tool;
   int col, col2;       /* columns analysed (indices into App.cols) */
@@ -214,6 +235,7 @@ typedef struct {
   int lin_at;          /* linearise at: 0 the equilibrium, 1 the initial values */
   char lin_inputs[512]; /* the inputs: parameters, separated by commas */
   LinearSystem lin;
+  RootLocusUI locus;
   int show_col;        /* result column on the vertical axis */
   bool refit;          /* frame the next drawn result */
   /* the last result */
@@ -573,6 +595,18 @@ bool app_place_poles_text(App *a, const char *text);
    parameters, initial values and numerical options, and run it:
    m = lin.closed_loop(K, path=...). */
 bool app_closed_loop(App *a, const char *path);
+/* Root locus over the gain g of u = u0 - g K (x - x*): mode 0 uses the
+   gain from pole placement, mode 1 the feedback of one state through one
+   input (rl = lin.root_locus(K, gain=(lo, hi), steps=S)). */
+bool app_gain_locus(App *a, int mode, int input, int state, double lo, double hi,
+                    int steps);
+/* Root locus over parameter par, the equilibrium followed from the
+   initial values (rl = m.root_locus("P", (lo, hi), steps=S)). */
+bool app_parameter_locus(App *a, int par, double lo, double hi, int steps);
+/* The last root locus as CSV: the columns of RootLocus.to_csv(); export
+   also writes rl.to_csv(...) in the echo. */
+bool app_write_locus_csv(App *a, const char *path);
+bool app_export_locus_csv(App *a, const char *path);
 const char *app_analysis_name(int tool);
 /* Boundary-value problem (XPPAUT's Bndryval), the 3D view's setup from the
    model, and the animator. */

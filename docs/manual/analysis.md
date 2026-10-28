@@ -243,5 +243,41 @@ upright, comes back to it in about three seconds. In Python:
 `K = lin.place_poles([-2+1j, -2-1j])` and `lin.closed_loop(K)`, with the same
 numbers.
 
+## Root locus
+
+A root locus shows how the poles move as one number changes: each
+eigenvalue draws a branch in the complex plane, from an x at the first
+value to an o at the last. The **Root locus** section, under the
+eigenvalues after *Linearise*, draws one over:
+
+- **the gain K above**: the eigenvalues of `A - g B K` for g from *from g* to
+  *to g*. g = 0 is the open loop and g = 1 the poles you placed, so the
+  locus shows how much margin the design has, and what too much gain does.
+- **one state fed back**: `u = u0 - g (x_j - x_j*)`, one input driven by one
+  state, the classic root locus of a proportional controller.
+- **a parameter**: the eigenvalues of the equilibrium as the parameter goes
+  from *from* to *to*, the equilibrium followed by Newton's method from the
+  initial values (as *Sing pts > Range* does).
+
+From one step to the next each eigenvalue is matched with the nearest one,
+so a branch follows one eigenvalue. Below the button, the values where a
+branch crosses the edge of stability (the imaginary axis, or for a map the
+unit circle) are listed, found between the two steps around each crossing:
+over a parameter, a complex pair crossing is a Hopf bifurcation and a real
+pole crossing zero a fold or a branch point.
+
+Try it with [Morris-Lecar](example:lecar.ode): `set iapp=0.1`, `linearize`,
+then `locus par iapp 0.1 0.3`. The pair of eigenvalues of the rest state
+crosses into the left half-plane at iapp = 0.2037, at ±1.26i: there the
+equilibrium regains its stability in a Hopf bifurcation. With the pendulum
+of the last section, `locus gain 0 2` shows the unstable pole coming in at
+g = 0.662, where `9.8 - 14.8 g = 0`.
+
+Commands: `locus gain FROM TO [STEPS]`, `locus feedback INPUT STATE FROM TO
+[STEPS]`, `locus par NAME FROM TO [STEPS]`; `export F.csv locus` writes the
+value, the equilibrium (over a parameter) and `re1, im1, re2, ...` per row.
+In Python: `lin.root_locus(K, gain=(0, 2))` and
+`m.root_locus("iapp", (0.1, 0.3))`, with the same numbers.
+
 Commands: `linearize inputs iapp`, `linearize at eq inputs iapp gca`,
 `linearize at ic iapp` (`linearise` works too).

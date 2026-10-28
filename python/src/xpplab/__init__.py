@@ -14,7 +14,7 @@ from ._engine import EngineError, find_engine_library
 from .analysis import Table
 from .animation import Animation
 from .auto import Diagram, Point
-from .control import Linearization
+from .control import Linearization, RootLocus
 from .sensitivity import Sensitivity
 from .figure import Figure
 from .model import (METHODS, Ensemble, Equilibrium, EquilibriumList, Model, RunList,

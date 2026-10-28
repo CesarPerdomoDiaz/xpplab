@@ -2501,6 +2501,12 @@ bool app_export_csv(App *a, const char *path) {
   return true;
 }
 
+bool app_export_locus_csv(App *a, const char *path) {
+  if (!app_write_locus_csv(a, path)) return false;
+  echo_export(a, "rl", path);
+  return true;
+}
+
 bool app_export_analysis_csv(App *a, const char *path) {
   if (a->an.have && a->an.res_tool == AN_LINEARIZE) {
     if (!app_export_linear_csv(a, path)) return false;

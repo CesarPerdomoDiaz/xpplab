@@ -19,7 +19,7 @@ from pathlib import Path
 
 __all__ = ["Engine", "EngineError", "find_engine_library"]
 
-API_VERSION = 10
+API_VERSION = 11
 
 OK = 0
 ERR_STATE = -1
@@ -204,6 +204,13 @@ _SIGNATURES = {
                           ctypes.POINTER(ctypes.c_double),
                           ctypes.POINTER(ctypes.c_double), ctypes.c_char_p,
                           ctypes.c_int], ctypes.c_int),
+    "xppe_gain_locus": ([ctypes.c_int, ctypes.c_int]
+                        + [ctypes.POINTER(ctypes.c_double)] * 3
+                        + [ctypes.c_double, ctypes.c_double, ctypes.c_int]
+                        + [ctypes.POINTER(ctypes.c_double)] * 3, ctypes.c_int),
+    "xppe_parameter_locus": ([ctypes.c_char_p, ctypes.c_double, ctypes.c_double,
+                              ctypes.c_int, ctypes.POINTER(ctypes.c_double)],
+                             ctypes.c_int),
     "xppe_fourier": ([ctypes.c_char_p], ctypes.c_int),
     "xppe_power": ([ctypes.c_char_p], ctypes.c_int),
     "xppe_spectrum": ([ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p,

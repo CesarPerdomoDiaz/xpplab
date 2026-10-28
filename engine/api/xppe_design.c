@@ -952,3 +952,88 @@ done:
   free(t.s);
   return rc;
 }
+
+/* ---- Root locus ------------------------------------------------------------ */
+
+double xppe_locus_value(double from, double to, int steps, int i) {
+  if (steps < 2 || i <= 0) return from;
+  if (i >= steps - 1) return to;
+  return from + (to - from) * ((double)i / (double)(steps - 1));
+}
+
+void xppe_match_eigenvalues(int n, const double *pre, const double *pim, double *re,
+                            double *im) {
+  double *r = malloc(sizeof(double) * 2 * (size_t)n);
+  int *taken_old = calloc((size_t)(2 * n) + 1, sizeof(int)), *taken_new, k;
+  if (!r || !taken_old) {
+    free(r);
+    free(taken_old);
+    return;
+  }
+  taken_new = taken_old + n;
+  /* the closest pair first, then the closest of what is left, ... */
+  for (k = 0; k < n; k++) {
+    double best = INFINITY;
+    int bi = -1, bj = -1, i, j;
+    for (i = 0; i < n; i++) {
+      if (taken_old[i]) continue;
+      for (j = 0; j < n; j++) {
+        double d;
+        if (taken_new[j]) continue;
+        d = hypot(re[j] - pre[i], im[j] - pim[i]);
+        if (d < best) {
+          best = d;
+          bi = i;
+          bj = j;
+        }
+      }
+    }
+    if (bi < 0) /* NaNs: keep the order of what is left */
+      for (i = 0; i < n && bi < 0; i++)
+        if (!taken_old[i])
+          for (j = 0; j < n && bi < 0; j++)
+            if (!taken_new[j]) {
+              bi = i;
+              bj = j;
+            }
+    taken_old[bi] = taken_new[bj] = 1;
+    r[bi] = re[bj];
+    r[n + bi] = im[bj];
+  }
+  memcpy(re, r, sizeof(double) * (size_t)n);
+  memcpy(im, r + n, sizeof(double) * (size_t)n);
+  free(r);
+  free(taken_old);
+}
+
+int xppe_gain_locus(int n, int m, const double *A, const double *B, const double *K,
+                    double from, double to, int steps, double *gains, double *re,
+                    double *im) {
+  double *BK, *acl;
+  int s, i, j, k, rc = XPPE_OK;
+  if (n < 1 || m < 1 || !A || !B || !K || steps < 1 || !re || !im)
+    return fail(XPPE_ERR_RANGE, "give A (n x n), B (n x m), K (m x n), at "
+                                "least one step and room for steps x n "
+                                "eigenvalues");
+  if (!isfinite(from) || !isfinite(to))
+    return fail(XPPE_ERR_RANGE, "the gains must be finite numbers");
+  BK = malloc(sizeof(double) * 2 * (size_t)n * n);
+  if (!BK) return fail(XPPE_ERR_RANGE, "out of memory");
+  acl = BK + (size_t)n * n;
+  for (i = 0; i < n; i++)
+    for (j = 0; j < n; j++) {
+      double t = 0;
+      for (k = 0; k < m; k++) t += B[i * m + k] * K[k * n + j];
+      BK[i * n + j] = t;
+    }
+  for (s = 0; s < steps && rc == XPPE_OK; s++) {
+    double g = xppe_locus_value(from, to, steps, s);
+    double *r = re + (size_t)s * n, *q = im + (size_t)s * n;
+    if (gains) gains[s] = g;
+    for (i = 0; i < n * n; i++) acl[i] = A[i] - g * BK[i];
+    rc = xppe_eigenvalues(n, acl, r, q);
+    if (rc == XPPE_OK && s > 0) xppe_match_eigenvalues(n, r - n, q - n, r, q);
+  }
+  free(BK);
+  return rc;
+}

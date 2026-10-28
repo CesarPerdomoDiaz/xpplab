@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "fig.h"
 #include "xpp_instance.h"
 
 #define APP_MAX_FROZEN 16    /* curves kept on the plots */
@@ -250,6 +251,59 @@ typedef struct {
   int ncomets;
 } AniUI;
 
+/* Many runs kept together (app_figure.c): from random initial values in a
+   box (Model.run_many), or both ways along an equilibrium's real
+   eigenvectors (Model.shoot). The session's Python names them "many". */
+typedef struct {
+  int n;
+  Trajectory *runs;
+  int *event;     /* the global flag that stopped each run; 0: none */
+  double *lambda; /* shooting: the eigenvalue of each run's direction */
+  int *sign;      /* and which way along it */
+  bool shoot;
+  bool show;      /* on the phase plane and the time series */
+  char what[160];
+} RunSet;
+
+typedef struct {
+  int n, seed;
+  bool *use;      /* per variable: drawn in [lo, hi], else its initial value */
+  double *lo, *hi;
+  int req_col;    /* keep draws where this column (index into cols) lies */
+  double req_lo, req_hi; /* in [req_lo, req_hi]; req_col < 0: no condition */
+  double eps, shoot_total; /* shooting: the step off the equilibrium, the time */
+  int dirs;       /* 0 unstable directions, 1 stable, 2 both */
+} ManyUI;
+
+/* What to draw of a bifurcation diagram in a figure (Panel.diagram). */
+typedef struct {
+  char y[APP_NAME_LEN];  /* a variable, an aux column, period, norm, re1,
+                            im1, ..., mu1_re, mu1_im, mu1_abs, ... */
+  char x[APP_NAME_LEN];  /* the same; empty: each point's parameter */
+  int which;             /* 0 max, 1 min (orbits) */
+  int stable, periodic;  /* -1 either, 0 no, 1 yes */
+  bool any_branch;
+  int branch;
+  int lab1, lab2;        /* between these labels; 0: everywhere */
+  char where[APP_NAME_LEN]; /* keep points where this column's ... */
+  int where_which;       /* min (1) or max (0) */
+  double where_lo, where_hi; /* lies in [where_lo, where_hi]; "": all */
+} FigDiagram;
+
+/* The Figure window: one figure for papers (fig.h), and what the session's
+   Python knows of it. */
+typedef struct {
+  Figure fig;
+  Figure shadow;   /* the panels' and series' settings the Python has */
+  bool echoed;     /* "fig = xs.Figure(...)" is written */
+  int panel, series; /* selected */
+  bool dirty;      /* the preview is to be drawn again */
+  int preview_w, preview_h;
+  void *tex;       /* SDL_Texture of the preview */
+  char path[1024]; /* the last export */
+  char error[256];
+} FigUI;
+
 /* The session as Python (echo.c): each action that changes the model or
    computes a result, written as the line of Python, with the xpplab
    package, that does the same. */
@@ -329,6 +383,9 @@ typedef struct App {
   View3D v3;
   AniUI ani;
   int nbcs;          /* the model's boundary conditions (bndry) */
+  RunSet many;
+  ManyUI mu;
+  FigUI fg;
   Echo echo;
 
   /* console */
@@ -341,7 +398,7 @@ typedef struct App {
   /* interface */
   bool show_browser, show_workspace, show_editor, show_time, show_phase,
       show_auto, show_console, show_help, show_data, show_demo, show_array,
-      show_analysis, show_view3d, show_ani, show_kine;
+      show_analysis, show_view3d, show_ani, show_kine, show_figure;
   int array_first, array_last; /* columns shown in the array plot */
   bool reset_layout;
   int layout; /* 0: the plots in tabs; 1: the phase plane beside the time series */
@@ -441,6 +498,45 @@ void app_film_step(App *a);
 
 /* The engine's current run replaces a->traj (after an analysis changed it). */
 void app_fetch_current(App *a);
+/* The engine's current run into t (empty first). */
+void app_fetch_run(App *a, Trajectory *t);
+
+/* Many runs and shooting (app_figure.c), kept in a->many. */
+void app_many_reset(App *a);   /* a model was loaded: the form's defaults */
+void app_many_free(App *a);
+bool app_many_runs(App *a);    /* from a->mu: sample, then run each */
+bool app_shoot(App *a);        /* from the equilibrium near the initial values */
+bool app_export_many_csv(App *a, const char *path); /* RunList.to_csv() */
+/* The figure (app_figure.c). Each change is written to the session as an
+   xpplab.figure call. */
+void app_fig_reset(App *a);    /* an empty figure, as at start */
+bool app_fig_new(App *a, float width_mm, float height_mm, int rows, int cols);
+bool app_fig_grid(App *a, int rows, int cols);
+int app_fig_inset(App *a, int parent);
+bool app_fig_add_run(App *a, int panel, int xcol, int ycol);
+/* event: -1 every run as one series; else the runs that flag stopped */
+bool app_fig_add_runs(App *a, int panel, int xcol, int ycol, int event);
+bool app_fig_add_diagram(App *a, int panel, const FigDiagram *d);
+bool app_fig_add_sweep(App *a, int panel, bool min);
+bool app_fig_add_function(App *a, int panel, const char *expr, double lo, double hi, int n);
+/* y: "V'" for a right-hand side, or an output column; x: a variable */
+bool app_fig_add_curve(App *a, int panel, const char *y, int xvar, double lo, double hi,
+                       int n);
+bool app_fig_add_equilibria(App *a, int panel, int xvar, int yvar);
+void app_fig_remove(App *a, int panel, int k);
+/* The plot in a window (FigureKind) as a new panel's series. */
+bool app_fig_from_plot(App *a, int figure);
+/* Write the settings changed since the last call to the session. */
+void app_fig_sync_echo(App *a);
+bool app_fig_export(App *a, const char *path);
+/* A formula in x, at n points (the same grammar as xpplab.figure). */
+bool app_eval_expression(const char *expr, const double *x, double *y, int n,
+                         char *err, size_t errlen);
+/* The diagram's quantity at point i (FigDiagram's names); NaN if none. */
+double app_auto_quantity(App *a, int i, const char *name, int which, const double *along);
+/* An output column along the diagram: at steady states and min/max over
+   orbits at labelled points (Auto.along); lo, hi hold a->au.count values. */
+bool app_auto_along(App *a, const char *column, double *lo, double *hi);
 void app_free_trajectory(Trajectory *t);
 
 /* Analysis (app_analysis.c) */

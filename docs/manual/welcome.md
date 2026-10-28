@@ -53,10 +53,12 @@ original arrangement back, use **View > Reset window layout**.
 - [Tutorial: your first model](tutorial.md), from writing the equations to a
   bifurcation diagram, step by step.
 - [Tutorial: why does a neuron fire?](neuron-tutorial.md), from a
-  simulation to the Hopf point of the Morris-Lecar neuron.
+  simulation to the bifurcations where the Morris-Lecar neuron starts to
+  fire.
 - [Bifurcation analysis with AUTO](auto.md).
 - [The .ode file format](odefile.md), the complete reference.
 - [Coming from XPPAUT](xppaut.md), if you already know XPPAUT.
+- [Coming from MATLAB](matlab.md), if you know `ode45`, `fsolve` and `eig`.
 
 > Tip: if you know XPPAUT's keyboard commands, they still work: I G
 > integrates, N N draws nullclines, S G finds an equilibrium. See

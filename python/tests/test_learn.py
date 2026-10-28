@@ -5,6 +5,7 @@ under the name on its first line, then every Python snippet runs, in order,
 in one namespace. The numbers the text quotes are checked against what the
 snippets (and the exercises' solutions) produce.
 """
+import math
 import re
 from pathlib import Path
 
@@ -15,7 +16,7 @@ import xpplab as xs
 
 ROOT = Path(__file__).resolve().parents[2]
 LEARN = ROOT / "docs" / "learn"
-PAGES = ["neuroscience", "ecology", "chemistry", "mechanics"]
+PAGES = ["neuroscience", "ecology", "chemistry", "mechanics", "kite"]
 
 
 def blocks(page, language):
@@ -719,3 +720,41 @@ def test_mechanics_forced_pendulum(runs):
     assert (seen[1.07], seen[1.08], seen[1.13], seen[1.44]) == (2, 4, 3, 2)
     assert all(seen[round(a0, 2)] == 1 for a0 in np.arange(1.30, 1.425, 0.01))
     assert all(seen[a0] > 30 for a0 in (1.09, 1.2, 1.25, 1.5))
+
+
+# -- the kite -----------------------------------------------------------------
+
+def test_kite_equilibria_and_diagram(runs):
+    ns = runs["kite"].ns
+    approx(ns["lp"].value, 2.0098, 1e-4)
+    approx(math.degrees(ns["lp"].u0["gam"]), 39.15, 0.01)
+    approx(ns["hb"].value, 2.2207, 1e-4)
+    approx(math.degrees(ns["hb"].u0["gam"]), 55.59, 0.01)
+    approx(2 * math.pi / abs(ns["hb"].eigenvalues[0].imag) * ns["TAU"], 22.08, 0.01)
+    values, sweep, jump = ns["values"], ns["sweep"], ns["jump"]
+    assert (values[jump], values[jump + 1]) == (2.5, 2.4)
+    approx(sweep[jump], 62.66, 0.01)
+    approx(ns["focus"].min(), 2.11, 0.005)
+    approx(ns["focus"].max(), 3.16, 0.005)
+
+
+def test_kite_orbits_tension_and_runs(runs):
+    ns = runs["kite"].ns
+    approx(ns["first"].value, 2.2209, 1e-4)
+    approx(ns["first"].period * ns["TAU"], 22.14, 0.01)
+    assert ns["mu"].min() > 1
+    vw_t, lo_t, hi_t, k = ns["vw_t"], ns["lo_t"], ns["hi_t"], ns["slack_at"]
+    approx(vw_t[k - 1], 2.2458, 1e-4)
+    approx(vw_t[k], 2.2462, 1e-4)
+    approx(lo_t[1] * 9.81, 4.02, 0.005)
+    approx(hi_t[1] * 9.81, 4.99, 0.005)
+    assert ns["runs"].counts() == {0: 51, 1: 47, 3: 2}
+    approx(ns["hb"].value * ns["V"], 0.07090, 1e-5)
+    assert ns["np"].abs(ns["vw"][ns["big"]] * ns["V"] *
+                        ns["np"].sqrt(ns["lam"][ns["big"]]) / 1.109724 - 1).max() < 0.01
+
+
+def test_kite_quoted_text(runs):
+    text = (LEARN / "kite.md").read_text(encoding="utf-8")
+    for number in ("2.0098", "2.2207", "22.08", "62.66", "79.28", "0.07090", "67.16"):
+        assert number in text

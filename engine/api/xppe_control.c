@@ -19,7 +19,11 @@
 
 extern int NODE, NMarkov, NUPAR;
 extern char upar_names[MAXPAR][11];
+extern double EVEC_ERR;
+extern int EVEC_ITER;
 void eigen(int n, double *a, double *ev, double *work, int *ierr);
+void get_evec(double *a, double *anew, double *b, double *bp, int n, int maxit,
+              double err, int *ipivot, double eval, int *ierr);
 
 #define RIDDERS_ROWS 10
 #define RIDDERS_SHRINK 1.4
@@ -234,6 +238,45 @@ int xppe_eigenvalues(int n, const double *a, double *re, double *im) {
     xppe_set_error("the eigenvalues did not converge", NULL);
     return XPPE_ERR_NUMERIC;
   }
+  return XPPE_OK;
+}
+
+/* get_evec() (gear.c) takes the matrix as do_sing_info() hands it over,
+   which is row by row here, and returns the vector with its largest entry 1
+   (in size). */
+int xppe_eigenvector(int n, const double *a, double lambda, double *v) {
+  double *h, *anew, *b, *bp, norm = 0;
+  int *ipivot, i, ierr = 0;
+  if (n < 1 || !a || !v) {
+    xppe_set_error("give an n x n matrix and room for n values", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  h = malloc(sizeof(double) * (size_t)(2 * n * n + 2 * n));
+  ipivot = malloc(sizeof(int) * (size_t)n);
+  if (!h || !ipivot) {
+    free(h);
+    free(ipivot);
+    xppe_set_error("out of memory", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  anew = h + n * n;
+  b = anew + n * n;
+  bp = b + n;
+  memcpy(h, a, sizeof(double) * (size_t)(n * n));
+  get_evec(h, anew, b, bp, n, EVEC_ITER, EVEC_ERR, ipivot, lambda, &ierr);
+  if (ierr == 0)
+    for (i = 0; i < n; i++) norm += b[i] * b[i];
+  if (ierr != 0 || !(norm > 0) || !isfinite(norm)) {
+    free(h);
+    free(ipivot);
+    xppe_set_error("the eigenvector did not converge; is lambda a real "
+                   "eigenvalue of the matrix?", NULL);
+    return XPPE_ERR_NUMERIC;
+  }
+  norm = sqrt(norm);
+  for (i = 0; i < n; i++) v[i] = b[i] / norm;
+  free(h);
+  free(ipivot);
   return XPPE_OK;
 }
 

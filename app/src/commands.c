@@ -45,7 +45,8 @@ static const char *usage =
     "  erase                    remove kept curves [E]\n"
     "  use SET                  apply a named parameter set\n"
     "  auto steady [PAR]        follow steady states as PAR varies\n"
-    "  auto from LABEL ACTION   continue from a labelled point; ACTION is\n"
+    "  auto from LABEL ACTION [PAR2]\n"
+    "                           continue from a labelled point; ACTION is\n"
     "                           periodic | two | extend | switch | doubling\n"
     "  auto set DS=0.01 ...     AUTO numerics (ds, dsmin, dsmax, nmax, npr,\n"
     "                           parmin, parmax, ntst)\n"
@@ -77,6 +78,23 @@ static const char *usage =
     "                           python install PKG... runs pip for it\n"
     "  serve [on|off]           let Python drive the app: in Python,\n"
     "                           app = xpplab.app.connect()\n"
+    "  many N [seed S] VAR LO HI ... [keep COL LO HI]\n"
+    "                           N runs from initial values drawn in a box,\n"
+    "                           kept where COL (e.g. an aux) lies in LO HI;\n"
+    "                           each keeps the global flag that stopped it\n"
+    "  shoot [eps E] [time T] [unstable|stable|both]\n"
+    "                           runs off the equilibrium along its real\n"
+    "                           eigenvectors, both ways (XPPAUT's sHoot)\n"
+    "  figure [new W H [ROWS COLS] | panel K | grid R C | inset]\n"
+    "                           the Figure window: a figure for papers\n"
+    "  figure run X Y | many X Y [split] | diagram Y [x X] [min]\n"
+    "         [stable|unstable] [steady|orbits] [branch B] [between L1 L2]\n"
+    "         | range [max|min] | function F LO HI | curve Y X LO HI | eq\n"
+    "         | from time|phase|auto|auto2\n"
+    "                           add series to the selected panel\n"
+    "  figure title|xlabel|ylabel TEXT, xlim|ylim LO HI|auto,\n"
+    "         style K [color #rrggbb] [line --] [width W] [marker o]\n"
+    "         [scale SX SY] [label TEXT], export FILE.pdf|svg|eps|png [DPI]\n"
     "  bvp                      solve the boundary-value problem (bndry)\n"
     "  ani FILE.ani             open an XPPAUT animation of the run;\n"
     "                           ani play, ani stop, ani row N\n"
@@ -120,7 +138,8 @@ static const char *usage =
     "  layout side | tabs       the phase plane beside the time series, or\n"
     "                           all plots in tabs\n"
     "  help [TOPIC]             open the manual (topics: tutorial,\n"
-    "                           neuron-tutorial, auto, analysis, odefile, numerics, commands, xppaut)\n";
+    "                           neuron-tutorial, auto, analysis, odefile, numerics, commands, xppaut,\n"
+    "                           matlab)\n";
 
 static char *skip_space(char *s) {
   while (*s && isspace((unsigned char)*s)) s++;
@@ -431,9 +450,18 @@ static void cmd_auto(App *a, char *rest) {
     a->show_auto = true;
     app_auto_equilibria(a);
   } else if (!strcmp(w, "from")) {
-    char *lab = next_word(&rest), *act = next_word(&rest);
+    char *lab = next_word(&rest), *act = next_word(&rest), *second = next_word(&rest);
     int i, label = lab ? atoi(lab) : 0, point = -1;
     const char *key;
+    if (second) {
+      /* auto from LABEL two PAR2: the second parameter of the curve */
+      int j = app_find_par(a, second);
+      if (j < 0) {
+        app_log(a, "error: no parameter %s", second);
+        return;
+      }
+      a->au.second_par = j;
+    }
     for (i = 0; i < a->au.count; i++)
       if (a->au.info[i].label == label) point = i;
     if (point < 0) {
@@ -494,6 +522,265 @@ static void cmd_auto(App *a, char *rest) {
     }
   } else {
     app_log(a, "error: unknown auto command '%s'; try 'help'", w);
+  }
+}
+
+/* many N [seed S] [VAR LO HI]... [keep COL LO HI]: N runs from random
+   initial values (Workspace > Many runs). */
+static void cmd_many(App *a, char *rest) {
+  ManyUI *m = &a->mu;
+  char *w = next_word(&rest);
+  int i;
+  if (!m->use || !w) {
+    app_log(a, "Write: many N [seed S] VAR LO HI ... [keep COLUMN LO HI]");
+    return;
+  }
+  m->n = atoi(w);
+  for (i = 0; i < a->nvars; i++) m->use[i] = false;
+  m->req_col = -1;
+  while ((w = next_word(&rest)) != NULL) {
+    if (!strcmp(w, "seed")) {
+      char *s = next_word(&rest);
+      if (s) m->seed = atoi(s);
+    } else if (!strcmp(w, "keep")) {
+      char *c = next_word(&rest), *lo = next_word(&rest), *hi = next_word(&rest);
+      int j = c ? col_index(a, c) : -1;
+      if (j <= 0 || !lo || !hi) {
+        app_log(a, "error: keep COLUMN LO HI");
+        return;
+      }
+      m->req_col = j;
+      m->req_lo = strtod(lo, NULL);
+      m->req_hi = strtod(hi, NULL);
+    } else {
+      char *lo = next_word(&rest), *hi = next_word(&rest);
+      int v = app_find_var(a, w);
+      if (v < 0 || !lo || !hi) {
+        app_log(a, "error: %s is not a variable, or its LO HI are missing", w);
+        return;
+      }
+      m->use[v] = true;
+      m->lo[v] = strtod(lo, NULL);
+      m->hi[v] = strtod(hi, NULL);
+    }
+  }
+  app_many_runs(a);
+}
+
+/* shoot [eps E] [time T] [unstable|stable|both] */
+static void cmd_shoot(App *a, char *rest) {
+  ManyUI *m = &a->mu;
+  char *w;
+  m->dirs = 0;
+  m->shoot_total = 0;
+  while ((w = next_word(&rest)) != NULL) {
+    if (!strcmp(w, "eps")) {
+      char *v = next_word(&rest);
+      if (v) m->eps = strtod(v, NULL);
+    } else if (!strcmp(w, "time")) {
+      char *v = next_word(&rest);
+      if (v) m->shoot_total = strtod(v, NULL);
+    } else if (!strcmp(w, "stable")) {
+      m->dirs = 1;
+    } else if (!strcmp(w, "both") || !strcmp(w, "all")) {
+      m->dirs = 2;
+    } else if (strcmp(w, "unstable") != 0) {
+      app_log(a, "error: shoot [eps E] [time T] [unstable|stable|both]");
+      return;
+    }
+  }
+  app_shoot(a);
+}
+
+/* figure ...: the Figure window from the command window and scripts. */
+static void cmd_figure(App *a, char *rest) {
+  FigUI *g = &a->fg;
+  char *w = next_word(&rest);
+  int panel = g->panel;
+  if (!w) {
+    a->show_figure = true;
+    snprintf(a->focus, sizeof a->focus, "figure");
+    return;
+  }
+  if (!strcmp(w, "new")) {
+    char *ws = next_word(&rest), *hs = next_word(&rest), *rs = next_word(&rest),
+         *cs = next_word(&rest);
+    app_fig_new(a, ws ? (float)atof(ws) : 86, hs ? (float)atof(hs) : 65, rs ? atoi(rs) : 1,
+                cs ? atoi(cs) : 1);
+  } else if (!strcmp(w, "panel")) {
+    char *p = next_word(&rest);
+    int k = p ? atoi(p) - 1 : -1;
+    if (k < 0 || k >= g->fig.npanels) app_log(a, "error: figure panel K, from 1 to %d", g->fig.npanels);
+    else g->panel = k;
+  } else if (!strcmp(w, "grid")) {
+    char *r = next_word(&rest), *c = next_word(&rest);
+    if (!r || !c || !app_fig_grid(a, atoi(r), atoi(c))) app_log(a, "error: figure grid ROWS COLS");
+  } else if (!strcmp(w, "inset")) {
+    int k = app_fig_inset(a, panel < g->fig.rows * g->fig.cols ? panel : 0);
+    if (k < 0) app_log(a, "error: the figure has no room for another panel");
+  } else if (!strcmp(w, "run") || !strcmp(w, "many")) {
+    char *x = next_word(&rest), *y = next_word(&rest), *opt = next_word(&rest);
+    int cx = x ? col_index(a, x) : -1, cy = y ? col_index(a, y) : -1;
+    if (cx < 0 || cy < 0) {
+      app_log(a, "error: figure %s X Y: two columns", w);
+      return;
+    }
+    if (!strcmp(w, "run")) {
+      app_fig_add_run(a, panel, cx, cy);
+    } else if (opt && !strcmp(opt, "split")) {
+      bool seen[64] = {0};
+      int i, e;
+      for (i = 0; i < a->many.n; i++)
+        if (a->many.event[i] >= 0 && a->many.event[i] < 64) seen[a->many.event[i]] = true;
+      for (e = 0; e < 64; e++)
+        if (seen[e]) app_fig_add_runs(a, panel, cx, cy, e);
+    } else {
+      app_fig_add_runs(a, panel, cx, cy, -1);
+    }
+  } else if (!strcmp(w, "diagram")) {
+    FigDiagram d;
+    char *y = next_word(&rest), *o;
+    memset(&d, 0, sizeof d);
+    d.stable = d.periodic = -1;
+    d.any_branch = true;
+    if (!y) {
+      app_log(a, "error: figure diagram Y [x X] [min] [stable|unstable] [steady|orbits] "
+                 "[branch B] [between L1 L2]");
+      return;
+    }
+    snprintf(d.y, sizeof d.y, "%s", y);
+    while ((o = next_word(&rest)) != NULL) {
+      if (!strcmp(o, "x")) {
+        char *x = next_word(&rest);
+        if (x) snprintf(d.x, sizeof d.x, "%s", x);
+      } else if (!strcmp(o, "min")) d.which = 1;
+      else if (!strcmp(o, "max")) d.which = 0;
+      else if (!strcmp(o, "stable")) d.stable = 1;
+      else if (!strcmp(o, "unstable")) d.stable = 0;
+      else if (!strcmp(o, "steady")) d.periodic = 0;
+      else if (!strcmp(o, "orbits")) d.periodic = 1;
+      else if (!strcmp(o, "branch")) {
+        char *b = next_word(&rest);
+        d.any_branch = false;
+        d.branch = b ? atoi(b) : 0;
+      } else if (!strcmp(o, "where")) {
+        char *c = next_word(&rest), *w = next_word(&rest), *lo = next_word(&rest),
+             *hi = next_word(&rest);
+        if (c && w && lo && hi) {
+          snprintf(d.where, sizeof d.where, "%s", c);
+          d.where_which = !strcmp(w, "min");
+          d.where_lo = strtod(lo, NULL);
+          d.where_hi = strtod(hi, NULL);
+        }
+      } else if (!strcmp(o, "between")) {
+        char *l1 = next_word(&rest), *l2 = next_word(&rest);
+        d.lab1 = l1 ? atoi(l1) : 0;
+        d.lab2 = l2 ? atoi(l2) : 0;
+      }
+    }
+    app_fig_add_diagram(a, panel, &d);
+  } else if (!strcmp(w, "range")) {
+    char *which = next_word(&rest);
+    app_fig_add_sweep(a, panel, which && !strcmp(which, "min"));
+  } else if (!strcmp(w, "function")) {
+    char *e = next_word(&rest), *lo = next_word(&rest), *hi = next_word(&rest);
+    if (!e || !lo || !hi) app_log(a, "error: figure function FORMULA LO HI (no spaces in it)");
+    else app_fig_add_function(a, panel, e, strtod(lo, NULL), strtod(hi, NULL), 400);
+  } else if (!strcmp(w, "curve")) {
+    char *y = next_word(&rest), *x = next_word(&rest), *lo = next_word(&rest),
+         *hi = next_word(&rest);
+    int v = x ? app_find_var(a, x) : -1;
+    if (!y || v < 0 || !lo || !hi) app_log(a, "error: figure curve Y X LO HI");
+    else app_fig_add_curve(a, panel, y, v, strtod(lo, NULL), strtod(hi, NULL), 400);
+  } else if (!strcmp(w, "eq")) {
+    app_fig_add_equilibria(a, panel, a->pp.xvar, a->pp.yvar);
+  } else if (!strcmp(w, "from")) {
+    char *which = next_word(&rest);
+    FigureKind k = FIG_PHASE;
+    if (which && !strcmp(which, "time")) k = FIG_TIME;
+    if (which && !strcmp(which, "auto")) k = FIG_AUTO;
+    if (which && !strcmp(which, "auto2")) k = FIG_AUTO2;
+    app_fig_from_plot(a, k);
+  } else if (!strcmp(w, "title") || !strcmp(w, "xlabel") || !strcmp(w, "ylabel")) {
+    FigPanel *p = &g->fig.p[panel];
+    char *t = skip_space(rest);
+    snprintf(!strcmp(w, "title") ? p->title : w[0] == 'x' ? p->xlabel : p->ylabel, FIG_TEXT, "%s", t);
+    g->dirty = true;
+    app_fig_sync_echo(a);
+  } else if (!strcmp(w, "xlim") || !strcmp(w, "ylim")) {
+    FigPanel *p = &g->fig.p[panel];
+    char *lo = next_word(&rest), *hi = next_word(&rest);
+    bool x = w[0] == 'x';
+    if (lo && !strcmp(lo, "auto")) {
+      if (x) p->autox = true;
+      else p->autoy = true;
+    } else if (lo && hi) {
+      if (x) {
+        p->autox = false;
+        p->xmin = strtod(lo, NULL);
+        p->xmax = strtod(hi, NULL);
+      } else {
+        p->autoy = false;
+        p->ymin = strtod(lo, NULL);
+        p->ymax = strtod(hi, NULL);
+      }
+    }
+    g->dirty = true;
+    app_fig_sync_echo(a);
+  } else if (!strcmp(w, "style")) {
+    /* figure style K [color #rrggbb] [line -|--|:|-.|none] [width W]
+       [marker o|s|^|D|x|+|*|.|none] [scale SX SY] [label TEXT] */
+    char *ks = next_word(&rest), *o;
+    FigPanel *p = &g->fig.p[panel];
+    int k = ks ? atoi(ks) - 1 : -1;
+    if (k < 0 || k >= p->nseries) {
+      app_log(a, "error: figure style K ...: K from 1 to %d", p->nseries);
+      return;
+    }
+    while ((o = next_word(&rest)) != NULL) {
+      FigSeries *s = &p->s[k];
+      if (!strcmp(o, "color")) {
+        char *c = next_word(&rest);
+        unsigned v = c ? (unsigned)strtoul(c[0] == '#' ? c + 1 : c, NULL, 16) : 0;
+        s->color[0] = ((v >> 16) & 255) / 255.0f;
+        s->color[1] = ((v >> 8) & 255) / 255.0f;
+        s->color[2] = (v & 255) / 255.0f;
+        memcpy(s->mcolor, s->color, sizeof s->color);
+      } else if (!strcmp(o, "line")) {
+        static const char *names[] = {"none", "-", "--", ":", "-."};
+        char *l = next_word(&rest);
+        int i;
+        for (i = 0; l && i < FIG_LINE_COUNT; i++)
+          if (!strcmp(l, names[i])) s->line = i;
+      } else if (!strcmp(o, "width")) {
+        char *v = next_word(&rest);
+        if (v) s->width = (float)atof(v);
+      } else if (!strcmp(o, "marker")) {
+        static const char *names[] = {"none", "o", "s", "^", "D", "x", "+", "*", "."};
+        char *l = next_word(&rest);
+        int i;
+        for (i = 0; l && i < FIG_MARK_COUNT; i++)
+          if (!strcmp(l, names[i])) s->marker = i;
+      } else if (!strcmp(o, "scale")) {
+        char *sx = next_word(&rest), *sy = next_word(&rest);
+        if (sx && sy) {
+          s->sx = strtod(sx, NULL);
+          s->sy = strtod(sy, NULL);
+        }
+      } else if (!strcmp(o, "label")) {
+        snprintf(s->label, FIG_TEXT, "%s", skip_space(rest));
+        break;
+      }
+    }
+    g->dirty = true;
+    app_fig_sync_echo(a);
+  } else if (!strcmp(w, "export")) {
+    char *f = next_word(&rest), *dpi = next_word(&rest);
+    if (dpi) g->fig.dpi = atoi(dpi);
+    if (!f) app_log(a, "error: figure export FILE.pdf|svg|eps|png [DPI]");
+    else app_fig_export(a, f);
+  } else {
+    app_log(a, "error: unknown figure command '%s'; try 'help'", w);
   }
 }
 
@@ -716,6 +1003,12 @@ void app_command(App *a, const char *line_in) {
              !strcmp(cmd, "ensemble") || !strcmp(cmd, "linearize") ||
              !strcmp(cmd, "linearise")) {
     cmd_analysis(a, cmd, rest);
+  } else if (!strcmp(cmd, "many")) {
+    cmd_many(a, rest);
+  } else if (!strcmp(cmd, "shoot")) {
+    cmd_shoot(a, rest);
+  } else if (!strcmp(cmd, "figure") || !strcmp(cmd, "fig")) {
+    cmd_figure(a, rest);
   } else if (!strcmp(cmd, "bvp")) {
     app_bvp(a);
   } else if (!strcmp(cmd, "ani")) {
@@ -880,9 +1173,11 @@ void app_command(App *a, const char *line_in) {
       app_export_analysis_csv(a, file);
     } else if (which && !strcmp(which, "equilibria")) {
       app_export_equilibria_csv(a, file);
+    } else if (which && !strcmp(which, "many")) {
+      app_export_many_csv(a, file);
     } else if (which && strcmp(which, "run") != 0) {
-      app_log(a, "error: export FILE.csv takes run, auto, range, analysis or "
-                 "equilibria, not '%s'", which);
+      app_log(a, "error: export FILE.csv takes run, auto, range, analysis, "
+                 "equilibria or many, not '%s'", which);
     } else {
       app_export_csv(a, file);
     }

@@ -82,6 +82,28 @@ Plots use XPPAUT's colours: red and black for stable and unstable steady
 states, green and blue for stable and unstable periodic orbits. Unstable
 branches are dashed, and special points are labelled.
 
+## Auxiliary quantities along a diagram
+
+```python
+t = m.auto.along("tension", d)  # d: a diagram, or m.auto.diagram
+t.columns     # ['VW', 'min', 'max', 'stable', 'periodic', 'branch', 'label']
+```
+
+`along` gives an output column, a variable or an `aux` quantity, at every
+point: its value at each steady state, and its minimum and maximum over
+each periodic orbit. AUTO keeps whole orbits only at labelled points, so
+the other orbit points give NaN; a smaller `npr` before the continuation
+labels more of them. Each point's `u0`, `umax`, `umin` and `parameters`
+are dicts whose keys ignore case, like the model's own names.
+
+Eigenvalues along a branch of steady states, and Floquet multipliers along
+a branch of orbits, are in each point:
+
+```python
+lam = [p.eigenvalues for p in d if not p.periodic]
+mu = [p.multipliers for p in orbits]
+```
+
 ## Saving a diagram, and its orbits
 
 ```python

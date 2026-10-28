@@ -83,6 +83,7 @@ nav:
       - Ecology: learn/ecology.md
       - Chemistry: learn/chemistry.md
       - Mechanics: learn/mechanics.md
+      - "Aerospace: a kite on a tether": learn/kite.md
   - Coding agents: agents.md
   - Reference:
       - The .ode file format: manual/odefile.md

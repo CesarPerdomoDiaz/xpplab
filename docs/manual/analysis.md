@@ -243,6 +243,37 @@ upright, comes back to it in about three seconds. In Python:
 `K = lin.place_poles([-2+1j, -2-1j])` and `lin.closed_loop(K)`, with the same
 numbers.
 
+## Optimal control (LQR)
+
+Choosing poles by hand says how fast the loop is, not what it costs. The
+linear-quadratic regulator turns the question around: say how much each
+state's distance from the point matters and how dear each input is, and get
+the gain that minimises
+
+    J = integral of (dx^T Q dx + du^T R du) dt
+
+(for a map, the sum over its steps), with `du = -K dx`. A larger weight in
+`Q` on a state brings that state back faster; a larger weight in `R` on an
+input makes it act more gently.
+
+The **Optimal control (LQR)** section, under the gain, takes one weight per
+state (`Q`) and one per input (`R`), the diagonals of the two matrices, all
+1 to start with. *Compute the LQR gain* solves the Riccati equation (the
+matrix sign function of the Hamiltonian, refined by Newton's steps, for a
+continuous model; the doubling algorithm for a map), puts the gain in
+**Gain K** and the closed loop's poles in the pole list, so that *Simulate
+the closed loop* and the root locus over the gain use it. Moving a pole
+afterwards places the poles instead.
+
+It refuses an input with no cost (`R` must be positive) and a model where
+no gain can stabilise the loop: an unstable mode that the inputs cannot
+move, or one that `Q` does not see.
+
+Command: `lqr Q 10 1 R 0.1` (one number after `Q` or `R` weighs them all
+alike). With the pendulum of the pole placement section, that gives
+`K = [23.80, 7.392]` and poles at -3.156 and -4.436. In Python:
+`lin.lqr(Q=[10, 1], R=[0.1])`, with the same numbers.
+
 ## Root locus
 
 A root locus shows how the poles move as one number changes: each

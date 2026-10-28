@@ -159,6 +159,14 @@ CASES = [
         "locus gain 0 2 51", "export {out}/gain.csv locus",
         "locus feedback iapp V -1 1 41", "export {out}/feedback.csv locus",
         "locus par phi 0.1 1 31", "export {out}/phi.csv locus"]),
+    # LQR: the continuous Riccati equation (Morris-Lecar, the closed loop
+    # run) and the discrete one (a map, its gain locus).
+    ("lqr", "lecar.ode", [
+        "set iapp=0.08", "linearize inputs iapp gca", "lqr Q 10 1 R 0.5 2",
+        "closedloop {out}/lqr.ode", "set V=-0.1", "run", "export {out}/run.csv"]),
+    ("lqr_map", "del_log.ode", [
+        "linearize eps r", "lqr Q 1 R 2", "locus gain 0 1 21",
+        "export {out}/locus.csv locus"]),
     # Many runs with their stopping flags, shooting along eigenvectors, and
     # a figure built from them (the script must draw and save it too).
     ("many_shoot", "tests/models/kite.ode", [

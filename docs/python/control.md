@@ -168,6 +168,38 @@ away. Check `lin.valid_radius()` to see how far from the point the linear
 design can be trusted; the closed-loop model above is the nonlinear one, so
 simulating it is the test.
 
+## Optimal control (LQR)
+
+`lin.lqr(Q=None, R=None)` returns the gain that minimises the integral of
+`dx^T Q dx + du^T R du` (for a map, the sum over its steps), with
+`du = -K dx`: MATLAB's `lqr` and `dlqr` in one.
+
+- `Q` weighs the states, `R` the inputs: a number (times the identity), one
+  number per state or input (a diagonal), or a full symmetric matrix. Both
+  default to the identity. `R` must be positive definite.
+- The result has `K` (inputs x states), `P`, the solution of the Riccati
+  equation (the cost from `dx` is `dx^T P dx`), and `poles`, the eigenvalues
+  of `A - B K`.
+- The engine solves the Riccati equation (`xppe_lqr`): for a continuous
+  model by the matrix sign function of the Hamiltonian, refined by Newton's
+  steps; for a map by the doubling algorithm. On random systems the answers
+  agree with SciPy's `solve_continuous_are` and `solve_discrete_are` to
+  1e-8 or better, except in badly conditioned ones, where neither is
+  exact and the two residuals are of the same size.
+- `ValueError` when no gain can stabilise the loop: an unstable mode the
+  inputs cannot move, or one that `Q` does not see.
+
+```python
+lin = m.linearize(at={"th": 0, "w": 0}, inputs=["u"])   # the pendulum above
+res = lin.lqr(Q=[10, 1], R=0.1)
+res.K       # [[23.80, 7.392]]
+res.poles   # -3.156, -4.436
+cl = lin.closed_loop(res.K)
+```
+
+The desktop app's Optimal control section (or the `lqr` command) gives the
+same gain, and its echo is `K = lin.lqr(Q=[...], R=[...]).K`.
+
 ## Root locus
 
 `lin.root_locus(K, gain=(lo, hi), steps=201)` returns a `RootLocus`: the

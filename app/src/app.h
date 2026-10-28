@@ -189,7 +189,9 @@ typedef struct {
   double *want_re, *want_im;
   double *K, *cl_re, *cl_im;
   bool have_K;
-  bool K_written;                /* the echo has written K = lin.place_poles() */
+  bool K_written;                /* the echo has written the line that gives K */
+  double *Qw, *Rw;               /* LQR weights: one per state, one per input */
+  bool K_lqr;                    /* K came from LQR, not from the poles */
   char K_error[300];
 } LinearSystem;
 
@@ -595,6 +597,13 @@ bool app_place_poles_text(App *a, const char *text);
    parameters, initial values and numerical options, and run it:
    m = lin.closed_loop(K, path=...). */
 bool app_closed_loop(App *a, const char *path);
+/* The LQR gain for the weights lin.Qw (one per state) and lin.Rw (one per
+   input): K = lin.lqr(Q=[...], R=[...]).K. The closed loop's poles become
+   the poles shown, so the closed loop and the root locus use this K. */
+bool app_lqr(App *a);
+/* The lqr command: "Q 10 1 R 0.1" sets the weights (one number for all
+   alike), then app_lqr(). */
+bool app_lqr_text(App *a, const char *text);
 /* Root locus over the gain g of u = u0 - g K (x - x*): mode 0 uses the
    gain from pole placement, mode 1 the feedback of one state through one
    input (rl = lin.root_locus(K, gain=(lo, hi), steps=S)). */

@@ -661,7 +661,7 @@ static bool linearize(App *a, bool outer) {
   app_free_trajectory(&an->res);
   an->have = false;
   an->summary[0] = '\0';
-  block = malloc(sizeof(double) * (size_t)(n * (2 * n + 3 * m + 8) + m + 1));
+  block = malloc(sizeof(double) * (size_t)(n * (2 * n + 3 * m + 9) + 2 * m + 1));
   f = malloc(sizeof(double) * (size_t)n);
   names = malloc(sizeof(char *) * (size_t)(m + 1));
   c = malloc(sizeof(double) * (size_t)(n * n * m + 1));
@@ -690,6 +690,10 @@ static bool linearize(App *a, bool outer) {
   L->K = L->want_im + n;
   L->cl_re = L->K + n * m;
   L->cl_im = L->cl_re + n;
+  L->Qw = L->cl_im + n;
+  L->Rw = L->Qw + n;
+  for (i = 0; i < n; i++) L->Qw[i] = 1;
+  for (i = 0; i < m; i++) L->Rw[i] = 1;
   for (i = 0; i < m; i++) {
     names[i] = inputs[i];
     x->xppe_get(inputs[i], &L->u0[i]);
@@ -819,6 +823,7 @@ bool app_place_poles(App *a) {
   int n = L->n, m = L->m, i, j, k;
   L->have_K = false;
   L->K_written = false;
+  L->K_lqr = false;
   L->K_error[0] = '\0';
   if (!L->A || !L->want_re || m == 0 || !a->eng) return false;
   if (L->rank != n) {
@@ -1122,6 +1127,137 @@ done:
   free(vnames);
   free(pv);
   return ok;
+}
+
+/* ---- Optimal control (LQR) ------------------------------------------------- */
+
+static void weight_item(const void *v, int i, char *out, size_t len) {
+  echo_num(((const double *)v)[i], out, len);
+}
+
+/* A list of weights as Python: [10.0, 1.0], or name = [...] written first
+   when it is long. */
+static void echo_weights(App *a, const char *name, const double *v, int n, char *buf,
+                         size_t len) {
+  echo_long_list(a, name, n, weight_item, v, buf, len);
+}
+
+bool app_lqr(App *a) {
+  LinearSystem *L = &a->an.lin;
+  xpp_engine_api *x;
+  double *Q, *R;
+  int n = L->n, m = L->m, i, j;
+  bool outer;
+  if (!a->model_ok || !L->A || m == 0) {
+    app_log(a, "error: linearise with inputs first, e.g. linearize inputs u");
+    return false;
+  }
+  x = &a->eng->api;
+  Q = calloc((size_t)(n * n + m * m) + 1, sizeof(double));
+  if (!Q) return false;
+  R = Q + n * n;
+  for (i = 0; i < n; i++) Q[i * n + i] = L->Qw[i];
+  for (i = 0; i < m; i++) R[i * m + i] = L->Rw[i];
+  L->K_error[0] = '\0';
+  if (x->xppe_lqr(n, m, L->A, L->B, Q, R, L->discrete, L->K, NULL) != XPPE_OK) {
+    snprintf(L->K_error, sizeof L->K_error, "%s", x->xppe_error());
+    app_log(a, "error: %s", L->K_error);
+    L->have_K = false;
+    free(Q);
+    return false;
+  }
+  free(Q);
+  /* the poles of A - B K, in exact conjugate pairs, become the poles shown */
+  {
+    double *acl = malloc(sizeof(double) * (size_t)(n * n) + 1);
+    int k;
+    if (!acl) return false;
+    for (i = 0; i < n; i++)
+      for (j = 0; j < n; j++) {
+        double s = L->A[i * n + j];
+        for (k = 0; k < m; k++) s -= L->B[i * m + k] * L->K[k * n + j];
+        acl[i * n + j] = s;
+      }
+    if (x->xppe_eigenvalues(n, acl, L->cl_re, L->cl_im) != XPPE_OK)
+      for (i = 0; i < n; i++) L->cl_re[i] = L->cl_im[i] = NAN;
+    free(acl);
+  }
+  for (i = 0; i < n; i++) {
+    L->want_re[i] = L->cl_re[i];
+    L->want_im[i] = L->cl_im[i];
+  }
+  for (i = 0; i < n; i++)
+    if (L->want_im[i] > 0)
+      for (j = 0; j < n; j++)
+        if (L->want_im[j] < 0 && fabs(L->want_re[j] - L->want_re[i]) <= 1e-9 * (1 + fabs(L->want_re[i])) &&
+            fabs(L->want_im[j] + L->want_im[i]) <= 1e-9 * (1 + fabs(L->want_im[i]))) {
+          L->want_re[j] = L->want_re[i];
+          L->want_im[j] = -L->want_im[i];
+          break;
+        }
+  L->have_K = true;
+  L->K_lqr = true;
+  L->K_written = false;
+  outer = echo_begin(a);
+  if (outer) {
+    char q[4096], r[4096];
+    echo_weights(a, "Q", L->Qw, n, q, sizeof q);
+    echo_weights(a, "R", L->Rw, m, r, sizeof r);
+    echo_line(a, "K = lin.lqr(Q=%s, R=%s).K", q, r);
+    L->K_written = true;
+  }
+  echo_end(a);
+  app_log(a, "LQR gain:");
+  log_gain(a);
+  {
+    char line[1024];
+    int k = snprintf(line, sizeof line, "  closed-loop poles:");
+    for (i = 0; i < n && k < (int)sizeof line - 40; i++)
+      k += snprintf(line + k, sizeof line - k, " %.5g%+.5gi", L->cl_re[i], L->cl_im[i]);
+    app_log(a, "%s", line);
+  }
+  return true;
+}
+
+bool app_lqr_text(App *a, const char *text) {
+  LinearSystem *L = &a->an.lin;
+  char copy[2048], *w;
+  double *target = NULL;
+  int count = 0, limit = 0;
+  if (!L->A || L->m == 0) {
+    app_log(a, "error: linearise with inputs first, e.g. linearize inputs u");
+    return false;
+  }
+  snprintf(copy, sizeof copy, "%s", text);
+  for (w = strtok(copy, " ,;"); w; w = strtok(NULL, " ,;")) {
+    char *end;
+    double v;
+    if (!strcmp(w, "Q") || !strcmp(w, "q")) {
+      target = L->Qw;
+      limit = L->n;
+      count = 0;
+      continue;
+    }
+    if (!strcmp(w, "R") || !strcmp(w, "r")) {
+      target = L->Rw;
+      limit = L->m;
+      count = 0;
+      continue;
+    }
+    v = strtod(w, &end);
+    if (!target || *end || end == w || count >= limit) {
+      app_log(a, "Write: lqr [Q q1 q2 ...] [R r1 ...], one weight per state "
+                 "and per input (%d and %d), e.g. lqr Q 10 1 R 0.1", L->n, L->m);
+      return false;
+    }
+    target[count++] = v;
+    /* one number weighs them all alike */
+    if (count == 1) {
+      int i;
+      for (i = 1; i < limit; i++) target[i] = v;
+    }
+  }
+  return app_lqr(a);
 }
 
 /* ---- Root locus ------------------------------------------------------------ */

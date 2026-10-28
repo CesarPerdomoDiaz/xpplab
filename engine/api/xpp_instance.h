@@ -76,6 +76,9 @@ extern "C" {
      double, int, double *, double *, double *))                              \
   X(int, xppe_parameter_locus,                                                \
     (const char *, double, double, int, const double *))                      \
+  X(int, xppe_lqr,                                                            \
+    (int, int, const double *, const double *, const double *, const double *,\
+     int, double *, double *))                                                \
   X(int, xppe_fourier, (const char *))                                        \
   X(int, xppe_power, (const char *))                                          \
   X(int, xppe_spectrum, (int, const char *, const char *, int, int))          \

@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 11
+#define XPPE_API_VERSION 12
 
 enum {
   XPPE_OK = 0,
@@ -271,6 +271,17 @@ XPPE_API int xppe_closed_loop(const char *source, int m,
 XPPE_API int xppe_gain_locus(int n, int m, const double *A, const double *B,
                              const double *K, double from, double to, int steps,
                              double *gains, double *re, double *im);
+/* Optimal control (the linear-quadratic regulator): the gain K (m x n) of
+   the feedback du = -K dx that minimises the integral of dx^T Q dx +
+   du^T R du (discrete != 0: a map, the sum over its steps), with Q (n x n)
+   symmetric and R (m x m) symmetric positive definite. P (n x n, may be
+   NULL) receives the stabilising solution of the Riccati equation, from
+   the matrix sign function of the Hamiltonian (continuous) or the
+   doubling algorithm (discrete). Refuses, with XPPE_ERR_NUMERIC, a problem
+   whose solution does not stabilise A - B K (an unstable mode the inputs
+   cannot move, or that Q does not see). Since API version 12. */
+XPPE_API int xppe_lqr(int n, int m, const double *A, const double *B, const double *Q,
+                      const double *R, int discrete, double *K, double *P);
 
 /* ---- Data analysis --------------------------------------------------------
  *

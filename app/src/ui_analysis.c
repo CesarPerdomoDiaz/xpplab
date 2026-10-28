@@ -562,6 +562,42 @@ static void pole_editor(App *a) {
   if (changed) app_place_poles(a);
 }
 
+/* Optimal control: a weight per state and per input, and the gain that
+   minimises the cost they set. */
+static void lqr_section(App *a) {
+  LinearSystem *L = &a->an.lin;
+  int i;
+  heading("Optimal control (LQR)",
+          "Instead of choosing the poles, choose what matters: the gain that "
+          "minimises the integral of dx^T Q dx + du^T R du (for a map, the "
+          "sum over the steps). A larger weight Q on a state brings it back "
+          "faster; a larger weight R on an input makes it gentler. The gain "
+          "comes from the Riccati equation, and the closed loop's poles "
+          "become the poles above, so Simulate and the root locus use it. In "
+          "Python: K = lin.lqr(Q=[...], R=[...]).K; the command: lqr Q ... R ...");
+  igPushItemWidth(-95);
+  for (i = 0; i < L->n; i++) {
+    char label[APP_NAME_LEN + 8];
+    igPushID_Int(i);
+    snprintf(label, sizeof label, "Q %s", a->vars[i]);
+    InputDouble(label, &L->Qw[i], "%.6g");
+    if (L->Qw[i] < 0) L->Qw[i] = 0;
+    igPopID();
+  }
+  for (i = 0; i < L->m; i++) {
+    char label[APP_NAME_LEN + 8];
+    igPushID_Int(1000 + i);
+    snprintf(label, sizeof label, "R %s", L->inputs[i]);
+    InputDouble(label, &L->Rw[i], "%.6g");
+    igPopID();
+  }
+  igPopItemWidth();
+  if (ButtonW("Compute the LQR gain", -1)) app_lqr(a);
+  if (L->have_K && L->K_lqr)
+    igTextDisabled("The gain above is the LQR gain; moving a pole places the "
+                   "poles instead.");
+}
+
 /* Root locus: over the gain from pole placement, over the feedback of one
    state through one input, or over a parameter with the equilibrium
    followed. */
@@ -726,6 +762,8 @@ static void linear_result(App *a) {
       pole_editor(a);
       igSpacing();
       gain_section(a);
+      igSpacing();
+      lqr_section(a);
     }
     igSpacing();
     locus_section(a);

@@ -341,15 +341,87 @@ def test_warns_when_the_point_is_not_an_equilibrium():
     assert abs(cl.run()["th"][-1] - 0.5) > 0.3
 
 
+def _closed_loop_text(source, inputs, u0, states, x, K):
+    """The engine's rewrite (xppe_closed_loop) of the model text source."""
+    import ctypes
+    from xpplab._engine import EngineError
+    from xpplab.control import _array
+    m = xs.Model.from_text(PENDULUM)
+    ins = [p.encode() for p in inputs]
+    sts = [v.encode() for v in states]
+    args = (source.encode(), len(ins), (ctypes.c_char_p * len(ins))(*ins),
+            _array(u0), len(sts), (ctypes.c_char_p * len(sts))(*sts),
+            _array(x), _array(K))
+    try:
+        size = m._engine.call("xppe_closed_loop", *args, None, 0)
+        out = ctypes.create_string_buffer(size + 1)
+        m._engine.call("xppe_closed_loop", *args, out, size + 1)
+    except EngineError as e:
+        raise ValueError(e.args[0]) from None
+    finally:
+        m.close()
+    return out.value.decode()
+
+
 def test_backslash_only_matters_on_the_inputs_own_line():
-    # the engine reads no backslash continuation on a par line, so the line
-    # rewriter is tested on the text itself
-    from xpplab.control import _LAW_HERE, _remove_parameter
-    lines = ["par c=0.5, \\", "  d=1", "par u=0, k=2", "x'=-c*x+u"]
-    assert _remove_parameter(lines, "u") == [
-        "par c=0.5, \\", "  d=1", "par k=2", _LAW_HERE, "x'=-c*x+u"]
+    # the engine reads no backslash continuation on a par line, so the
+    # rewrite is tested on the text itself
+    text = _closed_loop_text("par c=0.5, \\\n  d=1\npar u=0, k=2\nx'=-c*x+u\n",
+                             ["u"], [0.0], ["x"], [0.0], [[2.0]])
+    assert text.splitlines() == [
+        "# feedback u = u0 - K (x - x*), from place_poles",
+        "u=0-(2)*(x-(0))", "par c=0.5, \\", "  d=1", "par k=2", "x'=-c*x+u"]
     with pytest.raises(ValueError, match=r"^the parameter line of an input is "
                                          r"continued with a backslash"):
-        _remove_parameter(["par u=0, \\", "  k=2"], "u")
+        _closed_loop_text("par u=0, \\\n  k=2\nx'=-x+u\n", ["u"], [0.0],
+                          ["x"], [0.0], [[1.0]])
 
+
+def test_closed_loop_text_keeps_other_items_and_line_ends():
+    # blanks around = go, other items stay, CRLF line ends become LF
+    text = _closed_loop_text("# model\r\nPAR a = 1 , U=0.5 b=2\r\nx'=-a*x+U\r\n",
+                             ["u"], [0.5], ["X"], [0.25], [[1e-05]])
+    assert text == ("# model\n"
+                    "# feedback u = u0 - K (x - x*), from place_poles\n"
+                    "u=0.5-(1e-05)*(X-(0.25))\nPAR a=1, b=2\nx'=-a*x+U\n")
+    with pytest.raises(ValueError, match=r"^input 'v' is not declared"):
+        _closed_loop_text("par u=0\nx'=-x+u\n", ["v"], [0.0], ["x"], [0.0],
+                          [[1.0]])
+
+
+def test_closed_loop_with_a_fixed_variable_above_the_input():
+    # f uses u above u's parameter line: XPPAUT evaluates fixed variables in
+    # the order written, so the law must come before f
+    m = xs.Model.from_text("f=2*u\nx'=-x+f\npar u=1\ninit x=1\n@ total=1\ndone\n")
+    lin = m.linearize(inputs=["u"])           # at the equilibrium x = 2
+    K = lin.place_poles([-3.0])
+    cl = lin.closed_loop(K)
+    u = 1 - K[0, 0] * (1 - 2)                 # the law at x = 1
+    assert abs(cl.rhs()[0] - (-1 + 2 * u)) < 1e-12
+    assert abs(cl.run()["x"][-1] - 2) < 0.1
+
+
+def test_closed_loop_of_many_states_splits_the_law():
+    # 25 states: one law line would pass the 1023 characters XPPAUT reads
+    n = 25
+    lines = ["par u=0, c=0.3"]
+    lines += [f"x{i}'=-c*x{i}+x{i + 1}" for i in range(n - 1)]
+    lines += [f"x{n - 1}'=-c*x{n - 1}+u", "done"]
+    m = xs.Model.from_text("\n".join(lines) + "\n")
+    rng = np.random.default_rng(2)
+    at = dict(zip([f"x{i}" for i in range(n)], rng.normal(size=n)))
+    lin = m.linearize(at=at, inputs=["u"])
+    K = rng.normal(size=(1, n)) * 1e3
+    one_line = sum(len(f"-({k!r})*(X{i}-({at[f'x{i}']!r}))") for i, k in enumerate(K[0]))
+    assert one_line > 1023
+    cl = lin.closed_loop(K)
+    text = cl.path.read_text()
+    assert max(len(line) for line in text.splitlines()) < 1000
+    assert "kf1a1=" in text
+    x = rng.normal(size=n)
+    for i, v in enumerate(cl.variables):
+        cl.set(**{v: x[i]})
+    xstar = np.array([lin.point[v] for v in lin.point])
+    u = 0 - K[0] @ (x - xstar)
+    assert abs(cl.rhs()[n - 1] - (-0.3 * x[n - 1] + u)) < 1e-9 * max(1, abs(u))
 

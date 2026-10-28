@@ -331,7 +331,10 @@ void echo_model_loaded(App *a) {
   e->table[0] = '\0';
   e->sweep_mode = -1;
   e->loaded = e->par && e->ic;
-  echo_line(a, "m = xs.load(%s)", echo_str(a->model_path, path, sizeof path));
+  if (e->load_line)
+    echo_line(a, "%s", e->load_line);
+  else
+    echo_line(a, "m = xs.load(%s)", echo_str(a->model_path, path, sizeof path));
   sync_script(a);
 }
 

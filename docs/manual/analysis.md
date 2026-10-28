@@ -198,5 +198,50 @@ rank and the residual (the largest |dx/dt| at the point; for a map
 |F(x) - x|). In Python the same numbers come from `m.linearize()`; see
 [Control design](https://cesarperdomodiaz.github.io/xpplab/python/control/).
 
+## Pole placement
+
+When the inputs can steer every state, the feedback
+
+    u = u0 - K (x - x*)
+
+(the nominal input minus a gain times the distance from the point) turns
+the linear system into `dx' = (A - B K) dx`. Pole placement chooses `K` so
+that the eigenvalues of `A - B K`, the **poles** of the closed loop, are
+where you want them: in the stable half, as far in as you want the loop to
+be fast, with as much imaginary part as you accept oscillation.
+
+After *Linearise* with inputs, a **Pole placement** section appears under
+the eigenvalues:
+
+- The poles start at the eigenvalues moved into the stable region (an
+  unstable one is reflected into the left half-plane; for a map, inverted
+  into the unit circle). Type new values, or drag the blue circles in the
+  complex plane. A real pole moves along the real axis; a complex pole takes
+  its conjugate with it. *pair* joins a real pole with the next real one into
+  a complex pair, *split* turns a pair into two real poles.
+- **Gain K** follows as you go: one row per input, one column per state.
+  With one input the gain is unique (Ackermann's formula). With several, the
+  spare freedom is spent on keeping the closed loop's eigenvectors well
+  apart (the method of Kautsky, Nichols and Van Dooren), so that the poles
+  stay put when the model is a little different; a pole can then be repeated
+  up to as many times as there are inputs.
+- The blue dots in the plane are the eigenvalues of `A - B K` as computed:
+  they sit on the circles when the placement worked.
+- **Simulate the closed loop** writes the model with each input replaced by
+  the feedback law as `NAME_closed_loop.ode` next to the model (for one of
+  the examples, in Documents/XPP Lab), opens it with the current parameter
+  values, initial values and numerical options, and runs it. The closed loop
+  is the full nonlinear model, so its run shows how far from the point the
+  linear design still works.
+
+Commands: `poles -2+1i -2-1i` sets the poles (one per state) and computes the
+gain; `closedloop [FILE]` writes, opens and runs the closed loop. Try it with
+the inverted pendulum `th' = w`, `w' = g/l*sin(th) - 0.2*w + u`: type
+`linearize inputs u`, then `poles -2+1i -2-1i`; the gain is `K = [14.8, 3.8]`.
+`closedloop`, then `set th=0.3` and `run`: the pendulum, started 0.3 rad from
+upright, comes back to it in about three seconds. In Python:
+`K = lin.place_poles([-2+1j, -2-1j])` and `lin.closed_loop(K)`, with the same
+numbers.
+
 Commands: `linearize inputs iapp`, `linearize at eq inputs iapp gca`,
 `linearize at ic iapp` (`linearise` works too).

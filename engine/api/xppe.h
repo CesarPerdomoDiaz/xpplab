@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 9
+#define XPPE_API_VERSION 10
 
 enum {
   XPPE_OK = 0,
@@ -225,6 +225,34 @@ XPPE_API int xppe_eigenvector(int n, const double *a, double lambda, double *v);
 XPPE_API int xppe_controllability(int n, int m, const double *A,
                                   const double *B, double tol, double *C,
                                   double *sv);
+/* The feedback gain K (m x n) for which A - B K has the n poles re + i im
+   (complex ones in conjugate pairs; for a map, inside the unit circle for
+   a stable loop). With one input it is Ackermann's formula, the only gain
+   there is; with several, the method of Kautsky, Nichols and Van Dooren,
+   which spends the spare inputs on well-conditioned eigenvectors (a pole
+   may then be repeated up to m times). Refuses, with XPPE_ERR_NUMERIC, a
+   pair (A, B) that is not controllable by xppe_controllability()'s rank.
+   Since API version 10. */
+XPPE_API int xppe_place_poles(int n, int m, const double *A, const double *B,
+                              const double *re, const double *im, double *K);
+/* The closed-loop model: the .ode text source with each of the m inputs
+   taken off its parameter line (p, par, param or parameters) and defined
+   instead as the fixed variable u = u0 - K (x - x*), where x are the n
+   states (their names in states) and x* the point. The laws use only the
+   states, so they stand first, after the comments that open the file, and
+   every fixed variable that uses an input sees them; a law longer than
+   XPPAUT reads on one line is written as partial sums (fixed variables
+   named kf1a1, kf1a2, ..., with x's added to kf if the model has such
+   names). The rest of the text is kept. Writes at most size bytes of the text, ending
+   with a NUL, to out (size 0 writes nothing) and returns the text's full
+   length, like snprintf; or an error: XPPE_ERR_NAME for an input not on a
+   parameter line, XPPE_ERR_RANGE for one on a line continued with a
+   backslash. Since API version 10. */
+XPPE_API int xppe_closed_loop(const char *source, int m,
+                              const char *const *inputs, const double *u0,
+                              int n, const char *const *states,
+                              const double *x, const double *K, char *out,
+                              int size);
 
 /* ---- Data analysis --------------------------------------------------------
  *

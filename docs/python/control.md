@@ -103,8 +103,11 @@ the distance from the linearisation point.
 - With one input it uses Ackermann's formula and the controllability matrix.
 - With several inputs it uses the method of Kautsky, Nichols and Van Dooren
   (the one behind `scipy.signal.place_poles`), which uses the spare inputs
-  to keep the closed-loop eigenvectors well conditioned. Only NumPy is
-  needed.
+  to keep the closed-loop eigenvectors well conditioned.
+- The engine computes the gain, so the desktop app's pole placement (the
+  Linearise tool, or the `poles` command) gives the same `K` to the last
+  bit, and its *Simulate the closed loop* writes the same model as
+  `closed_loop`.
 - `poles` has one number per state; complex poles must come in conjugate
   pairs. For a map (`meth=discrete`) the poles belong inside the unit circle.
 - A pair that is not controllable, a model with no inputs, a wrong number of
@@ -114,8 +117,9 @@ the distance from the linearisation point.
 - If the point is not an equilibrium (`lin.residual` not near zero) a
   warning says that the closed loop will not settle at `x*`: the model keeps
   moving there even with no feedback.
-- With as many inputs as states or more, the poles are placed exactly; the
-  gain is the smallest one that does it.
+- With as many inputs as states or more, any poles can be placed, the same
+  pole as often as there are states; extra or duplicated inputs share the
+  work (the gain is the smallest one that gives the chosen closed loop).
 
 `lin.closed_loop(K)` writes the closed-loop model as an `.ode` file and
 loads it. Each input is taken off the model's parameter line and defined as
@@ -126,9 +130,13 @@ parameter values, initial conditions and numerical options (except the
 replaced inputs). The file is in a temporary directory unless you pass
 `path=`.
 
-XPPAUT evaluates fixed variables in the order they are written, so the
-feedback laws stand where the first input was declared; a fixed variable
-that uses an input therefore sees the feedback value. Each input must be
+XPPAUT evaluates fixed variables in the order they are written, and a fixed
+variable may use an input above its parameter line. The feedback laws use
+only the states, so they stand at the top, after the comments that open
+the file: every fixed variable that uses an input sees the feedback value.
+XPPAUT reads lines of up to 1023 characters; a longer law (about 20 states
+or more) is written as partial sums, fixed variables named `kf1a1`,
+`kf1a2`, ..., added up in the input's line. Each input must be
 declared on a line that starts with `p`, `par`, `param` or `parameters`,
 and that line must not end in a backslash; otherwise `closed_loop`
 raises `ValueError`. Other parameter lines are left as they are.

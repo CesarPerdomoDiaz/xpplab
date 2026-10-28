@@ -107,7 +107,6 @@ class Model(AnalysisMixin):
             raise FileNotFoundError(self.path)
         self._engine = E.Engine(engine_library)
         self._engine.cwd = self.path.parent
-        self._load_options = list(options)
         opts = [_b(o) for o in options]
         argv = (ctypes.c_char_p * max(1, len(opts)))(*opts)
         try:

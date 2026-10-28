@@ -173,9 +173,10 @@ To do:
       matrices), in the C API (`xppe_linearize`), Python (`Model.linearize`)
       and the app (*Run > Linearise*, `linearize`), with the same numbers
 - [x] Eigenvalues in the complex plane, with a controllability check
-- [x] Pole placement in Python: `Linearization.place_poles` gives the feedback
-      gain, `closed_loop` writes and loads the closed loop as an `.ode` model
-- [ ] Pole placement in the app: drag an eigenvalue, get the gain, simulate
+- [x] Pole placement: the feedback gain for the poles asked for, in the C API
+      (`xppe_place_poles`), Python (`Linearization.place_poles`) and the app
+      (drag the poles in the complex plane, or `poles`); the closed loop
+      written and run as an `.ode` model (`closed_loop`, `closedloop`)
 - [ ] Root locus over a gain or a parameter
 - [ ] Optimal control (LQR)
 - [ ] Floquet multipliers shown on the bifurcation diagram

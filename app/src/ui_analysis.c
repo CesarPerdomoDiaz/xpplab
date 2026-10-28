@@ -114,6 +114,8 @@ static bool needs_two(const AnalysisUI *n) {
 
 static PlotView plane_view;
 static ImVec2_c plane_size; /* the plot's area in the last frame */
+static bool pole_held;      /* a pole was being dragged in the last frame */
+static bool closed_loop_asked;
 
 /* Whether name is in the list of inputs (names separated by commas or
    spaces), ignoring case. */
@@ -283,9 +285,10 @@ static void linear_verdict(App *a) {
   }
 }
 
-/* A matrix as a table: rows named by the variables, columns by names. */
-static void matrix_table(App *a, const char *id, const double *m,
-                         const double *err, int rows, int cols,
+/* A matrix as a table, its rows and columns named; err (or NULL) holds
+   each entry's error estimate, for the tooltip. */
+static void matrix_table(const char *id, const double *m, const double *err,
+                         int rows, int cols, char (*row_names)[APP_NAME_LEN],
                          char (*names)[APP_NAME_LEN]) {
   ImGuiTableFlags tf = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
                        ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_ScrollX |
@@ -300,14 +303,16 @@ static void matrix_table(App *a, const char *id, const double *m,
   for (i = 0; i < rows; i++) {
     igTableNextRow(0, 0);
     igTableSetColumnIndex(0);
-    igTextDisabled("%s", a->vars[i]);
+    igTextDisabled("%s", row_names[i]);
     for (j = 0; j < cols; j++) {
       double v = m[i * cols + j];
       igTableSetColumnIndex(j + 1);
       igText("%.6g", v);
-      if (igIsItemHovered(0))
-        igSetTooltip("d %s' / d %s = %.17g\nerror estimate %.1e", a->vars[i],
+      if (igIsItemHovered(0) && err)
+        igSetTooltip("d %s' / d %s = %.17g\nerror estimate %.1e", row_names[i],
                      names[j], v, err[i * cols + j]);
+      else if (igIsItemHovered(0))
+        igSetTooltip("%.17g", v);
     }
   }
   igEndTable();
@@ -315,15 +320,22 @@ static void matrix_table(App *a, const char *id, const double *m,
 
 /* Axis limits that show the eigenvalues and the edge of the stable region
    (Linearization.plot() in Python frames its figure the same way). */
+static bool placing(const LinearSystem *L) {
+  return L->m > 0 && L->rank == L->n && L->want_re;
+}
+
 static void plane_window(const LinearSystem *L, double w[4]) {
   double edge = L->discrete ? 1.0 : 0.0, lo = -edge, hi = edge, h = edge, span, pad;
-  int i;
-  for (i = 0; i < L->n; i++) {
-    if (!isfinite(L->re[i]) || !isfinite(L->im[i])) continue;
-    if (L->re[i] < lo) lo = L->re[i];
-    if (L->re[i] > hi) hi = L->re[i];
-    if (fabs(L->im[i]) > h) h = fabs(L->im[i]);
-  }
+  int i, k;
+  /* the eigenvalues, and the poles asked for when they are shown */
+  for (k = 0; k < (placing(L) ? 2 : 1); k++)
+    for (i = 0; i < L->n; i++) {
+      double re = k ? L->want_re[i] : L->re[i], im = k ? L->want_im[i] : L->im[i];
+      if (!isfinite(re) || !isfinite(im)) continue;
+      if (re < lo) lo = re;
+      if (re > hi) hi = re;
+      if (fabs(im) > h) h = fabs(im);
+    }
   span = hi - lo > 2 * h ? hi - lo : 2 * h;
   if (!(span > 0)) span = 1;
   pad = 0.15 * span;
@@ -336,11 +348,53 @@ static void plane_window(const LinearSystem *L, double w[4]) {
   w[3] = h;
 }
 
+/* The other pole of a conjugate pair, or -1 for a real pole. */
+static int partner_of(const LinearSystem *L, int i) {
+  int j;
+  if (L->want_im[i] == 0) return -1;
+  for (j = 0; j < L->n; j++)
+    if (j != i && L->want_re[j] == L->want_re[i] && L->want_im[j] == -L->want_im[i])
+      return j;
+  return -1;
+}
+
+/* The poles asked for, dragged in the plane: a real pole moves along the
+   real axis, a complex one takes its conjugate along. */
+static void drag_poles(App *a) {
+  LinearSystem *L = &a->an.lin;
+  bool held_any = false, changed = false;
+  int i;
+  if (L->have_K) {
+    ImPlotSpec_c c = SpecMarker(HEX(0x1f77b4), ImPlotMarker_Circle, 3.5f);
+    ImPlot_PlotScatter_doublePtrdoublePtr("closed loop", L->cl_re, L->cl_im, L->n, c);
+  }
+  for (i = 0; i < L->n; i++) {
+    double x = L->want_re[i], y = L->want_im[i];
+    bool held = false;
+    int p = partner_of(L, i);
+    if (ImPlot_DragPoint(i, &x, &y, HEX(0x1f77b4), 6.0f, ImPlotDragToolFlags_None,
+                         NULL, NULL, &held)) {
+      L->want_re[i] = x;
+      if (p >= 0) {
+        L->want_im[i] = y;
+        L->want_re[p] = x;
+        L->want_im[p] = -y;
+      }
+      changed = true;
+    }
+    if (held) held_any = true;
+  }
+  pole_held = held_any;
+  if (changed) app_place_poles(a);
+}
+
 static void eigen_plane(App *a) {
   const LinearSystem *L = &a->an.lin;
   if (!ImPlot_BeginPlot("##plane", V2(-1, -1), ImPlotFlags_NoTitle)) return;
-  /* Framed on the eigenvalues every frame until the user zooms or pans. */
-  bool follow = ui_view_follow(a, &plane_view, "real part", "imaginary part");
+  /* Framed on the eigenvalues every frame until the user zooms or pans;
+     not while a pole is dragged, which would move the frame under it. */
+  bool follow = ui_view_follow(a, &plane_view, "real part", "imaginary part") &&
+                !pole_held;
   ImPlot_SetupAxes("real part", "imaginary part", 0, 0);
   /* outside, where it covers no eigenvalue */
   ImPlot_SetupLegend(ImPlotLocation_North,
@@ -393,8 +447,10 @@ static void eigen_plane(App *a) {
     ImPlotSpec_c s = SpecMarker(HEX(0xd62728), ImPlotMarker_Cross, 7.0f);
     s.MarkerLineColor = HEX(0xd62728);
     s.LineWeight = 2.0f;
-    ImPlot_PlotScatter_doublePtrdoublePtr("eigenvalues", L->re, L->im, L->n, s);
+    ImPlot_PlotScatter_doublePtrdoublePtr(placing(L) ? "open loop" : "eigenvalues",
+                                          L->re, L->im, L->n, s);
   }
+  if (placing(L)) drag_poles(a);
   plane_size = ImPlot_GetPlotSize();
   ui_view_end(&plane_view, true);
   ImPlot_EndPlot();
@@ -403,6 +459,85 @@ static void eigen_plane(App *a) {
 static void heading(const char *title, const char *help) {
   igTextDisabled("%s", title);
   HelpMarker(help);
+}
+
+/* The poles asked for, typed: a real pole, or a pair a +/- b i shown once.
+   "pair" joins a real pole with the next real one, "split" makes a pair
+   two real poles. */
+static void pole_editor(App *a) {
+  LinearSystem *L = &a->an.lin;
+  bool changed = false;
+  int i, j;
+  for (i = 0; i < L->n; i++) {
+    int p = partner_of(L, i);
+    if (p >= 0 && L->want_im[i] < 0) continue; /* shown with its partner */
+    igPushID_Int(i);
+    igSetNextItemWidth(80);
+    if (InputDouble("##re", &L->want_re[i], "%.6g")) {
+      if (p >= 0) L->want_re[p] = L->want_re[i];
+      changed = true;
+    }
+    igSameLine(0, -1);
+    if (p >= 0) {
+      igTextUnformatted("+/-", NULL);
+      igSameLine(0, -1);
+      igSetNextItemWidth(80);
+      if (InputDouble("##im", &L->want_im[i], "%.6g")) {
+        L->want_im[i] = fabs(L->want_im[i]);
+        L->want_im[p] = -L->want_im[i];
+        changed = true;
+      }
+      igSameLine(0, -1);
+      igTextUnformatted("i", NULL);
+      igSameLine(0, -1);
+      if (igSmallButton("split")) {
+        double r = L->want_re[i], b = fabs(L->want_im[i]);
+        L->want_re[i] = r - b;
+        L->want_re[p] = r + b;
+        L->want_im[i] = L->want_im[p] = 0;
+        changed = true;
+      }
+      Tooltip("Make the pair two real poles, re - im and re + im.");
+    } else {
+      for (j = i + 1; j < L->n && partner_of(L, j) >= 0; j++)
+        ;
+      if (j < L->n) {
+        if (igSmallButton("pair")) {
+          double r = 0.5 * (L->want_re[i] + L->want_re[j]);
+          double b = 0.5 * fabs(L->want_re[i] - L->want_re[j]);
+          if (b == 0) b = 1;
+          L->want_re[i] = L->want_re[j] = r;
+          L->want_im[i] = b;
+          L->want_im[j] = -b;
+          changed = true;
+        }
+        Tooltip("Join this pole and the next real one into a complex pair.");
+      }
+    }
+    igPopID();
+  }
+  if (changed) app_place_poles(a);
+}
+
+static void gain_section(App *a) {
+  LinearSystem *L = &a->an.lin;
+  heading("Gain K", "The feedback u = u0 - K (x - x*): row k says how input k "
+                    "responds to each state's distance from the point. The "
+                    "closed loop's matrix A - B K has the poles above (the "
+                    "blue dots in the plane are its eigenvalues).");
+  if (L->have_K) {
+    matrix_table("##K", L->K, NULL, L->m, L->n, L->inputs, a->vars);
+    igSpacing();
+    if (ButtonW("Simulate the closed loop", -1)) closed_loop_asked = true;
+    Tooltip("Writes the model with each input replaced by u = u0 - K (x - x*) "
+            "as NAME_closed_loop.ode next to this one (for an example, in "
+            "Documents/XPP Lab), opens it with the current values and runs it. "
+            "In Python: lin.closed_loop(K).");
+  } else if (L->K_error[0]) {
+    igPushStyleColor_Vec4(ImGuiCol_Text, verdict_color(a, BAD));
+    TextWrapped(L->K_error);
+    igPopStyleColor(1);
+  }
 }
 
 static void linear_result(App *a) {
@@ -418,12 +553,12 @@ static void linear_result(App *a) {
     heading("A", "The Jacobian: row i, column j is d xi' / d xj, how the rate "
                  "of state i changes with state j. Hover over an entry for "
                  "all its digits and its error estimate.");
-    matrix_table(a, "##A", L->A, L->A_err, L->n, L->n, a->vars);
+    matrix_table("##A", L->A, L->A_err, L->n, L->n, a->vars, a->vars);
     if (L->m > 0) {
       igSpacing();
       heading("B", "Row i, column k is d xi' / d uk, how the rate of state i "
                    "changes with input k.");
-      matrix_table(a, "##B", L->B, L->B_err, L->n, L->m, L->inputs);
+      matrix_table("##B", L->B, L->B_err, L->n, L->m, a->vars, L->inputs);
     }
     igSpacing();
     heading("Eigenvalues",
@@ -443,6 +578,20 @@ static void linear_result(App *a) {
                                  "1e-8 times the largest (times the matrix's "
                                  "larger side).");
       for (i = 0; i < L->n && i < 200; i++) igText("%.6g", L->sv[i]);
+    }
+    if (placing(L)) {
+      igSpacing();
+      heading("Pole placement",
+              "Where the closed loop's eigenvalues should go: one pole per "
+              "state, complex ones in conjugate pairs. Type them here or drag "
+              "the blue circles in the plane; the gain K follows at once "
+              "(Ackermann's formula for one input, the method of Kautsky, "
+              "Nichols and Van Dooren for several). They start at the "
+              "eigenvalues moved into the stable region. In Python: "
+              "K = lin.place_poles([...]); the command: poles P1 P2 ...");
+      pole_editor(a);
+      igSpacing();
+      gain_section(a);
     }
   }
   igEndChild();
@@ -717,6 +866,12 @@ static void plot_result(App *a) {
 }
 
 void ui_analysis(App *a) {
+  /* Simulate the closed loop, asked for in the last frame: it opens another
+     model, which frees the linearisation the window was drawing. */
+  if (closed_loop_asked) {
+    closed_loop_asked = false;
+    app_closed_loop(a, NULL);
+  }
   if (!igBegin(WIN_ANALYSIS, &a->show_analysis, 0)) {
     igEnd();
     return;

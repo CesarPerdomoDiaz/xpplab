@@ -122,6 +122,10 @@ static const char *usage =
     "                           values), the eigenvalues, and whether the\n"
     "                           parameters P1 ... can steer every state\n"
     "                           (export F.csv analysis saves the table)\n"
+    "  poles P1 P2 ...          the feedback gain K that gives A - B K these\n"
+    "                           poles (one per state: -2, -1+2i, -1-2i)\n"
+    "  closedloop [FILE]        write the closed loop u = u0 - K (x - x*) as\n"
+    "                           a model next to this one, open it and run it\n"
     "  open FILE | new | save   models\n"
     "  export FILE.csv [WHAT]   save data as CSV: the last run, or auto (the\n"
     "                           bifurcation diagram), range, analysis or\n"
@@ -1003,6 +1007,12 @@ void app_command(App *a, const char *line_in) {
              !strcmp(cmd, "ensemble") || !strcmp(cmd, "linearize") ||
              !strcmp(cmd, "linearise")) {
     cmd_analysis(a, cmd, rest);
+  } else if (!strcmp(cmd, "poles")) {
+    app_place_poles_text(a, rest);
+  } else if (!strcmp(cmd, "closedloop") || !strcmp(cmd, "closed")) {
+    char *w = next_word(&rest);
+    if (w && !strcmp(w, "loop")) w = next_word(&rest);
+    app_closed_loop(a, w);
   } else if (!strcmp(cmd, "many")) {
     cmd_many(a, rest);
   } else if (!strcmp(cmd, "shoot")) {

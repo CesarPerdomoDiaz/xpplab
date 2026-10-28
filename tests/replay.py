@@ -140,6 +140,18 @@ CASES = [
         "run", "export {out}/run.csv"]),
     ("linearize_map", "del_log.ode", [
         "linearize eps r", "export {out}/map.csv analysis"]),
+    # Pole placement: the gain from the engine, the closed loop written as a
+    # model, opened with the session's values and run; then the closed loop
+    # linearised (its eigenvalues are the poles) and two inputs at once.
+    ("pole_placement", "lecar.ode", [
+        "set iapp=0.08 phi=0.3 total=60", "linearize inputs iapp",
+        "poles -0.5+0.3i -0.5-0.3i", "closedloop {out}/closed.ode",
+        "export {out}/closed.csv", "set V=-0.1", "run",
+        "export {out}/kicked.csv", "linearize",
+        "export {out}/closed_lin.csv analysis"]),
+    ("pole_placement_2", "lecar.ode", [
+        "linearize inputs gca gk", "poles -0.3 -0.7",
+        "closedloop {out}/closed2.ode", "export {out}/run.csv"]),
     # Many runs with their stopping flags, shooting along eigenvectors, and
     # a figure built from them (the script must draw and save it too).
     ("many_shoot", "tests/models/kite.ode", [

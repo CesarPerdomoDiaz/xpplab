@@ -579,6 +579,41 @@ static bool parse_inputs(App *a, const char *typed, char (**out)[APP_NAME_LEN],
   return true;
 }
 
+/* The poles to start pole placement from: the eigenvalues moved into the
+   stable region (reflected into the left half-plane, or for a map
+   inverted into the unit circle), in exact conjugate pairs. */
+static void stable_start(LinearSystem *L) {
+  int i, j;
+  for (i = 0; i < L->n; i++) {
+    double re = L->re[i], im = L->im[i];
+    if (L->discrete) {
+      double r = hypot(re, im), s = r > 1 ? 1 / (r * r) : r == 1 ? 0.5 : 1;
+      re *= s;
+      im *= s;
+    } else if (re > 0) {
+      re = -re;
+    } else if (re == 0) {
+      re = -1;
+    }
+    L->want_re[i] = isfinite(re) ? re : -1;
+    L->want_im[i] = isfinite(im) ? im : 0;
+  }
+  for (i = 0; i < L->n; i++) {
+    int best = -1;
+    if (!(L->want_im[i] > 0)) continue;
+    for (j = 0; j < L->n; j++)
+      if (L->want_im[j] < 0 &&
+          (best < 0 || fabs(L->want_re[j] - L->want_re[i]) + fabs(L->want_im[j] + L->want_im[i]) <
+                           fabs(L->want_re[best] - L->want_re[i]) +
+                               fabs(L->want_im[best] + L->want_im[i])))
+        best = j;
+    if (best >= 0) {
+      L->want_re[best] = L->want_re[i];
+      L->want_im[best] = -L->want_im[i];
+    }
+  }
+}
+
 /* lin = m.linearize(...): at the equilibrium is Python's default; the
    initial values are the script's own, written before the line. */
 static void echo_linearize(App *a) {
@@ -616,7 +651,7 @@ static bool linearize(App *a, bool outer) {
   app_free_trajectory(&an->res);
   an->have = false;
   an->summary[0] = '\0';
-  block = malloc(sizeof(double) * (size_t)(n * (2 * n + 2 * m + 4) + 1));
+  block = malloc(sizeof(double) * (size_t)(n * (2 * n + 3 * m + 8) + m + 1));
   f = malloc(sizeof(double) * (size_t)n);
   names = malloc(sizeof(char *) * (size_t)(m + 1));
   c = malloc(sizeof(double) * (size_t)(n * n * m + 1));
@@ -639,7 +674,16 @@ static bool linearize(App *a, bool outer) {
   L->re = L->B_err + n * m;
   L->im = L->re + n;
   L->sv = L->im + n;
-  for (i = 0; i < m; i++) names[i] = inputs[i];
+  L->u0 = L->sv + n;
+  L->want_re = L->u0 + m;
+  L->want_im = L->want_re + n;
+  L->K = L->want_im + n;
+  L->cl_re = L->K + n * m;
+  L->cl_im = L->cl_re + n;
+  for (i = 0; i < m; i++) {
+    names[i] = inputs[i];
+    x->xppe_get(inputs[i], &L->u0[i]);
+  }
   for (i = 0; i < n; i++) x->xppe_get(a->vars[i], &L->x[i]);
   if (L->at_eq && (rc = x->xppe_equilibrium(L->x, L->re, L->im)) != XPPE_OK) {
     app_log(a, "No equilibrium found from the initial values (%s). Start "
@@ -673,6 +717,8 @@ static bool linearize(App *a, bool outer) {
   an->have = true;
   an->res_tool = AN_LINEARIZE;
   an->refit = true;
+  stable_start(L);
+  if (m > 0) app_place_poles(a);
   if (outer) echo_linearize(a);
   {
     char line[1024];
@@ -752,6 +798,320 @@ bool app_export_linear_csv(App *a, const char *path) {
   app_log(a, "Exported the linearisation (%d states, %d inputs) to %s", L->n,
           L->m, path);
   return true;
+}
+
+/* ---- Pole placement -------------------------------------------------------- */
+
+bool app_place_poles(App *a) {
+  LinearSystem *L = &a->an.lin;
+  xpp_engine_api *x;
+  double *acl;
+  int n = L->n, m = L->m, i, j, k;
+  L->have_K = false;
+  L->K_written = false;
+  L->K_error[0] = '\0';
+  if (!L->A || !L->want_re || m == 0 || !a->eng) return false;
+  if (L->rank != n) {
+    snprintf(L->K_error, sizeof L->K_error, "The inputs cannot steer every "
+             "state, so not every pole can be placed.");
+    return false;
+  }
+  /* -0 as 0, as the Python the echo writes reads it */
+  for (i = 0; i < n; i++) {
+    L->want_re[i] += 0.0;
+    L->want_im[i] += 0.0;
+  }
+  x = &a->eng->api;
+  if (x->xppe_place_poles(n, m, L->A, L->B, L->want_re, L->want_im, L->K) != XPPE_OK) {
+    snprintf(L->K_error, sizeof L->K_error, "%s", x->xppe_error());
+    return false;
+  }
+  acl = malloc(sizeof(double) * (size_t)(n * n));
+  if (!acl) return false;
+  for (i = 0; i < n; i++)
+    for (j = 0; j < n; j++) {
+      double s = L->A[i * n + j];
+      for (k = 0; k < m; k++) s -= L->B[i * m + k] * L->K[k * n + j];
+      acl[i * n + j] = s;
+    }
+  if (x->xppe_eigenvalues(n, acl, L->cl_re, L->cl_im) != XPPE_OK)
+    for (i = 0; i < n; i++) L->cl_re[i] = L->cl_im[i] = NAN;
+  free(acl);
+  L->have_K = true;
+  return true;
+}
+
+/* The poles as a Python list: [-2+1j, -2-1j, -3.5]. */
+static void pole_text(const LinearSystem *L, int i, char *item, size_t len) {
+  char re[64], im[64];
+  echo_num(L->want_re[i], re, sizeof re);
+  if (L->want_im[i] == 0)
+    snprintf(item, len, "%s", re);
+  else
+    snprintf(item, len, "%s%s%sj", re, L->want_im[i] < 0 ? "-" : "+",
+             echo_num(fabs(L->want_im[i]), im, sizeof im));
+}
+
+/* Numbers as a Python list for the echo, item(i) for i < n: in buf when
+   the list fits on a line (buf of 4096 bytes or more); otherwise written
+   as name = [...] over several lines, and buf gets name. */
+static void echo_long_list(App *a, const char *name, int n,
+                           void (*item)(const void *, int, char *, size_t),
+                           const void *data,
+                           char *buf, size_t len) {
+  char text[160], line[200];
+  size_t k = (size_t)snprintf(buf, len, "[");
+  int i;
+  for (i = 0; i < n; i++) {
+    item(data, i, text, sizeof text);
+    if (k + strlen(text) + 4 > 4000 || k + strlen(text) + 4 >= len) break;
+    k += (size_t)snprintf(buf + k, len - k, "%s%s", i ? ", " : "", text);
+  }
+  if (i == n) {
+    snprintf(buf + k, len - k, "]");
+    return;
+  }
+  echo_line(a, "%s = [", name);
+  k = 0;
+  for (i = 0; i < n; i++) {
+    item(data, i, text, sizeof text);
+    if (k && k + strlen(text) + 2 > 72) {
+      echo_line(a, "    %s,", line);
+      k = 0;
+    }
+    k += (size_t)snprintf(line + k, sizeof line - k, "%s%s", k ? ", " : "", text);
+  }
+  if (k) echo_line(a, "    %s,", line);
+  echo_line(a, "]");
+  snprintf(buf, len, "%s", name);
+}
+
+static void pole_item(const void *L, int i, char *out, size_t len) {
+  pole_text((const LinearSystem *)L, i, out, len);
+}
+
+/* The poles as a Python list: [-2+1j, -2-1j, -3.5], or poles = [...]
+   written first when the list is long. */
+static void echo_poles(App *a, const LinearSystem *L, char *buf, size_t len) {
+  echo_long_list(a, "poles", L->n, pole_item, L, buf, len);
+}
+
+static void log_gain(App *a) {
+  const LinearSystem *L = &a->an.lin;
+  char line[2048];
+  int i, j;
+  for (i = 0; i < L->m; i++) {
+    int k = snprintf(line, sizeof line, "  K[%s]:", L->inputs[i]);
+    for (j = 0; j < L->n && k < (int)sizeof line - 40; j++)
+      k += snprintf(line + k, sizeof line - k, " %s %.6g", a->vars[j], L->K[i * L->n + j]);
+    app_log(a, "%s", line);
+  }
+}
+
+/* A pole as written: -2, -2+1i, -2-1.5j, 3i. */
+static bool read_pole(const char *w, double *re, double *im) {
+  char *end;
+  double v = strtod(w, &end);
+  if (end == w) return false;
+  if (*end == 'i' || *end == 'j') {
+    *re = 0;
+    *im = v;
+    return end[1] == '\0';
+  }
+  *re = v;
+  *im = 0;
+  if (*end == '\0') return true;
+  if (*end != '+' && *end != '-') return false;
+  {
+    const char *s = end;
+    double b;
+    if ((s[1] == 'i' || s[1] == 'j') && s[2] == '\0') {
+      *im = *s == '-' ? -1 : 1;
+      return true;
+    }
+    b = strtod(s, &end);
+    if (end == s || (*end != 'i' && *end != 'j') || end[1] != '\0') return false;
+    *im = b;
+  }
+  return true;
+}
+
+bool app_place_poles_text(App *a, const char *text) {
+  LinearSystem *L = &a->an.lin;
+  char copy[2048], *w, poles[4096];
+  double *re, *im;
+  int count = 0;
+  bool outer, ok;
+  if (!L->A || L->m == 0) {
+    app_log(a, "error: linearise with inputs first, e.g. linearize inputs u");
+    return false;
+  }
+  re = malloc(sizeof(double) * 2 * (size_t)L->n);
+  if (!re) return false;
+  im = re + L->n;
+  snprintf(copy, sizeof copy, "%s", text);
+  for (w = strtok(copy, " ,;"); w; w = strtok(NULL, " ,;")) {
+    if (count == L->n) {
+      app_log(a, "error: give %d poles, one per state", L->n);
+      free(re);
+      return false;
+    }
+    if (!read_pole(w, &re[count], &im[count])) {
+      app_log(a, "error: cannot read the pole '%s'; write -2, -2+1i or -2-1i", w);
+      free(re);
+      return false;
+    }
+    count++;
+  }
+  if (count != L->n) {
+    app_log(a, "error: give %d poles, one per state (got %d)", L->n, count);
+    free(re);
+    return false;
+  }
+  memcpy(L->want_re, re, sizeof(double) * (size_t)L->n);
+  memcpy(L->want_im, im, sizeof(double) * (size_t)L->n);
+  free(re);
+  outer = echo_begin(a);
+  ok = app_place_poles(a);
+  if (ok) {
+    app_log(a, "Gain for the poles:");
+    log_gain(a);
+    if (outer) {
+      echo_poles(a, L, poles, sizeof poles);
+      echo_line(a, "K = lin.place_poles(%s)", poles);
+      L->K_written = true;
+    }
+  } else {
+    app_log(a, "error: %s", L->K_error);
+  }
+  echo_end(a);
+  return ok;
+}
+
+/* Numerical options in the order Python's Model.options lists them (and
+   closed_loop() sets them). */
+static const char *const option_list[] = {
+    "TOTAL", "DT", "T0", "TRANS", "BOUND", "TOL", "ATOL", "DTMIN",
+    "DTMAX", "NOUT", "MAXSTOR", "METH", "DELAY", "NEWT_TOL",
+    "NEWT_ITER", "JAC_EPS", "POIMAP", "POIVAR", "POISGN", "POIPLN",
+    "POISTOP", "NMESH"};
+#define NOPTIONS ((int)(sizeof option_list / sizeof *option_list))
+/* the letter XPPAUT reads for each method, by index (Python's METHODS) */
+static const char method_letters[] = "demragvbqsc582y";
+
+static bool is_input(const LinearSystem *L, const char *name) {
+  int i;
+  for (i = 0; i < L->m; i++)
+    if (SDL_strcasecmp(L->inputs[i], name) == 0) return true;
+  return false;
+}
+
+bool app_closed_loop(App *a, const char *path) {
+  LinearSystem *L = &a->an.lin;
+  xpp_engine_api *x;
+  char out[1100], abs_path[2100], quoted[2300], poles[4096], load[2600];
+  char *src = NULL, *text = NULL;
+  const char **inames = NULL, **snames = NULL;
+  char (*pnames)[APP_NAME_LEN] = NULL, (*vnames)[APP_NAME_LEN] = NULL;
+  double *pv = NULL, *vv = NULL, ov[NOPTIONS];
+  bool have_opt[NOPTIONS], outer, ok = false;
+  int np = 0, nv = 0, i, j, len;
+  FILE *f;
+  if (!a->model_ok || !L->A) {
+    app_log(a, "error: linearise with inputs and place the poles first");
+    return false;
+  }
+  if (!L->have_K) {
+    app_log(a, "error: no gain yet: %s", L->K_error[0] ? L->K_error
+                                                       : "place the poles first");
+    return false;
+  }
+  x = &a->eng->api;
+  if (path && *path)
+    snprintf(out, sizeof out, "%s", path);
+  else if (!app_derived_path(a, "closed_loop", out, sizeof out)) {
+    app_log(a, "error: no folder to write the closed loop to");
+    return false;
+  }
+  src = SDL_LoadFile(a->model_path, NULL);
+  inames = malloc(sizeof(char *) * (size_t)(L->m + L->n));
+  pnames = calloc((size_t)a->npars + 1, APP_NAME_LEN);
+  vnames = calloc((size_t)a->nvars + 1, APP_NAME_LEN);
+  pv = malloc(sizeof(double) * (size_t)(a->npars + a->nvars + 1));
+  if (!src || !inames || !pnames || !vnames || !pv) {
+    app_log(a, "error: cannot read %s", a->model_path);
+    goto done;
+  }
+  snames = inames + L->m;
+  vv = pv + a->npars;
+  for (i = 0; i < L->m; i++) inames[i] = L->inputs[i];
+  for (i = 0; i < L->n; i++) snames[i] = a->vars[i];
+  len = x->xppe_closed_loop(src, L->m, inames, L->u0, L->n, snames, L->x, L->K, NULL, 0);
+  if (len < 0 || !(text = malloc((size_t)len + 1)) ||
+      x->xppe_closed_loop(src, L->m, inames, L->u0, L->n, snames, L->x, L->K, text,
+                          len + 1) != len) {
+    app_log(a, "error: %s", len < 0 ? x->xppe_error() : "out of memory");
+    goto done;
+  }
+  f = fopen(out, "wb");
+  if (!f || fwrite(text, 1, (size_t)len, f) != (size_t)len) {
+    if (f) fclose(f);
+    app_log(a, "error: cannot write %s", out);
+    goto done;
+  }
+  fclose(f);
+  /* what the closed loop takes over, read before the model goes */
+  for (i = 0; i < a->npars; i++)
+    if (!is_input(L, a->pars[i]) && x->xppe_get(a->pars[i], &pv[np]) == XPPE_OK)
+      snprintf(pnames[np++], APP_NAME_LEN, "%s", a->pars[i]);
+  for (i = 0; i < a->nvars; i++)
+    if (x->xppe_get(a->vars[i], &vv[nv]) == XPPE_OK)
+      snprintf(vnames[nv++], APP_NAME_LEN, "%s", a->vars[i]);
+  for (i = 0; i < NOPTIONS; i++) have_opt[i] = x->xppe_get(option_list[i], &ov[i]) == XPPE_OK;
+  outer = echo_begin(a);
+  echo_abs_path(out, abs_path, sizeof abs_path);
+  snprintf(load, sizeof load, "m = lin.closed_loop(K, path=%s)",
+           echo_str(abs_path, quoted, sizeof quoted));
+  if (outer && !L->K_written) {
+    echo_poles(a, L, poles, sizeof poles);
+    echo_line(a, "K = lin.place_poles(%s)", poles);
+  }
+  if (!app_open_quiet(a, out, outer ? load : NULL)) {
+    echo_end(a);
+    goto done;
+  }
+  /* as closed_loop() does: parameters, initial values, numerical options */
+  x = &a->eng->api;
+  for (i = 0; i < np; i++)
+    for (j = 0; j < a->npars; j++)
+      if (strcmp(a->pars[j], pnames[i]) == 0) x->xppe_set_number(pnames[i], pv[i]);
+  for (i = 0; i < nv; i++)
+    for (j = 0; j < a->nvars; j++)
+      if (strcmp(a->vars[j], vnames[i]) == 0) x->xppe_set_number(vnames[i], vv[i]);
+  for (i = 0; i < NOPTIONS; i++) {
+    double now;
+    if (!have_opt[i] || x->xppe_get(option_list[i], &now) != XPPE_OK) continue;
+    if (strcmp(option_list[i], "METH") == 0 && ov[i] >= 0 &&
+        ov[i] < (double)(sizeof method_letters - 1)) {
+      char letter[2] = {method_letters[(int)ov[i]], '\0'};
+      x->xppe_set(option_list[i], letter);
+    } else {
+      x->xppe_set_number(option_list[i], ov[i]);
+    }
+  }
+  app_refresh_values(a);
+  app_log(a, "Wrote the closed loop to %s", out);
+  if (app_run(a) && outer) echo_line(a, "sol = m.run()");
+  echo_end(a);
+  ok = true;
+done:
+  SDL_free(src);
+  free(text);
+  free(inames);
+  free(pnames);
+  free(vnames);
+  free(pv);
+  return ok;
 }
 
 static bool analysis_run(App *a, bool outer);

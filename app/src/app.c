@@ -471,7 +471,15 @@ static bool load_engine(App *a) {
   return true;
 }
 
-bool app_open(App *a, const char *path) {
+static bool open_model(App *a, const char *path, bool run, const char *load_line);
+
+bool app_open(App *a, const char *path) { return open_model(a, path, true, NULL); }
+
+bool app_open_quiet(App *a, const char *path, const char *load_line) {
+  return open_model(a, path, false, load_line);
+}
+
+static bool open_model(App *a, const char *path, bool run, const char *load_line) {
   size_t len;
   char *text = read_file(path, &len);
   bool outer;
@@ -495,17 +503,20 @@ bool app_open(App *a, const char *path) {
   free(text);
   app_add_recent(a, a->model_path);
   outer = echo_begin(a);
+  a->echo.load_line = load_line;
   if (!load_engine(a)) {
+    a->echo.load_line = NULL;
     app_status(a, "%s has errors - see the editor", a->model_name);
     a->show_editor = true;
     echo_end(a);
     return false;
   }
+  a->echo.load_line = NULL;
   app_log(a, "Loaded %s: %d variables, %d parameters.", a->model_name,
           a->nvars, a->npars);
   app_status(a, "Loaded %s", a->model_name);
   snprintf(a->focus, sizeof a->focus, "time");
-  if (app_run(a) && outer) echo_line(a, "sol = m.run()");
+  if (run && app_run(a) && outer) echo_line(a, "sol = m.run()");
   echo_end(a);
   return true;
 }
@@ -571,6 +582,22 @@ static bool copies_dir(char *out, size_t len) {
   snprintf(out, len, "%s%sXPP Lab", docs,
            n && (docs[n - 1] == '/' || docs[n - 1] == '\\') ? "" : SEP);
   return SDL_CreateDirectory(out);
+}
+
+bool app_derived_path(const App *a, const char *suffix, char *out, size_t len) {
+  char dir[1024];
+  const char *name = base_of(a->model_path), *dot = strrchr(name, '.');
+  int stem = dot ? (int)(dot - name) : (int)strlen(name);
+  int k = (int)(name - a->model_path);
+  if (app_is_example(a, a->model_path)) {
+    if (!copies_dir(dir, sizeof dir)) return false;
+  } else if (k > 0) {
+    snprintf(dir, sizeof dir, "%.*s", k - 1, a->model_path);
+  } else {
+    snprintf(dir, sizeof dir, ".");
+  }
+  snprintf(out, len, "%s" SEP "%.*s_%s.ode", dir, stem, name, suffix);
+  return true;
 }
 
 bool app_example_copy_path(const App *a, char *out, size_t len) {

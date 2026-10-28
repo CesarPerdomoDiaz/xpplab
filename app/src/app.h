@@ -182,6 +182,15 @@ typedef struct {
   double residual;               /* largest |f| (a map: |F(x) - x|) there */
   double worst;                  /* largest error estimate of A and B */
   char rank_error[200];
+  double *u0;                    /* the inputs' values at the point */
+  /* Pole placement (xppe_place_poles): the poles asked for, in conjugate
+     pairs; the gain K (m x n) that gives A - B K those poles; and the
+     eigenvalues of A - B K, to show where they landed. */
+  double *want_re, *want_im;
+  double *K, *cl_re, *cl_im;
+  bool have_K;
+  bool K_written;                /* the echo has written K = lin.place_poles() */
+  char K_error[300];
 } LinearSystem;
 
 typedef struct {
@@ -328,6 +337,7 @@ typedef struct {
   int sweep_mode;     /* what the variable 'sweep' holds: SWEEP_*, or -1 */
   int sweep_kind;     /* and how: one value (0), a line (1), a grid (2) */
   char sweep_name[APP_NAME_LEN], sweep_name2[APP_NAME_LEN], sweep_var[APP_NAME_LEN];
+  const char *load_line; /* the next model load's line, if not m = xs.load() */
 } Echo;
 
 typedef struct App {
@@ -434,7 +444,13 @@ void app_status(App *a, const char *fmt, ...);
 
 /* Models */
 bool app_open(App *a, const char *path);
+/* app_open() without the first run; load_line, if not NULL, is the echo's
+   line for the load instead of m = xs.load(...). */
+bool app_open_quiet(App *a, const char *path, const char *load_line);
 bool app_open_text(App *a, const char *text, const char *name);
+/* Where a model derived from the current one is written: next to it as
+   STEM_suffix.ode, or in Documents/XPP Lab when it is an example. */
+bool app_derived_path(const App *a, const char *suffix, char *out, size_t len);
 bool app_apply_editor(App *a);  /* save the editor text and reload */
 bool app_save_editor(App *a, const char *path);
 /* Whether path is one of the examples that come with the app, which Save
@@ -545,6 +561,18 @@ void app_analysis_free(App *a);
 bool app_analysis_run(App *a);   /* run a->an.tool on the last run */
 /* The last linearisation as CSV: the columns of Linearization.to_csv(). */
 bool app_export_linear_csv(App *a, const char *path);
+/* Pole placement on the last linearisation: the gain for the poles in
+   a->an.lin.want_re/want_im, and the eigenvalues of A - B K. Quiet (it
+   runs while a pole is dragged): a failure goes to lin.K_error. */
+bool app_place_poles(App *a);
+/* Set the poles asked for from text such as "-2+1i -2-1i -3" and compute
+   the gain (the poles command): K = lin.place_poles([...]). */
+bool app_place_poles_text(App *a, const char *text);
+/* Write the closed loop u = u0 - K (x - x*) as a model (path NULL: next to
+   the model, or among the copies for an example), open it with the current
+   parameters, initial values and numerical options, and run it:
+   m = lin.closed_loop(K, path=...). */
+bool app_closed_loop(App *a, const char *path);
 const char *app_analysis_name(int tool);
 /* Boundary-value problem (XPPAUT's Bndryval), the 3D view's setup from the
    model, and the animator. */

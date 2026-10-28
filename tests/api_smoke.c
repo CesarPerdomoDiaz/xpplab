@@ -79,6 +79,50 @@ static void check_control_known(void) {
   printf("control known answers checked\n");
 }
 
+/* Pole placement with known answers: x'' + 0.5 x' + 4 x = u to the poles
+   -2 +- i needs s^2 + 4s + 5, so K = [5 - 4, 4 - 0.5] = [1, 3.5]; with
+   B = I any poles can be placed; an uncontrollable pair is refused. */
+static void check_place_poles(void) {
+  const double A[4] = {0, 1, -4, -0.5}, B[2] = {0, 1}, I2[4] = {1, 0, 0, 1};
+  const double A2[4] = {-1, 0, 0, -2}, B2[2] = {1, 0};
+  const double re[2] = {-2, -2}, im[2] = {1, -1}, re2[2] = {-3, -3}, im2[2] = {0, 0};
+  const double bad_im[2] = {1, 1};
+  double K[4], acl[4], er[2], ei[2];
+  int i;
+  CHECK(xppe_place_poles(2, 1, A, B, re, im, K) == XPPE_OK, "place: %s", xppe_error());
+  CHECK(fabs(K[0] - 1) < 1e-12 && fabs(K[1] - 3.5) < 1e-12, "K = %g %g", K[0], K[1]);
+  /* a repeated pole with one input (Ackermann) and with two (B = I) */
+  CHECK(xppe_place_poles(2, 1, A, B, re2, im2, K) == XPPE_OK, "repeated: %s", xppe_error());
+  CHECK(fabs(K[0] - 5) < 1e-12 && fabs(K[1] - 5.5) < 1e-12, "K = %g %g", K[0], K[1]);
+  CHECK(xppe_place_poles(2, 2, A, I2, re2, im2, K) == XPPE_OK, "B = I: %s", xppe_error());
+  for (i = 0; i < 4; i++) acl[i] = A[i] - K[i];
+  CHECK(xppe_eigenvalues(2, acl, er, ei) == XPPE_OK && fabs(er[0] + 3) < 1e-9 &&
+            fabs(er[1] + 3) < 1e-9 && fabs(ei[0]) < 1e-9,
+        "B = I closed loop %g%+gi %g%+gi", er[0], ei[0], er[1], ei[1]);
+  CHECK(xppe_place_poles(2, 1, A2, B2, re, im, K) == XPPE_ERR_NUMERIC &&
+            strstr(xppe_error(), "not controllable"),
+        "uncontrollable: %s", xppe_error());
+  CHECK(xppe_place_poles(2, 1, A, B, re, bad_im, K) == XPPE_ERR_RANGE &&
+            strstr(xppe_error(), "conjugate"),
+        "unpaired: %s", xppe_error());
+  {
+    static const char src[] = "par a=1, u=0\nx'=-a*x+u\ndone\n";
+    const char *inputs[1] = {"u"}, *states[1] = {"X"};
+    const double u0[1] = {0.5}, x[1] = {0.25}, k[1] = {2};
+    char out[256];
+    int n = xppe_closed_loop(src, 1, inputs, u0, 1, states, x, k, NULL, 0);
+    CHECK(n > 0 && xppe_closed_loop(src, 1, inputs, u0, 1, states, x, k, out,
+                                    sizeof out) == n &&
+              strcmp(out, "# feedback u = u0 - K (x - x*), from place_poles\n"
+                          "u=0.5-(2)*(X-(0.25))\npar a=1\nx'=-a*x+u\ndone\n") == 0,
+          "closed loop text:\n%s", out);
+    CHECK(xppe_closed_loop(src, 1, states, u0, 1, states, x, k, out, sizeof out) ==
+              XPPE_ERR_NAME,
+          "an input not on a parameter line");
+  }
+  printf("pole placement checked\n");
+}
+
 int main(int argc, char **argv) {
   int i, n, rows, rc;
   double v, *col;
@@ -226,6 +270,7 @@ int main(int argc, char **argv) {
     if (rc == XPPE_OK) check_linearize(n, x, re, im);
   }
   check_control_known();
+  check_place_poles();
 
   CHECK(xppe_load(argv[1], 0, NULL) == XPPE_ERR_STATE, "second load refused");
   free(col);

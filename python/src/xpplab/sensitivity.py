@@ -441,7 +441,7 @@ def run(model, params=None, **values):
         wanted = [known[_key(p)] for p in wanted]
     text, names = augmented_text(model.path.read_text(errors="replace"),
                                  model.variables, model._parameter_names, wanted)
-    aug = Model.from_text(text, name=model.path.name, options=model._load_options)
+    aug = Model.from_text(text, name=model.path.name, options=model._options)
     try:
         for p in model._parameter_names:
             aug.set(**{p: model.get(p)})

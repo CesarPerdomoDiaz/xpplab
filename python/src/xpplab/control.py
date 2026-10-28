@@ -12,7 +12,7 @@ import numpy as np
 
 from ._engine import EngineError
 
-__all__ = ["Linearization", "RootLocus", "linearize"]
+__all__ = ["LQR", "Linearization", "RootLocus", "linearize"]
 
 
 @dataclass
@@ -297,6 +297,38 @@ class Linearization:
         poles = (np.array(re[:steps * n]) + 1j * np.array(im[:steps * n])).reshape(steps, n)
         return RootLocus("gain", np.array(g[:steps]), poles, self.discrete)
 
+    def lqr(self, Q=None, R=None) -> "LQR":
+        """The optimal state feedback: the gain K that minimises the cost
+        J = integral of dx^T Q dx + du^T R du (for a map, the sum over the
+        steps), with du = -K dx.
+
+        ``Q`` weighs the states' distances from the point and ``R`` the
+        inputs: a number (times the identity), one number per state or
+        input (a diagonal matrix), or a full symmetric matrix. Both default
+        to the identity. Returns an :class:`LQR`: the gain ``K`` (inputs x
+        states), the solution ``P`` of the Riccati equation (the cost from
+        dx is dx^T P dx) and the closed loop's ``poles``. Raises
+        ``ValueError`` when R is not positive definite, or when no gain
+        stabilises the loop (an unstable mode the inputs cannot move, or
+        one Q does not see). The engine solves the Riccati equation
+        (``xppe_lqr``: the matrix sign function for a continuous model,
+        the doubling algorithm for a map), so the desktop app's LQR gives
+        the same numbers."""
+        n, k = self.B.shape
+        if k == 0:
+            raise ValueError("LQR needs inputs (linearize(inputs=[...]))")
+        Q = _weights(Q, n, "Q")
+        R = _weights(R, k, "R")
+        K, P = _doubles(k * n), _doubles(n * n)
+        try:
+            self._model._engine.call("xppe_lqr", n, k, _array(self.A), _array(self.B),
+                                     _array(Q), _array(R), int(self.discrete), K, P)
+        except EngineError as e:
+            raise ValueError(e.args[0]) from None
+        K = np.array(K[:k * n]).reshape(k, n)
+        P = np.array(P[:n * n]).reshape(n, n)
+        return LQR(K, P, np.linalg.eigvals(self.A - self.B @ K), Q, R)
+
     def __repr__(self) -> str:
         return (f"Linearization(n={self.A.shape[0]}, inputs={self.inputs}, "
                 f"rank={self.rank}, controllable={self.controllable})")
@@ -397,6 +429,38 @@ class RootLocus:
         return (f"RootLocus({self.name} from {self.values[0]:.6g} to "
                 f"{self.values[-1]:.6g}, {len(self.values)} steps, "
                 f"{self.poles.shape[1]} branches)")
+
+
+@dataclass
+class LQR:
+    """The result of :meth:`Linearization.lqr`."""
+
+    K: np.ndarray      # the gain: du = -K dx
+    P: np.ndarray      # the Riccati solution: the cost from dx is dx^T P dx
+    poles: np.ndarray  # the eigenvalues of A - B K
+    Q: np.ndarray
+    R: np.ndarray
+
+    def __repr__(self) -> str:
+        return (f"LQR(K={np.array2string(self.K, precision=4)}, poles="
+                f"{np.array2string(self.poles, precision=4)})")
+
+
+def _weights(W, n: int, name: str) -> np.ndarray:
+    """Q or R as an n x n matrix: the identity, a number times it, a
+    diagonal from n numbers, or the matrix itself."""
+    if W is None:
+        return np.eye(n)
+    W = np.asarray(W, dtype=float)
+    if W.ndim == 0:
+        return float(W) * np.eye(n)
+    if W.ndim == 1:
+        if W.size != n:
+            raise ValueError(f"{name} needs {n} weights, got {W.size}")
+        return np.diag(W)
+    if W.shape != (n, n):
+        raise ValueError(f"{name} must be {n} x {n}, got {W.shape[0]} x {W.shape[1]}")
+    return W
 
 
 def root_locus(model, parameter: str, values, steps: int = 101,

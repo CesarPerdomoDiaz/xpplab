@@ -34,6 +34,9 @@ you do here, and works one example, the van der Pol oscillator, in both.
 | `ss(A, B, C, D)` | `lin.A`, `lin.B` | NumPy arrays. There is no C or D and no state-space object; pass the arrays to a control library if you need one. |
 | `ctrb(A, B)` | `lin.controllability` | The matrix [B, AB, ...]. |
 | `rank(ctrb(A, B))` | `lin.rank`, `lin.controllable` | The rank is computed from singular values. |
+| `K = place(A, B, p)` | `K = lin.place_poles(p)` | `lin.closed_loop(K)` writes the nonlinear closed loop as a model and loads it. |
+| `lqr(A, B, Q, R)`, `dlqr` | `lin.lqr(Q, R)` | `.K`, `.P` (the Riccati solution) and `.poles`; for a map (`meth=discrete`) it is `dlqr`. |
+| `rlocus` | `lin.root_locus(K, gain=(0, 2))` | Over a gain; `m.root_locus("mu", (0, 1))` over a parameter. `.crossings()` lists where a branch changes stability, `.plot()` draws it. |
 | Add-on tools for bifurcations (MatCont, COCO) | `m.auto.equilibria("mu")` and `m.auto.continue_from(...)` | AUTO-07p, as in XPPAUT. Returns a `Diagram` with the special points: `d.special("HB")`. |
 
 If you need something that is not in the table (event functions, DAE

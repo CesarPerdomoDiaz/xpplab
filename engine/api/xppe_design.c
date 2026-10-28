@@ -1037,3 +1037,396 @@ int xppe_gain_locus(int n, int m, const double *A, const double *B, const double
   free(BK);
   return rc;
 }
+
+/* ---- Optimal control (LQR) ------------------------------------------------- */
+
+/* C = A B for row-major A (r x k) and B (k x c); C may not be A or B. */
+static void mul(int r, int k, int c, const double *A, const double *B, double *C) {
+  int i, j, l;
+  for (i = 0; i < r; i++)
+    for (j = 0; j < c; j++) {
+      double s = 0;
+      for (l = 0; l < k; l++) s += A[i * k + l] * B[l * c + j];
+      C[i * c + j] = s;
+    }
+}
+
+/* The inverse of the n x n row-major matrix M, in Mi (M is destroyed). */
+static int inverse_real(int n, double *M, double *Mi) {
+  int i;
+  for (i = 0; i < n * n; i++) Mi[i] = 0;
+  for (i = 0; i < n; i++) Mi[i * n + i] = 1;
+  return solve_real(n, M, n, Mi);
+}
+
+static double norm1_real(int r, int c, const double *M) {
+  double best = 0;
+  int i, j;
+  for (j = 0; j < c; j++) {
+    double s = 0;
+    for (i = 0; i < r; i++) s += fabs(M[i * c + j]);
+    if (s > best) best = s;
+  }
+  return best;
+}
+
+/* log |det M| of the n x n matrix M (destroyed), or NAN when singular. */
+static double log_abs_det(int n, double *M) {
+  double s = 0;
+  int i, j, k, p;
+  for (k = 0; k < n; k++) {
+    double big = 0;
+    p = k;
+    for (i = k; i < n; i++)
+      if (fabs(M[i * n + k]) > big) {
+        big = fabs(M[i * n + k]);
+        p = i;
+      }
+    if (!(big > 0)) return NAN;
+    if (p != k)
+      for (j = 0; j < n; j++) {
+        double t = M[k * n + j];
+        M[k * n + j] = M[p * n + j];
+        M[p * n + j] = t;
+      }
+    s += log(fabs(M[k * n + k]));
+    for (i = k + 1; i < n; i++) {
+      double f = M[i * n + k] / M[k * n + k];
+      for (j = k; j < n; j++) M[i * n + j] -= f * M[k * n + j];
+    }
+  }
+  return s;
+}
+
+/* The stabilising solution P of A^T P + P A - P G P + Q = 0 (G = B R^-1 B^T)
+   from the matrix sign function of the Hamiltonian H = [A, -G; -Q, -A^T]
+   (Newton's iteration with determinant scaling): [I; P] spans the null
+   space of sign(H) + I, so [W12; W22 + I] P = -[W11 + I; W21], solved by
+   least squares. False when the iteration does not converge (H has
+   eigenvalues on the imaginary axis: no stabilising solution). */
+static int care(int n, const double *A, const double *G, const double *Q, double *P) {
+  const int N = 2 * n;
+  const size_t NN = (size_t)N * N;
+  double *Z = malloc(sizeof(double) * (4 * NN + 2 * (size_t)N * n + 2 * (size_t)n * n));
+  double *Zi, *T, *M, *rhs, *MtM, *Mtr;
+  int it, i, j, l, ok = 0;
+  if (!Z) return 0;
+  Zi = Z + NN;
+  T = Zi + NN;
+  M = T + 2 * NN;
+  rhs = M + (size_t)N * n;
+  MtM = rhs + (size_t)N * n;
+  Mtr = MtM + (size_t)n * n;
+  for (i = 0; i < n; i++)
+    for (j = 0; j < n; j++) {
+      Z[i * N + j] = A[i * n + j];
+      Z[i * N + n + j] = -G[i * n + j];
+      Z[(n + i) * N + j] = -Q[i * n + j];
+      Z[(n + i) * N + n + j] = -A[j * n + i];
+    }
+  for (it = 0; it < 100; it++) {
+    double c, ld, change = 0, size = 0;
+    memcpy(T, Z, sizeof(double) * NN);
+    ld = log_abs_det(N, T);
+    memcpy(T, Z, sizeof(double) * NN);
+    if (!isfinite(ld) || !inverse_real(N, T, Zi)) goto done;
+    c = it < 20 ? exp(-ld / N) : 1; /* scaling speeds the start up only */
+    for (i = 0; i < (int)NN; i++) {
+      double next = 0.5 * (c * Z[i] + Zi[i] / c);
+      change += fabs(next - Z[i]);
+      size += fabs(next);
+      Z[i] = next;
+    }
+    if (!isfinite(size)) goto done;
+    if (change <= 1e-12 * size) {
+      ok = 1;
+      break;
+    }
+  }
+  if (!ok) goto done;
+  for (i = 0; i < N; i++)
+    for (j = 0; j < n; j++) {
+      M[i * n + j] = Z[i * N + n + j] + (i - n == j ? 1 : 0);
+      rhs[i * n + j] = -(Z[i * N + j] + (i == j ? 1 : 0));
+    }
+  for (i = 0; i < n; i++)
+    for (j = 0; j < n; j++) {
+      double s = 0, t = 0;
+      for (l = 0; l < N; l++) {
+        s += M[l * n + i] * M[l * n + j];
+        t += M[l * n + i] * rhs[l * n + j];
+      }
+      MtM[i * n + j] = s;
+      Mtr[i * n + j] = t;
+    }
+  ok = solve_real(n, MtM, n, Mtr);
+  if (ok)
+    for (i = 0; i < n; i++)
+      for (j = 0; j < n; j++) P[i * n + j] = 0.5 * (Mtr[i * n + j] + Mtr[j * n + i]);
+done:
+  free(Z);
+  return ok;
+}
+
+/* Refine a stabilising P of the continuous Riccati equation by Newton's
+   method (Kleinman's iteration): with Acl = A - G P, the next P solves the
+   Lyapunov equation Acl^T P' + P' Acl = -(Q + P G P), here as one linear
+   system in the n^2 entries. Each step keeps the loop stable and the
+   steps converge quadratically, so a few undo what the least squares of
+   the sign method lost in a badly conditioned problem. Only for n <= 24,
+   where the system stays small. */
+static void kleinman(int n, const double *A, const double *G, const double *Q,
+                     double *P) {
+  const int N = n * n;
+  double *M, *rhs, *acl, *T;
+  int it, i, j, l;
+  if (n > 24) return;
+  M = malloc(sizeof(double) * ((size_t)N * N + (size_t)N + 2 * (size_t)n * n));
+  if (!M) return;
+  rhs = M + (size_t)N * N;
+  acl = rhs + N;
+  T = acl + (size_t)n * n;
+  for (it = 0; it < 20; it++) {
+    double change = 0, size = 0;
+    mul(n, n, n, G, P, T);
+    for (i = 0; i < n * n; i++) acl[i] = A[i] - T[i];
+    /* -(Q + P G P) */
+    for (i = 0; i < n; i++)
+      for (j = 0; j < n; j++) {
+        double s = 0;
+        for (l = 0; l < n; l++) s += P[i * n + l] * T[l * n + j];
+        rhs[i * n + j] = -(Q[i * n + j] + s);
+      }
+    memset(M, 0, sizeof(double) * (size_t)N * N);
+    for (i = 0; i < n; i++)
+      for (j = 0; j < n; j++) {
+        double *row = M + (size_t)(i * n + j) * N;
+        for (l = 0; l < n; l++) {
+          row[l * n + j] += acl[l * n + i]; /* (Acl^T P')_ij */
+          row[i * n + l] += acl[l * n + j]; /* (P' Acl)_ij */
+        }
+      }
+    if (!solve_real(N, M, 1, rhs)) break;
+    for (i = 0; i < n; i++)
+      for (j = 0; j < n; j++) {
+        double v = 0.5 * (rhs[i * n + j] + rhs[j * n + i]);
+        if (!isfinite(v)) goto done;
+        change += fabs(v - P[i * n + j]);
+        size += fabs(v);
+        T[i * n + j] = v;
+      }
+    memcpy(P, T, sizeof(double) * (size_t)n * n);
+    if (change <= 1e-14 * size) break;
+  }
+done:
+  free(M);
+}
+
+/* The stabilising solution P of the discrete Riccati equation
+   P = A^T P A - A^T P B (R + B^T P B)^-1 B^T P A + Q, by the doubling
+   algorithm (Chu, Fan and Lin): with A0 = A, G0 = B R^-1 B^T, H0 = Q and
+   W = (I + G H)^-1,
+     A' = A W A,  G' = G + A W G A^T,  H' = H + A^T H W A,
+   H converges to P, quadratically. */
+static int dare(int n, const double *A, const double *G, const double *Q, double *P) {
+  const size_t nn = (size_t)n * n;
+  double *Ak = malloc(sizeof(double) * 9 * nn);
+  double *Gk, *Hk, *W, *T1, *T2, *T3, *An, *Gn;
+  int it, i, ok = 0;
+  if (!Ak) return 0;
+  Gk = Ak + nn;
+  Hk = Gk + nn;
+  W = Hk + nn;
+  T1 = W + nn;
+  T2 = T1 + nn;
+  T3 = T2 + nn;
+  An = T3 + nn;
+  Gn = An + nn;
+  memcpy(Ak, A, sizeof(double) * nn);
+  memcpy(Gk, G, sizeof(double) * nn);
+  memcpy(Hk, Q, sizeof(double) * nn);
+  for (it = 0; it < 100; it++) {
+    double change = 0, size = 0;
+    int j;
+    /* W = (I + G H)^-1 */
+    mul(n, n, n, Gk, Hk, T1);
+    for (i = 0; i < n; i++) T1[i * n + i] += 1;
+    if (!inverse_real(n, T1, W)) goto done;
+    /* A' = A W A */
+    mul(n, n, n, Ak, W, T1);
+    mul(n, n, n, T1, Ak, An);
+    /* G' = G + (A W) G A^T */
+    mul(n, n, n, T1, Gk, T2);
+    for (i = 0; i < n; i++)
+      for (j = 0; j < n; j++) {
+        double s = 0;
+        int l;
+        for (l = 0; l < n; l++) s += T2[i * n + l] * Ak[j * n + l];
+        Gn[i * n + j] = Gk[i * n + j] + s;
+      }
+    /* H' = H + A^T H W A */
+    mul(n, n, n, Hk, W, T2);
+    mul(n, n, n, T2, Ak, T3);
+    for (i = 0; i < n; i++)
+      for (j = 0; j < n; j++) {
+        double s = 0, h;
+        int l;
+        for (l = 0; l < n; l++) s += Ak[l * n + i] * T3[l * n + j];
+        h = Hk[i * n + j] + s;
+        change += fabs(h - Hk[i * n + j]);
+        size += fabs(h);
+        T1[i * n + j] = h;
+      }
+    memcpy(Hk, T1, sizeof(double) * nn);
+    memcpy(Ak, An, sizeof(double) * nn);
+    memcpy(Gk, Gn, sizeof(double) * nn);
+    if (!isfinite(size)) goto done;
+    if (change <= 1e-13 * size) {
+      ok = 1;
+      break;
+    }
+  }
+  if (ok)
+    for (i = 0; i < n; i++) {
+      int j;
+      for (j = 0; j < n; j++) P[i * n + j] = 0.5 * (Hk[i * n + j] + Hk[j * n + i]);
+    }
+done:
+  free(Ak);
+  return ok;
+}
+
+int xppe_lqr(int n, int m, const double *A, const double *B, const double *Q,
+             const double *R, int discrete, double *K, double *P) {
+  const size_t nn = (size_t)n * n, mm = (size_t)m * m, nm = (size_t)n * m;
+  double *Rc, *Ri, *Bt, *G, *T, *Pm, *acl, *re, *im;
+  double scale = 0;
+  int i, j, rc = XPPE_OK;
+  if (n < 1 || m < 1 || !A || !B || !Q || !R || !K)
+    return fail(XPPE_ERR_RANGE, "give A (n x n), B (n x m), Q (n x n), R (m x m) "
+                                "and room for K (m x n)");
+  for (i = 0; i < n; i++)
+    for (j = 0; j < n; j++)
+      if (!isfinite(Q[i * n + j]) ||
+          fabs(Q[i * n + j] - Q[j * n + i]) > 1e-12 * (fabs(Q[i * n + j]) + fabs(Q[j * n + i])))
+        return fail(XPPE_ERR_RANGE, "Q must be symmetric");
+  for (i = 0; i < m; i++)
+    for (j = 0; j < m; j++)
+      if (!isfinite(R[i * m + j]) ||
+          fabs(R[i * m + j] - R[j * m + i]) > 1e-12 * (fabs(R[i * m + j]) + fabs(R[j * m + i])))
+        return fail(XPPE_ERR_RANGE, "R must be symmetric");
+  Rc = malloc(sizeof(double) * (2 * mm + 2 * nm + 4 * nn + 2 * (size_t)n + nm));
+  if (!Rc) return fail(XPPE_ERR_RANGE, "out of memory");
+  Ri = Rc + mm;
+  Bt = Ri + mm;   /* R^-1 B^T, m x n */
+  G = Bt + nm;    /* B R^-1 B^T */
+  T = G + nn;
+  Pm = T + nn + nm; /* T holds up to n x n + n x m */
+  acl = Pm + nn;
+  re = acl + nn;
+  im = re + n;
+  /* R must be positive definite: its Cholesky factor exists */
+  memcpy(Rc, R, sizeof(double) * mm);
+  for (j = 0; j < m && rc == XPPE_OK; j++) {
+    double d = Rc[j * m + j];
+    int k;
+    for (k = 0; k < j; k++) d -= Rc[j * m + k] * Rc[j * m + k];
+    if (!(d > 0)) {
+      rc = fail(XPPE_ERR_RANGE, "R must be positive definite (every input "
+                                "must cost something)");
+      break;
+    }
+    Rc[j * m + j] = sqrt(d);
+    for (i = j + 1; i < m; i++) {
+      double s = Rc[i * m + j];
+      for (k = 0; k < j; k++) s -= Rc[i * m + k] * Rc[j * m + k];
+      Rc[i * m + j] = s / Rc[j * m + j];
+    }
+  }
+  if (rc != XPPE_OK) goto done;
+  memcpy(Rc, R, sizeof(double) * mm);
+  if (!inverse_real(m, Rc, Ri)) {
+    rc = fail(XPPE_ERR_NUMERIC, "R cannot be inverted");
+    goto done;
+  }
+  /* R^-1 B^T and G = B R^-1 B^T */
+  for (i = 0; i < m; i++)
+    for (j = 0; j < n; j++) {
+      double s = 0;
+      int k;
+      for (k = 0; k < m; k++) s += Ri[i * m + k] * B[j * m + k];
+      Bt[i * n + j] = s;
+    }
+  mul(n, m, n, B, Bt, G);
+  for (i = 0; i < n; i++)
+    for (j = 0; j < n; j++) G[i * n + j] = 0.5 * (G[i * n + j] + G[j * n + i]);
+  if (!(discrete ? dare(n, A, G, Q, Pm) : care(n, A, G, Q, Pm))) {
+    rc = fail(XPPE_ERR_NUMERIC, "the Riccati equation has no stabilising solution: "
+                                "the inputs must be able to stabilise every "
+                                "unstable mode, and Q must see it");
+    goto done;
+  }
+  if (!discrete) {
+    /* Newton's steps from the sign method's P, if it stabilises A - G P */
+    int stable = 1;
+    mul(n, n, n, G, Pm, acl);
+    for (i = 0; i < n * n; i++) acl[i] = A[i] - acl[i];
+    if (xppe_eigenvalues(n, acl, re, im) == XPPE_OK) {
+      for (i = 0; i < n; i++)
+        if (!(re[i] < 0)) stable = 0;
+      if (stable) kleinman(n, A, G, Q, Pm);
+    }
+  }
+  if (discrete) {
+    /* K = (R + B^T P B)^-1 B^T P A */
+    double *BtP = T, *S = T + nm; /* m x n, then m x m */
+    int k;
+    for (i = 0; i < m; i++)
+      for (j = 0; j < n; j++) {
+        double s = 0;
+        for (k = 0; k < n; k++) s += B[k * m + i] * Pm[k * n + j];
+        BtP[i * n + j] = s;
+      }
+    for (i = 0; i < m; i++)
+      for (j = 0; j < m; j++) {
+        double s = R[i * m + j];
+        for (k = 0; k < n; k++) s += BtP[i * n + k] * B[k * m + j];
+        Rc[i * m + j] = s;
+      }
+    mul(m, n, n, BtP, A, K);
+    (void)S;
+    if (!solve_real(m, Rc, n, K)) {
+      rc = fail(XPPE_ERR_NUMERIC, "R + B^T P B cannot be inverted");
+      goto done;
+    }
+  } else {
+    /* K = R^-1 B^T P */
+    mul(m, n, n, Bt, Pm, K);
+  }
+  /* the solution must stabilise the loop */
+  for (i = 0; i < n; i++)
+    for (j = 0; j < n; j++) {
+      double s = A[i * n + j];
+      int k;
+      for (k = 0; k < m; k++) s -= B[i * m + k] * K[k * n + j];
+      acl[i * n + j] = s;
+      if (fabs(s) > scale) scale = fabs(s);
+    }
+  if (xppe_eigenvalues(n, acl, re, im) != XPPE_OK) {
+    rc = fail(XPPE_ERR_NUMERIC, "the eigenvalues of the closed loop A - B K did "
+                                "not converge");
+    goto done;
+  }
+  /* written so that NaN counts as unstable */
+  for (i = 0; i < n; i++)
+    if (!(discrete ? hypot(re[i], im[i]) < 1 : re[i] < 0)) {
+      rc = fail(XPPE_ERR_NUMERIC, "the Riccati equation has no stabilising solution: "
+                                  "the inputs must be able to stabilise every "
+                                  "unstable mode, and Q must see it");
+      goto done;
+    }
+  if (P) memcpy(P, Pm, sizeof(double) * nn);
+done:
+  free(Rc);
+  return rc;
+}

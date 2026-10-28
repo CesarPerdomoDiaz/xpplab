@@ -124,6 +124,9 @@ static const char *usage =
     "                           (export F.csv analysis saves the table)\n"
     "  poles P1 P2 ...          the feedback gain K that gives A - B K these\n"
     "                           poles (one per state: -2, -1+2i, -1-2i)\n"
+    "  lqr [Q q1 ...] [R r1 ...] the optimal gain K for state weights Q and\n"
+    "                           input weights R (diagonal; one number for\n"
+    "                           all alike), as poles gives one\n"
     "  closedloop [FILE]        write the closed loop u = u0 - K (x - x*) as\n"
     "                           a model next to this one, open it and run it\n"
     "  locus gain LO HI [N]     root locus: the poles of A - g B K for N gains\n"
@@ -1090,6 +1093,8 @@ void app_command(App *a, const char *line_in) {
     app_place_poles_text(a, rest);
   } else if (!strcmp(cmd, "locus")) {
     cmd_locus(a, rest);
+  } else if (!strcmp(cmd, "lqr")) {
+    app_lqr_text(a, rest);
   } else if (!strcmp(cmd, "closedloop") || !strcmp(cmd, "closed")) {
     char *w = next_word(&rest);
     if (w && !strcmp(w, "loop")) w = next_word(&rest);

@@ -145,6 +145,27 @@ static void check_gain_locus(void) {
   printf("gain locus checked\n");
 }
 
+/* LQR with known answers: the double integrator with Q = I, R = 1 has
+   K = [1, sqrt 3]; the map x+ = 2x + u with Q = R = 1 has P = 2 + sqrt 5 and
+   K the golden ratio. */
+static void check_lqr(void) {
+  const double A[4] = {0, 1, 0, 0}, B[2] = {0, 1}, I2[4] = {1, 0, 0, 1}, one = 1;
+  const double a = 2, b = 1, zero = 0;
+  double K[2], P[4];
+  CHECK(xppe_lqr(2, 1, A, B, I2, &one, 0, K, P) == XPPE_OK, "lqr: %s", xppe_error());
+  CHECK(fabs(K[0] - 1) < 1e-10 && fabs(K[1] - sqrt(3.0)) < 1e-10, "K = %g %g", K[0],
+        K[1]);
+  CHECK(fabs(P[0] - sqrt(3.0)) < 1e-10 && fabs(P[1] - 1) < 1e-10 && P[1] == P[2],
+        "P = %g %g; %g %g", P[0], P[1], P[2], P[3]);
+  CHECK(xppe_lqr(1, 1, &a, &b, &one, &one, 1, K, P) == XPPE_OK, "dlqr: %s",
+        xppe_error());
+  CHECK(fabs(P[0] - (2 + sqrt(5.0))) < 1e-12 && fabs(K[0] - (1 + sqrt(5.0)) / 2) < 1e-12,
+        "map P = %.17g K = %.17g", P[0], K[0]);
+  CHECK(xppe_lqr(1, 1, &a, &b, &one, &zero, 0, K, NULL) == XPPE_ERR_RANGE,
+        "R = 0 refused");
+  printf("lqr checked\n");
+}
+
 int main(int argc, char **argv) {
   int i, n, rows, rc;
   double v, *col;
@@ -294,6 +315,7 @@ int main(int argc, char **argv) {
   check_control_known();
   check_place_poles();
   check_gain_locus();
+  check_lqr();
 
   CHECK(xppe_load(argv[1], 0, NULL) == XPPE_ERR_STATE, "second load refused");
   free(col);

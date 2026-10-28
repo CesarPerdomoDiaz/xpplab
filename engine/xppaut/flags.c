@@ -106,6 +106,7 @@ typedef struct {
 /* #define Set_ivar(a,b) variables[(a)]=(b) */
 FLAG flag[MAXFLAG];
 int NFlags=0;
+static int xpplab_halted=0; /* XPP Lab: see xpplab_halt_flag() */
 
 double STOL=1.e-10;
 extern double variables[];
@@ -386,7 +387,10 @@ int one_flag_step(yold,ynew,istart,told,tnew,neq,s )
 	    else{
 
 	      if((flag[i].type[j]==2)&&(flag[i].vrhs[j]>0))send_output(ynew,*tnew);
-	      if((flag[i].type[j]==3)&&(flag[i].vrhs[j]>0))send_halt(ynew,*tnew);
+	      if((flag[i].type[j]==3)&&(flag[i].vrhs[j]>0)){
+		if(xpplab_halted==0)xpplab_halted=i+1; /* XPP Lab: which flag halts */
+		send_halt(ynew,*tnew);
+	      }
 	    }
 	  }
 	
@@ -810,3 +814,29 @@ int one_flag_step_backeul(y,t,dt,neq,yg,yp,yp2,ytemp,errvec,jac,istart)
 
 
 
+
+/* XPP Lab: the global flags for the engine API. one_flag_step() notes in
+   xpplab_halted the number (from 1, in the model's order) of the first
+   flag whose halting event (arret) stopped the integration;
+   xpplab_clear_halt_flag() forgets it before a run. */
+int xpplab_flag_count(void)
+{
+  return NFlags;
+}
+
+const char *xpplab_flag_condition(int i, int *sign)
+{
+  if(i<0||i>=NFlags)return NULL;
+  if(sign)*sign=flag[i].sign;
+  return flag[i].cond;
+}
+
+void xpplab_clear_halt_flag(void)
+{
+  xpplab_halted=0;
+}
+
+int xpplab_halt_flag(void)
+{
+  return xpplab_halted;
+}

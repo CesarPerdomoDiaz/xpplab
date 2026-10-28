@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from . import _engine as E
+from .model import Values
 
 __all__ = ["Auto", "Diagram", "Point", "SETTINGS", "TYPE_NAMES"]
 
@@ -330,6 +331,47 @@ class Auto:
         self._eng.call("xppe_auto_orbit", label)
         return self._model._collect()
 
+    def along(self, column: str, points=None):
+        """An output column, a variable or an auxiliary quantity such as a
+        tension, along the diagram: at each steady state its value there,
+        and over each periodic orbit its minimum and maximum.
+
+        AUTO keeps a whole orbit only at labelled points (every NPR steps,
+        and the special points), so orbits elsewhere give NaN: lower NPR
+        before the continuation to sample more of them. Each orbit is
+        imported as with :meth:`orbit` (it becomes the last run).
+        ``points`` is a :class:`Diagram` or list of points (default: the
+        whole diagram); two-parameter points give NaN. Returns a
+        :class:`~xpplab.Table` with the continuation parameter, ``min``,
+        ``max``, ``stable``, ``periodic``, ``branch`` and ``label``, one
+        row per point. The parameters are restored afterwards."""
+        from .analysis import Table
+        m = self._model
+        pts = list(self.diagram if points is None else points)
+        model_pars = {p.upper(): p for p in m._parameter_names}
+        saved = {p: float(m.get(p)) for p in m._parameter_names}
+        lo, hi = np.full(len(pts), np.nan), np.full(len(pts), np.nan)
+        try:
+            for i, p in enumerate(pts):
+                if p.two_parameter or (p.periodic and not p.label):
+                    continue
+                m.set(**{model_pars[k.upper()]: v for k, v in p.parameters.items()
+                         if k and k.upper() in model_pars})
+                if p.periodic:
+                    sol = self.orbit(p)
+                    lo[i], hi[i] = float(np.min(sol[column])), float(np.max(sol[column]))
+                else:
+                    lo[i] = hi[i] = m.evaluate(p.u0)[column]
+        finally:
+            m.set(**saved)
+        name = pts[0].parameter if pts else "parameter"
+        data = {name: np.array([p.value for p in pts]), "min": lo, "max": hi,
+                "stable": np.array([p.stable for p in pts]),
+                "periodic": np.array([p.periodic for p in pts]),
+                "branch": np.array([p.branch for p in pts]),
+                "label": np.array([p.label for p in pts])}
+        return Table(data, title=f"{column} along the diagram")
+
     def _run(self, key: str, settings: dict, form: str | None = None) -> Diagram:
         if settings:
             self.set(**settings)
@@ -479,10 +521,10 @@ class Auto:
                     two_parameter=bool(info.two_parameter),
                     parameter=slots[info.par1_slot], value=info.par1,
                     parameter2=p2, value2=info.par2 if p2 else None,
-                    norm=info.norm, period=info.period, parameters=pars,
-                    u0=dict(zip(var, data(i, E.AUTO_U0, nvar))),
-                    umax=dict(zip(var, data(i, E.AUTO_UMAX, nvar))),
-                    umin=dict(zip(var, data(i, E.AUTO_UMIN, nvar))),
-                    umean=dict(zip(var, data(i, E.AUTO_UMEAN, nvar))),
+                    norm=info.norm, period=info.period, parameters=Values(pars),
+                    u0=Values(zip(var, data(i, E.AUTO_U0, nvar))),
+                    umax=Values(zip(var, data(i, E.AUTO_UMAX, nvar))),
+                    umin=Values(zip(var, data(i, E.AUTO_UMIN, nvar))),
+                    umean=Values(zip(var, data(i, E.AUTO_UMEAN, nvar))),
                     multipliers=ev))
         return Diagram(pts, self._model.variables)

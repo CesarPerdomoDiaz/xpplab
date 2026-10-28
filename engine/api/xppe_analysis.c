@@ -15,9 +15,11 @@
 
 #define MAX_NULL 10000 /* as in nullcline.c */
 
-extern int NODE, NMarkov, FIX_VAR;
+extern int NODE, NMarkov, FIX_VAR, NEQ, N_plist, *plotlist;
 extern double last_ic[MAXODE];
 extern int (*rhs)();
+void extra(double *y, double t, int nod, int neq);
+void xpplab_clear_halt_flag(void);
 extern int null_ix, null_iy, WHICH_CRV;
 extern float *NTop, *NBot;
 
@@ -35,6 +37,46 @@ int xppe_rhs(double t, const double *x, double *dxdt) {
   XPPE_GUARD_END;
   return XPPE_OK;
 }
+
+/* A row of output as XPPAUT stores one (send_output() in integrate.c):
+   extra() computes the fixed quantities and the auxiliaries from the
+   state; Markov variables keep their initial values. */
+int xppe_columns_at(double t, const double *x, double *out, int n) {
+  double y[MAXODE];
+  int rc, i, j, ncols;
+  if ((rc = xppe_require_model()) != XPPE_OK) return rc;
+  ncols = xppe_count(XPPE_COLUMNS);
+  if (!x || !out || n < ncols) {
+    xppe_set_error("give the state and room for every output column", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  memset(y, 0, sizeof y);
+  memcpy(y, x, sizeof(double) * (size_t)NODE);
+  for (i = NODE; i < NODE + NMarkov; i++) y[i] = last_ic[i];
+  XPPE_GUARD_BEGIN((void)0);
+  extra(y, t, NODE, NEQ);
+  XPPE_GUARD_END;
+  for (i = 0; i < ncols; i++) {
+    j = N_plist > 0 ? plotlist[i] : i;
+    out[i] = j == 0 ? t : y[j - 1];
+  }
+  return ncols;
+}
+
+/* ---- Global flags ----------------------------------------------------------- */
+
+int xpplab_flag_count(void);
+const char *xpplab_flag_condition(int i, int *sign);
+int xpplab_halt_flag(void);
+
+int xppe_flag_count(void) { return xppe_loaded() ? xpplab_flag_count() : 0; }
+
+const char *xppe_flag_condition(int i, int *sign) {
+  if (!xppe_loaded()) return NULL;
+  return xpplab_flag_condition(i, sign);
+}
+
+int xppe_halt_flag(void) { return xppe_loaded() ? xpplab_halt_flag() : 0; }
 
 /* ---- Invariant manifolds of saddles ------------------------------------- */
 
@@ -75,6 +117,7 @@ int xppe_manifold(int k, int *type) {
   storind = 0;
   reset_browser();
   DELTA_T = ShootType[k] > 0 ? fabs(DELTA_T) : -fabs(DELTA_T);
+  xpplab_clear_halt_flag();
   usual_integrate_stuff(x);
   XPPE_GUARD_END;
   DELTA_T = olddt;

@@ -15,7 +15,8 @@ from . import _engine as E
 from .analysis import AnalysisMixin
 from .sensitivity import Sensitivity
 
-__all__ = ["Model", "Trajectory", "Equilibrium", "EquilibriumList", "load", "METHODS", "Sensitivity"]
+__all__ = ["Model", "Trajectory", "RunList", "Values", "Equilibrium",
+           "EquilibriumList", "load", "METHODS", "Sensitivity"]
 
 # XPPAUT's integrators, by the names its ODE files use. The value is the
 # key XPPAUT recognises (the first letter it reads).
@@ -203,7 +204,85 @@ class Model(AnalysisMixin):
         if values:
             self.set(**values)
         self._engine.call("xppe_run")
-        return self._collect()
+        return self._stopped(self._collect())
+
+    def _stopped(self, sol: "Trajectory") -> "Trajectory":
+        """Record which global flag, if any, stopped the run."""
+        sol.event = self._engine.call("xppe_halt_flag", check=False)
+        return sol
+
+    @property
+    def flags(self) -> list[tuple[str, int]]:
+        """The model's global flags (``global sign condition {events}``), in
+        order, as ``(condition, sign)``: sign 1 when the condition crosses
+        zero going up, -1 going down, 0 either way. A run stopped by one of
+        them (an ``{arret=1}`` event) has its number, counted from 1, in
+        :attr:`Trajectory.event`."""
+        out = []
+        sign = ctypes.c_int()
+        for i in range(self._engine.call("xppe_flag_count", check=False)):
+            cond = self._engine._lib.xppe_flag_condition(i, ctypes.byref(sign))
+            out.append((E._text(cond).strip(), sign.value))
+        return out
+
+    def run_many(self, initial, **values) -> "RunList":
+        """Run once from each of several initial conditions and keep every
+        run (the desktop app's Many initial values).
+
+        ``initial`` is a list of dicts of variable values (other variables
+        keep their initial value), or an array with one row per run and one
+        column per variable. Keyword arguments are applied with :meth:`set`
+        first. Returns a :class:`RunList`: the trajectories in order, with
+        ``events``, the global flag that stopped each run (0 for none). The
+        initial conditions are restored afterwards."""
+        if values:
+            self.set(**values)
+        if isinstance(initial, np.ndarray) or (
+                len(initial) and not isinstance(initial[0], dict)):
+            arr = np.atleast_2d(np.asarray(initial, dtype=float))
+            initial = [dict(zip(self.variables, row)) for row in arr]
+        ics = {v: float(self.get(v)) for v in self.variables}
+        out = RunList()
+        try:
+            for start in initial:
+                self.set(**ics)
+                self.set(**{k: float(v) for k, v in start.items()})
+                out.append(self.run())
+        finally:
+            self.set(**ics)
+        return out
+
+    def sample_initial(self, n: int, box: dict, *, require: dict | None = None,
+                       seed: int = 1, tries: int = 100000) -> list[dict]:
+        """``n`` initial conditions drawn at random, uniformly, in a box.
+
+        ``box`` maps variables to ``(low, high)``; the others keep their
+        initial value. ``require`` maps output columns (variables or
+        auxiliaries) to ``(low, high)``: a draw is kept only if every one of
+        them lies in its range there, so ``require={"tens": (0, inf)}``
+        keeps the states where an auxiliary ``tens`` is positive. The draws
+        come from a SplitMix64 generator started at ``seed``, the one the
+        desktop app uses, so the same call gives the same states in both.
+        Returns a list of dicts, ready for :meth:`run_many`."""
+        names = [self.variables[self._var_index(k)] for k in box]
+        bounds = [(float(a), float(b)) for a, b in box.values()]
+        need = [(name, float(a), float(b)) for name, (a, b) in (require or {}).items()]
+        rng = _SplitMix64(seed)
+        out: list[dict] = []
+        for _ in range(int(tries)):
+            if len(out) >= n:
+                break
+            start = Values((v, lo + (hi - lo) * rng.uniform())
+                           for v, (lo, hi) in zip(names, bounds))
+            if need:
+                row = self.evaluate(start)
+                if not all(lo <= row[c] <= hi for c, lo, hi in need):
+                    continue
+            out.append(start)
+        if len(out) < n:
+            raise ValueError(f"only {len(out)} of {n} draws met require= in "
+                             f"{tries} tries")
+        return out
 
     def continue_run(self, trajectory: "Trajectory",
                      time: float | None = None) -> "Trajectory":
@@ -350,8 +429,66 @@ class Model(AnalysisMixin):
         for k in range(n):
             self._engine.call("xppe_manifold", k, ctypes.byref(kind))
             branches.append(("unstable" if kind.value > 0 else "stable",
-                             self._collect()))
+                             self._stopped(self._collect())))
         return eq, branches
+
+    def eigenvector(self, A, eigenvalue: float) -> np.ndarray:
+        """The eigenvector of the matrix ``A`` for one of its real
+        eigenvalues, by XPPAUT's own inverse iteration (the one Sing pts
+        uses to draw invariant sets), with length 1."""
+        A = np.asarray(A, dtype=float)
+        n = A.shape[0]
+        a = (ctypes.c_double * (n * n))(*A.ravel())
+        v = (ctypes.c_double * n)()
+        self._engine.call("xppe_eigenvector", n, a, float(eigenvalue), v)
+        return np.array(v[:])
+
+    def shoot(self, at=None, *, eps: float = 1e-5, total: float | None = None,
+              directions: str = "unstable") -> "RunList":
+        """Integrate away from an equilibrium along its real eigenvectors,
+        both ways: the start of its unstable (or stable) manifolds, as
+        XPPAUT's Initial conds > sHoot does after Sing pts.
+
+        ``at`` is an :class:`Equilibrium`, or a dict guess for Newton's
+        method (by default the initial values). Each real eigenvector ``v``
+        of the Jacobian (from :meth:`linearize`) with an eigenvalue of the
+        chosen sign gives two runs, from ``x_e + eps*v`` and ``x_e - eps*v``:
+        forward in time for ``directions="unstable"`` (eigenvalue > 0),
+        backward for ``"stable"`` (eigenvalue < 0); ``"all"`` does both. A
+        node's two unstable directions both count, unlike XPPAUT's
+        invariant sets, which are drawn for saddles only. ``total`` sets
+        the time of each run. Returns a :class:`RunList` whose
+        ``directions`` holds ``(eigenvalue, sign)`` for each run."""
+        if directions not in ("unstable", "stable", "all"):
+            raise ValueError('directions is "unstable", "stable" or "all"')
+        eq = at if isinstance(at, Equilibrium) else self.equilibrium(at)
+        lin = self.linearize(at=eq.values)
+        x0 = np.array([eq.values[v] for v in self.variables])
+        ics = {v: float(self.get(v)) for v in self.variables}
+        old_total, old_dt = float(self.get("TOTAL")), float(self.get("DT"))
+        out = RunList()
+        out.equilibrium = eq
+        out.directions = []
+        try:
+            if total is not None:
+                self.set(TOTAL=float(total))
+            for lam in lin.eigenvalues:
+                if lam.imag != 0 or lam.real == 0:
+                    continue
+                forward = lam.real > 0
+                if (directions == "unstable" and not forward) or (
+                        directions == "stable" and forward):
+                    continue
+                v = self.eigenvector(lin.A, lam.real)
+                self.set(DT=abs(old_dt) if forward else -abs(old_dt))
+                for sign in (1, -1):
+                    self.set(**dict(zip(self.variables, x0 + sign * eps * v)))
+                    out.append(self.run())
+                    out.directions.append((float(lam.real), sign))
+        finally:
+            self.set(TOTAL=old_total, DT=old_dt)
+            self.set(**ics)
+        return out
 
     def equilibrium_sweep(self, parameter: str, values, *,
                           guess: dict | None = None):
@@ -440,6 +577,18 @@ class Model(AnalysisMixin):
         f = (ctypes.c_double * len(self.variables))()
         self._engine.call("xppe_rhs", float(t), x, f)
         return np.array(f[:])
+
+    def evaluate(self, state=None, t: float = 0.0) -> "Values":
+        """Every output column at one state: time, the variables and the
+        auxiliary quantities (``aux`` lines), computed as XPPAUT computes a
+        row of a run. ``state`` is a dict of variable values (others keep
+        their initial value) or a full array; by default the initial
+        condition. Returns a dict whose keys ignore case:
+        ``m.evaluate({"gam": 1.0, "om": 0})["tens"]``."""
+        x = self._state(state)
+        out = (ctypes.c_double * len(self.columns))()
+        self._engine.call("xppe_columns_at", float(t), x, out, len(self.columns))
+        return Values(zip(self.columns, out[:]))
 
     def nullclines(self, x: str, y: str, xlim, ylim, grid: int = 100):
         """XPPAUT's nullclines in the (x, y) plane over the given window.
@@ -708,6 +857,9 @@ class Trajectory:
     def __init__(self, data: dict[str, np.ndarray], log: str = ""):
         self._data = data
         self.log = log
+        #: The global flag that stopped the run (its number from 1, see
+        #: :attr:`Model.flags`), or 0 when it ran to the end.
+        self.event = 0
 
     @property
     def columns(self) -> list[str]:
@@ -782,6 +934,81 @@ class Trajectory:
         rows = [[H.fmt(self._data[c][i]) for c in self.columns] for i in idx]
         return H.block(head, H.table(self.columns, rows),
                        "<p>... first and last rows</p>" if n > len(idx) else "")
+
+
+class Values(dict):
+    """A dict whose keys ignore case when read, as the model's names do."""
+
+    def __getitem__(self, name):
+        try:
+            return super().__getitem__(name)
+        except KeyError:
+            for k in self:
+                if isinstance(k, str) and _key(k) == _key(name):
+                    return super().__getitem__(k)
+            raise KeyError(f"no {name!r}; available: {', '.join(map(str, self))}") from None
+
+    def __contains__(self, name) -> bool:
+        return super().__contains__(name) or any(
+            isinstance(k, str) and _key(k) == _key(name) for k in self)
+
+    def get(self, name, default=None):
+        return self[name] if name in self else default
+
+
+class _SplitMix64:
+    """The SplitMix64 generator. The desktop app draws its random initial
+    values with the same one, so a seed gives the same numbers in both."""
+
+    MASK = (1 << 64) - 1
+
+    def __init__(self, seed: int):
+        self.state = int(seed) & self.MASK
+
+    def next(self) -> int:
+        self.state = (self.state + 0x9E3779B97F4A7C15) & self.MASK
+        z = self.state
+        z = ((z ^ (z >> 30)) * 0xBF58476D1CE4E5B9) & self.MASK
+        z = ((z ^ (z >> 27)) * 0x94D049BB133111EB) & self.MASK
+        return z ^ (z >> 31)
+
+    def uniform(self) -> float:
+        """A double in [0, 1) from the top 53 bits."""
+        return (self.next() >> 11) * (1.0 / 9007199254740992.0)
+
+
+class RunList(list):
+    """Several runs kept together (:meth:`Model.run_many`,
+    :meth:`Model.shoot`): a list of :class:`Trajectory`."""
+
+    @property
+    def events(self) -> np.ndarray:
+        """The global flag that stopped each run (0: it ran to the end)."""
+        return np.array([s.event for s in self], dtype=int)
+
+    def counts(self) -> dict[int, int]:
+        """How many runs each flag stopped, and (key 0) how many ran to the
+        end."""
+        out: dict[int, int] = {}
+        for e in self.events:
+            out[int(e)] = out.get(int(e), 0) + 1
+        return dict(sorted(out.items()))
+
+    def plot(self, y: str, x: str = "T", *, ax=None, colors=None, **kw):
+        """Every run, ``y`` against ``x``. ``colors`` maps each flag number
+        (0 for runs that reached the end) to a colour, to see at a glance
+        how each run ended."""
+        import matplotlib.pyplot as plt
+        ax = ax or plt.gca()
+        for s in self:
+            c = colors.get(s.event) if colors else None
+            ax.plot(s[x], s[y], color=c, **kw)
+        ax.set_xlabel("t" if x.upper() == "T" else x)
+        ax.set_ylabel(y)
+        return ax
+
+    def __repr__(self) -> str:
+        return f"<RunList: {len(self)} runs, ended by {self.counts()}>"
 
 
 @dataclass

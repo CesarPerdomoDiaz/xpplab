@@ -151,7 +151,8 @@ To do:
 - [x] "Coming from XPPAUT" guide
 - [x] Field tutorials, "Learn by example" on the website (neuroscience,
       ecology, chemistry, mechanics); their Python is run by the tests
-- [ ] "Coming from MATLAB" and "Coming from AUTO-07p" guides
+- [x] "Coming from MATLAB" guide; its Python is run by the tests
+- [ ] "Coming from AUTO-07p" guide
 - [ ] Jupyter notebooks
 
 ### M6 Release and community

@@ -65,6 +65,7 @@ nav:
       - Initial values, Range, BVPs, 3D, Kinescope: manual/tools.md
       - Commands and shortcuts: manual/commands.md
       - Coming from XPPAUT: manual/xppaut.md
+      - Coming from MATLAB: manual/matlab.md
   - Python:
       - Quick start: python/quickstart.md
       - Simulation: python/simulation.md

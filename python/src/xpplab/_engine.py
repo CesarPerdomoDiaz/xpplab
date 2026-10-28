@@ -19,7 +19,7 @@ from pathlib import Path
 
 __all__ = ["Engine", "EngineError", "find_engine_library"]
 
-API_VERSION = 7
+API_VERSION = 8
 
 OK = 0
 ERR_STATE = -1
@@ -165,6 +165,13 @@ _SIGNATURES = {
     "xppe_equilibrium": ([ctypes.POINTER(ctypes.c_double)] * 3, ctypes.c_int),
     "xppe_rhs": ([ctypes.c_double, ctypes.POINTER(ctypes.c_double),
                   ctypes.POINTER(ctypes.c_double)], ctypes.c_int),
+    "xppe_columns_at": ([ctypes.c_double, ctypes.POINTER(ctypes.c_double),
+                         ctypes.POINTER(ctypes.c_double), ctypes.c_int],
+                        ctypes.c_int),
+    "xppe_flag_count": ([], ctypes.c_int),
+    "xppe_flag_condition": ([ctypes.c_int, ctypes.POINTER(ctypes.c_int)],
+                            ctypes.c_char_p),
+    "xppe_halt_flag": ([], ctypes.c_int),
     "xppe_manifold_count": ([], ctypes.c_int),
     "xppe_manifold": ([ctypes.c_int, ctypes.POINTER(ctypes.c_int)], ctypes.c_int),
     "xppe_equilibrium_sweep": ([ctypes.c_char_p, ctypes.POINTER(ctypes.c_double),
@@ -179,6 +186,9 @@ _SIGNATURES = {
                         ctypes.POINTER(ctypes.c_char_p), ctypes.c_double]
                        + [ctypes.POINTER(ctypes.c_double)] * 4, ctypes.c_int),
     "xppe_eigenvalues": ([ctypes.c_int] + [ctypes.POINTER(ctypes.c_double)] * 3,
+                         ctypes.c_int),
+    "xppe_eigenvector": ([ctypes.c_int, ctypes.POINTER(ctypes.c_double),
+                          ctypes.c_double, ctypes.POINTER(ctypes.c_double)],
                          ctypes.c_int),
     "xppe_controllability": ([ctypes.c_int, ctypes.c_int,
                               ctypes.POINTER(ctypes.c_double),

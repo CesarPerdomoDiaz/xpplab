@@ -115,6 +115,37 @@ measure, `sweep_grid` returns the trajectories as a list of rows.
 `continue_runs=True` starts each run where the previous one ended, going
 through the grid row by row. Both parameters are restored afterwards.
 
+## Many initial values, and how each run ended
+
+```python
+inf = float("inf")
+starts = m.sample_initial(100, {"x": (0, 1.5), "v": (-0.4, 0.4)},
+                          require={"energy": (0, inf)}, seed=1)
+runs = m.run_many(starts)      # one Trajectory per start, in order
+runs.counts()                  # {0: 52, 1: 46, 3: 2}
+runs.plot("v", "x", colors={0: "green", 1: "red", 3: "gray"})
+```
+
+`sample_initial` draws states uniformly in a box. `require` keeps only the
+draws where some output columns, variables or `aux` quantities, lie in a
+range: here the states with a positive auxiliary `energy`. The random
+numbers come from a seeded generator that the desktop app uses too, so a
+seed gives the same states in both.
+
+A model can stop a run with a global flag, such as
+`global -1 x {arret=1}` (stop when `x` crosses zero going down). The
+flags are listed by `m.flags`, as `(condition, sign)`, and each
+trajectory's `event` is the number of the flag that stopped it, counted
+from 1, or 0 when it ran to the end. `runs.counts()` and `runs.events`
+collect them.
+
+`m.evaluate(state)` gives every output column, `aux` quantities
+included, at one state, without a run:
+
+```python
+m.evaluate({"x": 1.0, "v": 0})["energy"]
+```
+
 ## Interactive sliders in Jupyter
 
 ```python

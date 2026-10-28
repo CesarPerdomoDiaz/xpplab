@@ -156,6 +156,45 @@ def test_as_many_inputs_as_states_and_more():
     check_poles(lin3, lin3.place_poles([-3.0, -4.0]), [-3.0, -4.0])
 
 
+FOUR = """
+par u1=0, u2=0, u3=0
+a'=b+u1
+b'=-a+0.3*c+u2
+c'=d-0.2*a+u3
+d'=-c+0.5*b
+init a=0, b=0, c=0, d=0
+@ total=10
+done
+"""
+
+
+def test_spare_inputs_keep_real_poles_real():
+    # with three inputs on four states each real pole has a three-dimensional
+    # choice of eigenvector, which may come out complex: the gain must not
+    m = xs.Model.from_text(FOUR)
+    lin = m.linearize(at={"a": 0.0, "b": 0.0, "c": 0.0, "d": 0.0},
+                      inputs=["u1", "u2", "u3"])
+    for poles in ([-1.0, -2.0, -3.0, -4.0], [-1.0, -2.0, -1.5 + 1j, -1.5 - 1j]):
+        K = lin.place_poles(poles)
+        assert K.shape == (3, 4) and K.dtype == float
+        check_poles(lin, K, poles)
+    # the same on random linear systems, where it used to fail now and then
+    rng = np.random.default_rng(1)
+    poles = [-1.0, -2.0, -3.0, -4.0, -2.5 + 0.5j, -2.5 - 0.5j]
+    for _ in range(10):
+        A, B = rng.normal(size=(6, 6)), rng.normal(size=(6, 5))
+        rhs = ["+".join([f"({float(a)!r})*x{j}" for j, a in enumerate(rowa)]
+                        + [f"({float(b)!r})*u{j}" for j, b in enumerate(rowb)])
+               for rowa, rowb in zip(A, B)]
+        text = ("par " + ", ".join(f"u{j}=0" for j in range(5)) + "\n"
+                + "".join(f"x{i}'={r}\n" for i, r in enumerate(rhs))
+                + "done\n")
+        lin = xs.Model.from_text(text).linearize(
+            at={f"x{i}": 0.0 for i in range(6)},
+            inputs=[f"u{j}" for j in range(5)])
+        check_poles(lin, lin.place_poles(poles), poles)
+
+
 def test_closed_loop_keeps_session_state():
     m = xs.Model.from_text(THREE)
     m.set(a=2.0, total=7.0)

@@ -234,9 +234,10 @@ class Linearization:
                     partner[j], second[i] = i, True
                     break
         # null spaces of U1^T (A - lambda I): the allowed eigenvector directions
+        # (real for a real pole, so that its eigenvector can be kept real)
         S = []
         for lam in poles:
-            M = U1.T @ (A - lam * np.eye(n))
+            M = U1.T @ (A - (lam.real if lam.imag == 0 else lam) * np.eye(n))
             if M.shape[0] == 0:  # B has full row rank: any direction will do
                 S.append(np.eye(n, dtype=complex))
                 continue
@@ -271,6 +272,12 @@ class Linearization:
                     continue
                 col = col / nrm
                 col = col * np.exp(-1j * np.angle(col[int(np.argmax(np.abs(col)))]))
+                if poles[j].imag == 0:
+                    # a real pole needs a real eigenvector, or A - B K comes
+                    # out complex; with several spare inputs the candidate
+                    # can be complex, and its real part (in which the largest
+                    # entry survives) still lies in S_j
+                    col = col.real / np.linalg.norm(col.real)
                 moved = max(moved, float(np.linalg.norm(col - X[:, j])))
                 X[:, j] = col
                 if partner[j] >= 0:

@@ -99,10 +99,11 @@ Path: M0 → M1 → M2 → M3 → M4 → M10 → M9 → [M7] → M11
 - [x] Bifurcation diagrams in matplotlib: stable branches solid, unstable
       dashed, special points labelled
 - [x] Jupyter: interactive parameter sliders (`Model.interact`)
-- [x] Jupyter: rich repr (`_repr_html_`; only plain `__repr__` exists)
+- [x] Jupyter: rich display (`_repr_html_`) for models, runs, equilibria and
+      AUTO diagrams
 - [x] Wheels: py3-none wheels via scikit-build-core (Windows wheel built and
       tested locally); cibuildwheel for all platforms in CI
-- [ ] Publish on PyPI
+- [x] Publish on PyPI (`pip install xpplab`, from 0.1.1)
 - [x] Documentation site with a tutorial and a gallery (`mkdocs.yml`; built by
       the docs workflow; field tutorials are in M5)
 
@@ -115,7 +116,7 @@ Path: M0 → M1 → M2 → M3 → M4 → M10 → M9 → [M7] → M11
 - [x] Open, edit and run a model; time series and phase plane; parameter
       sliders with live re-integration
 - [x] Portable Windows zip, tested on a clean PATH
-- [ ] First public preview release (needs the GitHub repository)
+- [x] First public release (0.1.0, on GitHub and PyPI)
 
 ### M4 Desktop app, full XPPAUT parity
 Done:
@@ -140,8 +141,10 @@ Done:
 
 To do:
 - [ ] Nullclines and grab points in animations
-- [ ] Text, Make window, Graphic stuff (labels, arrows, several plots)
-- [ ] Command palette; MATLAB `.mat` export; PDF figures
+- [x] Several plots in one figure, with insets (the Figure window, `figure`)
+- [ ] Text, Make window, Graphic stuff (free labels and arrows)
+- [x] PDF, SVG and EPS figures at any size and resolution (the Figure window)
+- [ ] Command palette; MATLAB `.mat` export
 
 ### M5 Documentation and examples
 - [x] Getting started, tutorial, full `.ode` language reference, numerics
@@ -163,7 +166,7 @@ To do:
 - [ ] macOS notarization and Windows code signing (need developer accounts)
 - [ ] Windows installer with `.ode` file association; Linux AppImage (CPack
       makes only the zip, `.dmg` and tarball; no installer or AppImage yet)
-- [ ] Publish on GitHub and PyPI
+- [x] Publish on GitHub and PyPI
 - [ ] Contact Bard Ermentrout; announce on the xppaut-l list, comp-neuro
       and SIAM DS
 - [ ] Journal of Open Source Software paper
@@ -178,7 +181,8 @@ To do:
 - [ ] Pole placement in the app: drag an eigenvalue, get the gain, simulate
 - [ ] Root locus over a gain or a parameter
 - [ ] Optimal control (LQR)
-- [ ] Floquet multipliers shown on the bifurcation diagram
+- [x] Floquet multipliers along a branch of periodic orbits: plotted against the
+      parameter or in the complex plane (the Figure window, `xpplab.Figure`)
 - [x] Sensitivity of trajectories to parameters (`Model.sensitivity`, by
       variational equations)
 - [ ] Isochrons and phase reduction

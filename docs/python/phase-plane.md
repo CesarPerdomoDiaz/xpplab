@@ -85,3 +85,21 @@ numbers repeat, so the same call finds the same list.
 from the equilibrium found at the value before. The table gives the
 numbers of unstable and stable eigenvalues; where no equilibrium was found
 the row holds NaN. The parameter is restored afterwards.
+
+### Shooting along eigenvectors
+
+```python
+runs = m.shoot({"V": -0.3, "W": 0.0}, eps=1e-5, total=50)
+runs.equilibrium        # the equilibrium found from the guess
+runs.directions         # [(eigenvalue, +1), (eigenvalue, -1), ...]
+```
+
+`shoot` finds the equilibrium, linearises there and integrates from
+`x_e ± eps v` along each real eigenvector `v`: those with positive
+eigenvalues forward in time (`directions="unstable"`, the default), those
+with negative eigenvalues backward (`"stable"`), or both (`"all"`). The
+runs trace the start of the invariant manifolds. Unlike `manifolds()`,
+which follows XPPAUT and draws them for saddles only, it also follows the
+two unstable directions of a node. `m.eigenvector(A, lam)` gives one
+eigenvector by XPPAUT's own routine.
+

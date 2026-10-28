@@ -48,6 +48,10 @@ extern "C" {
   X(int, xppe_ensemble_column, (int, int, double *, int))                     \
   X(int, xppe_equilibrium, (double *, double *, double *))                    \
   X(int, xppe_rhs, (double, const double *, double *))                        \
+  X(int, xppe_columns_at, (double, const double *, double *, int))            \
+  X(int, xppe_flag_count, (void))                                             \
+  X(const char *, xppe_flag_condition, (int, int *))                          \
+  X(int, xppe_halt_flag, (void))                                              \
   X(int, xppe_nullcline,                                                      \
     (int, int, int, double, double, double, double, int, float *, int))       \
   X(int, xppe_manifold_count, (void))                                         \
@@ -59,6 +63,7 @@ extern "C" {
   X(int, xppe_linearize, (const double *, int, const char *const *, double,  \
                           double *, double *, double *, double *))            \
   X(int, xppe_eigenvalues, (int, const double *, double *, double *))         \
+  X(int, xppe_eigenvector, (int, const double *, double, double *))           \
   X(int, xppe_controllability,                                                \
     (int, int, const double *, const double *, double, double *, double *))   \
   X(int, xppe_fourier, (const char *))                                        \

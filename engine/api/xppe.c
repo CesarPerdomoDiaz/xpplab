@@ -394,6 +394,8 @@ int xppe_apply_set(const char *set_name) {
 
 /* ---- Integration ---------------------------------------------------------- */
 
+void xpplab_clear_halt_flag(void);
+
 int xppe_run(void) {
   int rc, old_suppress;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
@@ -401,6 +403,7 @@ int xppe_run(void) {
   old_suppress = SuppressOut;
   SuppressOut = 1; /* keep the data in memory; write no output file */
   XPPE_GUARD_BEGIN((void)0);
+  xpplab_clear_halt_flag(); /* so xppe_halt_flag() tells about this run */
   batch_integrate_once();
   XPPE_GUARD_END;
   SuppressOut = old_suppress;

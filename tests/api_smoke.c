@@ -125,6 +125,27 @@ int main(int argc, char **argv) {
     printf("%s[0]=%.8g %s[end]=%.8g\n", xppe_name(XPPE_COLUMNS, i), col[0],
            xppe_name(XPPE_COLUMNS, i), col[rows - 1]);
   }
+  /* xppe_columns_at() recomputes the first stored row from its state. */
+  {
+    int ncol = xppe_count(XPPE_COLUMNS), c;
+    double *row = malloc(sizeof(double) * (size_t)ncol), *first = row;
+    n = xppe_count(XPPE_VARIABLES);
+    for (i = 0; i < n && i < 64; i++)
+      for (c = 0; c < ncol; c++)
+        if (strcmp(xppe_name(XPPE_COLUMNS, c), xppe_name(XPPE_VARIABLES, i)) == 0) {
+          xppe_column(c, col, rows);
+          x[i] = col[0];
+        }
+    xppe_column(-1, col, rows);
+    CHECK(xppe_columns_at(col[0], x, row, ncol) == ncol, "columns_at");
+    for (c = 0; c < ncol; c++) {
+      xppe_column(c, col, rows);
+      CHECK(fabs(first[c] - col[0]) <= 1e-6 * (1 + fabs(col[0])),
+            "columns_at %s: %g vs %g", xppe_name(XPPE_COLUMNS, c), first[c], col[0]);
+    }
+    free(row);
+    CHECK(xppe_halt_flag() == 0, "no flag stopped the run");
+  }
   /* Write the run like XPPAUT's output.dat so the test driver can diff it. */
   {
     FILE *f = fopen("api_run1.dat", "w");

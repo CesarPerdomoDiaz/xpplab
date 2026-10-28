@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 7
+#define XPPE_API_VERSION 8
 
 enum {
   XPPE_OK = 0,
@@ -130,6 +130,24 @@ XPPE_API int xppe_equilibrium(double *x, double *re, double *im);
    ODE variable). For maps it is the next state. */
 XPPE_API int xppe_rhs(double t, const double *x, double *dxdt);
 
+/* The output columns (as xppe_name(XPPE_COLUMNS, i) names them: T, the
+   variables, the auxiliaries) at time t and state x (one value per ODE
+   variable; Markov variables take their initial values), computed as
+   XPPAUT computes a stored row. out holds n >= xppe_count(XPPE_COLUMNS)
+   values. Returns the number of columns written. Since API version 8. */
+XPPE_API int xppe_columns_at(double t, const double *x, double *out, int n);
+
+/* Global flags, the model's "global sign condition {events}" lines, in
+   their order. xppe_flag_condition() gives flag i's condition as written
+   (NULL if there is no such flag) and its sign: 1 when the condition
+   crosses zero going up, -1 going down, 0 either way. xppe_halt_flag()
+   tells which flag stopped the last xppe_run() or xppe_manifold() run by a
+   halting event ({arret=1}): its number counted from 1, or 0 when the run
+   was not stopped by a flag. Since API version 8. */
+XPPE_API int xppe_flag_count(void);
+XPPE_API const char *xppe_flag_condition(int i, int *sign);
+XPPE_API int xppe_halt_flag(void);
+
 /* Nullcline of variable `which` (0: the x-variable, 1: the y-variable) in
    the plane of ODE variables ix and iy (0-based) over the given window, on
    a grid x grid mesh, by XPPAUT's own contouring. Writes up to
@@ -193,6 +211,11 @@ XPPE_API int xppe_linearize(const double *x, int ninputs,
 /* The eigenvalues of the n x n matrix a, by XPPAUT's own routine (EISPACK's
    orthes and hqr, as Sing pts uses), in the order it finds them. */
 XPPE_API int xppe_eigenvalues(int n, const double *a, double *re, double *im);
+/* The eigenvector of the n x n matrix a for its real eigenvalue lambda, by
+   XPPAUT's inverse iteration (get_evec in gear.c, which Sing pts uses to
+   draw invariant sets), scaled to unit length. Its sign is whatever the
+   iteration gives. Since API version 8. */
+XPPE_API int xppe_eigenvector(int n, const double *a, double lambda, double *v);
 /* The controllability matrix C = [B, AB, ..., A^(n-1) B] of n states and m
    inputs (A n x n, B n x m): C is n x (n m). sv receives its n singular
    values, largest first. Returns the rank: the number of singular values

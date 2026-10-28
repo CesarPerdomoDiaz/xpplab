@@ -92,3 +92,70 @@ lin.controllable   # True
 If the force cannot reach a state, the rank drops. In
 `x' = -x + u, y' = -2y` the second state is independent of `u`:
 `rank` is 1 and `controllable` is `False`.
+
+## Pole placement
+
+`lin.place_poles(poles)` returns the feedback gain `K` (one row per input,
+one column per state) so that `A - B K` has the eigenvalues you ask for. The
+control law is `u = u0 - K (x - x*)`: the nominal input minus the gain times
+the distance from the linearisation point.
+
+- With one input it uses Ackermann's formula and the controllability matrix.
+- With several inputs it uses the method of Kautsky, Nichols and Van Dooren
+  (the one behind `scipy.signal.place_poles`), which uses the spare inputs
+  to keep the closed-loop eigenvectors well conditioned. Only NumPy is
+  needed.
+- `poles` has one number per state; complex poles must come in conjugate
+  pairs. For a map (`meth=discrete`) the poles belong inside the unit circle.
+- A pair that is not controllable, a model with no inputs, a wrong number of
+  poles and a pole repeated more often than there are inputs raise
+  `ValueError`. A warning is raised when the gain is very large, which
+  means the pair is nearly uncontrollable.
+- If the point is not an equilibrium (`lin.residual` not near zero) a
+  warning says that the closed loop will not settle at `x*`: the model keeps
+  moving there even with no feedback.
+- With as many inputs as states or more, the poles are placed exactly; the
+  gain is the smallest one that does it.
+
+`lin.closed_loop(K)` writes the closed-loop model as an `.ode` file and
+loads it. Each input is taken off the model's parameter line and defined as
+a fixed variable holding the feedback law. The rest of the model text is
+unchanged, so the closed loop is the full nonlinear model. The new model is
+loaded with the same options as the original and takes over its current
+parameter values, initial conditions and numerical options (except the
+replaced inputs). The file is in a temporary directory unless you pass
+`path=`.
+
+XPPAUT evaluates fixed variables in the order they are written, so the
+feedback laws stand where the first input was declared; a fixed variable
+that uses an input therefore sees the feedback value. Each input must be
+declared on a line that starts with `p`, `par`, `param` or `parameters`,
+and that line must not end in a backslash; otherwise `closed_loop`
+raises `ValueError`. Other parameter lines are left as they are.
+
+### Example: balancing a pendulum upright
+
+```python
+import xpplab as xs
+
+m = xs.Model.from_text("""
+par g=9.8, l=1, u=0
+th'=w
+w'=g/l*sin(th)-0.2*w+u
+init th=0, w=0
+@ total=20, dt=0.01
+""")
+
+lin = m.linearize(at={"th": 0, "w": 0}, inputs=["u"])
+lin.eigenvalues                       # 3.03, -3.23 : the upright position is unstable
+K = lin.place_poles([-2 + 1j, -2 - 1j])
+cl = lin.closed_loop(K)               # a new Model with u = -K (x - x*)
+cl.ics["th"] = 0.3                    # start well away from upright
+sol = cl.run()
+sol["th"][-1]                         # ~ 0: the loop settles
+```
+
+The same start without the feedback (`m.ics["th"] = 0.3; m.run()`) falls
+away. Check `lin.valid_radius()` to see how far from the point the linear
+design can be trusted; the closed-loop model above is the nonlinear one, so
+simulating it is the test.

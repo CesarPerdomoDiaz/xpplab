@@ -964,8 +964,8 @@ class Session:
         else:
             reading = ("zero or negative: no sign of chaos. A stable equilibrium "
                        "gives a clearly negative value; on a limit cycle the "
-                       "exponent is 0, and XPPAUT's estimate comes out near "
-                       "zero or somewhat below it (simulate tells the two apart)")
+                       "exponent is 0 and the estimate comes out near zero "
+                       "(simulate tells the two apart)")
         out = {"model": entry.name, "lyapunov": _r(z), "reading": reading,
                "run": [_r(sol.t[0]), _r(sol.t[-1])],
                "advice": "use a long run that has settled; skip the transient "

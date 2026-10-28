@@ -279,12 +279,51 @@ class AnalysisMixin:
                           ctypes.byref(s))
         return m.value, s.value
 
-    def lyapunov(self) -> float:
-        """The largest Liapunov exponent along the last run, XPPAUT's way:
-        a small perturbation is carried along the run one step at a time and
-        renormalised, and the logs of its growth are averaged."""
+    def lyapunov(self, *, stored: bool = False, **values) -> float:
+        """The largest Liapunov exponent of a run from the current initial
+        conditions.
+
+        The engine integrates from the initial conditions for the total
+        time, as :meth:`run` does, together with a copy of the state moved
+        by ``JAC_EPS`` (0.001 unless set). After each output step (``dt``
+        times ``nout``) it adds up the logarithm of the factor by which the
+        distance between the two has grown, and puts the copy back at the
+        distance ``JAC_EPS``, in the direction it has moved to. The exponent
+        is the sum divided by the time. This is XPPAUT's method, computed in
+        double precision during the integration. Steps that start before
+        ``trans`` carry the perturbation along without counting, and the
+        integration stops, as a run does, when a variable passes ``bound``.
+        Nothing is stored: the last run stays as it was. Keyword arguments
+        are applied with :meth:`set` first, as in :meth:`run`, so after
+        ``m.run(...)`` a plain ``m.lyapunov()`` follows the same trajectory.
+
+        With a fixed-step method, a smaller ``jac_eps`` (such as 1e-6)
+        comes closer to the exponent of the linearised equations. With an
+        adaptive method keep ``tol`` well below ``jac_eps``: the error
+        control and the corrector iterations otherwise move the two copies
+        apart by about as much as the perturbation (CVODE at its default
+        ``tol=0.001`` gives nonsense). Delay equations, integrals and noise
+        are refused with an :class:`EngineError`.
+
+        ``stored=True`` gives XPPAUT's own estimate instead (stocHastic >
+        Liapunov), along the stored last run: each step starts from a stored
+        point and is compared with the next one. XPPAUT stores runs, times
+        included, in single precision (about seven digits). Once the time
+        or a variable is large, as in a run to t = 1000, the rounding of the
+        stored values and of the step length is comparable to the
+        perturbation and that estimate goes wrong. A folded variable
+        (``fold=``) jumps by its period at every turn, which spoils it too.
+        """
         z = ctypes.c_double()
-        self._engine.call("xppe_lyapunov", ctypes.byref(z))
+        if stored:
+            if values:
+                raise TypeError("lyapunov(stored=True) uses the last run; "
+                                "give it no values")
+            self._engine.call("xppe_lyapunov", ctypes.byref(z))
+            return z.value
+        if values:
+            self.set(**values)
+        self._engine.call("xppe_lyapunov_integrate", 0.0, ctypes.byref(z))
         return z.value
 
     # -- Periodic orbits, adjoints and phase response --------------------------

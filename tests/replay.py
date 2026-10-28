@@ -140,6 +140,21 @@ CASES = [
         "run", "export {out}/run.csv"]),
     ("linearize_map", "del_log.ode", [
         "linearize eps r", "export {out}/map.csv analysis"]),
+    # Many runs with their stopping flags, shooting along eigenvectors, and
+    # a figure built from them (the script must draw and save it too).
+    ("many_shoot", "tests/models/kite.ode", [
+        "set VW=2.1",
+        "many 30 seed 3 gam 0 1.5707963 om -1.3 1.3 keep tens 0 inf",
+        "export {out}/many.csv many",
+        "figure new 120 60 1 2", "figure many GAM OM split",
+        "figure style 1 scale 57.29577951308232 1 label Ground",
+        "figure xlabel $\\Gamma$ [deg]",
+        "set VW=2.5 gam=0.3 om=0", "shoot time 20",
+        "export {out}/shoot.csv many",
+        "figure panel 2", "figure many T GAM", "figure function 1/sqrt(x) 0.1 10",
+        "figure ylim 0 2", "figure export {out}/fig.pdf",
+        "set VW=8", "shoot eps 1e-4 both", "export {out}/both.csv many",
+        "run", "export {out}/run.csv"]),
 ]
 
 
@@ -186,7 +201,7 @@ def run_case(app, engine, out, name, model, cmds, timeout):
     shutil.rmtree(d, ignore_errors=True)
     d.mkdir(parents=True)
     script, log, shot = d / "session.py", d / "app.log", d / "shot.png"
-    args = [str(app), str(EXAMPLES / model)]
+    args = [str(app), str(ROOT / model if model.startswith("tests/") else EXAMPLES / model)]
     for c in cmds:
         args += ["--cmd", c.replace("{out}", d.as_posix())]
     args += ["--then", "script " + script.as_posix(), "--screenshot", str(shot),

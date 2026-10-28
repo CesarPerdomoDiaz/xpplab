@@ -213,6 +213,7 @@ void app_init(App *a, const char *base_dir, bool ephemeral) {
   a->echo.console = true;
   a->echo.sweep_mode = -1;
   snprintf(a->help_page, sizeof a->help_page, "welcome");
+  app_fig_reset(a);
   set_editor_text(a, "");
   a->ephemeral = ephemeral;
   /* Until the user picks a theme, follow the system's light or dark mode. */
@@ -234,6 +235,8 @@ void app_shutdown(App *a) {
   free_traj(&a->sw.eqt);
   free_found(a);
   app_analysis_free(a);
+  app_many_free(a);
+  fig_free(&a->fg.fig);
   if (a->eng) xpp_instance_close(a->eng);
   a->eng = NULL;
   free(a->editor);
@@ -463,6 +466,7 @@ static bool load_engine(App *a) {
   a->sw.mode = SWEEP_MAXMIN;
   a->sw.transient = 0.5;
   app_analysis_reset(a);
+  app_many_reset(a);
   echo_model_loaded(a);
   return true;
 }
@@ -822,6 +826,11 @@ void app_fetch_current(App *a) {
 }
 
 void app_free_trajectory(Trajectory *t) { free_traj(t); }
+
+void app_fetch_run(App *a, Trajectory *t) {
+  free_traj(t);
+  fetch_run(a, t);
+}
 
 /* After a call that returned XPPE_ERR_FATAL: XPPAUT's code ended the
    program (exit()), and the engine refuses all further work. Rather than

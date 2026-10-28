@@ -62,6 +62,7 @@ nav:
       - "Tutorial: why does a neuron fire?": manual/neuron-tutorial.md
       - Bifurcation analysis with AUTO: manual/auto.md
       - Data analysis: manual/analysis.md
+      - Figures for papers: manual/figures.md
       - Initial values, Range, BVPs, 3D, Kinescope: manual/tools.md
       - Commands and shortcuts: manual/commands.md
       - Coming from XPPAUT: manual/xppaut.md
@@ -73,6 +74,7 @@ nav:
       - Bifurcations with AUTO: python/auto.md
       - Data analysis: python/analysis.md
       - Control design: python/control.md
+      - Figures for papers: python/figures.md
       - Driving the desktop app: python/app.md
       - API reference: python/reference.md
   - Learn by example:
@@ -81,6 +83,7 @@ nav:
       - Ecology: learn/ecology.md
       - Chemistry: learn/chemistry.md
       - Mechanics: learn/mechanics.md
+      - "Aerospace: a kite on a tether": learn/kite.md
   - Coding agents: agents.md
   - Reference:
       - The .ode file format: manual/odefile.md

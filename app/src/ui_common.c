@@ -363,6 +363,13 @@ void ui_export_button(App *a, int figure) {
     int kind = DLG_NONE;
     if (igMenuItem_Bool("PNG image (as shown)...", NULL, false, true)) kind = DLG_PNG;
     if (igMenuItem_Bool("SVG vector figure...", NULL, false, true)) kind = DLG_SVG;
+    if (igMenuItem_Bool("Add to the Figure window", NULL, false, true)) {
+      app_fig_from_plot(a, figure);
+      snprintf(a->focus, sizeof a->focus, "figure");
+    }
+    if (igIsItemHovered(0))
+      igSetTooltip("A figure for a paper from this plot: labels with mathtext, "
+                   "line styles, several panels, PDF, SVG, EPS or PNG at any size.");
     if (igMenuItem_Bool(diagram ? "Diagram points as CSV..." : "Run as CSV...", NULL,
                         false, diagram ? a->au.count > 0 : a->have_traj))
       kind = DLG_DATA;
@@ -570,6 +577,7 @@ static void default_layout(App *a, ImGuiID dock, ImVec2_c size) {
   igDockBuilderDockWindow(WIN_ANALYSIS, center);
   igDockBuilderDockWindow(WIN_VIEW3D, center);
   igDockBuilderDockWindow(WIN_ANI, center);
+  igDockBuilderDockWindow(WIN_FIGURE, center);
   igDockBuilderDockWindow(WIN_EDITOR, center);
   igDockBuilderDockWindow(WIN_CONSOLE, bottom);
   igDockBuilderDockWindow(WIN_DATA, bottom);
@@ -644,6 +652,7 @@ void ui_draw(App *a) {
   if (a->show_view3d) ui_view3d(a);
   if (a->show_ani) ui_animator(a);
   if (a->show_kine) ui_kinescope(a);
+  if (a->show_figure) ui_figure(a);
   if (a->show_demo) {
     igShowDemoWindow(&a->show_demo);
     ImPlot_ShowDemoWindow(&a->show_demo);
@@ -659,7 +668,8 @@ void ui_draw(App *a) {
                {"console", WIN_CONSOLE, NULL}, {"workspace", WIN_WORKSPACE, NULL},
                {"models", WIN_BROWSER, NULL}, {"array", WIN_ARRAY, NULL},
                {"analysis", WIN_ANALYSIS, NULL}, {"3d", WIN_VIEW3D, NULL},
-               {"animator", WIN_ANI, NULL},   {"kinescope", WIN_KINE, NULL}};
+               {"animator", WIN_ANI, NULL},   {"kinescope", WIN_KINE, NULL},
+               {"figure", WIN_FIGURE, NULL}};
     int i;
     for (i = 0; i < (int)(sizeof map / sizeof map[0]); i++)
       if (SDL_strncasecmp(a->focus, map[i].key, strlen(a->focus)) == 0) {
@@ -674,6 +684,7 @@ void ui_draw(App *a) {
         if (i == 11) a->show_view3d = true;
         if (i == 12) a->show_ani = true;
         if (i == 13) a->show_kine = true;
+        if (i == 14) a->show_figure = true;
         igSetWindowFocus_Str(map[i].win);
         break;
       }

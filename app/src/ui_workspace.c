@@ -559,6 +559,84 @@ static void python_tab(App *a) {
   igEndTable();
 }
 
+/* Many runs: initial values drawn in a box, or shooting from an
+   equilibrium along its eigenvectors; each run keeps the global flag that
+   stopped it (app_figure.c). */
+static void many_tab(App *a) {
+  ManyUI *m = &a->mu;
+  RunSet *r = &a->many;
+  int i;
+  static const char *dirs[] = {"unstable (forward in time)", "stable (backward)", "both"};
+  if (!m->use) return;
+  TextWrapped("Run from many initial values at once and see how each run "
+              "ends. A model's global flags with {arret=1} stop runs (the "
+              "ground, a slack tether, ...); each ending gets its colour.");
+  igSeparatorText("Random initial values");
+  igSetNextItemWidth(90);
+  igInputInt("runs", &m->n, 10, 100, 0);
+  if (m->n < 1) m->n = 1;
+  if (m->n > 5000) m->n = 5000;
+  igSameLine(0, -1);
+  igSetNextItemWidth(90);
+  igInputInt("seed", &m->seed, 1, 10, 0);
+  Tooltip("The same seed gives the same initial values, here and in Python "
+          "(Model.sample_initial).");
+  for (i = 0; i < a->nvars; i++) {
+    igPushID_Int(i);
+    igCheckbox(a->vars[i], &m->use[i]);
+    Tooltip("Draw this variable uniformly between the two values; unticked, "
+            "it keeps its initial value.");
+    igSameLine(110, -1);
+    igBeginDisabled(!m->use[i]);
+    igSetNextItemWidth(80);
+    igInputDouble("##lo", &m->lo[i], 0, 0, "%.6g", 0);
+    igSameLine(0, -1);
+    igSetNextItemWidth(80);
+    igInputDouble("##hi", &m->hi[i], 0, 0, "%.6g", 0);
+    igEndDisabled();
+    igPopID();
+  }
+  {
+    static char cols[257][APP_NAME_LEN];
+    int nc = 1, k = m->req_col + 1;
+    snprintf(cols[0], APP_NAME_LEN, "(no condition)");
+    for (i = 1; i < a->ncols && nc < 257; i++) snprintf(cols[nc++], APP_NAME_LEN, "%s", a->cols[i]);
+    igSetNextItemWidth(110);
+    if (Combo("keep where", &k, cols, nc)) m->req_col = k - 1 > 0 ? k : -1;
+    Tooltip("Keep only the draws where this column (a variable or an aux "
+            "quantity, such as a tension) lies between the two values.");
+    if (m->req_col > 0) {
+      igSetNextItemWidth(80);
+      igInputDouble("from##req", &m->req_lo, 0, 0, "%.6g", 0);
+      igSameLine(0, -1);
+      igSetNextItemWidth(80);
+      igInputDouble("to##req", &m->req_hi, 0, 0, "%.6g", 0);
+      Tooltip("inf is allowed.");
+    }
+  }
+  if (Button("Run them")) app_many_runs(a);
+  igSeparatorText("Shoot from an equilibrium");
+  TextWrapped("From the equilibrium Newton's method finds near the initial "
+              "values, along each real eigenvector, both ways: the start of "
+              "its invariant manifolds, a node's too (XPPAUT's sHoot).");
+  igSetNextItemWidth(90);
+  igInputDouble("step off", &m->eps, 0, 0, "%.3g", 0);
+  igSameLine(0, -1);
+  igSetNextItemWidth(90);
+  igInputDouble("time", &m->shoot_total, 0, 0, "%.6g", 0);
+  Tooltip("The time of each run; 0 keeps the model's total time.");
+  igSetNextItemWidth(-1);
+  igCombo_Str_arr("##dirs", &m->dirs, dirs, 3, 3);
+  if (Button("Shoot")) app_shoot(a);
+  if (r->n > 0) {
+    igSeparator();
+    igText("%s.", r->what);
+    igCheckbox("Show on the plots", &r->show);
+    igSameLine(0, -1);
+    if (Button("Clear")) app_many_free(a);
+  }
+}
+
 void ui_workspace(App *a) {
   if (!igBegin(WIN_WORKSPACE, &a->show_workspace, 0)) {
     igEnd();
@@ -589,6 +667,10 @@ void ui_workspace(App *a) {
     }
     if (igBeginTabItem("Range", NULL, a->sw.reveal ? ImGuiTabItemFlags_SetSelected : 0)) {
       sweep_tab(a);
+      igEndTabItem();
+    }
+    if (igBeginTabItem("Many runs", NULL, 0)) {
+      many_tab(a);
       igEndTabItem();
     }
     if (igBeginTabItem("Python", NULL, a->reveal_python ? ImGuiTabItemFlags_SetSelected : 0)) {

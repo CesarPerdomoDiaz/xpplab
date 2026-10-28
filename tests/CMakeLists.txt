@@ -43,6 +43,10 @@ if(TARGET xpplab)
     ${PROJECT_SOURCE_DIR}/app/third_party/cimgui
     ${PROJECT_SOURCE_DIR}/app/third_party/cimplot)
   add_test(NAME app_plot_view COMMAND plot_view_check)
+  # Figures for papers: layout, mathtext and the four file formats.
+  add_executable(fig_check fig_check.c)
+  target_link_libraries(fig_check PRIVATE xpps_fig)
+  add_test(NAME app_figures COMMAND fig_check ${CMAKE_CURRENT_BINARY_DIR})
 endif()
 
 if(Python3_FOUND AND TARGET xpplab)

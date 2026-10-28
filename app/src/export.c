@@ -8,9 +8,7 @@
 
 #include <SDL3/SDL.h>
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#define STBIW_WINDOWS_UTF8 /* file names from SDL's dialogs are UTF-8 */
-#include "stb/stb_image_write.h"
+#include "stb/stb_image_write.h" /* compiled in fig_stb.c */
 
 FigureState g_figures[FIG_COUNT];
 

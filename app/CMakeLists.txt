@@ -62,6 +62,21 @@ function(embed_file input symbol output)
 endfunction()
 embed_file(${TP}/imgui/fonts/Roboto-Medium.ttf font_roboto ${GEN}/font_roboto.c)
 embed_file(${TP}/imgui/fonts/Cousine-Regular.ttf font_cousine ${GEN}/font_cousine.c)
+# The figures' fonts, matplotlib's (third_party/fonts, with their licences).
+embed_file(${TP}/fonts/DejaVuSans.ttf font_dejavu ${GEN}/font_dejavu.c)
+embed_file(${TP}/fonts/DejaVuSans-Oblique.ttf font_dejavu_it ${GEN}/font_dejavu_it.c)
+embed_file(${TP}/fonts/STIXGeneral.ttf font_stix ${GEN}/font_stix.c)
+embed_file(${TP}/fonts/STIXGeneralItalic.ttf font_stix_it ${GEN}/font_stix_it.c)
+
+# Figures for papers (fig.h): layout, text, PNG, PDF, SVG, EPS. No SDL, so
+# tests/fig_check.c can use it alone.
+add_library(xpps_fig STATIC
+  src/fig_font.c src/fig_draw.c src/fig_out.c src/fig_stb.c
+  ${GEN}/font_dejavu.c ${GEN}/font_dejavu_it.c ${GEN}/font_stix.c ${GEN}/font_stix_it.c)
+target_include_directories(xpps_fig PUBLIC src ${TP} ${TP}/imgui)
+if(NOT WIN32)
+  target_link_libraries(xpps_fig PUBLIC m)
+endif()
 
 file(GLOB DOC_PAGES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/docs/manual/*.md)
 set(DOC_SOURCES "")
@@ -105,6 +120,8 @@ set(APP_SOURCES
   src/ui_animator.c
   src/ui_kinescope.c
   src/export.c
+  src/app_figure.c
+  src/ui_figure.c
   src/channel.c
   src/pyconsole.c
   src/pyfetch.c
@@ -140,7 +157,7 @@ set_target_properties(xpplab PROPERTIES
   INSTALL_RPATH "$ORIGIN"
   BUILD_RPATH "$ORIGIN")
 target_include_directories(xpplab PRIVATE src ${PROJECT_SOURCE_DIR}/engine/api ${TP})
-target_link_libraries(xpplab PRIVATE xpps_gui SDL3::SDL3)
+target_link_libraries(xpplab PRIVATE xpps_gui xpps_fig SDL3::SDL3)
 if(WIN32)
   target_link_libraries(xpplab PRIVATE ws2_32) # the local channel's socket
 endif()
@@ -160,10 +177,10 @@ target_compile_definitions(xpplab PRIVATE
 # it shares the app's core: the commands, the echo, the exports.
 add_executable(xpplab-batch
   src/batch.c src/app.c src/app_analysis.c src/app_kinescope.c src/echo.c
-  src/commands.c src/export.c
+  src/commands.c src/export.c src/app_figure.c
   ${PROJECT_SOURCE_DIR}/engine/api/xpp_instance.c)
 target_include_directories(xpplab-batch PRIVATE src ${PROJECT_SOURCE_DIR}/engine/api ${TP})
-target_link_libraries(xpplab-batch PRIVATE SDL3::SDL3)
+target_link_libraries(xpplab-batch PRIVATE xpps_fig SDL3::SDL3)
 if(NOT WIN32)
   target_link_libraries(xpplab-batch PRIVATE ${CMAKE_DL_LIBS} m)
 endif()

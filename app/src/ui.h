@@ -23,6 +23,7 @@
 #define WIN_VIEW3D "3D View"
 #define WIN_ANI "Animator"
 #define WIN_KINE "Kinescope"
+#define WIN_FIGURE "Figure"
 
 /* The shortcut modifier as shown in menus. ImGui maps its Ctrl shortcuts
    to the Command key on macOS. */
@@ -94,6 +95,7 @@ void ui_analysis(App *a);
 void ui_view3d(App *a);
 void ui_animator(App *a);
 void ui_kinescope(App *a);
+void ui_figure(App *a);
 void ui_dialog_open_ani(App *a);
 
 /* Native file dialogs (results arrive on a later frame). */

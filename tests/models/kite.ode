@@ -1,0 +1,24 @@
+# kite.ode: a kite on a tether of constant length, in a vertical plane.
+# gam: elevation (rad), om: its rate; time in units of sqrt(L/g).
+# VW: the wind in m/s; lam = rho*S*L/(2m). The flags stop a run at the
+# ground (gam = 0), overhead (gam = pi/2) and when the tether goes slack.
+par VW=8, lam=245
+par L=100, g=9.81, CLmax=1.2, CD0=0.06, kd=0.12
+vt=VW/sqrt(g*L)
+ua=om+vt*sin(gam)
+wa=vt*cos(gam)
+va=sqrt(ua^2+wa^2)
+alpha=atan2(wa,ua)
+cl=CLmax*sin(2*alpha)
+cd=CD0+kd*cl^2
+tn=om^2-sin(gam)+lam*va*(cl*ua+cd*wa)
+gam'=om
+om'=-cos(gam)+lam*va*(cl*wa-cd*ua)
+aux deg=gam*180/pi
+aux tens=tn
+global -1 gam {arret=1}
+global 1 gam-pi/2 {arret=1}
+global -1 tn {arret=1}
+init gam=1.309, om=0
+@ total=47, dt=0.01, bound=1e6
+done

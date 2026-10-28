@@ -27,4 +27,4 @@ __all__ = ["Model", "Trajectory", "RunList", "Values", "Ensemble", "Equilibrium"
            "EngineError", "METHODS", "load", "find_engine_library", "app",
            "__version__"]
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"

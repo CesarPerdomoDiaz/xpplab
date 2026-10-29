@@ -157,7 +157,8 @@ To do:
       ecology, chemistry, mechanics); their Python is run by the tests
 - [x] "Coming from MATLAB" guide; its Python is run by the tests
 - [ ] "Coming from AUTO-07p" guide
-- [ ] Jupyter notebooks
+- [x] Jupyter notebooks (`notebooks/`: first steps, bifurcations, control;
+      run from a clean kernel by the tests)
 
 ### M6 Release and community
 - [x] Windows portable zip, macOS `.dmg` bundle, Linux tarball (CPack),

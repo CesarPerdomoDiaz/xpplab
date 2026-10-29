@@ -19,7 +19,7 @@ from pathlib import Path
 
 __all__ = ["Engine", "EngineError", "find_engine_library"]
 
-API_VERSION = 12
+API_VERSION = 13
 
 OK = 0
 ERR_STATE = -1
@@ -284,6 +284,12 @@ _SIGNATURES = {
     "xppe_auto_point_data": ([ctypes.c_int, ctypes.c_int,
                               ctypes.POINTER(ctypes.c_double), ctypes.c_int],
                              ctypes.c_int),
+    "xppe_write_mat": ([ctypes.c_char_p, ctypes.c_int,
+                        ctypes.POINTER(ctypes.c_char_p),
+                        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)),
+                        ctypes.c_int, ctypes.c_int,
+                        ctypes.POINTER(ctypes.c_char_p),
+                        ctypes.POINTER(ctypes.c_double)], ctypes.c_int),
 }
 
 # The engine reads and writes files relative to the working directory, and

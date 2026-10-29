@@ -19,7 +19,7 @@ void ui_data(App *a) {
   }
   igText("%d rows x %d columns", a->traj.nrows, a->traj.ncols);
   igSameLine(0, -1);
-  if (Button("Export CSV...")) ui_dialog_export_csv(a);
+  if (Button("Export CSV or MAT...")) ui_dialog_export_csv(a);
   igPushFont(g_fonts.mono, 0.0f);
   if (igBeginTable("data", a->traj.ncols, tf, V2(0, 0), 0)) {
     ImGuiListClipper *clip = ImGuiListClipper_ImGuiListClipper();

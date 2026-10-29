@@ -121,7 +121,10 @@ extern "C" {
   X(int, xppe_auto_main_slot, (int))                                          \
   X(int, xppe_auto_count, (void))                                             \
   X(int, xppe_auto_point, (int, xppe_auto_point_info *))                      \
-  X(int, xppe_auto_point_data, (int, int, double *, int))
+  X(int, xppe_auto_point_data, (int, int, double *, int))                     \
+  X(int, xppe_write_mat,                                                      \
+    (const char *, int, const char *const *, const double *const *, int, int, \
+     const char *const *, const double *))
 
 typedef struct {
 #define XPP_FIELD(ret, name, params) ret(*name) params;

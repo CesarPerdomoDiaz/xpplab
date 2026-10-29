@@ -349,6 +349,36 @@ done:
   return ok;
 }
 
+/* RunList.to_mat(): run, event, then the columns, every run after another. */
+static bool write_many_mat(App *a, const char *path) {
+  RunSet *r = &a->many;
+  int nc = r->runs[0].ncols + 2, rows = 0, at = 0, k, i, j;
+  const char **nm = calloc((size_t)nc, sizeof *nm);
+  double **col = calloc((size_t)nc, sizeof *col);
+  bool ok = nm && col;
+  for (k = 0; k < r->n; k++) rows += r->runs[k].nrows;
+  for (j = 0; ok && j < nc; j++)
+    ok = (col[j] = calloc((size_t)(rows > 0 ? rows : 1), sizeof(double))) != NULL;
+  if (ok) {
+    nm[0] = "run";
+    nm[1] = "event";
+    for (j = 2; j < nc; j++) nm[j] = r->runs[0].names[j - 2];
+    if (strcmp(nm[2], "T") == 0) nm[2] = "t";
+    for (k = 0; k < r->n; k++)
+      for (i = 0; i < r->runs[k].nrows; i++, at++) {
+        col[0][at] = k;
+        col[1][at] = r->event[k];
+        for (j = 2; j < nc; j++) col[j][at] = r->runs[k].cols[j - 2][i];
+      }
+    ok = app_write_mat(a, path, nc, nm, (const double *const *)col, rows, 0, NULL, NULL);
+  }
+  if (col)
+    for (j = 0; j < nc; j++) free(col[j]);
+  free(col);
+  free(nm);
+  return ok;
+}
+
 bool app_export_many_csv(App *a, const char *path) {
   RunSet *r = &a->many;
   FILE *f;
@@ -358,27 +388,31 @@ bool app_export_many_csv(App *a, const char *path) {
     app_log(a, "error: there are no runs to export (Workspace > Many runs)");
     return false;
   }
-  f = fopen(path, "w");
-  if (!f) {
-    app_log(a, "error: cannot write %s", path);
-    return false;
-  }
-  fprintf(f, "run,event");
-  for (j = 0; j < r->runs[0].ncols; j++) fprintf(f, ",%s", r->runs[0].names[j]);
-  fputc('\n', f);
-  for (k = 0; k < r->n; k++)
-    for (i = 0; i < r->runs[k].nrows; i++) {
-      fprintf(f, "%d,%d", k, r->event[k]);
-      for (j = 0; j < r->runs[k].ncols; j++) {
-        app_format_double(num, sizeof num, r->runs[k].cols[j][i]);
-        fprintf(f, ",%s", num);
-      }
-      fputc('\n', f);
+  if (app_is_mat(path)) {
+    if (!write_many_mat(a, path)) return false;
+  } else {
+    f = fopen(path, "w");
+    if (!f) {
+      app_log(a, "error: cannot write %s", path);
+      return false;
     }
-  fclose(f);
+    fprintf(f, "run,event");
+    for (j = 0; j < r->runs[0].ncols; j++) fprintf(f, ",%s", r->runs[0].names[j]);
+    fputc('\n', f);
+    for (k = 0; k < r->n; k++)
+      for (i = 0; i < r->runs[k].nrows; i++) {
+        fprintf(f, "%d,%d", k, r->event[k]);
+        for (j = 0; j < r->runs[k].ncols; j++) {
+          app_format_double(num, sizeof num, r->runs[k].cols[j][i]);
+          fprintf(f, ",%s", num);
+        }
+        fputc('\n', f);
+      }
+    fclose(f);
+  }
   if (echo_begin(a)) {
     echo_abs_path(path, p, sizeof p);
-    echo_line(a, "many.to_csv(%s)", echo_str(p, q, sizeof q));
+    echo_line(a, "many.%s(%s)", app_table_method(path), echo_str(p, q, sizeof q));
   }
   echo_end(a);
   app_log(a, "Exported %d runs to %s", r->n, path);

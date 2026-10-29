@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 12
+#define XPPE_API_VERSION 13
 
 enum {
   XPPE_OK = 0,
@@ -512,6 +512,17 @@ enum {
 XPPE_API int xppe_auto_count(void);
 XPPE_API int xppe_auto_point(int index, xppe_auto_point_info *info);
 XPPE_API int xppe_auto_point_data(int index, int what, double *out, int n);
+
+/* A MATLAB Level 5 MAT-file (little-endian, uncompressed, fixed header text,
+   so the same data gives the same bytes): one double column vector of nrows
+   values per column, named after names[] (made valid MATLAB names: every
+   character that is not a letter, digit or underscore becomes "_"; "x" goes
+   in front if the name does not start with a letter; names are cut to 63
+   characters; repeated names get _2, _3, ...), and, when nparams > 0, a
+   1-by-1 struct "params" with a field per pnames[] holding pvalues[]. */
+XPPE_API int xppe_write_mat(const char *path, int ncols, const char *const *names,
+                            const double *const *cols, int nrows, int nparams,
+                            const char *const *pnames, const double *pvalues);
 
 #ifdef __cplusplus
 }

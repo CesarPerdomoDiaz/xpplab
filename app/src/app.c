@@ -116,6 +116,7 @@ static void free_traj(Trajectory *t) {
     for (j = 0; j < t->ncols; j++) free(t->cols[j]);
   free(t->cols);
   free(t->names);
+  free(t->par);
   memset(t, 0, sizeof *t);
 }
 
@@ -843,6 +844,9 @@ static void fetch_run(App *a, Trajectory *t) {
     t->cols[j] = malloc(sizeof(double) * (size_t)(rows > 0 ? rows : 1));
     x->xppe_column(a->time_missing ? j - 1 : j, t->cols[j], rows);
   }
+  t->par = calloc((size_t)(a->npars > 0 ? a->npars : 1), sizeof(double));
+  t->npar = a->npars;
+  for (j = 0; t->par && j < a->npars; j++) x->xppe_get(a->pars[j], &t->par[j]);
 }
 
 void app_fetch_current(App *a) {
@@ -1118,6 +1122,10 @@ static bool continue_run(App *a, double more) {
       old.cols[j] = c;
     }
     old.nrows = n;
+    free(old.par); /* the parameters of the new run, as Model.continue_run does */
+    old.par = a->traj.par;
+    old.npar = a->traj.npar;
+    a->traj.par = NULL;
     free_traj(&a->traj);
     a->traj = old;
     a->have_traj = true;
@@ -2011,22 +2019,48 @@ bool app_export_nullclines_csv(App *a, const char *path) {
     a->echo.nc_written = true;
     app_nullclines(a, w[0], w[1], w[2], w[3]);
   }
-  if ((f = fopen(path, "w")) == NULL) {
-    app_log(a, "error: cannot write %s", path);
-    return false;
+  if (app_is_mat(path)) {
+    static const char *const nm[6] = {"set", "nullcline", "x1", "y1", "x2", "y2"};
+    double *c[6] = {0};
+    int rows = 0, r = 0, q;
+    bool ok = true;
+    for (k = now ? -1 : 0; k < p->nfrozen; k++)
+      rows += (k < 0 ? p->ncx_n : p->frozen[k].nx) + (k < 0 ? p->ncy_n : p->frozen[k].ny);
+    for (i = 0; i < 6; i++) {
+      c[i] = calloc((size_t)(rows > 0 ? rows : 1), sizeof(double));
+      ok = ok && c[i];
+    }
+    for (k = now ? -1 : 0; ok && k < p->nfrozen; k++) {
+      const float *seg[2] = {k < 0 ? p->ncx : p->frozen[k].x, k < 0 ? p->ncy : p->frozen[k].y};
+      int cnt[2] = {k < 0 ? p->ncx_n : p->frozen[k].nx, k < 0 ? p->ncy_n : p->frozen[k].ny};
+      for (s = 0; s < 2; s++)
+        for (i = 0; i < cnt[s]; i++, r++) {
+          c[0][r] = k + 1;
+          c[1][r] = s + 1;
+          for (q = 0; q < 4; q++) c[2 + q][r] = (double)seg[s][4 * i + q];
+        }
+    }
+    ok = ok && app_write_mat(a, path, 6, nm, (const double *const *)c, rows, 0, NULL, NULL);
+    for (i = 0; i < 6; i++) free(c[i]);
+    if (!ok) return false;
+  } else {
+    if ((f = fopen(path, "w")) == NULL) {
+      app_log(a, "error: cannot write %s", path);
+      return false;
+    }
+    fprintf(f, "set,nullcline,x1,y1,x2,y2\n");
+    for (k = now ? -1 : 0; k < p->nfrozen; k++) {
+      const float *seg[2] = {k < 0 ? p->ncx : p->frozen[k].x, k < 0 ? p->ncy : p->frozen[k].y};
+      int cnt[2] = {k < 0 ? p->ncx_n : p->frozen[k].nx, k < 0 ? p->ncy_n : p->frozen[k].ny};
+      for (s = 0; s < 2; s++)
+        for (i = 0; i < 4 * cnt[s]; i++) {
+          if (i % 4 == 0) fprintf(f, "%d.0,%d.0", k + 1, s + 1);
+          app_format_double(num, sizeof num, (double)seg[s][i]);
+          fprintf(f, ",%s%s", num, i % 4 == 3 ? "\n" : "");
+        }
+    }
+    fclose(f);
   }
-  fprintf(f, "set,nullcline,x1,y1,x2,y2\n");
-  for (k = now ? -1 : 0; k < p->nfrozen; k++) {
-    const float *seg[2] = {k < 0 ? p->ncx : p->frozen[k].x, k < 0 ? p->ncy : p->frozen[k].y};
-    int cnt[2] = {k < 0 ? p->ncx_n : p->frozen[k].nx, k < 0 ? p->ncy_n : p->frozen[k].ny};
-    for (s = 0; s < 2; s++)
-      for (i = 0; i < 4 * cnt[s]; i++) {
-        if (i % 4 == 0) fprintf(f, "%d.0,%d.0", k + 1, s + 1);
-        app_format_double(num, sizeof num, (double)seg[s][i]);
-        fprintf(f, ",%s%s", num, i % 4 == 3 ? "\n" : "");
-      }
-  }
-  fclose(f);
   outer = echo_begin(a);
   if (outer) {
     echo_abs_path(path, pa, sizeof pa);
@@ -2036,8 +2070,8 @@ bool app_export_nullclines_csv(App *a, const char *path) {
     } else {
       echo_frozen_list(a);
     }
-    echo_line(a, "xs.Table.from_nullclines(%s%s).to_csv(%s)",
-              now ? "[nc] + frozen" : "frozen", now ? "" : ", first=1",
+    echo_line(a, "xs.Table.from_nullclines(%s%s).%s(%s)",
+              now ? "[nc] + frozen" : "frozen", now ? "" : ", first=1", app_table_method(path),
               echo_str(pa, args, sizeof args));
   }
   echo_end(a);
@@ -2427,11 +2461,55 @@ bool app_auto_orbit(App *a, int point) {
 
 /* ---- Files and settings -------------------------------------------------- */
 
+bool app_is_mat(const char *path) {
+  size_t n = strlen(path);
+  return n > 4 && SDL_strcasecmp(path + n - 4, ".mat") == 0;
+}
+
+const char *app_table_method(const char *path) { return app_is_mat(path) ? "to_mat" : "to_csv"; }
+
+bool app_write_mat(App *a, const char *path, int ncols, const char *const *names,
+                   const double *const *cols, int nrows, int nparams,
+                   const char *const *pnames, const double *pvalues) {
+  int rc = a->eng ? a->eng->api.xppe_write_mat(path, ncols, names, cols, nrows, nparams,
+                                               pnames, pvalues)
+                  : XPPE_ERR_STATE;
+  if (rc != XPPE_OK) {
+    app_log(a, "error: cannot write %s", path);
+    return false;
+  }
+  return true;
+}
+
+/* A table as a .mat file: a run (it has parameter values) with its time
+   called t and a params struct, any other table just its columns. */
+static bool write_mat_table(App *a, const char *path, const Trajectory *t) {
+  const char **names = calloc((size_t)(t->ncols + 1), sizeof *names);
+  const char **pnames = calloc((size_t)(t->npar + 1), sizeof *pnames);
+  int j;
+  bool ok;
+  if (!names || !pnames) {
+    free(names);
+    free(pnames);
+    return false;
+  }
+  for (j = 0; j < t->ncols; j++) names[j] = t->names[j];
+  if (t->par && t->ncols > 0 && strcmp(names[0], "T") == 0) names[0] = "t";
+  for (j = 0; j < t->npar; j++) pnames[j] = a->pars[j];
+  ok = app_write_mat(a, path, t->ncols, names, (const double *const *)t->cols, t->nrows,
+                     t->par ? t->npar : 0, pnames, t->par);
+  free(names);
+  free(pnames);
+  if (ok) app_log(a, "Exported %d rows to %s", t->nrows, path);
+  return ok;
+}
+
 /* A table as CSV: a header of names, then rows of exact numbers. */
 static bool write_table(App *a, const char *path, const Trajectory *t) {
   FILE *f;
   char num[40];
   int i, j;
+  if (app_is_mat(path)) return write_mat_table(a, path, t);
   f = fopen(path, "w");
   if (!f) {
     app_log(a, "error: cannot write %s", path);
@@ -2459,7 +2537,7 @@ static void echo_export(App *a, const char *what, const char *path) {
     return;
   }
   echo_abs_path(path, p, sizeof p);
-  echo_line(a, "%s.to_csv(%s)", what, echo_str(p, q, sizeof q));
+  echo_line(a, "%s.%s(%s)", what, app_table_method(path), echo_str(p, q, sizeof q));
   echo_end(a);
 }
 
@@ -2527,9 +2605,9 @@ bool app_export_range_csv(App *a, const char *path) {
   SweepUI *s = &a->sw;
   Trajectory t;
   char names[4][APP_NAME_LEN], p[2100], q[2200], nm[160];
-  double *c[4];
+  double *c[4], *pv;
   bool ok;
-  int kind;
+  int kind, i;
   if (s->overlay || s->n <= 0 || a->echo.sweep_mode < 0) {
     app_log(a, "error: export a Range that measures a variable or the "
                "Liapunov exponent (a Range that keeps the runs has no table)");
@@ -2565,10 +2643,20 @@ bool app_export_range_csv(App *a, const char *path) {
   t.nrows = s->n;
   t.names = names;
   t.cols = c;
-  if (!(ok = write_table(a, path, &t))) return false;
+  /* A .mat file also holds the parameter values now (the swept one is back
+     at its own), as the script's xs.Table(..., params=...) does. */
+  pv = calloc((size_t)(a->npars > 0 ? a->npars : 1), sizeof *pv);
+  if (!pv) return false;
+  for (i = 0; i < a->npars; i++) a->eng->api.xppe_get(a->pars[i], &pv[i]);
+  t.par = pv;
+  t.npar = a->npars;
+  ok = write_table(a, path, &t);
+  free(pv);
+  if (!ok) return false;
   if (echo_begin(a)) {
     const bool lyap = a->echo.sweep_mode == SWEEP_LYAPUNOV;
     char cols[600], n2[160];
+    const bool mat = app_is_mat(path);
     echo_abs_path(path, p, sizeof p);
     echo_str(names[0], nm, sizeof nm);
     echo_str(a->echo.sweep_name2, n2, sizeof n2);
@@ -2579,13 +2667,16 @@ bool app_export_range_csv(App *a, const char *path) {
                echo_str(names[kind ? 2 : 1], q, sizeof q),
                echo_str(names[kind ? 3 : 2], q + 1100, sizeof q - 1100));
     if (kind == 2)
-      echo_line(a, "xs.Table.from_grid(%s, sweep_values, %s, sweep_values2, {%s}).to_csv(%s)",
-                nm, n2, cols, echo_str(p, q, sizeof q));
+      echo_line(a, "xs.Table.from_grid(%s, sweep_values, %s, sweep_values2, {%s}%s).%s(%s)",
+                nm, n2, cols, mat ? ", params=dict(m.parameters)" : "", app_table_method(path),
+                echo_str(p, q, sizeof q));
     else if (kind == 1)
-      echo_line(a, "xs.Table({%s: sweep_values, %s: sweep_values2, %s}).to_csv(%s)", nm, n2,
-                cols, echo_str(p, q, sizeof q));
+      echo_line(a, "xs.Table({%s: sweep_values, %s: sweep_values2, %s}%s).%s(%s)", nm, n2,
+                cols, mat ? ", params=dict(m.parameters)" : "", app_table_method(path),
+                echo_str(p, q, sizeof q));
     else
-      echo_line(a, "xs.Table({%s: sweep_values, %s}).to_csv(%s)", nm, cols,
+      echo_line(a, "xs.Table({%s: sweep_values, %s}%s).%s(%s)", nm, cols,
+                mat ? ", params=dict(m.parameters)" : "", app_table_method(path),
                 echo_str(p, q, sizeof q));
   }
   echo_end(a);
@@ -2601,6 +2692,41 @@ bool app_export_equilibria_csv(App *a, const char *path) {
   if (!a->model_ok || f->n <= 0) {
     app_log(a, "error: no equilibria found yet (eq all)");
     return false;
+  }
+  if (app_is_mat(path)) {
+    /* the variables, unstable, then re1, im1, re2, ... (one column each) */
+    int nc = 2 * n + n + 1;
+    const char **nm = calloc((size_t)nc, sizeof *nm);
+    const double **col = calloc((size_t)nc, sizeof *col);
+    char (*lab)[16] = calloc((size_t)(2 * n + 1), sizeof *lab);
+    double *buf = calloc((size_t)nc * (size_t)f->n, sizeof *buf);
+    bool ok = nm && col && lab && buf;
+    for (i = 0; ok && i < nc; i++) col[i] = buf + (size_t)i * f->n;
+    for (i = 0; ok && i < n; i++) nm[i] = a->vars[i];
+    if (ok) nm[n] = "unstable";
+    for (i = 0; ok && i < n; i++) {
+      snprintf(lab[2 * i], sizeof lab[0], "re%d", i + 1);
+      snprintf(lab[2 * i + 1], sizeof lab[0], "im%d", i + 1);
+      nm[n + 1 + 2 * i] = lab[2 * i];
+      nm[n + 2 + 2 * i] = lab[2 * i + 1];
+    }
+    for (k = 0; ok && k < f->n; k++) {
+      for (i = 0; i < n; i++) {
+        buf[(size_t)i * f->n + k] = f->x[(size_t)k * n + i];
+        buf[(size_t)(n + 1 + 2 * i) * f->n + k] = f->re[(size_t)k * n + i];
+        buf[(size_t)(n + 2 + 2 * i) * f->n + k] = f->im[(size_t)k * n + i];
+      }
+      buf[(size_t)n * f->n + k] = f->unstable[k];
+    }
+    ok = ok && app_write_mat(a, path, nc, nm, (const double *const *)col, f->n, 0, NULL, NULL);
+    free(nm);
+    free(col);
+    free(lab);
+    free(buf);
+    if (!ok) return false;
+    app_log(a, "Exported %d equilibria to %s", f->n, path);
+    echo_export(a, "eqs", path);
+    return true;
   }
   fp = fopen(path, "w");
   if (!fp) {
@@ -2643,6 +2769,53 @@ bool app_export_auto_csv(App *a, const char *path) {
     return false;
   }
   x = &a->eng->api;
+  if (app_is_mat(path)) {
+    /* the numeric columns of the CSV (not type, parameter, parameter2) */
+    static const char *const fixed[] = {"branch", "point", "label", "stable", "periodic",
+                                        "two_parameter", "value", "value2", "norm", "period"};
+    int nf = 10, nv = a->nvars, nc = nf + 2 * nv, cnt = a->au.count;
+    const char **nm = calloc((size_t)nc, sizeof *nm);
+    const double **col = calloc((size_t)nc, sizeof *col);
+    char (*lab)[APP_NAME_LEN + 8] = calloc((size_t)(2 * nv + 1), sizeof *lab);
+    double *buf = calloc((size_t)nc * (size_t)cnt, sizeof *buf);
+    bool ok = nm && col && lab && buf;
+    for (j = 0; ok && j < nc; j++) col[j] = buf + (size_t)j * cnt;
+    for (j = 0; ok && j < nf; j++) nm[j] = fixed[j];
+    for (j = 0; ok && j < nv; j++) {
+      snprintf(lab[j], sizeof lab[0], "%s_max", a->vars[j]);
+      snprintf(lab[nv + j], sizeof lab[0], "%s_min", a->vars[j]);
+      nm[nf + j] = lab[j];
+      nm[nf + nv + j] = lab[nv + j];
+    }
+    for (i = 0; ok && i < cnt; i++) {
+      const xppe_auto_point_info *p = &a->au.info[i];
+      double v[10];
+      v[0] = p->branch;
+      v[1] = p->point;
+      v[2] = p->label;
+      v[3] = p->stable ? 1 : 0;
+      v[4] = p->periodic ? 1 : 0;
+      v[5] = p->two_parameter ? 1 : 0;
+      v[6] = p->par1;
+      v[7] = p->two_parameter && x->xppe_auto_parameter_name(p->par2_slot) ? p->par2 : NAN;
+      v[8] = p->norm;
+      v[9] = p->period;
+      for (j = 0; j < nf; j++) buf[(size_t)j * cnt + i] = v[j];
+      for (j = 0; j < nv; j++) {
+        buf[(size_t)(nf + j) * cnt + i] = a->au.umax[(size_t)i * nv + j];
+        buf[(size_t)(nf + nv + j) * cnt + i] = a->au.umin[(size_t)i * nv + j];
+      }
+    }
+    ok = ok && app_write_mat(a, path, nc, nm, (const double *const *)col, cnt, 0, NULL, NULL);
+    free(nm);
+    free(col);
+    free(lab);
+    free(buf);
+    if (!ok) return false;
+    app_log(a, "Exported %d points of the bifurcation diagram to %s", cnt, path);
+    echo_export(a, "m.auto.diagram", path);
+    return true;
+  }
   f = fopen(path, "w");
   if (!f) {
     app_log(a, "error: cannot write %s", path);

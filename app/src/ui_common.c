@@ -157,7 +157,7 @@ static void SDLCALL dialog_done(void *userdata, const char *const *files,
 static const SDL_DialogFileFilter ode_filters[] = {
     {"XPPAUT models (*.ode)", "ode"}, {"All files", "*"}};
 static const SDL_DialogFileFilter csv_filters[] = {
-    {"CSV files (*.csv)", "csv"}, {"All files", "*"}};
+    {"CSV files (*.csv)", "csv"}, {"MATLAB files (*.mat)", "mat"}, {"All files", "*"}};
 
 void ui_dialog_open(App *a) {
   if (!dlg_lock) dlg_lock = SDL_CreateMutex();
@@ -199,7 +199,7 @@ void ui_dialog_save_as(App *a) {
 void ui_dialog_export_csv(App *a) {
   if (!dlg_lock) dlg_lock = SDL_CreateMutex();
   SDL_ShowSaveFileDialog(dialog_done, (void *)(intptr_t)DLG_EXPORT,
-                         (SDL_Window *)a->window, csv_filters, 2, NULL);
+                         (SDL_Window *)a->window, csv_filters, 3, NULL);
 }
 
 static const SDL_DialogFileFilter py_filters[] = {
@@ -269,6 +269,14 @@ static void with_extension(const char *path, const char *ext, char *out, size_t 
            (n < e || SDL_strcasecmp(path + n - e, ext) != 0) ? ext : "");
 }
 
+/* A data file keeps .csv or .mat (or .dat for a run); any other name gets .csv. */
+static void with_data_extension(const char *path, char *out, size_t len) {
+  size_t n = strlen(path);
+  bool known = n > 4 && (!SDL_strcasecmp(path + n - 4, ".csv") ||
+                         !SDL_strcasecmp(path + n - 4, ".mat"));
+  snprintf(out, len, "%s%s", path, known ? "" : ".csv");
+}
+
 void ui_dialog_poll(App *a) {
   char path[1024];
   int kind;
@@ -328,12 +336,12 @@ void ui_dialog_poll(App *a) {
   }
   if (kind == DLG_NULLCLINES) {
     char p[1100];
-    with_extension(path, ".csv", p, sizeof p);
+    with_data_extension(path, p, sizeof p);
     app_export_nullclines_csv(a, p);
   }
   if (kind == DLG_DATA) {
     char p[1100];
-    with_extension(path, ".csv", p, sizeof p);
+    with_data_extension(path, p, sizeof p);
     if (dlg_figure == FIG_AUTO || dlg_figure == FIG_AUTO2)
       app_export_auto_csv(a, p);
     else
@@ -358,7 +366,7 @@ void ui_export_button(App *a, int figure) {
   bool diagram = figure == FIG_AUTO || figure == FIG_AUTO2;
   if (Button("Export...")) igOpenPopup_Str("export", 0);
   Tooltip("Save this figure: a PNG image exactly as shown, or an SVG vector "
-          "figure for papers and posters. Or save its numbers as CSV.");
+          "figure for papers and posters. Or save its numbers as CSV or a MATLAB .mat file.");
   if (igBeginPopup("export", 0)) {
     int kind = DLG_NONE;
     if (igMenuItem_Bool("PNG image (as shown)...", NULL, false, true)) kind = DLG_PNG;
@@ -370,11 +378,11 @@ void ui_export_button(App *a, int figure) {
     if (igIsItemHovered(0))
       igSetTooltip("A figure for a paper from this plot: labels with mathtext, "
                    "line styles, several panels, PDF, SVG, EPS or PNG at any size.");
-    if (igMenuItem_Bool(diagram ? "Diagram points as CSV..." : "Run as CSV...", NULL,
+    if (igMenuItem_Bool(diagram ? "Diagram points as CSV or MAT..." : "Run as CSV or MAT...", NULL,
                         false, diagram ? a->au.count > 0 : a->have_traj))
       kind = DLG_DATA;
     if (figure == FIG_PHASE &&
-        igMenuItem_Bool("Nullclines as CSV...", NULL, false,
+        igMenuItem_Bool("Nullclines as CSV or MAT...", NULL, false,
                         a->pp.nullclines || a->pp.nfrozen > 0))
       kind = DLG_NULLCLINES;
     if (kind != DLG_NONE) {
@@ -385,7 +393,7 @@ void ui_export_button(App *a, int figure) {
                              kind == DLG_PNG   ? png_filters
                              : kind == DLG_SVG ? svg_filters
                                                : csv_filters,
-                             1, NULL);
+                             kind == DLG_PNG || kind == DLG_SVG ? 1 : 2, NULL);
     }
     igEndPopup();
   }

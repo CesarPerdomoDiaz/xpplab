@@ -26,7 +26,7 @@ static void menu_file(App *a) {
   if (igMenuItem_Bool("Save as...", NULL, false, a->editor[0] != 0))
     ui_dialog_save_as(a);
   igSeparator();
-  if (igMenuItem_Bool("Export data as CSV...", NULL, false, a->have_traj))
+  if (igMenuItem_Bool("Export data as CSV or MAT...", NULL, false, a->have_traj))
     ui_dialog_export_csv(a);
   if (igMenuItem_Bool("Save session as Python script...", NULL, false,
                       a->echo.len > 0))

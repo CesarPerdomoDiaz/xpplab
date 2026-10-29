@@ -2,12 +2,12 @@
 """Check that a desktop session saved as Python repeats it, number for number.
 
 Each case starts the app with a model and command-window commands, some of
-which export data as CSV: the last run, the bifurcation diagram, a Range, an
+which export data as CSV or MATLAB .mat: the last run, the bifurcation diagram, a Range, an
 Analysis result. The app then saves the session as a Python script (script
 FILE.py). The case runs that script with the xpplab package from this
 repository and the app's own engine library: the script writes the same CSV
 files from its own results, and every number must equal the app's, bit for
-bit.
+bit (a .mat file must be the same bytes).
 
     python tests/replay.py --app build/app/xpplab.exe
     python3 tests/replay.py --app build/app/xpplab.app/Contents/MacOS/xpplab
@@ -182,6 +182,32 @@ CASES = [
         "figure ylim 0 2", "figure export {out}/fig.pdf",
         "set VW=8", "shoot eps 1e-4 both", "export {out}/both.csv many",
         "run", "export {out}/run.csv"]),
+    # MATLAB .mat files: the app's and the script's must be the same bytes.
+    ("mat", "lecar.ode", [
+        "set iapp=0.1 total=200", "run", "export {out}/run.mat",
+        "set gca=1.1", "continue 40", "export {out}/continued.mat",
+        "export {out}/same.csv",
+        "range iapp 0 0.5 12 V", "export {out}/maxmin.mat range",
+        "range iapp 0 0.5 4 gca 0.8 1.2 3 V", "export {out}/grid.mat range",
+        "range iapp 0 0.5 4 gca 0.8 1.2 lyap", "export {out}/line.mat range",
+        "range iapp 0 0.3 11 eq V", "export {out}/eqsweep.mat range",
+        "eq all", "export {out}/all.mat equilibria",
+        "use hopf", "auto set parmax=0.6 nmax=220", "auto steady iapp",
+        "auto from 2 periodic", "export {out}/diagram.mat auto",
+        "run", "export {out}/last.mat"]),
+    ("mat_analysis", "lecar.ode", [
+        "nullclines freeze", "nullclines freeze iapp 0 0.3 3",
+        "export {out}/nc.mat nullclines",
+        "set total=50", "ensemble 10", "export {out}/ens.mat analysis",
+        "spectrum V 128", "export {out}/spectrum.mat analysis",
+        "set iapp=0.08", "linearize inputs iapp", "poles -0.5+0.3i -0.5-0.3i",
+        "locus gain 0 2 21", "export {out}/gain.mat locus",
+        "locus par phi 0.1 1 11", "export {out}/phi.mat locus"]),
+    ("mat_many", "tests/models/kite.ode", [
+        "set VW=2.1",
+        "many 6 seed 3 gam 0 1.5707963 om -1.3 1.3 keep tens 0 inf",
+        "export {out}/many.mat many", "export {out}/many.csv many",
+        "run", "export {out}/run.mat"]),
 ]
 
 
@@ -197,6 +223,12 @@ def cells_equal(x, y):
 
 def compare(app_csv, py_csv):
     """None if the files hold the same numbers, else what differs."""
+    if py_csv.suffix == ".mat":
+        if not py_csv.exists():
+            return "%s: the script did not write it" % py_csv.name
+        if py_csv.read_bytes() != app_csv.read_bytes():
+            return "%s: the app's file and the script's differ" % py_csv.name
+        return None
     if not py_csv.exists():
         return "the script did not write %s" % py_csv.name
     a = app_csv.read_text().splitlines()
@@ -246,12 +278,12 @@ def run_case(app, engine, out, name, model, cmds, timeout):
     problems += ["app: " + l for l in text.splitlines() if l.startswith("error")]
     if not script.exists():
         return problems + ["the app saved no script"]
-    exported = sorted(p for p in d.glob("*.csv"))
+    exported = sorted(list(d.glob("*.csv")) + list(d.glob("*.mat")))
     if not exported:
         problems.append("the commands exported nothing")
     renamed = []
     for p in exported:
-        q = p.with_name(p.stem + ".app.csv")
+        q = p.with_name(p.stem + ".app" + p.suffix)
         p.replace(q)
         renamed.append((q, p))
     env = dict(os.environ, PYTHONPATH=str(ROOT / "python" / "src"),

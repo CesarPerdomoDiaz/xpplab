@@ -305,7 +305,9 @@ class Model(AnalysisMixin):
             self.set(T0=t0, TOTAL=total, **ics)
         data = {k: np.concatenate([trajectory[k], new[k][1:]])
                 for k in trajectory.columns if k in new}
-        return Trajectory(data, log=new.log)
+        out = Trajectory(data, log=new.log)
+        out.params = new.params
+        return out
 
     def sensitivity(self, params=None, **values) -> "Sensitivity":
         """Sensitivity of the trajectory to parameters: S(t) = dx/dp.
@@ -366,7 +368,10 @@ class Model(AnalysisMixin):
         for j, name in enumerate(self.columns):
             n = self._engine.call("xppe_column", j, buf, rows)
             data[name] = np.frombuffer(buf, dtype=float, count=n).copy()
-        return Trajectory(data, log=self._engine.log)
+        out = Trajectory(data, log=self._engine.log)
+        with self._engine.batch():
+            out.params = {p: float(self.get(p)) for p in self._parameter_names}
+        return out
 
     def equilibrium(self, guess: dict | None = None, *,
                     set_initial: bool = False) -> "Equilibrium":
@@ -876,6 +881,8 @@ class Trajectory:
     def __init__(self, data: dict[str, np.ndarray], log: str = ""):
         self._data = data
         self.log = log
+        #: The parameter values the run used (a dictionary), or None.
+        self.params = None
         #: The global flag that stopped the run (its number from 1, see
         #: :attr:`Model.flags`), or 0 when it ran to the end.
         self.event = 0
@@ -919,6 +926,16 @@ class Trajectory:
         desktop app's ``export FILE.csv`` writes the same file)."""
         from .analysis import write_csv
         write_csv(path, self.columns, self.to_numpy())
+
+    def to_mat(self, path: str | os.PathLike) -> None:
+        """Write the run as a MATLAB .mat file: ``t`` and one column vector
+        per variable and aux quantity, named as in the model (made valid
+        MATLAB names, see :func:`xpplab.analysis.write_mat`), and the struct
+        ``params`` with the parameter values the run used. The desktop app's
+        ``export FILE.mat`` writes the same file."""
+        from .analysis import write_mat
+        names = ["t" if k == "T" else k for k in self.columns]
+        write_mat(path, names, self._data.values(), self.params)
 
     def plot(self, *y: str, x: str = "T", ax=None, **kw):
         """Plot columns against time (or against another column with x=)."""
@@ -1038,6 +1055,21 @@ class RunList(list):
             rows += [[k, s.event] + list(r) for r in data]
         write_csv(path, ["run", "event"] + cols, rows)
 
+    def to_mat(self, path) -> None:
+        """Every run in one .mat file, as :meth:`to_csv` has it: ``run``
+        (from 0), ``event``, then the columns, one row per output time.
+        There is no ``params`` struct (the runs may differ)."""
+        from .analysis import write_mat
+        cols = self[0].columns if len(self) else ["T"]
+        names = ["t" if k == "T" else k for k in cols]
+        runs = [np.concatenate([np.full(len(s), k, float) for k, s in enumerate(self)])
+                if len(self) else np.zeros(0),
+                np.concatenate([np.full(len(s), s.event, float) for s in self])
+                if len(self) else np.zeros(0)]
+        runs += [np.concatenate([s[c] for s in self]) if len(self) else np.zeros(0)
+                 for c in cols]
+        write_mat(path, ["run", "event"] + names, runs)
+
     def __repr__(self) -> str:
         return f"<RunList: {len(self)} runs, ended by {self.counts()}>"
 
@@ -1076,6 +1108,10 @@ class Ensemble:
 
     def to_csv(self, path) -> None:
         self.to_table().to_csv(path)
+
+    def to_mat(self, path) -> None:
+        """The table of :meth:`to_table` as a .mat file."""
+        self.to_table().to_mat(path)
 
     def plot(self, *names: str, ax=None, band: float = 1.0):
         """Each column's mean against time, with a band of ``band``
@@ -1168,6 +1204,14 @@ class EquilibriumList(list):
         writes the same file."""
         from .analysis import write_csv
         write_csv(path, *self._table())
+
+    def to_mat(self, path: str | os.PathLike) -> None:
+        """The same table as a MATLAB .mat file, one column vector per
+        column (the desktop app's ``export FILE.mat equilibria`` writes the
+        same file)."""
+        from .analysis import write_mat
+        cols, rows = self._table()
+        write_mat(path, cols, np.array(rows, dtype=float).reshape(len(rows), len(cols)).T)
 
     def to_pandas(self):
         """The same table as a pandas DataFrame."""

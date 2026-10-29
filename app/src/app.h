@@ -23,6 +23,8 @@ typedef struct {
   int nrows, ncols;
   char (*names)[APP_NAME_LEN];
   double **cols; /* cols[j][i]: column j at output time i */
+  double *par;   /* the parameter values the run used (npar of them), or NULL */
+  int npar;
   char label[96];
 } Trajectory;
 
@@ -641,6 +643,13 @@ int app_auto_actions(App *a, int point, const char **labels, const char **keys,
 
 /* Files. The CSV files hold every number exactly (the shortest text that
    reads back as the same double). */
+/* A .mat name (MATLAB Level 5, written by the engine) in place of CSV: the
+   method the echoed script calls, and the writer the exporters share. */
+bool app_is_mat(const char *path);
+const char *app_table_method(const char *path); /* "to_mat" or "to_csv" */
+bool app_write_mat(App *a, const char *path, int ncols, const char *const *names,
+                   const double *const *cols, int nrows, int nparams,
+                   const char *const *pnames, const double *pvalues);
 bool app_export_csv(App *a, const char *path);          /* the last run */
 bool app_export_auto_csv(App *a, const char *path);     /* the diagram's points */
 bool app_export_analysis_csv(App *a, const char *path); /* the Analysis result */

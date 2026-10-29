@@ -2,6 +2,8 @@
 
 ::: xpplab.Model
 
+::: xpplab.example
+
 ::: xpplab.Trajectory
 
 ::: xpplab.Equilibrium

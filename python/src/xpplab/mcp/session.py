@@ -74,13 +74,9 @@ def _repo_dir() -> Path:
 def examples_dir() -> Path | None:
     """The folder of example models: $XPPLAB_EXAMPLES, the copy inside
     the installed package, or engine/xppaut/ode in a source checkout."""
-    env = os.environ.get("XPPLAB_EXAMPLES")
-    cands = [Path(env)] if env else []
-    cands += [_package_dir() / "examples", _repo_dir() / "engine" / "xppaut" / "ode"]
-    for c in cands:
-        if c.is_dir() and any(c.glob("*.ode")):
-            return c
-    return None
+    from ..examples import example_dirs
+    dirs = example_dirs()
+    return dirs[0] if dirs else None
 
 
 def doc_path(name: str) -> Path | None:

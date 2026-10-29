@@ -1,7 +1,7 @@
 """XPP Lab: XPPAUT's simulation and AUTO bifurcation engine for Python.
 
     import xpplab as xs
-    m = xs.load("lecar.ode")
+    m = xs.load(xs.example("lecar.ode"))
     sol = m.run(total=100)
     d = m.auto.equilibria("iapp")
     d.special()
@@ -16,6 +16,7 @@ from .animation import Animation
 from .auto import Diagram, Point
 from .control import LQR, Linearization, RootLocus
 from .sensitivity import Sensitivity
+from .examples import example
 from .figure import Figure
 from .model import (METHODS, Ensemble, Equilibrium, EquilibriumList, Model, RunList,
                     Trajectory, Values, load)
@@ -24,7 +25,7 @@ from . import app  # xs.app.connect(): drive the running desktop app
 __all__ = ["Model", "Trajectory", "RunList", "Values", "Ensemble", "Equilibrium", "EquilibriumList", "Linearization",
            "LQR", "RootLocus",
            "Diagram", "Point", "Table", "Figure", "Animation",
-           "EngineError", "METHODS", "load", "find_engine_library", "app",
+           "EngineError", "METHODS", "load", "example", "find_engine_library", "app",
            "__version__"]
 
 __version__ = "0.1.3"

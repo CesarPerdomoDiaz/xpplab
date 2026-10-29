@@ -776,6 +776,10 @@ bool app_export_linear_csv(App *a, const char *path) {
     app_log(a, "error: there is no linearisation to export");
     return false;
   }
+  if (app_is_mat(path)) {
+    app_log(a, "error: the linearisation has a column of names; export it as CSV");
+    return false;
+  }
   f = fopen(path, "w");
   if (!f) {
     app_log(a, "error: cannot write %s", path);
@@ -1487,6 +1491,40 @@ bool app_write_locus_csv(App *a, const char *path) {
   if (R->kind == LOCUS_NONE) {
     app_log(a, "error: there is no root locus to export");
     return false;
+  }
+  if (app_is_mat(path)) {
+    /* the value, the equilibrium, then re1, im1, re2, ... */
+    int nc = 1 + R->nx + 2 * R->n, steps = R->steps;
+    const char **nm = calloc((size_t)nc, sizeof *nm);
+    const double **col = calloc((size_t)nc, sizeof *col);
+    char (*lab)[16] = calloc((size_t)(2 * R->n + 1), sizeof *lab);
+    double *buf = calloc((size_t)nc * (size_t)(steps > 0 ? steps : 1), sizeof *buf);
+    bool ok = nm && col && lab && buf;
+    for (j = 0; ok && j < nc; j++) col[j] = buf + (size_t)j * steps;
+    if (ok) nm[0] = R->name;
+    for (j = 0; ok && j < R->nx; j++) nm[1 + j] = a->vars[j];
+    for (b = 0; ok && b < R->n; b++) {
+      snprintf(lab[2 * b], sizeof lab[0], "re%d", b + 1);
+      snprintf(lab[2 * b + 1], sizeof lab[0], "im%d", b + 1);
+      nm[1 + R->nx + 2 * b] = lab[2 * b];
+      nm[2 + R->nx + 2 * b] = lab[2 * b + 1];
+    }
+    for (s = 0; ok && s < steps; s++) {
+      buf[s] = R->values[s];
+      for (j = 0; j < R->nx; j++) buf[(size_t)(1 + j) * steps + s] = R->x[(size_t)s * R->nx + j];
+      for (b = 0; b < R->n; b++) {
+        buf[(size_t)(1 + R->nx + 2 * b) * steps + s] = R->re[(size_t)b * steps + s];
+        buf[(size_t)(2 + R->nx + 2 * b) * steps + s] = R->im[(size_t)b * steps + s];
+      }
+    }
+    ok = ok && app_write_mat(a, path, nc, nm, (const double *const *)col, steps, 0, NULL, NULL);
+    free(nm);
+    free(col);
+    free(lab);
+    free(buf);
+    if (!ok) return false;
+    app_log(a, "Exported the root locus (%d steps) to %s", steps, path);
+    return true;
   }
   f = fopen(path, "w");
   if (!f) {

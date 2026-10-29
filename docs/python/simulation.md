@@ -56,6 +56,16 @@ variables gets one value per index.
 `Table` results and bifurcation diagrams (`m.auto.diagram.to_csv(...)`)
 have the same method. The files match the desktop app's CSV exports.
 
+`sol.to_mat("run.mat")` writes the same data as a MATLAB file that `load`
+reads with no toolbox: `t`, one column per variable and aux quantity, and the
+struct `params` with the parameter values of the run. `Table` results,
+`RunList`, equilibrium lists, root loci and bifurcation diagrams have
+`to_mat` too (a diagram leaves out its text columns). `Table(..., params={...})`
+adds a `params` struct. The writer is in the engine, so the desktop app's
+`export FILE.mat` writes the same bytes and SciPy is not needed. How names
+are changed to valid MATLAB names is in the manual, under
+[MATLAB `.mat` files](../manual/commands.md#matlab-mat-files).
+
 ## Integrators
 
 `meth=` takes XPPAUT's names or friendlier aliases:

@@ -157,6 +157,29 @@ def test_names(tmp_path):
     assert same_bits(got["x_3"], cols[4])
 
 
+def test_matlab_keywords(tmp_path):
+    words = ["break", "case", "catch", "classdef", "continue", "else", "elseif", "end",
+             "for", "function", "global", "if", "otherwise", "parfor", "persistent",
+             "return", "spmd", "switch", "try", "while"]
+    write_mat(tmp_path / "k.mat", words + ["End", "end"], [np.zeros(1)] * (len(words) + 2),
+              {"end": 1.0, "if": 2.0})
+    got = read_mat(tmp_path / "k.mat")
+    assert list(got) == [w + "_" for w in words] + ["End", "end__2", "params"]
+    assert got["params"] == {"end_": 1.0, "if_": 2.0}
+
+
+def test_non_ascii_path(lecar, tmp_path):
+    folder = tmp_path / "\u00f1and\u00fa \u00e9"
+    folder.mkdir()
+    sol = lecar.run(total=20)
+    sol.to_mat(folder / "run.mat")
+    got = read_mat(folder / "run.mat")
+    assert same_bits(got["V"], sol["V"])
+    assert [p.name for p in folder.iterdir()] == ["run.mat"]
+    xs.Table({"a": np.arange(3.0)}).to_mat(folder / "t\u00e9.mat")
+    assert same_bits(read_mat(folder / "t\u00e9.mat")["a"], np.arange(3.0))
+
+
 def test_names_without_params(tmp_path):
     # "params" is only reserved when a params struct is written
     write_mat(tmp_path / "n.mat", ["params"], [np.ones(1)])

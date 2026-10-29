@@ -58,10 +58,22 @@ static void put_zeros(Out *o, size_t n) {
 
 static size_t pad8(size_t n) { return (n + 7) & ~(size_t)7; }
 
+/* MATLAB's iskeyword list: such a name cannot be a variable or a field. */
+static int is_keyword(const char *s) {
+  static const char *const words[] = {
+      "break", "case",   "catch",  "classdef", "continue", "else",   "elseif",
+      "end",   "for",    "function", "global", "if",       "otherwise", "parfor",
+      "persistent", "return", "spmd", "switch", "try",     "while"};
+  size_t i;
+  for (i = 0; i < sizeof words / sizeof *words; i++)
+    if (strcmp(s, words[i]) == 0) return 1;
+  return 0;
+}
+
 /* A MATLAB name from any text: every character that is not a letter, digit
    or underscore becomes "_" (a non-ASCII character, however many bytes of
    UTF-8, becomes one); if the result does not start with a letter, "x" goes
-   in front; at most 63 characters are kept. */
+   in front; at most 63 characters are kept; a MATLAB keyword gets "_" added. */
 static void clean_name(const char *in, char *out) {
   size_t n = 0;
   const unsigned char *p;
@@ -83,6 +95,7 @@ static void clean_name(const char *in, char *out) {
   if (n > MAT_NAME_MAX) n = MAT_NAME_MAX;
   memcpy(out, tmp, n);
   out[n] = 0;
+  if (is_keyword(out)) strcat(out, "_");
 }
 
 /* Make names[i] unique among names[0..i-1] and the extra reserved name:
@@ -201,7 +214,7 @@ int xppe_write_mat(const char *path, int ncols, const char *const *names,
   clean_names(ncols, names, cn, nparams > 0 ? "params" : NULL);
   clean_names(nparams, pnames, pn, NULL);
 
-  o.f = fopen(path, "wb");
+  o.f = xppe_fopen_utf8(path, "wb");
   o.ok = o.f != NULL;
   if (!o.f) {
     free(cn);

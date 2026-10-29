@@ -518,7 +518,7 @@ XPPE_API int xppe_auto_point_data(int index, int what, double *out, int n);
    values per column, named after names[] (made valid MATLAB names: every
    character that is not a letter, digit or underscore becomes "_"; "x" goes
    in front if the name does not start with a letter; names are cut to 63
-   characters; repeated names get _2, _3, ...), and, when nparams > 0, a
+   characters; a MATLAB keyword such as end gets "_" added; repeated names get _2, _3, ...), and, when nparams > 0, a
    1-by-1 struct "params" with a field per pnames[] holding pvalues[]. */
 XPPE_API int xppe_write_mat(const char *path, int ncols, const char *const *names,
                             const double *const *cols, int nrows, int nparams,

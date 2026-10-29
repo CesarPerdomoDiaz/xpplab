@@ -269,7 +269,7 @@ static void with_extension(const char *path, const char *ext, char *out, size_t 
            (n < e || SDL_strcasecmp(path + n - e, ext) != 0) ? ext : "");
 }
 
-/* A data file keeps .csv or .mat (or .dat for a run); any other name gets .csv. */
+/* A data file keeps .csv or .mat; any other name gets .csv added. */
 static void with_data_extension(const char *path, char *out, size_t len) {
   size_t n = strlen(path);
   bool known = n > 4 && (!SDL_strcasecmp(path + n - 4, ".csv") ||

@@ -130,7 +130,9 @@ these rules, in this order:
 2. if the result does not start with a letter, `x` is put in front (so `_u`
    becomes `x_u`, `1x` becomes `x1x` and an empty name becomes `x`);
 3. the name is cut to 63 characters;
-4. a name already used earlier in the file gets `_2`, `_3`, ... added until it
+4. a MATLAB keyword (the names `iskeyword` lists: `end`, `for`, `if`,
+   `function`, `global`, `while`, ...) gets `_` added, so `end` becomes `end_`;
+5. a name already used earlier in the file gets `_2`, `_3`, ... added until it
    is new (the name is cut further so that the suffix fits). With a `params`
    struct, `params` counts as used. The names of the parameters are made
    unique among themselves in the same way.

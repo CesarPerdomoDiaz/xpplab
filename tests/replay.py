@@ -46,6 +46,10 @@ def engine_of(app):
     return None
 
 
+# A folder with non-ASCII characters in its name, made in every case (no
+# space: the command window splits words at spaces).
+UNICODE_DIR = "\u00f1and\u00fa_\u00e9"
+
 # Each case: a model and the commands; {out} is the case's folder. Every
 # CSV the commands export is compared with the script's.
 CASES = [
@@ -203,6 +207,11 @@ CASES = [
         "set iapp=0.08", "linearize inputs iapp", "poles -0.5+0.3i -0.5-0.3i",
         "locus gain 0 2 21", "export {out}/gain.mat locus",
         "locus par phi 0.1 1 11", "export {out}/phi.mat locus"]),
+    # A path with accents: the app and the script both write there.
+    ("mat_unicode", "lecar.ode", [
+        "set iapp=0.1 total=100", "run",
+        "export {out}/" + UNICODE_DIR + "/run.mat",
+        "range iapp 0 0.5 6 V", "export {out}/" + UNICODE_DIR + "/range.mat range"]),
     ("mat_many", "tests/models/kite.ode", [
         "set VW=2.1",
         "many 6 seed 3 gam 0 1.5707963 om -1.3 1.3 keep tens 0 inf",
@@ -259,6 +268,7 @@ def run_case(app, engine, out, name, model, cmds, timeout):
     d = out / name
     shutil.rmtree(d, ignore_errors=True)
     d.mkdir(parents=True)
+    (d / UNICODE_DIR).mkdir()
     script, log, shot = d / "session.py", d / "app.log", d / "shot.png"
     args = [str(app), str(ROOT / model if model.startswith("tests/") else EXAMPLES / model)]
     for c in cmds:
@@ -278,7 +288,8 @@ def run_case(app, engine, out, name, model, cmds, timeout):
     problems += ["app: " + l for l in text.splitlines() if l.startswith("error")]
     if not script.exists():
         return problems + ["the app saved no script"]
-    exported = sorted(list(d.glob("*.csv")) + list(d.glob("*.mat")))
+    exported = sorted(list(d.glob("*.csv")) + list(d.glob("*.mat"))
+                      + list(d.glob(UNICODE_DIR + "/*.mat")))
     if not exported:
         problems.append("the commands exported nothing")
     renamed = []

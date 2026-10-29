@@ -71,6 +71,14 @@ open one only after you tried.
 - A little calculus and linear algebra: derivatives, and eigenvalues of a
   2 by 2 matrix. Everything else is explained when it is first used.
 
+## Notebooks
+
+If you prefer to work in Jupyter, the repository's `notebooks/` folder has
+three short guided notebooks: first steps, bifurcations and control, all on
+the Morris-Lecar model. Open them with `pip install "xpplab[all]" jupyterlab`
+and `jupyter lab notebooks/`; see the [Python quick
+start](../python/quickstart.md#notebooks).
+
 ## Where to look things up
 
 - [The .ode file format](../manual/odefile.md): every statement a model can

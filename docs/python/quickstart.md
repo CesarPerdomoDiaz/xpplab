@@ -79,6 +79,24 @@ equilibria with a stable or unstable label, and the special points of a
 diagram. Long tables are cut after 20 rows. Plain `repr` is unchanged in a
 terminal.
 
+## Notebooks
+
+The repository's `notebooks/` folder has three guided notebooks: first steps
+(run, plot, change a parameter, find equilibria), bifurcations (a branch of
+equilibria, its Hopf point, the periodic branch) and control (linearise,
+place the poles, run the closed loop, compare with LQR). To open them:
+
+```
+pip install "xpplab[all]" jupyterlab
+jupyter lab notebooks/
+```
+
+They load models with `xs.example("lecar.ode")`, which returns the path of a
+model that ships with the package (it looks in `$XPPLAB_EXAMPLES`, the
+package's copy, then the source checkout), so `xs.load(xs.example("lecar.ode"))`
+works after a plain `pip install xpplab`. A name with no match raises
+`FileNotFoundError` listing the close names.
+
 ## Several models at once
 
 Each `Model` holds its own copy of the engine, so models are independent:

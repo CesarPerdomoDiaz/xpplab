@@ -79,8 +79,7 @@ periodic orbits, branch points, period doubling and torus points. Folds and
 Hopf points on steady states are still found. On the periodic branch of the
 example below, `p.stable` comes out the same with and without `suppbp=1`.
 
-The defaults are `ntst` 15, `nmax` 200, `npr` 50, `ds` 0.02, `dsmin` 0.001,
-`dsmax` 0.5, `parmin` 0 and `parmax` 2. `m.auto.settings` lists all of them.
+`m.auto.settings` lists the current value of every setting.
 
 ## What has no equivalent here
 
@@ -157,8 +156,7 @@ numbers agree with the formulas above to the accuracy of AUTO's tolerances.
 Now the periodic branch from the Hopf point, the way AUTO-07p would do it
 with `IPS=2`, `IRS=2`, `ICP=['lam', 11]` (`PAR(11)` is the period). XPP Lab
 needs no second parameter for the period: `continue_from(hb, "periodic")`
-runs with one continuation parameter, `lam`, and the period is carried by the
-code itself (`auto_nox.c` sets `nfpar=1` for this run). The orbits are born with a period
+takes just `lam`, because XPP Lab adds the period by itself. The orbits are born with a period
 of `2 pi / 0.866 = 7.26` and the branch turns towards smaller `lam`, so the
 Hopf point is subcritical and the orbits are unstable. Then save the
 diagram, clear it, load it again and follow the fold in two parameters:

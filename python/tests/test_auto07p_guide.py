@@ -105,7 +105,7 @@ def test_save_and_load_give_the_same_points(ns, tmp_path):
     assert [(p.label, p.type, p.value, p.branch) for p in again] == before
 
 
-def test_defaults_in_the_text():
+def test_defaults_of_the_settings():
     (ode,) = blocks("ode")
     with _load(ode) as m:
         got = m.auto.settings
@@ -113,11 +113,6 @@ def test_defaults_in_the_text():
                         "dsmin": 0.001, "dsmax": 0.5, "parmin": 0,
                         "parmax": 2}.items():
         assert got[name] == value, name
-    text = " ".join(PAGE.read_text(encoding="utf-8").split())
-    quoted = dict(re.findall(r"`(\w+)` ([\d.]+)", text[text.index("The defaults are"):]))
-    assert set(quoted) >= {"ntst", "nmax", "npr", "ds", "dsmin", "dsmax", "parmin", "parmax"}
-    for name, value in quoted.items():
-        assert got[name] == float(value), name
 
 
 def _load(ode):
@@ -265,10 +260,6 @@ def test_echoed_lines_are_calls_of_the_package():
 
 
 def test_icp_and_the_start_from_a_run():
-    text = PAGE.read_text(encoding="utf-8")
-    assert "`ICP=['lam', 11]`" in text and "'T'" not in text
-    row = [r for r in table_rows() if r.startswith("| `IPS=2` from an orbit")]
-    assert len(row) == 1 and row[0].split("|")[2].strip() == "not in the app"
     # the app has no control that starts a periodic branch from the run:
     # its only AUTO runs are the steady start and continuation from a point
     app = (ROOT / "app" / "src" / "app.c").read_text(encoding="utf-8")

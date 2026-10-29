@@ -1,6 +1,7 @@
 """MATLAB .mat export: the files are read back by a small reader written
 here from the Level 5 format description (so the check needs nothing but
 NumPy) and, when SciPy is installed, by scipy.io.loadmat."""
+import os
 import struct
 from pathlib import Path
 
@@ -250,7 +251,14 @@ def test_root_locus(lecar, tmp_path):
 
 
 def test_scipy_reads_the_files(lecar, tmp_path):
-    io = pytest.importorskip("scipy.io")
+    # SciPy's reader is the check that does not share this file's reading of
+    # the format. It must run wherever XPPLAB_REQUIRE_SCIPY is set (CI should
+    # set it, after installing the "test" extra); elsewhere it skips without
+    # SciPy.
+    if os.environ.get("XPPLAB_REQUIRE_SCIPY"):
+        import scipy.io as io
+    else:
+        io = pytest.importorskip("scipy.io")
     sol = lecar.run(total=100)
     sol.to_mat(tmp_path / "run.mat")
     got = io.loadmat(tmp_path / "run.mat", squeeze_me=False, struct_as_record=False)

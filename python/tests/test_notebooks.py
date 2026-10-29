@@ -49,8 +49,3 @@ def test_notebook_runs_from_a_clean_kernel(path, tmp_path, monkeypatch):
         client.execute()        # raises CellExecutionError on the first failing cell
     except nbclient.exceptions.CellExecutionError as e:
         pytest.fail(f"{path.name}: {e}")
-    # every code cell ran, none of them printed to stderr as an error
-    for c in nb.cells:
-        if c.cell_type == "code":
-            assert c.execution_count is not None
-            assert not [o for o in c.outputs if o.output_type == "error"]

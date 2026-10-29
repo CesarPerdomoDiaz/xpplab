@@ -191,7 +191,9 @@ To do:
       parameter or in the complex plane (the Figure window, `xpplab.Figure`)
 - [x] Sensitivity of trajectories to parameters (`Model.sensitivity`, by
       variational equations)
-- [ ] Isochrons and phase reduction
+- [ ] Isochrons and phase reduction (design in
+      [docs/design/isochrons.md](docs/design/isochrons.md), which lists
+      the pieces)
 - [ ] Codimension-two bifurcations through AUTO, explained in the manual
 
 ### M8 Working with coding agents

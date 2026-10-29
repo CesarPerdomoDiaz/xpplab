@@ -95,5 +95,6 @@ nav:
       - Architecture: development/architecture.md
       - macOS plan: development/macos.md
       - ModelDB models: development/modeldb.md
+      - "Design: isochrons and phase reduction": design/isochrons.md
       - Upstream issues: upstream-issues.md
       - About and credits: manual/about.md

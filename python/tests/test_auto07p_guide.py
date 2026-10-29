@@ -287,13 +287,21 @@ def test_source_claims():
     assert "if (isp >= 2) {" in lib
     assert "if ((isp == 1 || isp == 2) && (ips == 2 || ips == 7 || ips == 12)) {" in lib
     assert "if (abs(ips) == 1) {" in lib  # Hopf detection does not use isp
-    # no AUTO release is named anywhere in the engine sources, so the page
-    # names none (a maintainer may know better; see the pull request)
+    # the one release the sources name is AUTO'86, in autlib4.c; the page
+    # cites exactly that and no other
+    found = {}
     for f in list(eng.glob("autlib*.c")) + list(eng.glob("auto*.h")) + [eng / "README"]:
-        assert not re.search(r"AUTO[- ]?(86|94|97|2000)", f.read_text(
-            encoding="utf-8", errors="replace"), re.I), f
+        for hit in re.findall(r"AUTO\s*['-]?\s*(?:86|94|97|2000)", f.read_text(
+                encoding="utf-8", errors="replace"), re.I):
+            found.setdefault(f.name, []).append(hit)
+    assert found == {"autlib4.c": ["AUTO'86"]}, found
+    assert "AUTO'86 routine NLVC" in (eng / "autlib4.c").read_text(
+        encoding="utf-8", errors="replace")
+    assert "Homcont code" in (eng / "autlib5.c").read_text(
+        encoding="utf-8", errors="replace")
     flat = " ".join(text.split())
-    assert "Nothing in the repository's sources or shipped documents says" in flat
+    assert "The only release the sources name is AUTO'86" in flat
+    assert "No file says which later release it is" in flat
     assert "In AUTO-07p, `ISP` chooses which special points are detected" in flat
     for name in ("autlib1.c", "autlib5.c", "auto_nox.c"):
         assert (eng / name).exists() and f"`{name}`" in text or name in text

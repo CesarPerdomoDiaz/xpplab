@@ -3,11 +3,14 @@
 XPP Lab runs AUTO underneath: the continuation code is the one XPPAUT 8.0
 embeds, not the AUTO-07p distribution. It is E. Doedel's AUTO as translated to
 C inside XPPAUT (`engine/xppaut/autlib1.c` to `autlib5.c`, with `auto_nox.c`
-setting the constants for each run). Nothing in the repository's sources or
-shipped documents says which AUTO release that translation comes from, so this
-page does not name one. It is a separate code from the AUTO-07p
-distribution, so some constants and names differ or are missing (see the table
-and the list below). If you know AUTO-07p, you know the ideas: branches, labelled points, `IPS`, `ICP`, `NMX`, `DS`.
+setting the constants for each run). The only release the sources name is
+AUTO'86: a comment in `autlib4.c` ("AUTO'86 routine NLVC") lists it as one
+alternative the code does not use, so this is a later generation, and
+`autlib5.c` carries the HomCont code. No file says which later release it is
+(AUTO97 is not named in them). It is a separate
+code from the AUTO-07p distribution, so some constants and names differ or are
+missing (see the table and the list below). If you know AUTO-07p, you know
+the ideas: branches, labelled points, `IPS`, `ICP`, `NMX`, `DS`.
 This page maps its constants and calls to the AUTO window of the app and to
 the `xpplab.Auto` object in Python, says what is not here, and works one
 example, in the way of AUTO-07p's tutorials: a fold and a Hopf point on one

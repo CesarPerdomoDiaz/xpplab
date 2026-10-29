@@ -89,8 +89,10 @@ jobs:
         run: brew install libx11 ninja pkg-config sdl3
       - name: Python packages
         # mcp: the MCP server's tests (python/tests/test_mcp.py), which are
-        # skipped on Windows, where MSYS2 has no package for it.
-        run: python -m pip install numpy pytest matplotlib pandas mcp
+        # skipped on Windows, where MSYS2 has no package for it. nbclient,
+        # nbformat, ipykernel: the notebooks' test (python/tests/test_notebooks.py),
+        # skipped where they are missing.
+        run: python -m pip install numpy pytest matplotlib pandas mcp nbclient nbformat ipykernel
       - name: Build
         run: |
           cmake -S . -B build -G Ninja

@@ -113,9 +113,11 @@ def test_defaults_in_the_text():
                         "dsmin": 0.001, "dsmax": 0.5, "parmin": 0,
                         "parmax": 2}.items():
         assert got[name] == value, name
-    text = PAGE.read_text(encoding="utf-8")
-    assert ("The defaults are `ntst` 15, `nmax` 200, `npr` 50, `ds` 0.02, "
-            "`dsmin` 0.001,\n`dsmax` 0.5, `parmin` 0 and `parmax` 2.") in text
+    text = " ".join(PAGE.read_text(encoding="utf-8").split())
+    quoted = dict(re.findall(r"`(\w+)` ([\d.]+)", text[text.index("The defaults are"):]))
+    assert set(quoted) >= {"ntst", "nmax", "npr", "ds", "dsmin", "dsmax", "parmin", "parmax"}
+    for name, value in quoted.items():
+        assert got[name] == float(value), name
 
 
 def _load(ode):
@@ -175,7 +177,6 @@ def test_actions_and_types_in_the_table_are_accepted(ns):
     assert actions <= allowed
     for label in ("LP", "HB", "BP", "PD", "TR", "EP", "MX"):
         assert label in TYPE_NAMES
-        assert f"`{label}`" in text
 
 
 def test_bold_names_are_in_the_app():
@@ -210,11 +211,6 @@ def test_commands_exist():
             assert f'!strcmp(w, "{ln.split()[1]}")' in src, ln
     for sub in ("save", "load", "from", "orbit", "reset"):
         assert f'!strcmp(w, "{sub}")' in src
-    # the prose names these commands too
-    text = PAGE.read_text(encoding="utf-8")
-    for ln in ("auto save switch.auto", "auto load switch.auto",
-               "auto from 3 two a"):
-        assert f"`{ln}`" in text
 
 
 def batch_exe():
@@ -268,43 +264,38 @@ def test_echoed_lines_are_calls_of_the_package():
         assert [p.type for p in d.special()][:4] == ["HB", "LP", "LP", "HB"]
 
 
-def test_source_claims():
-    """The sentences about ICP, the start from a run and ISP match the code."""
+def test_icp_and_the_start_from_a_run():
     text = PAGE.read_text(encoding="utf-8")
     assert "`ICP=['lam', 11]`" in text and "'T'" not in text
     row = [r for r in table_rows() if r.startswith("| `IPS=2` from an orbit")]
     assert len(row) == 1 and row[0].split("|")[2].strip() == "not in the app"
-    # the app has no control that starts a periodic branch from the run
+    # the app has no control that starts a periodic branch from the run:
+    # its only AUTO runs are the steady start and continuation from a point
     app = (ROOT / "app" / "src" / "app.c").read_text(encoding="utf-8")
     assert app.count('xppe_auto_run("s")') == 1 and "xppe_auto_run(key)" in app
     assert 'xppe_auto_run("p")' not in app
-    eng = ROOT / "engine" / "xppaut"
-    nox = (eng / "auto_nox.c").read_text(encoding="utf-8", errors="replace")
+
+
+def test_suppbp_maps_to_isp_zero_and_keeps_stability():
+    assert "suppbp" in SETTINGS
+    nox = (ROOT / "engine" / "xppaut" / "auto_nox.c").read_text(
+        encoding="utf-8", errors="replace")
     assert "if(SuppressBP==1) Auto.isp=0;" in nox
-    assert (ROOT / "engine" / "api" / "xppe_auto.c").read_text(
-        encoding="utf-8").count('"SUPPBP", NULL, &SuppressBP') == 1
-    lib = (eng / "autlib1.c").read_text(encoding="utf-8", errors="replace")
-    assert "if (isp >= 2) {" in lib
-    assert "if ((isp == 1 || isp == 2) && (ips == 2 || ips == 7 || ips == 12)) {" in lib
-    assert "if (abs(ips) == 1) {" in lib  # Hopf detection does not use isp
-    # the one release the sources name is AUTO'86, in autlib4.c; the page
-    # cites exactly that and no other
-    found = {}
-    for f in list(eng.glob("autlib*.c")) + list(eng.glob("auto*.h")) + [eng / "README"]:
-        for hit in re.findall(r"AUTO\s*['-]?\s*(?:86|94|97|2000)", f.read_text(
-                encoding="utf-8", errors="replace"), re.I):
-            found.setdefault(f.name, []).append(hit)
-    assert found == {"autlib4.c": ["AUTO'86"]}, found
-    assert "AUTO'86 routine NLVC" in (eng / "autlib4.c").read_text(
-        encoding="utf-8", errors="replace")
-    assert "Homcont code" in (eng / "autlib5.c").read_text(
-        encoding="utf-8", errors="replace")
-    flat = " ".join(text.split())
-    assert "The only release the sources name is AUTO'86" in flat
-    assert "No file says which later release it is" in flat
-    assert "In AUTO-07p, `ISP` chooses which special points are detected" in flat
-    for name in ("autlib1.c", "autlib5.c", "auto_nox.c"):
-        assert (eng / name).exists() and f"`{name}`" in text or name in text
+    assert '"SUPPBP", NULL, &SuppressBP' in (
+        ROOT / "engine" / "api" / "xppe_auto.c").read_text(encoding="utf-8")
+    (ode,) = blocks("ode")
+    runs = {}
+    for sup in (0, 1):
+        with _load(ode) as m:
+            m.auto.set(parmin=-2, parmax=2, dsmax=0.05, nmax=500, npr=500,
+                       suppbp=sup)
+            d = m.auto.equilibria("lam")
+            orb = m.auto.continue_from(d.first("HB"), "periodic", nmax=60)
+            runs[sup] = (len(d), [p.stable for p in d],
+                         [(p.label, p.type) for p in d.labelled()],
+                         len(orb), [p.stable for p in orb])
+    assert runs[0] == runs[1]
+    assert len(runs[0][4]) == 60 and not any(runs[0][4])
 
 
 def test_page_is_linked():

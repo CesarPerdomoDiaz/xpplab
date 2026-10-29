@@ -1,8 +1,11 @@
 # Coming from AUTO-07p
 
 XPP Lab runs AUTO underneath: the continuation code is the one XPPAUT 8.0
-embeds, with its own set of constants and menus, not the AUTO-07p
-distribution. If you know AUTO-07p, you know the ideas: branches, labelled points, `IPS`, `ICP`, `NMX`, `DS`.
+embeds, not the AUTO-07p distribution. It is E. Doedel's AUTO as translated to
+C inside XPPAUT (`engine/xppaut/autlib1.c` to `autlib5.c`, with `auto_nox.c`
+setting the constants for each run); those sources do not name an AUTO
+version, so do not expect every AUTO-07p feature or name. If you know AUTO-07p,
+you know the ideas: branches, labelled points, `IPS`, `ICP`, `NMX`, `DS`.
 This page maps its constants and calls to the AUTO window of the app and to
 the `xpplab.Auto` object in Python, says what is not here, and works one
 example, in the way of AUTO-07p's tutorials: a fold and a Hopf point on one
@@ -46,7 +49,7 @@ branch of steady states, then the periodic branch from the Hopf point.
 | equation file and `c.` file | the `.ode` file; File > Open... | `m = xs.load("switch.ode")` | The model is written in XPPAUT's language, see [the `.ode` file format](odefile.md). |
 | `run(...)` of a steady branch, `IPS=1` | **Follow steady states** | `m.auto.equilibria("lam")` | Newton's method first moves the initial values onto an equilibrium. |
 | `IPS=2` from a Hopf point, with `IRS` the label | select the point, **Periodic orbits from this Hopf point** | `m.auto.continue_from(hb, "periodic")` | `hb` is a point or its label. |
-| `IPS=2` from an orbit | | `m.auto.start("periodic", "lam")` | Continues the current run as an orbit. |
+| `IPS=2` from an orbit | not in the app | `m.auto.start("periodic", "lam")` | Continues the current run as an orbit. |
 | `IPS=4` (boundary value problems) | not in the app | `m.auto.start("bvp", "l")` | The conditions are the `b` lines of the `.ode` file; see [AUTO](auto.md). |
 | `IPS=9` (HomCont) | not in the app | `m.auto.start("homoclinic", "a", second="b", left=[0, 0])` | Also `"heteroclinic"`. |
 | `ICP=['lam']` | **Parameter** | `m.auto.equilibria("lam")` | One parameter, by name. |
@@ -59,7 +62,7 @@ branch of steady states, then the periodic branch from the Hopf point.
 | `A0`, `A1` | not in the app | `m.auto.set(normmin=..., normmax=...)` | |
 | `NTST` | **Mesh NTST** | `m.auto.set(ntst=...)` | |
 | `NCOL`, `IAD`, `MXBF`, `IID`, `ITMX`, `ITNW`, `NWTN`, `IADS`, `EPSL`, `EPSU`, `EPSS` | not in the app | `m.auto.set(ncol=..., iad=..., ...)` | The same names in lower case. |
-| `ISP` | not in the app | `m.auto.set(suppbp=1)` | Only the one thing: it skips branch point detection. |
+| `ISP` | not in the app | `m.auto.set(suppbp=1)` | XPP Lab sets `ISP` itself for each kind of run (1 or 2) and `suppbp=1` sets it to 0. See below. |
 | `ISW=-1` at a branch point | select the BP, **Switch to the other branch** | `m.auto.continue_from(bp, "switch")` | |
 | `ISW=2` at LP, HB, PD, TR | select the point, a two-parameter action | `m.auto.continue_from(pt, "two-parameter", second=...)` | |
 | `IRS` with a label | select the point in the table or on the plot | `m.auto.continue_from(5, ...)` | The label is one of the current diagram. |
@@ -68,6 +71,16 @@ branch of steady states, then the periodic branch from the Hopf point.
 | `plot('name')` | the plot in the AUTO window | `m.auto.diagram.plot()` | `d.plot("norm")` or a variable name; `d.to_csv(path)` writes the points. |
 | `cl()`, starting a new diagram | **Clear diagram**; `auto reset` | `m.auto.reset()` | Forgets the diagram; there are no files to clean. |
 | the orbit stored at a label in `s.` | **Show this orbit as the run**; `auto orbit 7` | `m.auto.orbit(7)` | One period of a periodic point, as a run. |
+
+What `ISP` controls in this code (`engine/xppaut/autlib1.c`): for steady
+states, `ISP` other than 0 turns on branch point detection (folds follow `ILP`
+and Hopf points are detected whatever `ISP` is); for periodic orbits, `ISP`
+2 detects branch points, and `ISP` 1 or 2 detects period doubling and torus
+points and watches the Floquet multipliers for them. `suppbp=1` sets `ISP` to
+0 in the runs XPP Lab starts, so it switches off branch point detection on
+steady states and, on periodic orbits, branch points, period doubling and
+torus points. It does not touch fold or Hopf detection on steady states. The
+values of `ISP` in AUTO-07p's own documentation are not described here.
 
 The defaults are `ntst` 15, `nmax` 200, `npr` 50, `ds` 0.02, `dsmin` 0.001,
 `dsmax` 0.5, `parmin` 0 and `parmax` 2. `m.auto.settings` lists all of them.
@@ -145,7 +158,10 @@ equilibrium at `x = -1.52` through `x = -0.91`), label 3 the fold at
 numbers agree with the formulas above to the accuracy of AUTO's tolerances.
 
 Now the periodic branch from the Hopf point, the way AUTO-07p would do it
-with `IPS=2`, `IRS=2`, `ICP=['lam', 'T']`. The orbits are born with a period
+with `IPS=2`, `IRS=2`, `ICP=['lam', 11]` (`PAR(11)` is the period). XPP Lab
+needs no second parameter for the period: `continue_from(hb, "periodic")`
+runs with one continuation parameter, `lam`, and the period is carried by the
+code itself (`auto_nox.c` sets `nfpar=1` for this run). The orbits are born with a period
 of `2 pi / 0.866 = 7.26` and the branch turns towards smaller `lam`, so the
 Hopf point is subcritical and the orbits are unstable. Then save the
 diagram, clear it, load it again and follow the fold in two parameters:

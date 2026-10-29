@@ -268,6 +268,29 @@ def test_echoed_lines_are_calls_of_the_package():
         assert [p.type for p in d.special()][:4] == ["HB", "LP", "LP", "HB"]
 
 
+def test_source_claims():
+    """The sentences about ICP, the start from a run and ISP match the code."""
+    text = PAGE.read_text(encoding="utf-8")
+    assert "`ICP=['lam', 11]`" in text and "'T'" not in text
+    row = [r for r in table_rows() if r.startswith("| `IPS=2` from an orbit")]
+    assert len(row) == 1 and row[0].split("|")[2].strip() == "not in the app"
+    # the app has no control that starts a periodic branch from the run
+    app = (ROOT / "app" / "src" / "app.c").read_text(encoding="utf-8")
+    assert app.count('xppe_auto_run("s")') == 1 and "xppe_auto_run(key)" in app
+    assert 'xppe_auto_run("p")' not in app
+    eng = ROOT / "engine" / "xppaut"
+    nox = (eng / "auto_nox.c").read_text(encoding="utf-8", errors="replace")
+    assert "if(SuppressBP==1) Auto.isp=0;" in nox
+    assert (ROOT / "engine" / "api" / "xppe_auto.c").read_text(
+        encoding="utf-8").count('"SUPPBP", NULL, &SuppressBP') == 1
+    lib = (eng / "autlib1.c").read_text(encoding="utf-8", errors="replace")
+    assert "if (isp >= 2) {" in lib
+    assert "if ((isp == 1 || isp == 2) && (ips == 2 || ips == 7 || ips == 12)) {" in lib
+    assert "if (abs(ips) == 1) {" in lib  # Hopf detection does not use isp
+    for name in ("autlib1.c", "autlib5.c", "auto_nox.c"):
+        assert (eng / name).exists() and f"`{name}`" in text or name in text
+
+
 def test_page_is_linked():
     mk = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
     assert "manual/auto07p.md" in mk

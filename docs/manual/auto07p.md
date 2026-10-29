@@ -3,9 +3,11 @@
 XPP Lab runs AUTO underneath: the continuation code is the one XPPAUT 8.0
 embeds, not the AUTO-07p distribution. It is E. Doedel's AUTO as translated to
 C inside XPPAUT (`engine/xppaut/autlib1.c` to `autlib5.c`, with `auto_nox.c`
-setting the constants for each run); those sources do not name an AUTO
-version, so do not expect every AUTO-07p feature or name. If you know AUTO-07p,
-you know the ideas: branches, labelled points, `IPS`, `ICP`, `NMX`, `DS`.
+setting the constants for each run). Nothing in the repository's sources or
+shipped documents says which AUTO release that translation comes from, so this
+page does not name one. It is a separate code from the AUTO-07p
+distribution, so some constants and names differ or are missing (see the table
+and the list below). If you know AUTO-07p, you know the ideas: branches, labelled points, `IPS`, `ICP`, `NMX`, `DS`.
 This page maps its constants and calls to the AUTO window of the app and to
 the `xpplab.Auto` object in Python, says what is not here, and works one
 example, in the way of AUTO-07p's tutorials: a fold and a Hopf point on one
@@ -72,15 +74,19 @@ branch of steady states, then the periodic branch from the Hopf point.
 | `cl()`, starting a new diagram | **Clear diagram**; `auto reset` | `m.auto.reset()` | Forgets the diagram; there are no files to clean. |
 | the orbit stored at a label in `s.` | **Show this orbit as the run**; `auto orbit 7` | `m.auto.orbit(7)` | One period of a periodic point, as a run. |
 
-What `ISP` controls in this code (`engine/xppaut/autlib1.c`): for steady
-states, `ISP` other than 0 turns on branch point detection (folds follow `ILP`
+In AUTO-07p, `ISP` chooses which special points are detected: branch points
+and, for periodic orbits, period doubling and torus points, with the Floquet
+multipliers they need. In this code (`engine/xppaut/autlib1.c`) it works so:
+for steady states, `ISP` other than 0 turns on branch point detection (folds follow `ILP`
 and Hopf points are detected whatever `ISP` is); for periodic orbits, `ISP`
 2 detects branch points, and `ISP` 1 or 2 detects period doubling and torus
 points and watches the Floquet multipliers for them. `suppbp=1` sets `ISP` to
 0 in the runs XPP Lab starts, so it switches off branch point detection on
 steady states and, on periodic orbits, branch points, period doubling and
-torus points. It does not touch fold or Hopf detection on steady states. The
-values of `ISP` in AUTO-07p's own documentation are not described here.
+torus points, which is the part of AUTO-07p's `ISP` that this code has. It does
+not touch fold or Hopf detection on steady states. The multiplier test for
+period doubling and torus points is not run at all then; what the stability
+flag of an orbit does with `suppbp=1` was not checked.
 
 The defaults are `ntst` 15, `nmax` 200, `npr` 50, `ds` 0.02, `dsmin` 0.001,
 `dsmax` 0.5, `parmin` 0 and `parmax` 2. `m.auto.settings` lists all of them.

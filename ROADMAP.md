@@ -155,7 +155,7 @@ To do:
 - [x] Field tutorials, "Learn by example" on the website (neuroscience,
       ecology, chemistry, mechanics); their Python is run by the tests
 - [x] "Coming from MATLAB" guide; its Python is run by the tests
-- [ ] "Coming from AUTO-07p" guide
+- [x] "Coming from AUTO-07p" guide; its Python is run by the tests
 - [ ] Jupyter notebooks
 
 ### M6 Release and community

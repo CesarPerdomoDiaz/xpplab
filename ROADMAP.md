@@ -193,7 +193,7 @@ To do:
 - [x] Sensitivity of trajectories to parameters (`Model.sensitivity`, by
       variational equations)
 - [ ] Isochrons and phase reduction
-- [ ] Codimension-two bifurcations through AUTO, explained in the manual
+- [x] Codimension-two bifurcations through AUTO, explained in the manual
 
 ### M8 Working with coding agents
 - [x] An MCP server and a Claude Code skill (`python -m xpplab.mcp`)

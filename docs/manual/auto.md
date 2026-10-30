@@ -49,6 +49,8 @@ diagram again.
    - from **PD**: the period-doubled branch.
 5. For two-parameter curves, choose the **2nd param.** first. The result
    appears in the **Two parameters** tab.
+   [Codimension-two bifurcations](codim2.md) works an example, with the cusp
+   and Bogdanov-Takens points where the curves meet.
 
 Try it: [open the Morris-Lecar model](example:lecar.ode), apply the `hopf`
 set (Workspace > Sets), then [follow the steady states in iapp](cmd:auto steady iapp).

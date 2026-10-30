@@ -242,7 +242,7 @@ that the saved script writes the same CSV bit for bit.
 
 A section in `docs/manual/analysis.md` and `docs/python/analysis.md`, an
 entry in the API reference, and a notebook after the existing three
-(examples: the Morris-Lecar cycle in `examples/` and a neural pair, with H).
+(examples: the Morris-Lecar cycle in `engine/xppaut/ode/lecar.ode` and a neural pair, with H).
 The ROADMAP line links to this note and is ticked when the last piece lands.
 
 ## How it will be tested
@@ -295,12 +295,13 @@ tolerance and are written in the test.
    with small ε settles at φ = 0. These two locked states are only
    synchrony and antiphase, which exist by symmetry in any model, so they do
    not show that the roots are found in general.
-4. **A pair of Morris-Lecar cells** (`examples/lecar.ode`) is the test of a
-   locked state that is neither 0 nor T/2. The parameters of the cycle and
-   the coupling (for example through V, `V'-V` for V and 0 for the other
-   variable) are chosen in the
-   piece that implements the phase model, by running `Model.h_function` until
-   H_odd has an extra zero; this note does not claim one. The test then
+4. **A pair of Morris-Lecar cells** (`engine/xppaut/ode/lecar.ode`) is the
+   test of a locked state that is neither 0 nor T/2. **It is not specified
+   yet.** The cycle parameters and the coupling formulas (for example
+   `V'-V` for V and `0` for the other variable) are chosen in piece 3, which
+   runs `Model.h_function` on candidate sets until H_odd has an extra zero;
+   this note does not claim that one exists. Piece 3 then writes the
+   parameters and formulas into the test and into this note, and the test
    compares the predicted locked phase and its stability with a full
    simulation of the pair for small ε.
 

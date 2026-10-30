@@ -212,6 +212,18 @@ CASES = [
         "set iapp=0.1 total=100", "run",
         "export {out}/" + UNICODE_DIR + "/run.mat",
         "range iapp 0 0.5 6 V", "export {out}/" + UNICODE_DIR + "/range.mat range"]),
+    # The model, the exports, the session's files and the script all live in
+    # a folder with accents ("unicode_load" copies the model there).
+    ("unicode_load", "lecar.ode", [
+        "set iapp=0.1 total=100", "run",
+        "export {out}/" + UNICODE_DIR + "/run.csv",
+        "ic write {out}/" + UNICODE_DIR + "/ics.dat", "set V=0 W=0",
+        "ic read {out}/" + UNICODE_DIR + "/ics.dat", "run",
+        "export {out}/" + UNICODE_DIR + "/from_file.csv",
+        "use hopf", "auto set parmax=0.6 nmax=60", "auto steady iapp",
+        "auto save {out}/" + UNICODE_DIR + "/d.auto",
+        "auto reset", "auto load {out}/" + UNICODE_DIR + "/d.auto",
+        "export {out}/" + UNICODE_DIR + "/diagram.csv auto"]),
     ("mat_many", "tests/models/kite.ode", [
         "set VW=2.1",
         "many 6 seed 3 gam 0 1.5707963 om -1.3 1.3 keep tens 0 inf",
@@ -270,7 +282,12 @@ def run_case(app, engine, out, name, model, cmds, timeout):
     d.mkdir(parents=True)
     (d / UNICODE_DIR).mkdir()
     script, log, shot = d / "session.py", d / "app.log", d / "shot.png"
-    args = [str(app), str(ROOT / model if model.startswith("tests/") else EXAMPLES / model)]
+    model_file = ROOT / model if model.startswith("tests/") else EXAMPLES / model
+    if name == "unicode_load":
+        script = d / UNICODE_DIR / "séssion.py"
+        shutil.copy(model_file, d / UNICODE_DIR / ("lécar" + model_file.suffix))
+        model_file = d / UNICODE_DIR / ("lécar" + model_file.suffix)
+    args = [str(app), str(model_file)]
     for c in cmds:
         args += ["--cmd", c.replace("{out}", d.as_posix())]
     args += ["--then", "script " + script.as_posix(), "--screenshot", str(shot),
@@ -289,7 +306,8 @@ def run_case(app, engine, out, name, model, cmds, timeout):
     if not script.exists():
         return problems + ["the app saved no script"]
     exported = sorted(list(d.glob("*.csv")) + list(d.glob("*.mat"))
-                      + list(d.glob(UNICODE_DIR + "/*.mat")))
+                      + list(d.glob(UNICODE_DIR + "/*.mat"))
+                      + list(d.glob(UNICODE_DIR + "/*.csv")))
     if not exported:
         problems.append("the commands exported nothing")
     renamed = []

@@ -1392,7 +1392,7 @@ int nnn;
 		for (j=0;j<NincludedFiles;j++)
 		{
 			printf("Trying to open %d %s\n",NincludedFiles,includefilename[j]);
-			fnew=fopen(includefilename[j],"r");
+			fnew=xpps_fopen(includefilename[j],"r"); /* XPP Lab fix: UTF-8 name */
       			if(fnew==NULL){
          		  plintf("Can't open include file <%s>\n",includefilename[j]);
 			  exit(-1);
@@ -1419,7 +1419,7 @@ int nnn;
 	    }
     }
     if(if_include_file(old,newfile)){
-      fnew=fopen(newfile,"r");
+      fnew=xpps_fopen(newfile,"r"); /* XPP Lab fix: UTF-8 name */
       if(fnew==NULL){
          plintf("Cant open include file <%s>\n",newfile);
          continue;

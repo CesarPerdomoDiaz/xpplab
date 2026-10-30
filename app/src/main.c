@@ -30,6 +30,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
+#include "file_utf8.h"
 #include "channel.h"
 #include "pyconsole.h"
 #include "pyfetch.h"
@@ -90,7 +91,7 @@ static void fail(const char *what) {
     failed = 1;
     FILE *f;
     snprintf(path, sizeof path, "%s.err", err_file);
-    f = fopen(path, "w");
+    f = app_fopen_utf8(path, "w");
     if (f) {
       fprintf(f, "%s: %s\n", what, SDL_GetError());
       fclose(f);
@@ -99,7 +100,7 @@ static void fail(const char *what) {
 }
 
 static int file_exists(const char *path) {
-  FILE *f = fopen(path, "rb");
+  FILE *f = app_fopen_utf8(path, "rb");
   if (f) fclose(f);
   return f != NULL;
 }
@@ -138,7 +139,7 @@ static void add_timed(int frame, const char *cmd) {
 /* A script: one "FRAME command" per line; # starts a comment line. */
 static bool read_script(const char *path) {
   char line[1200];
-  FILE *f = fopen(path, "r");
+  FILE *f = app_fopen_utf8(path, "r");
   if (!f) return false;
   while (fgets(line, sizeof line, f)) {
     char *p = line, *end;
@@ -402,7 +403,7 @@ int main(int argc, char **argv) {
     fail("quit");
   }
   if (logfile) {
-    FILE *f = fopen(logfile, "w");
+    FILE *f = app_fopen_utf8(logfile, "w");
     if (f) {
       if (app.log) fwrite(app.log, 1, app.log_len, f);
       fclose(f);

@@ -1,4 +1,5 @@
 /* The application's actions; see app.h. */
+#include "file_utf8.h"
 #include "app.h"
 #include "export.h"
 
@@ -12,11 +13,23 @@
 #include <SDL3/SDL.h>
 
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <direct.h>
-#define chdir _chdir
 #else
 #include <unistd.h>
 #endif
+
+/* chdir() by a UTF-8 name; true on success. */
+static bool change_dir_utf8(const char *dir) {
+#ifdef _WIN32
+  wchar_t w[2048];
+  if (MultiByteToWideChar(CP_UTF8, 0, dir, -1, w, 2048) <= 0) return false;
+  return _wchdir(w) == 0;
+#else
+  return chdir(dir) == 0;
+#endif
+}
 
 App *g_app;
 
@@ -61,7 +74,7 @@ void app_status(App *a, const char *fmt, ...) {
 /* ---- Small helpers ------------------------------------------------------ */
 
 static char *read_file(const char *path, size_t *len) {
-  FILE *f = fopen(path, "rb");
+  FILE *f = app_fopen_utf8(path, "rb");
   long n;
   char *buf;
   if (!f) return NULL;
@@ -378,7 +391,7 @@ static bool load_engine(App *a) {
   }
   /* XPPAUT opens tables and other files relative to the model. */
   dir_of(a->model_path, dir, sizeof dir);
-  if (chdir(dir) != 0) app_log(a, "warning: cannot change to %s", dir);
+  if (!change_dir_utf8(dir)) app_log(a, "warning: cannot change to %s", dir);
   rc = a->eng->api.xppe_load(base_of(a->model_path), 0, NULL);
   if (rc != XPPE_OK) {
     const char *log = a->eng->api.xppe_log();
@@ -528,7 +541,7 @@ bool app_open_text(App *a, const char *text, const char *name) {
   FILE *f;
   snprintf(path, sizeof path, "%s%s", pref ? pref : "", name);
   SDL_free(pref);
-  f = fopen(path, "wb");
+  f = app_fopen_utf8(path, "wb");
   if (!f) {
     app_log(a, "error: cannot write %s", path);
     return false;
@@ -657,7 +670,7 @@ static void copy_companions(const App *a, const char *copy) {
 }
 
 bool app_save_editor(App *a, const char *path) {
-  FILE *f = fopen(path, "wb");
+  FILE *f = app_fopen_utf8(path, "wb");
   if (!f) {
     app_log(a, "error: cannot write %s", path);
     return false;
@@ -1051,7 +1064,7 @@ bool app_ic_write(App *a, const char *path) {
   int i;
   FILE *f;
   if (!a->model_ok) return false;
-  if ((f = fopen(path, "w")) == NULL) {
+  if ((f = app_fopen_utf8(path, "w")) == NULL) {
     app_log(a, "error: cannot write %s", path);
     return false;
   }
@@ -2044,7 +2057,7 @@ bool app_export_nullclines_csv(App *a, const char *path) {
     for (i = 0; i < 6; i++) free(c[i]);
     if (!ok) return false;
   } else {
-    if ((f = fopen(path, "w")) == NULL) {
+    if ((f = app_fopen_utf8(path, "w")) == NULL) {
       app_log(a, "error: cannot write %s", path);
       return false;
     }
@@ -2510,7 +2523,7 @@ static bool write_table(App *a, const char *path, const Trajectory *t) {
   char num[40];
   int i, j;
   if (app_is_mat(path)) return write_mat_table(a, path, t);
-  f = fopen(path, "w");
+  f = app_fopen_utf8(path, "w");
   if (!f) {
     app_log(a, "error: cannot write %s", path);
     return false;
@@ -2544,7 +2557,7 @@ static void echo_export(App *a, const char *what, const char *path) {
 /* XPPAUT's output.dat: every column, 8 significant digits, no header, as
    xppaut -silent and Trajectory.save() write it. */
 static bool write_dat(App *a, const char *path, const Trajectory *t) {
-  FILE *f = fopen(path, "w");
+  FILE *f = app_fopen_utf8(path, "w");
   int i, j;
   if (!f) {
     app_log(a, "error: cannot write %s", path);
@@ -2728,7 +2741,7 @@ bool app_export_equilibria_csv(App *a, const char *path) {
     echo_export(a, "eqs", path);
     return true;
   }
-  fp = fopen(path, "w");
+  fp = app_fopen_utf8(path, "w");
   if (!fp) {
     app_log(a, "error: cannot write %s", path);
     return false;
@@ -2816,7 +2829,7 @@ bool app_export_auto_csv(App *a, const char *path) {
     echo_export(a, "m.auto.diagram", path);
     return true;
   }
-  f = fopen(path, "w");
+  f = app_fopen_utf8(path, "w");
   if (!f) {
     app_log(a, "error: cannot write %s", path);
     return false;
@@ -2913,7 +2926,7 @@ void app_save_settings(App *a) {
   FILE *f;
   int i;
   settings_path(path, sizeof path);
-  f = fopen(path, "w");
+  f = app_fopen_utf8(path, "w");
   if (!f) return;
   fprintf(f, "dark=%d\nscale=%g\nclassic_keys=%d\nlive=%d\necho=%d\n", a->dark,
           (double)a->ui_scale, a->classic_keys, a->live, a->echo.console);
@@ -2926,7 +2939,7 @@ void app_load_settings(App *a) {
   char path[1100], line[1100];
   FILE *f;
   settings_path(path, sizeof path);
-  f = fopen(path, "r");
+  f = app_fopen_utf8(path, "r");
   if (!f) return;
   while (fgets(line, sizeof line, f)) {
     char *eq = strchr(line, '='), *nl = strchr(line, '\n');

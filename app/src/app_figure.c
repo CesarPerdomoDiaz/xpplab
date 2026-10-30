@@ -19,6 +19,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "file_utf8.h"
 #include "app.h"
 #include "export.h"
 
@@ -391,7 +392,7 @@ bool app_export_many_csv(App *a, const char *path) {
   if (app_is_mat(path)) {
     if (!write_many_mat(a, path)) return false;
   } else {
-    f = fopen(path, "w");
+    f = app_fopen_utf8(path, "w");
     if (!f) {
       app_log(a, "error: cannot write %s", path);
       return false;

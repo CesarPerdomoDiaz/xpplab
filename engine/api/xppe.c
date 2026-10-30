@@ -186,7 +186,7 @@ int xppe_load(const char *ode_path, int noptions, const char *const *options) {
   }
   /* XPPAUT asks interactively for a new model when the file cannot be
      opened, so check first. */
-  probe = fopen(ode_path, "r");
+  probe = xppe_fopen_utf8(ode_path, "r");
   if (!probe) {
     xppe_set_error("cannot open %s", ode_path);
     xppe_end_call();
@@ -466,7 +466,7 @@ int xppe_ic_file(const char *path) {
   FILE *fp;
   int rc, n = 0, c, i;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
-  if ((fp = fopen(path, "r")) == NULL) {
+  if ((fp = xppe_fopen_utf8(path, "r")) == NULL) {
     xppe_set_error("cannot open %s", path);
     return XPPE_ERR_LOAD;
   }

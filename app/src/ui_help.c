@@ -35,6 +35,8 @@ static void follow_link(App *a, const char *target) {
   } else if (strncmp(target, "cmd:", 4) == 0) {
     app_log(a, ">> %s", target + 4);
     app_command(a, target + 4);
+  } else if (strncmp(target, "image:", 6) == 0) {
+    /* a screenshot, shown on the website only */
   } else if (strncmp(target, "http", 4) == 0) {
     SDL_OpenURL(target);
   } else {
@@ -128,6 +130,7 @@ static void inline_text(App *a, const char *s, const char *end) {
         snprintf(tip, sizeof tip, "%s",
                  strncmp(target, "example:", 8) == 0 ? "Open this example"
                  : strncmp(target, "cmd:", 4) == 0   ? target + 4
+                 : strncmp(target, "image:", 6) == 0 ? "A screenshot, on the website"
                                                      : target);
         if (flow_run(&f, s + 1, close, &link, false, tip)) follow_link(a, target);
         s = rp + 1;

@@ -148,8 +148,9 @@ def test_echoed_lines_are_calls_of_the_package(ns):
 def test_page_is_linked():
     mk = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
     assert "manual/matlab.md" in mk
-    menu = (ROOT / "app" / "src" / "ui_menu.c").read_text(encoding="utf-8")
-    assert 'ui_show_help(a, "matlab")' in menu
+    # The Help menu is drawn from the table of actions.
+    menu = (ROOT / "app" / "src" / "actions.c").read_text(encoding="utf-8")
+    assert '"matlab"' in menu
     assert "(matlab.md)" in (ROOT / "docs" / "manual" / "welcome.md").read_text(
         encoding="utf-8")
     roadmap = (ROOT / "ROADMAP.md").read_text(encoding="utf-8")

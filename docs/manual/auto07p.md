@@ -61,7 +61,7 @@ branch of steady states, then the periodic branch from the Hopf point.
 | `A0`, `A1` | not in the app | `m.auto.set(normmin=..., normmax=...)` | |
 | `NTST` | **Mesh NTST** | `m.auto.set(ntst=...)` | |
 | `NCOL`, `IAD`, `MXBF`, `IID`, `ITMX`, `ITNW`, `NWTN`, `IADS`, `EPSL`, `EPSU`, `EPSS` | not in the app | `m.auto.set(ncol=..., iad=..., ...)` | The same names in lower case. |
-| `ISP` | not in the app | `m.auto.set(suppbp=1)` | XPP Lab sets `ISP` itself for each kind of run (1 or 2) and `suppbp=1` sets it to 0. See below. |
+| `ISP` | not in the app | `m.auto.set(suppbp=1)` | XPP Lab sets `ISP` itself for each kind of run, and `suppbp=1` sets it to 0. See below. |
 | `ISW=-1` at a branch point | select the BP, **Switch to the other branch** | `m.auto.continue_from(bp, "switch")` | |
 | `ISW=2` at LP, HB, PD, TR | select the point, a two-parameter action | `m.auto.continue_from(pt, "two-parameter", second=...)` | |
 | `IRS` with a label | select the point in the table or on the plot | `m.auto.continue_from(5, ...)` | The label is one of the current diagram. |

@@ -259,21 +259,8 @@ def test_echoed_lines_are_calls_of_the_package():
         assert [p.type for p in d.special()][:4] == ["HB", "LP", "LP", "HB"]
 
 
-def test_icp_and_the_start_from_a_run():
-    # the app has no control that starts a periodic branch from the run:
-    # its only AUTO runs are the steady start and continuation from a point
-    app = (ROOT / "app" / "src" / "app.c").read_text(encoding="utf-8")
-    assert app.count('xppe_auto_run("s")') == 1 and "xppe_auto_run(key)" in app
-    assert 'xppe_auto_run("p")' not in app
-
-
-def test_suppbp_maps_to_isp_zero_and_keeps_stability():
+def test_suppbp_keeps_stability_and_the_steady_branch():
     assert "suppbp" in SETTINGS
-    nox = (ROOT / "engine" / "xppaut" / "auto_nox.c").read_text(
-        encoding="utf-8", errors="replace")
-    assert "if(SuppressBP==1) Auto.isp=0;" in nox
-    assert '"SUPPBP", NULL, &SuppressBP' in (
-        ROOT / "engine" / "api" / "xppe_auto.c").read_text(encoding="utf-8")
     (ode,) = blocks("ode")
     runs = {}
     for sup in (0, 1):

@@ -152,7 +152,7 @@ static const char *usage =
     "                           all plots in tabs\n"
     "  help [TOPIC]             open the manual (topics: tutorial,\n"
     "                           neuron-tutorial, auto, analysis, odefile, numerics, commands, xppaut,\n"
-    "                           matlab, auto07p)\n";
+    "                           matlab, auto07p, codim2)\n";
 
 static char *skip_space(char *s) {
   while (*s && isspace((unsigned char)*s)) s++;

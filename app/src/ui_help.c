@@ -19,7 +19,7 @@ void ui_show_help(App *a, const char *page) {
   if (!p) {
     app_log(a, "No help page '%s'. Pages: welcome, tutorial, "
                "neuron-tutorial, auto, odefile, numerics, commands, xppaut, "
-               "matlab, about.", page);
+               "matlab, auto07p, about.", page);
     return;
   }
   snprintf(a->help_page, sizeof a->help_page, "%s", p->name);

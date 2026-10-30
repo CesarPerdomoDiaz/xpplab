@@ -91,8 +91,9 @@ jobs:
         # mcp: the MCP server's tests (python/tests/test_mcp.py), which are
         # skipped on Windows, where MSYS2 has no package for it. nbclient,
         # nbformat, ipykernel: the notebooks' test (python/tests/test_notebooks.py),
-        # skipped where they are missing.
-        run: python -m pip install numpy pytest matplotlib pandas mcp nbclient nbformat ipykernel
+        # skipped where they are missing. scipy: reads the .mat files back
+        # (python/tests/test_mat.py), required here by XPPLAB_REQUIRE_SCIPY.
+        run: python -m pip install numpy pytest matplotlib pandas mcp nbclient nbformat ipykernel scipy
       - name: Build
         run: |
           cmake -S . -B build -G Ninja
@@ -118,6 +119,8 @@ jobs:
           --exe build/cli/xppaut-headless
           --reference build-reference/xppaut-reference
       - name: Python tests
+        env:
+          XPPLAB_REQUIRE_SCIPY: "1"
         run: PYTHONPATH=python/src python -m pytest -q python/tests
       - name: Desktop app starts and renders (macOS)
         if: runner.os == 'macOS'

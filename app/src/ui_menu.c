@@ -4,12 +4,24 @@
 
 #include <SDL3/SDL.h>
 
+#include "actions.h"
 #include "ui.h"
 
-static void menu_file(App *a) {
+/* A menu item of the action table (actions.c). */
+static void draw_item(App *a, const Action *x) {
+  const char *why;
+  bool ok = action_available(a, x, &why);
+  if (igMenuItem_Bool(x->name, x->shortcut, action_checked(a, x), ok)) action_run(a, x);
+  if (igIsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+    if (!ok && why[0])
+      igSetTooltip("%s", why);
+    else if (x->tip)
+      igSetTooltip("%s", x->tip);
+  }
+}
+
+static void menu_open_recent(App *a) {
   int i;
-  if (igMenuItem_Bool("New model", MOD "N", false, true)) app_new_model(a);
-  if (igMenuItem_Bool("Open...", MOD "O", false, true)) ui_dialog_open(a);
   if (igBeginMenu("Open recent", a->nrecent > 0)) {
     for (i = 0; i < a->nrecent; i++)
       if (igMenuItem_Bool(a->recent[i], NULL, false, true)) {
@@ -20,181 +32,56 @@ static void menu_file(App *a) {
       }
     igEndMenu();
   }
-  igSeparator();
-  if (igMenuItem_Bool("Save", MOD "S", false, a->model_ok || a->editor[0]))
-    app_apply_editor(a);
-  if (igMenuItem_Bool("Save as...", NULL, false, a->editor[0] != 0))
-    ui_dialog_save_as(a);
-  igSeparator();
-  if (igMenuItem_Bool("Export data as CSV or MAT...", NULL, false, a->have_traj))
-    ui_dialog_export_csv(a);
-  if (igMenuItem_Bool("Save session as Python script...", NULL, false,
-                      a->echo.len > 0))
-    ui_dialog_save_script(a);
-  if (igIsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-    igSetTooltip("A script that repeats what you have done, number for number, "
-                 "with Python and the xpplab package (pip install xpplab).");
-  igSeparator();
-  if (igMenuItem_Bool("Quit", MOD "Q  /  F Q", false, true)) a->quit = true;
 }
 
-static void menu_run(App *a) {
-  bool ok = a->model_ok;
-  if (igMenuItem_Bool("Integrate", "F5  /  I G", false, ok)) app_run(a);
-  if (igMenuItem_Bool("Find equilibrium", "S G", false, ok)) app_command(a, "eq");
-  if (igMenuItem_Bool("Find all equilibria", NULL, false, ok)) app_command(a, "eq all");
-  if (igIsItemHovered(0))
-    igSetTooltip("Every equilibrium in the phase plane's window, from random "
-                 "starting points (XPPAUT's Sing pts > Monte Carlo).");
-  if (igMenuItem_Bool("Equilibria over a parameter...", NULL, false, ok)) {
-    a->sw.mode = SWEEP_EQUILIBRIA;
-    a->sw.reveal = true;
-    a->show_workspace = true;
-  }
-  if (igMenuItem_Bool("Linearise...", NULL, false, ok)) {
-    a->an.tool = AN_LINEARIZE;
-    a->show_analysis = true;
-    igSetWindowFocus_Str(WIN_ANALYSIS);
-  }
-  if (igIsItemHovered(0))
-    igSetTooltip("A and B at the equilibrium, its eigenvalues in the complex "
-                 "plane, and whether chosen parameters can steer the state.");
-  if (igMenuItem_Bool("Nullclines", "N N", a->pp.nullclines, ok))
-    app_command(a, a->pp.nullclines ? "nullclines off" : "nullclines");
-  if (igMenuItem_Bool("Direction field", "D D", a->pp.dirfield, ok))
-    app_command(a, "dirfield");
-  igSeparator();
-  igMenuItem_BoolPtr("Rerun after every change (live)", NULL, &a->live, true);
-  igMenuItem_BoolPtr("Keep previous curves", NULL, &a->keep_curves, true);
-  if (igMenuItem_Bool("Erase curves", "E", false, a->nfrozen > 0))
-    app_command(a, "erase");
-  igSeparator();
-  if (igMenuItem_Bool("Bifurcation diagram (AUTO)...", NULL, false, ok)) {
-    a->show_auto = true;
-    igSetWindowFocus_Str(WIN_AUTO);
-  }
-  if (igMenuItem_Bool("Boundary-value problem", NULL, false, ok && a->nbcs > 0))
-    app_command(a, "bvp");
-  if (igIsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-    igSetTooltip(a->nbcs > 0 ? "Solve the model's boundary conditions by "
-                               "shooting (XPPAUT's Bndryval)."
-                             : "The model has no boundary conditions (bndry "
-                               "statements).");
-  if (igMenuItem_Bool("Range...", NULL, false, ok)) {
-    a->sw.reveal = true;
-    a->show_workspace = true;
-  }
-  if (igMenuItem_Bool("Animator...", NULL, false, ok)) {
-    a->show_ani = true;
-    igSetWindowFocus_Str(WIN_ANI);
-  }
-  if (igMenuItem_Bool("Kinescope...", NULL, false, true)) {
-    a->show_kine = true;
-    igSetWindowFocus_Str(WIN_KINE);
-  }
-  if (igMenuItem_Bool("3D view", NULL, false, ok && a->ncols > 3)) {
-    a->show_view3d = true;
-    igSetWindowFocus_Str(WIN_VIEW3D);
-  }
-  if (igBeginMenu("Analyse the run", ok)) {
-    int t;
-    for (t = 0; t < AN_COUNT; t++)
-      if (igMenuItem_Bool(app_analysis_name(t), NULL, a->an.tool == t, true)) {
-        a->an.tool = t;
-        a->show_analysis = true;
-        igSetWindowFocus_Str(WIN_ANALYSIS);
-      }
-    igEndMenu();
-  }
-}
-
-static void menu_view(App *a) {
-  igMenuItem_BoolPtr(WIN_BROWSER, NULL, &a->show_browser, true);
-  igMenuItem_BoolPtr(WIN_WORKSPACE, NULL, &a->show_workspace, true);
-  igMenuItem_BoolPtr(WIN_EDITOR, NULL, &a->show_editor, true);
-  igMenuItem_BoolPtr(WIN_TIME, NULL, &a->show_time, true);
-  igMenuItem_BoolPtr(WIN_PHASE, NULL, &a->show_phase, true);
-  igMenuItem_BoolPtr(WIN_AUTO, NULL, &a->show_auto, true);
-  igMenuItem_BoolPtr(WIN_CONSOLE, NULL, &a->show_console, true);
-  igMenuItem_BoolPtr(WIN_DATA, NULL, &a->show_data, true);
-  igMenuItem_BoolPtr(WIN_ARRAY, NULL, &a->show_array, true);
-  igMenuItem_BoolPtr(WIN_ANALYSIS, NULL, &a->show_analysis, true);
-  igMenuItem_BoolPtr(WIN_VIEW3D, NULL, &a->show_view3d, true);
-  igMenuItem_BoolPtr(WIN_ANI, NULL, &a->show_ani, true);
-  igMenuItem_BoolPtr(WIN_KINE, NULL, &a->show_kine, true);
-  igMenuItem_BoolPtr(WIN_FIGURE, NULL, &a->show_figure, true);
-  igMenuItem_BoolPtr(WIN_HELP, "F1", &a->show_help, true);
-  igSeparator();
-  if (igMenuItem_Bool("Reset window layout", NULL, false, true))
-    a->reset_layout = true;
-  if (igMenuItem_Bool("Phase plane beside time series", NULL, a->layout == 1, true)) {
-    a->layout = !a->layout;
-    a->reset_layout = true;
-  }
-  if (igMenuItem_BoolPtr("Dark theme", NULL, &a->dark, true)) ui_apply_theme(a);
-  if (igBeginMenu("Text size", true)) {
-    static const float sizes[] = {0.85f, 1.0f, 1.15f, 1.3f, 1.5f, 1.75f, 2.0f};
-    int i;
-    for (i = 0; i < 7; i++) {
-      char label[32];
-      snprintf(label, sizeof label, "%d%%", (int)(sizes[i] * 100 + 0.5f));
-      if (igMenuItem_Bool(label, NULL, a->ui_scale == sizes[i], true))
-        a->ui_scale = sizes[i];
+/* The items of one menu, in the table's order. Items with the same submenu
+   follow one another and make a submenu. */
+static void draw_menu(App *a, const char *menu) {
+  int i = 0;
+  while (i < app_nactions) {
+    const Action *x = &app_actions[i];
+    if (strcmp(x->menu, menu) != 0) {
+      i++;
+      continue;
     }
-    igEndMenu();
+    if (x->sep_before) igSeparator();
+    if (x->submenu) {
+      const char *why;
+      if (igBeginMenu(x->submenu, action_available(a, x, &why))) {
+        for (; i < app_nactions && app_actions[i].submenu &&
+               !strcmp(app_actions[i].submenu, x->submenu);
+             i++)
+          draw_item(a, &app_actions[i]);
+        igEndMenu();
+      } else {
+        for (; i < app_nactions && app_actions[i].submenu &&
+               !strcmp(app_actions[i].submenu, x->submenu);
+             i++) {}
+      }
+      continue;
+    }
+    draw_item(a, x);
+    if (!strcmp(x->id, "file.open")) menu_open_recent(a);
+    i++;
   }
-  igMenuItem_BoolPtr("XPPAUT keyboard commands", NULL, &a->classic_keys, true);
-  igMenuItem_BoolPtr("Show actions as Python", NULL, &a->echo.console, true);
-  if (igIsItemHovered(0))
-    igSetTooltip("Write each action in the command window as the Python that "
-                 "does the same (lines starting with >>>).");
-  igSeparator();
-  igMenuItem_BoolPtr("ImGui/ImPlot demo (developers)", NULL, &a->show_demo,
-                     true);
-}
-
-static void menu_help(App *a) {
-  if (igMenuItem_Bool("Getting started", "F1", false, true))
-    ui_show_help(a, "welcome");
-  if (igMenuItem_Bool("Tutorial: your first model", NULL, false, true))
-    ui_show_help(a, "tutorial");
-  if (igMenuItem_Bool("Tutorial: why does a neuron fire?", NULL, false, true))
-    ui_show_help(a, "neuron-tutorial");
-  if (igMenuItem_Bool("Bifurcation analysis with AUTO", NULL, false, true))
-    ui_show_help(a, "auto");
-  if (igMenuItem_Bool("The .ode file format", NULL, false, true))
-    ui_show_help(a, "odefile");
-  if (igMenuItem_Bool("Numerical methods", NULL, false, true))
-    ui_show_help(a, "numerics");
-  if (igMenuItem_Bool("Commands and keyboard shortcuts", NULL, false, true))
-    ui_show_help(a, "commands");
-  if (igMenuItem_Bool("Coming from XPPAUT", NULL, false, true))
-    ui_show_help(a, "xppaut");
-  if (igMenuItem_Bool("Coming from MATLAB", NULL, false, true))
-    ui_show_help(a, "matlab");
-  if (igMenuItem_Bool("Coming from AUTO-07p", NULL, false, true))
-    ui_show_help(a, "auto07p");
-  igSeparator();
-  if (igMenuItem_Bool("About XPP Lab", NULL, false, true))
-    ui_show_help(a, "about");
 }
 
 void ui_menu_bar(App *a) {
   if (!igBeginMainMenuBar()) return;
   if (igBeginMenu("File", true)) {
-    menu_file(a);
+    draw_menu(a, "File");
     igEndMenu();
   }
   if (igBeginMenu("Run", true)) {
-    menu_run(a);
+    draw_menu(a, "Run");
     igEndMenu();
   }
   if (igBeginMenu("View", true)) {
-    menu_view(a);
+    draw_menu(a, "View");
     igEndMenu();
   }
   if (igBeginMenu("Help", true)) {
-    menu_help(a);
+    draw_menu(a, "Help");
     igEndMenu();
   }
   igEndMainMenuBar();

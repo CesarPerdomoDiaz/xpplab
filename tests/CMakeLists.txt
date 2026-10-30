@@ -72,6 +72,12 @@ if(Python3_FOUND AND TARGET xpplab-batch)
             ${XPPS_BATCH} $<TARGET_FILE:xppaut-headless>
             ${PROJECT_SOURCE_DIR}/engine/xppaut/ode)
   set_tests_properties(batch_cli PROPERTIES TIMEOUT 600)
+  # The command palette: its table covers the menus and the commands, and
+  # running an entry does what the menu item or command does.
+  add_test(NAME palette
+    COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/palette_check.py
+            ${XPPS_BATCH} ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode)
+  set_tests_properties(palette PROPERTIES TIMEOUT 300)
 endif()
 
 if(Python3_FOUND AND TARGET xpplab)

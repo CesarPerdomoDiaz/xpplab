@@ -77,5 +77,6 @@ def test_commands_exist():
 def test_page_is_linked():
     mk = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
     assert "manual/neuron-tutorial.md" in mk
-    menu = (ROOT / "app" / "src" / "ui_menu.c").read_text(encoding="utf-8")
+    # The Help menu is drawn from the table of actions.
+    menu = (ROOT / "app" / "src" / "actions.c").read_text(encoding="utf-8")
     assert '"neuron-tutorial"' in menu

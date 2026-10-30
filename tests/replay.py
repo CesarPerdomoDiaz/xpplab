@@ -229,6 +229,16 @@ CASES = [
         "auto save {out}/" + UNICODE_DIR + "/d.auto",
         "auto reset", "auto load {out}/" + UNICODE_DIR + "/d.auto",
         "export {out}/" + UNICODE_DIR + "/diagram.csv auto"]),
+    # Entries of the command palette run what the menu items and commands
+    # run, and the script says the same.
+    ("palette", "lecar.ode", [
+        "palette run integrate", "export {out}/run.csv",
+        "palette run continue", "export {out}/continued.csv",
+        "palette run ic last", "palette run integrate",
+        "export {out}/from_end.csv",
+        "palette type null", "palette run find all equilibria",
+        "export {out}/equilibria.csv equilibria",
+        "palette run nullclines"]),
     ("mat_many", "tests/models/kite.ode", [
         "set VW=2.1",
         "many 6 seed 3 gam 0 1.5707963 om -1.3 1.3 keep tens 0 inf",

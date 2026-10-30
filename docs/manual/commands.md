@@ -9,6 +9,7 @@
 | Ctrl+O, Ctrl+S, Ctrl+N | Open, save, new model |
 | Ctrl+Q | Quit (⌘ instead of Ctrl on a Mac) |
 | F1 | Help |
+| Ctrl+Shift+P | The command palette: find and run any action or command by name (⌘+Shift+P on a Mac) |
 
 ## XPPAUT's two-key commands
 
@@ -31,6 +32,24 @@ under **View > XPPAUT keyboard commands**.
 | W F | Window > Fit | Fit the plots (or double-click a plot) |
 | F Q | File > Quit | Quit |
 
+## The command palette
+
+Ctrl+Shift+P (or **View > Command palette...**) opens a search box over the
+main window. It lists every menu action and every command of the command
+window with a line about it and its shortcut. Type words of the name or of the
+description, in any order and case: `export mat`, `nullclines`, `liapunov`.
+The best matches come first, and with the box empty the actions used last.
+Enter or a click runs the highlighted one as its menu item or command would,
+so the echoed Python script is the same. Greyed entries cannot run now; the
+reason is under the name. A command that takes arguments is put in the
+command line to be completed. Escape closes it.
+
+[The command palette, searching for auto](image:command-palette.png)
+
+The same from the command window, for scripts and tests: `palette TEXT`
+opens it with the text typed, `palette run TEXT` runs the best match
+without opening it, and `palette list` writes every entry.
+
 ## The command window
 
 Type a command and press Enter. Use the Up and Down arrows to recall earlier
@@ -39,6 +58,7 @@ commands. `help` lists them all.
 | Command | Action |
 |---|---|
 | `run` | Integrate. |
+| `palette`, `palette TEXT`, `palette run TEXT`, `palette list` | The command palette: open it (with the text typed), run its best match for the text, or list its entries. |
 | `set I=0.5 total=200` | Set parameters, initial values or options. |
 | `get I` | Show a value. |
 | `whos` | List variables and parameters with their values. |

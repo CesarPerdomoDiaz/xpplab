@@ -34,6 +34,26 @@ numerical code. Any XPPAUT `.ode` file works here as it is.
 Every window can be dragged, docked, stacked in tabs or closed. To get the
 original arrangement back, use **View > Reset window layout**.
 
+## Finding an action: the command palette
+
+Press **Ctrl+Shift+P** (**Cmd+Shift+P** on a Mac), or choose **View >
+Command palette...**, and type part of what you want: `nullclines`,
+`export mat`, `liapunov`. The palette lists every menu action and every
+command of the command window that matches, each with a line about what it
+does and its shortcut. Words may come in any order and in any case; they
+are looked for in the name and in the description, and a match in the name
+ranks first. With nothing typed, the actions you used last come first.
+
+Move with the Up and Down keys and press Enter, or click, to run the
+action. It does exactly what its menu item or command does, so the command
+window and **Save session as Python script** show the same as if you had used the
+menu. An action that cannot run now, for example `auto from` before AUTO
+has a branch, is greyed out with the reason. A command that needs more than
+its name (`set`, `export`) is put in the command line for you to complete.
+Escape closes the palette.
+
+[The command palette, searching for auto](image:command-palette.png)
+
 ## Saving your work
 
 - **Figures**: every plot has an **Export...** button. Choose *PNG* for an

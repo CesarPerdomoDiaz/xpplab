@@ -7,6 +7,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "actions.h"
 #include "app.h"
 #include "channel.h"
 #include "export.h"
@@ -150,9 +151,93 @@ static const char *usage =
     "                           console, workspace; hide WINDOW closes one\n"
     "  layout side | tabs       the phase plane beside the time series, or\n"
     "                           all plots in tabs\n"
+    "  palette [TEXT]           the command palette: find and run any menu action\n"
+    "                           or command by name [Ctrl+Shift+P]; palette run\n"
+    "                           runs the first match of the text, palette list\n"
+    "                           lists everything it finds\n"
     "  help [TOPIC]             open the manual (topics: tutorial,\n"
     "                           neuron-tutorial, auto, analysis, odefile, numerics, commands, xppaut,\n"
     "                           matlab, auto07p)\n";
+
+const char *app_command_usage(void) { return usage; }
+
+/* Every command of the command window, for the palette. `help` (the usage
+   text above) describes them in full; `palette check` makes sure each
+   command it lists is here. A command with args needs more than its name. */
+const CommandInfo app_command_table[] = {
+    {"run", NULL, "Integrate from the initial values.", "I G", NEED_MODEL},
+    {"continue", NULL, "Integrate further from the end of the last run and append to it.", "C C", NEED_RUN},
+    {"set", "NAME=VALUE ...", "Set parameters, initial values or options (total, meth, ...).", NULL, NEED_MODEL},
+    {"get", "NAME", "Show the value of a variable, parameter or option.", NULL, NEED_MODEL},
+    {"whos", NULL, "List the variables and parameters.", NULL, NEED_MODEL},
+    {"ic last", NULL, "Start the next run where the last one ended.", "I L", NEED_RUN},
+    {"ic shift", NULL, "Start the next run where the last ended, and let time go on from there.", "I S", NEED_RUN},
+    {"ic read", "FILE", "Read initial values from a file, one number per variable.", "I F", NEED_MODEL},
+    {"ic write", "FILE", "Write the initial values to a file.", NULL, NEED_MODEL},
+    {"click", "X Y", "Start a run at a point of the phase plane, as a click does.", "I M", NEED_MODEL},
+    {"eq", NULL, "Find an equilibrium near the initial values and its stability.", "S G", NEED_MODEL},
+    {"eq all", NULL, "Find every equilibrium in the phase plane's window from random guesses.", NULL, NEED_MODEL},
+    {"nullclines", NULL, "Draw the nullclines in the phase plane.", "N N", NEED_MODEL},
+    {"nullclines freeze", NULL, "Keep the nullclines drawn.", "N F", NEED_MODEL},
+    {"nullclines unfreeze", NULL, "Delete the frozen nullclines.", NULL, NEED_MODEL},
+    {"nullclines play", NULL, "Step through the frozen nullclines.", NULL, NEED_MODEL},
+    {"dirfield", NULL, "Draw the direction field in the phase plane.", "D D", NEED_MODEL},
+    {"erase", NULL, "Remove the kept curves.", "E", NEED_NONE},
+    {"freeze", NULL, "Keep the current curve on the plots.", NULL, NEED_RUN},
+    {"use", "SET", "Apply a named parameter set of the model.", NULL, NEED_MODEL},
+    {"sets", NULL, "List the model's named parameter sets.", NULL, NEED_MODEL},
+    {"auto steady", NULL, "Follow steady states as a parameter varies (AUTO).", NULL, NEED_MODEL},
+    {"auto from", "LABEL ACTION [PAR2]", "Continue from a labelled point of the diagram: periodic, two, extend, switch, doubling.", NULL, NEED_BRANCH},
+    {"auto set", "DS=0.01 ...", "Set AUTO's numerics (ds, dsmin, dsmax, nmax, npr, parmin, parmax, ntst).", NULL, NEED_MODEL},
+    {"auto reset", NULL, "Clear the bifurcation diagram.", NULL, NEED_NONE},
+    {"auto save", "FILE.auto", "Save the diagram, AUTO's settings and restart data.", NULL, NEED_BRANCH},
+    {"auto load", "FILE.auto", "Bring a saved diagram back.", NULL, NEED_MODEL},
+    {"auto orbit", "LABEL", "Show the periodic orbit at a point of the diagram as the run.", NULL, NEED_BRANCH},
+    {"range", "NAME FROM TO N ...", "Run over a range of a parameter or initial value (also sweep).", NULL, NEED_MODEL},
+    {"kinescope capture", NULL, "Take a picture of a figure for the Kinescope.", "K C", NEED_MODEL},
+    {"kinescope play", NULL, "Play the Kinescope's pictures.", "K A", NEED_NONE},
+    {"kinescope clear", NULL, "Delete the Kinescope's pictures.", "K R", NEED_NONE},
+    {"py", "CODE", "Run a line of Python in the console.", NULL, NEED_NONE},
+    {"python", "use PATH | stop | fetch | install PKG", "Choose, stop or download the console's Python.", NULL, NEED_NONE},
+    {"serve", NULL, "Let Python drive the app (xpplab.app.connect()).", NULL, NEED_NONE},
+    {"many", "N VAR LO HI ...", "Many runs from initial values drawn in a box.", NULL, NEED_MODEL},
+    {"shoot", NULL, "Runs off the equilibrium along its real eigenvectors, both ways.", NULL, NEED_MODEL},
+    {"figure", "new W H | panel K | run X Y | ...", "The Figure window: build a figure for papers.", NULL, NEED_MODEL},
+    {"bvp", NULL, "Solve the boundary-value problem (bndry conditions).", NULL, NEED_MODEL},
+    {"ani", "FILE.ani", "Open an XPPAUT animation of the run.", NULL, NEED_MODEL},
+    {"view3d", "X Y Z", "Show three columns in the 3-D view.", NULL, NEED_RUN},
+    {"spectrum", "COL [COL2] [N]", "Power spectral density, cross spectrum or coherence of the last run.", NULL, NEED_RUN},
+    {"fourier", "COL", "Fourier series of a column: cos/sin and amplitude/phase.", NULL, NEED_RUN},
+    {"power", "COL", "Fourier series of a column as amplitude and phase.", NULL, NEED_RUN},
+    {"hist", "COL [BINS]", "Histogram of a column of the last run.", NULL, NEED_RUN},
+    {"hist2d", "X Y [BINS]", "Two-dimensional histogram of two columns.", NULL, NEED_RUN},
+    {"xcorr", "COL [COL2] [LAGS]", "Auto- or cross-correlation of the last run.", NULL, NEED_RUN},
+    {"mean", "COL", "Mean, deviation and Liapunov exponent of a column.", NULL, NEED_RUN},
+    {"ensemble", NULL, "Average many runs of a noisy model: mean and variance at each time.", NULL, NEED_MODEL},
+    {"prc", NULL, "Phase response curves of the limit cycle.", NULL, NEED_MODEL},
+    {"hfun", "F1; F2; ...", "H function: the weak-coupling interaction, one per variable.", NULL, NEED_MODEL},
+    {"fitdata", "FILE VARS COLS PARS", "Fit parameters to data.", NULL, NEED_MODEL},
+    {"linearize", NULL, "A and B at the equilibrium, its eigenvalues and controllability.", NULL, NEED_MODEL},
+    {"poles", "P1 P2 ...", "The feedback gain K that gives A - B K these poles.", NULL, NEED_MODEL},
+    {"lqr", NULL, "The optimal feedback gain for state and input weights.", NULL, NEED_MODEL},
+    {"closedloop", NULL, "Write the closed loop as a model next to this one and open it.", NULL, NEED_MODEL},
+    {"locus", "gain LO HI [N]", "Root locus of the closed loop over a gain, a state or a parameter.", NULL, NEED_MODEL},
+    {"open", "FILE", "Open a model file.", NULL, NEED_NONE},
+    {"new", NULL, "Start a new model from a template.", NULL, NEED_NONE},
+    {"save", NULL, "Save the model in the editor and reload it.", NULL, NEED_NONE},
+    {"export", "FILE.csv [WHAT]", "Save data as CSV or MATLAB .mat, or a figure as SVG or PNG.", NULL, NEED_NONE},
+    {"script", "FILE.py", "Save the session as a Python script that repeats it.", NULL, NEED_NONE},
+    {"echo", "on | off", "Show each action as Python in the command window, or not.", NULL, NEED_NONE},
+    {"show", "WINDOW", "Bring a window forward (time, phase, auto, editor, data, ...).", NULL, NEED_NONE},
+    {"hide", "WINDOW", "Close a window.", NULL, NEED_NONE},
+    {"layout", "side | tabs", "The phase plane beside the time series, or all plots in tabs.", NULL, NEED_NONE},
+    {"theme", "dark | light", "Switch the colour theme.", NULL, NEED_NONE},
+    {"help", NULL, "List the commands, or open a manual page (help TOPIC).", NULL, NEED_NONE},
+    {"palette", NULL, "Open the command palette.", MOD "Shift+P", NEED_NONE},
+    {"clear", NULL, "Clear the command window.", NULL, NEED_NONE},
+    {"quit", NULL, "Leave the app.", "F Q", NEED_NONE},
+};
+const int app_ncommands = (int)(sizeof app_command_table / sizeof app_command_table[0]);
 
 static char *skip_space(char *s) {
   while (*s && isspace((unsigned char)*s)) s++;
@@ -1318,6 +1403,8 @@ void app_command(App *a, const char *line_in) {
   } else if (!strcmp(cmd, "clc") || !strcmp(cmd, "clear")) {
     a->log_len = 0;
     a->log[0] = '\0';
+  } else if (!strcmp(cmd, "palette")) {
+    palette_command(a, rest);
   } else if (!strcmp(cmd, "quit") || !strcmp(cmd, "exit") || !strcmp(cmd, "fq")) {
     a->quit = true;
   } else {

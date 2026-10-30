@@ -60,6 +60,8 @@ original arrangement back, use **View > Reset window layout**.
 - [The .ode file format](odefile.md), the complete reference.
 - [Coming from XPPAUT](xppaut.md), if you already know XPPAUT.
 - [Coming from MATLAB](matlab.md), if you know `ode45`, `fsolve` and `eig`.
+- [Coming from AUTO-07p](auto07p.md), if you know `IPS`, `ICP`, `NMX` and the
+  labels LP, HB, BP.
 
 > Tip: if you know XPPAUT's keyboard commands, they still work: I G
 > integrates, N N draws nullclines, S G finds an equilibrium. See

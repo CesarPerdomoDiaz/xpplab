@@ -2129,6 +2129,11 @@ bool app_auto_push_settings(App *a) {
   return true;
 }
 
+/* AUTO settings that are step counts, echoed as integers. */
+static bool is_auto_count(const char *key) {
+  return strcmp(key, "NMAX") == 0 || strcmp(key, "NPR") == 0 || strcmp(key, "NTST") == 0;
+}
+
 /* Before an AUTO action: the parameters and numerics that
    app_auto_push_settings() is about to give the engine, where they differ
    from what it holds (the script's model holds the same). */
@@ -2171,8 +2176,7 @@ static void echo_auto_setup(App *a) {
     if (now == want[i]) continue;
     for (j = 0; keys[i][j] && j < 15; j++) low[j] = (char)tolower((unsigned char)keys[i][j]);
     low[j] = '\0';
-    /* nmax, npr and ntst (the last three keys) are counts. */
-    if (i >= 7)
+    if (is_auto_count(keys[i]))
       k += (size_t)snprintf(line + k, sizeof line - k, "%s%s=%ld", k ? ", " : "", low,
                             (long)floor(want[i] + 0.5));
     else

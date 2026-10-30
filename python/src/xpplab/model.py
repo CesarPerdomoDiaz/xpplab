@@ -110,13 +110,13 @@ class Model(AnalysisMixin):
         opts = [_b(o) for o in options]
         argv = (ctypes.c_char_p * max(1, len(opts)))(*opts)
         try:
-            self._engine.call("xppe_load", _b(self.path.name), len(opts), argv)
+            self._engine.call("xppe_load", os.fsencode(self.path.name), len(opts), argv)
         except E.EngineError:
             self._engine.close()
             raise
         self.load_log = self._engine.log
         self._engine.call("xppe_auto_set_workdir",
-                          _b(str(self._engine.workdir)))
+                          os.fsencode(self._engine.workdir))
         self.variables = self._engine.names(E.VARIABLES)
         self.columns = self._engine.names(E.COLUMNS)
         self.sets = self._engine.names(E.SETS)
@@ -702,7 +702,7 @@ class Model(AnalysisMixin):
         conds > File, I F): the first numbers in it, one per variable in
         order, separated by spaces, new lines or commas. A file with fewer
         numbers than variables raises EngineError and changes nothing."""
-        self._engine.call("xppe_ic_file", _b(str(Path(path).resolve())))
+        self._engine.call("xppe_ic_file", os.fsencode(Path(path).resolve()))
         return self
 
     def write_ics(self, path) -> Path:

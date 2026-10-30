@@ -21,6 +21,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "file_utf8.h"
 #include "app.h"
 #include "export.h"
 
@@ -403,7 +404,7 @@ bool echo_save(App *a, const char *path) {
     flush(a);
     sync_script(a);
   }
-  f = fopen(path, "wb");
+  f = app_fopen_utf8(path, "wb");
   if (!f) {
     app_log(a, "error: cannot write %s", path);
     return false;

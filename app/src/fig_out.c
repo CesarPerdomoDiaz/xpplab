@@ -1,6 +1,7 @@
 /* Figures: the outputs (fig.h). PNG through a rasteriser of the same paths
    (stb_truetype's, which fills letters too), SVG, PDF and EPS as vectors. */
 #include "fig.h"
+#include "file_utf8.h"
 
 #include <math.h>
 #include <stdarg.h>
@@ -27,18 +28,6 @@ unsigned char *stbi_write_png_to_mem(const unsigned char *pixels, int stride_byt
                                      int y, int n, int *out_len);
 unsigned char *stbi_zlib_compress(unsigned char *data, int data_len, int *out_len,
                                   int quality);
-
-/* A file by its UTF-8 name, also on Windows. */
-static FILE *open_utf8(const char *path, const char *mode) {
-#ifdef _WIN32
-  wchar_t wp[1024], wm[8];
-  if (MultiByteToWideChar(CP_UTF8, 0, path, -1, wp, 1024) <= 0) return NULL;
-  if (MultiByteToWideChar(CP_UTF8, 0, mode, -1, wm, 8) <= 0) return NULL;
-  return _wfopen(wp, wm);
-#else
-  return fopen(path, mode);
-#endif
-}
 
 /* ---- Flattening ------------------------------------------------------------------ */
 
@@ -334,7 +323,7 @@ bool fig_write_png(const FigDL *dl, int dpi, const char *path) {
   put32(phys + 12, (unsigned long)(dpi / 0.0254 + 0.5));
   phys[16] = 1;
   put32(phys + 17, crc32_of(phys + 4, 13));
-  f = open_utf8(path, "wb");
+  f = app_fopen_utf8(path, "wb");
   if (!f) {
     free(png);
     return false;
@@ -433,7 +422,7 @@ static void path_ops(Buf *b, const FigDL *dl, const FigOp *o, int style) {
 }
 
 static bool save_buf(const Buf *b, const char *path) {
-  FILE *f = open_utf8(path, "wb");
+  FILE *f = app_fopen_utf8(path, "wb");
   bool ok;
   if (!f) return false;
   ok = fwrite(b->b, 1, b->n, f) == b->n;

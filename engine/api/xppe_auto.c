@@ -158,6 +158,8 @@ int xppe_auto_set_workdir(const char *dir) {
     return XPPE_ERR_RANGE;
   }
   strcpy(auto_workdir, dir);
+  /* AUTO's files are opened by XPPAUT's own code, by the ANSI code page. */
+  xppe_ascii_path(auto_workdir, sizeof auto_workdir);
   return XPPE_OK;
 }
 
@@ -469,7 +471,7 @@ int xppe_auto_save(const char *path) {
   push_workdir();
   XPPE_GUARD_BEGIN((pop_workdir(), fp ? fclose(fp) : 0));
   create_auto_file_name();
-  if ((fp = fopen(path, "w")) != NULL) {
+  if ((fp = xppe_fopen_utf8(path, "w")) != NULL) {
     save_auto_numerics(fp);
     save_auto_graph(fp);
     if ((status = save_diagram(fp, NODE)) == 1) save_q_file(fp);
@@ -493,7 +495,7 @@ int xppe_auto_load(const char *path) {
   FILE *fp;
   int rc, status = 0;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
-  if ((fp = fopen(path, "r")) == NULL) {
+  if ((fp = xppe_fopen_utf8(path, "r")) == NULL) {
     xppe_set_error("cannot read %s", path);
     return XPPE_ERR_LOAD;
   }

@@ -38,6 +38,7 @@ typedef int sock_t;
 
 #include <SDL3/SDL.h>
 
+#include "file_utf8.h"
 #include "channel.h"
 
 #define MAX_CLIENTS 4
@@ -88,12 +89,12 @@ static bool random_token(void) {
 
 /* ~/.xpplab/channel.json, or the file $XPPLAB_CHANNEL names. */
 static bool channel_file(char *out, size_t len) {
-  const char *env = getenv("XPPLAB_CHANNEL");
+  const char *env = SDL_getenv("XPPLAB_CHANNEL");
   char dir[1024];
 #ifdef _WIN32
-  const char *home = getenv("USERPROFILE");
+  const char *home = SDL_getenv("USERPROFILE");
 #else
-  const char *home = getenv("HOME");
+  const char *home = SDL_getenv("HOME");
 #endif
   if (env && *env) {
     snprintf(out, len, "%s", env);
@@ -102,7 +103,7 @@ static bool channel_file(char *out, size_t len) {
   if (!home || !*home) return false;
   snprintf(dir, sizeof dir, "%s/.xpplab", home);
 #ifdef _WIN32
-  _mkdir(dir);
+  SDL_CreateDirectory(dir); /* by its UTF-8 name */
 #else
   mkdir(dir, 0700);
 #endif
@@ -113,7 +114,7 @@ static bool channel_file(char *out, size_t len) {
 static bool write_file(const char *path) {
   FILE *f;
 #ifdef _WIN32
-  f = fopen(path, "w"); /* the user's profile: only the user can read it */
+  f = app_fopen_utf8(path, "w"); /* the user's profile: only the user can read it */
 #else
   int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
   f = fd >= 0 ? fdopen(fd, "w") : NULL;
@@ -186,11 +187,11 @@ void channel_stop(App *a) {
   close_sock(listener);
   listener = BAD_SOCK;
   /* Remove the file unless another app has written its own since. */
-  if ((f = fopen(file_path, "r")) != NULL) {
+  if ((f = app_fopen_utf8(file_path, "r")) != NULL) {
     size_t n = fread(text, 1, sizeof text - 1, f);
     text[n] = 0;
     fclose(f);
-    if (strstr(text, token)) remove(file_path);
+    if (strstr(text, token)) SDL_RemovePath(file_path);
   }
 }
 

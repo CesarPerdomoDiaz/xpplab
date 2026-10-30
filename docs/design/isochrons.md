@@ -3,6 +3,37 @@
 Status: proposal. This note describes the work; no code exists yet. The
 roadmap entry is *Isochrons and phase reduction* under M7.
 
+
+## Conventions
+
+Fixed here once; every formula below and every piece of code uses them. They
+are XPPAUT's, because Z and H come from `adjoint` and `make_h` in
+`engine/xppaut/adj2.c`.
+
+- **The phase θ is in time units**, 0 ≤ θ < T, where T is the period. The
+  cycle is γ(θ), and a point of the cycle moves as dθ/dt = 1.
+- **The iPRC Z(θ)** is the gradient of the asymptotic phase on the cycle,
+  normalised so that Z(θ) · f(γ(θ)) = 1 (XPPAUT's adjoint). It is in time
+  units per unit of state.
+- **One oscillator with a weak input p** obeys dθ/dt = 1 + ε Z(θ) · p(θ, t).
+- **Weak coupling.** For the coupling term G(x_i, x_j) that the user writes
+  (unprimed names are oscillator i, primed names oscillator j, as in
+  `xppe_hfunction`), N identical oscillators obey
+  dθ_i/dt = 1 + ε Σ_j H(θ_j − θ_i), with
+  H(φ) = (1/T) ∫_0^T Z(t) · G(γ(t), γ(t + φ)) dt, and φ in time units, as
+  `make_h` computes it (a mean over the stored points of the cycle).
+- **H_odd and H_even** are the columns `Hodd` and `Heven` that XPPAUT
+  returns: H_odd(φ) = (H(φ) − H(−φ))/2 and H_even(φ) = (H(φ) + H(−φ))/2.
+  The phase model takes them from `xppe_hfunction`; it does not compute
+  them again.
+- **A pair.** With φ = θ_2 − θ_1, dφ/dt = ε (H(−φ) − H(φ)) = −2ε H_odd(φ).
+  A zero of H_odd is a locked state; it is stable if H_odd'(φ) > 0 (for
+  ε > 0). Zeros at 0 and T/2 always exist, by symmetry.
+- **What users see as the asymptotic phase is θ/T in [0, 1).** To convert to
+  radians, use 2πθ/T, and ω = 2π/T; this is the only place radians appear
+  (except in models, such as the lambda-omega system, whose own equations use
+  an angle).
+
 ## What users get
 
 A stable limit cycle has a period T. Every point in its basin of attraction
@@ -13,25 +44,19 @@ size, how far the oscillator is shifted in phase.
 
 XPP Lab already computes the adjoint along a cycle (`xppe_adjoint`,
 `Model.adjoint`, `Model.phase_response`): its columns are the infinitesimal
-phase response curves (iPRC) Z, the gradient of the asymptotic phase on the
-cycle. It also computes the averaged interaction function H for two coupled
-oscillators (`xppe_hfunction`, `Model.h_function`). This note adds three things:
+phase response curves (iPRC) Z. It also computes the averaged interaction
+function H for two coupled oscillators (`xppe_hfunction`, `Model.h_function`).
+This note adds three things:
 
-1. **Asymptotic phase of a point.** Given a state x, the phase in [0, 1) of the
-   cycle point it converges to, and the time it takes to get close.
+1. **Asymptotic phase of a point.** Given a state x, the phase of the cycle
+   point it converges to, and the time it takes to get close.
 2. **Isochrons in the phase plane.** For a two-variable model, curves of equal
    phase drawn with the cycle and the nullclines, a chosen number of them
    (for example 12 or 24 equally spaced in phase).
-3. **The phase-reduced model.** The natural frequency ω = 2π/T, the iPRC Z(θ)
-   and H(φ), put together as
-   one object, with the equations they stand for:
-
-    - one oscillator with a weak input p: dθ/dt = ω + ε Z(θ) · p(θ, t);
-    - N weakly coupled identical oscillators:
-      dθ_i/dt = ω + ε Σ_j H(θ_j − θ_i), and for two oscillators the phase
-      difference φ = θ_2 − θ_1 obeys dφ/dt = ε (H(−φ) − H(φ)) = −2ε H_odd(φ);
-    - the phase-locked states of a pair: the zeros of H_odd, and which of them
-      are stable (H_odd'(φ) > 0 for a stable one with this sign convention).
+3. **The phase-reduced model.** The period T, the iPRC Z(θ) and the functions
+   H, H_odd and H_even, put together as one object, with the equations they
+   stand for (see Conventions): one oscillator with an input, N coupled
+   oscillators, and for a pair the locked states and their stability.
 
 The textbook background is Ermentrout & Terman, *Mathematical Foundations of
 Neuroscience* (chapters on phase response curves and on weakly coupled
@@ -50,16 +75,20 @@ full model when the coupling is strong.
 
 ### A. Asymptotic phase by forward integration
 
-For a point x, integrate forward with the current method until the state is
-within a tolerance δ of the cycle (the distance to the stored cycle points,
-refined by the nearest point along the cycle). Let s be the elapsed time and
-θ_c the phase of the nearest cycle point. Then the phase of x is
-θ_c − s/T, taken modulo 1. The error is of order δ.
+For a point x, integrate forward with the current method until the state
+φ_s(x) (the flow for the time s) is within a tolerance δ of the cycle. Let
+γ(θ_c) be the nearest cycle point (nearest stored point, refined along the
+cycle). Then, with θ_c in time units and the result mod 1,
 
-With the iPRC the error can be made of order δ²: if γ(θ_c) is the cycle point,
-then Θ(x) ≈ θ_c + Z(θ_c) · (x − γ(θ_c)) / T, where Z is the adjoint with
-XPPAUT's normalisation (its dot product with the vector field is 1, in time
-units). This uses the adjoint the engine already computes.
+    phase(x) = θ_c/T − s/T,   with error of order δ.
+
+With the iPRC the error is of order δ². The correction belongs to the *end
+state* φ_s(x), which is within δ of the cycle, not to the starting state x,
+which can be far from it:
+
+    phase(x) = θ_c/T + Z(θ_c) · (φ_s(x) − γ(θ_c))/T − s/T   (mod 1).
+
+Z is the adjoint with the normalisation above, so Z · δx is a time shift.
 
 *Limits.* It is the most robust method, because it only integrates forward
 and uses whatever method and tolerances the model has, stiff solvers
@@ -71,31 +100,54 @@ result is expensive.
 
 ### B. Isochrons by integrating backward from the cycle
 
-The isochron through a cycle point γ(θ) is the stable manifold of that point
-for the time-T map. Its tangent at γ is the hyperplane of the adjoint,
-{v : Z(θ) · v = 0}; in a plane it is one direction. Take a small displacement
-ε from γ(θ) along that tangent, on both sides, and integrate the *backward*
-flow. Backward in time the isochron direction expands, so the computed curve
-is attracted to the isochron and the method is stable in the direction that
-matters; the cycle direction is neutral. A point reached after backward time
-s from the isochron of phase θ lies on the isochron of phase θ − s/T, so a
-few starting points on the cycle, each integrated for a long enough
-backward time, cover all phases. The curves are drawn as a polyline,
-adding points by arc length so that the stretching by the backward flow
-(at the rate of the strongest transverse multiplier) does not leave gaps.
+In the plane (n = 2) the cycle has one nontrivial Floquet multiplier λ, with
+0 < |λ| < 1. It follows from the divergence of the vector field along the
+cycle:
+
+    λ = exp(∫_0^T div f(γ(t)) dt),
+
+which is computed from the stored orbit by the trapezoid rule on the points
+the adjoint already uses (or read from the Floquet multipliers of the
+monodromy matrix that `adjoint` integrates). A single backward trajectory
+from a point near the cycle is *not* an isochron: it crosses every isochron
+as it goes, because its phase falls by s/T after the backward time s. The
+construction below uses backward times that are whole periods, which keep the
+phase exactly.
+
+For each requested phase θ (in time units):
+
+1. At γ(θ), the *linear isochron* is the line {v : Z(θ) · v = 0}, with
+   direction v (a unit vector). Take a segment of starting points
+   γ(θ) + d v with d running from ε to ε/|λ|, and the same on the other side
+   (d from −ε to −ε/|λ|), one segment on each side.
+2. Integrate every starting point *backward for exactly T, 2T, …, kT*. The
+   backward flow for a whole period keeps the phase, so every image lies on
+   the isochron of phase θ. Backward in time the transverse distance grows
+   by 1/|λ| per period, so the image of the segment for the time T is the
+   segment from ε/|λ| to ε/|λ|², which continues the first one. Joined in
+   order, the segment and its images for T, 2T, … make up the isochron.
+3. Where neighbouring images separate by more than a set arc length, add
+   starting points to the segment (by integrating from the interpolated
+   starting distance), and repeat until the arc length is respected.
+4. Stop at a maximum arc length, at a bound on the variables, and at a
+   maximum number of periods k.
+
+Repeat for each θ. The method uses the Floquet multiplier only to choose the
+segment; the phase of a start point on the linear isochron is exact up to
+O(ε²), and that error does not grow in the backward integration. The error
+*along* the isochron is stretched by 1/|λ| every period, so ε must be
+small, and the refinement of step 3 is essential, not cosmetic.
 
 *Limits.* (1) In the plane this gives curves. For n > 2 an isochron is an
-(n − 1)-dimensional surface; the same idea gives a one-parameter family of
-curves, but not the surface, and the first version refuses n > 2 (the
-asymptotic phase of a point, method A, works in any dimension). (2) The
-backward flow can blow up or run to the unstable equilibrium in finite
-time, so the integration stops at a bound and at a maximum arc length. (3)
-If the cycle is strongly contracting (Floquet exponent large and negative),
-the isochrons wind up tightly and spiral near the cycle; the arc-length
-control must follow them or they alias. (4) Backward integration of a stiff
-model is itself stiff in the other sense: the fast stable direction becomes
-the fast unstable one, so a stiff model needs small steps and may fail.
-Method A is the fallback there.
+(n − 1)-dimensional surface; the first version refuses n > 2 (the asymptotic
+phase of a point, method A, works in any dimension). (2) The backward flow
+can blow up or run to the unstable equilibrium in finite time, so the
+integration stops at a bound and at a maximum arc length. (3) If the cycle
+is strongly contracting (|λ| small), the isochrons wind up tightly and
+spiral near the cycle, and the segment and the refinement must follow them.
+(4) Backward integration of a stiff model is itself stiff in the other
+sense: the fast stable direction becomes the fast unstable one, so a stiff
+model needs small steps and may fail. Methods A and C are the fallback there.
 
 ### C. Isochrons as level sets of the phase on a grid
 
@@ -108,20 +160,20 @@ as the fallback, not as the default.
 
 ### D. The phase-reduced model
 
-Z comes from `xppe_adjoint` and H from `xppe_hfunction`; both exist and are
-tested against XPPAUT. The new part is to collect them: ω from the period,
-the tables Z and H on a common phase grid, H_odd and H_even, and the roots of
-H_odd with their stability. For the roots, the C routine finds sign changes of
-H_odd on the grid and refines each by a few secant steps on a periodic cubic
-interpolation of H, so the app and Python print the same numbers.
-Interpolation is the only new numerics; the integration is XPPAUT's.
+Z comes from `xppe_adjoint`, and H, H_odd and H_even from `xppe_hfunction`;
+both exist and are tested against XPPAUT. The new part is to collect them:
+the period T, the tables Z, H, H_odd and H_even on a common phase grid in
+time units, and the roots of H_odd with their stability. For the roots, the C
+routine finds sign changes of the XPPAUT `Hodd` column and refines each by a
+few secant steps on a periodic cubic interpolation of it, so the app and
+Python print the same numbers. The interpolation is the only new numerics;
+the integration and the averages are XPPAUT's.
 
 *Limits.* H is the first-order average. It is valid for weak coupling (small
 ε compared with the attraction rate to the cycle) and for oscillators with
-close frequencies; with the coupling variable's own dynamics slow, or
-with strong coupling, the locked states and their stability can differ from
-the full model. The note and the documentation say so, and the tests compare
-the locked phase with the full model for small ε.
+close frequencies; with strong coupling, the locked states and their
+stability can differ from the full model. The documentation says so, and the
+tests compare the locked phase with the full model for small ε.
 
 ### Not in the first version
 
@@ -148,9 +200,9 @@ output arguments:
   a table with columns `phase`, then the plotted pair of variables, one
   polyline per phase separated by a row of NaN. Method C as an option
   (`xppe_phase_grid`) in a later piece.
-- `xppe_phase_model(int n, const char *const *coupling)`: ω, then the
-  table of phase, Z for each variable, H, H_odd, H_even, and the locked
-  states with their stability.
+- `xppe_phase_model(int n, const char *const *coupling)`: T, then the
+  table of phase (time units), Z for each variable, H, H_odd, H_even (the
+  columns of `xppe_hfunction`), and the locked states with their stability.
 
 Each function that integrates calls XPPAUT's own step routines for the
 current method, as `xppe_lyapunov_integrate` does, and does not copy the
@@ -162,7 +214,7 @@ no new UTF-8 path handling is needed.
 
 `Model.asymptotic_phase(point)`, `Model.isochrons(count=12, ...)` returning
 a `Table` ready for `xpplab.Figure`, and `Model.phase_model(coupling)`
-returning an object with `omega`, `period`, `z`, `h`, `h_odd`, `locked`.
+returning an object with `period`, `z`, `h`, `h_odd`, `locked`.
 These are thin ctypes wrappers like `adjoint` and `h_function`; they do
 not compute, apart from reshaping tables. An MCP tool in
 `python/src/xpplab/mcp/server.py` summarises the phase model for a coding
@@ -172,9 +224,13 @@ agent, as the existing phase-response tool does.
 
 - *Averaging* gains **Isochrons**: draws the curves over the phase plane
   in the same plot as the cycle, with a count and a time limit;
-  the command is `isochrons`. Clicking a point in the plane shows its
-  asymptotic phase (`phase x y` in the command line).
-- *Averaging > Phase model* shows ω, Z and H and the locked states; the
+  the command is `isochrons`. The asymptotic phase of a point is the
+  command `phase x y`, and a separate tool mode in the plot (off by
+  default) lets the user click a point to read its phase. A click in the
+  phase plane already starts a trajectory from that point (XPPAUT's mouse
+  initial conditions, `app/src/ui_plots.c`); that behaviour does not
+  change, and the tool mode is a different, explicit choice.
+- *Averaging > Phase model* shows T, Z, H, H_odd and the locked states; the
   command is `phasemodel`.
 
 Each action is wrapped in `echo_begin()`/`echo_end()` and writes the line
@@ -201,24 +257,52 @@ All in `tests/models/`, with tolerances that follow from the integration
 tolerance and are written in the test.
 
 1. **The radial isochron clock**, r' = r(1 − r), θ' = 1 (in Cartesian
-   coordinates x = r cos θ, y = r sin θ). The cycle is r = 1, T = 2π, the
-   asymptotic phase is θ/2π (mod 1), and the isochrons are the rays
-   θ = const. The test checks the asymptotic phase at points inside and
-   outside the cycle, that every point of an isochron curve has the phase of
-   its ray, and that Z on the cycle is (−sin θ, cos θ).
-2. **A lambda-omega system**, r' = r(1 − r²), θ' = ω_0 + q(1 − r²), with
-   ω_0 and q chosen so the cycle is r = 1, T = 2π/ω_0. The asymptotic phase
-   is Θ = θ − q ln r (in radians, rate ω_0), so the isochrons are the
-   logarithmic spirals θ = Θ_0 + q ln r. The iPRC in XPPAUT's normalisation
-   is Z = (−q r̂ + θ̂)/ω_0, which has the dot product 1 with the vector field
-   ω_0 θ̂ on the cycle. The test checks phases at several radii (the
-   curved isochrons are what the radial clock cannot show), the curve of
-   method B, and Z.
-3. **Weak coupling of two such systems**, with diffusive coupling. H is known
-   in closed form (a sine plus a cosine of the phase difference, with
-   amplitudes from q), so the test checks H, its odd part, the locked
-   states, and that a full simulation of the coupled pair with small ε
-   settles at the predicted phase difference.
+   coordinates x = r cos θ, y = r sin θ). The cycle is r = 1, T = 2π, so the
+   phase in time units is Θ = θ (mod 2π) and the asymptotic phase seen by
+   the user is θ/2π. The isochrons are the rays θ = const. The Floquet
+   multiplier is λ = exp(−2π) (at r = 1, div f = −1 along the cycle). Z on
+   the cycle is (−sin θ, cos θ), with Z · f = 1. The test checks the
+   asymptotic phase at points inside and outside the cycle, that every point
+   of an isochron curve has the phase of its ray, and Z.
+2. **A lambda-omega system**, r' = r(1 − r²), θ' = ω_0 + q(1 − r²), so the
+   cycle is r = 1 and T = 2π/ω_0. Derivation: if r' = r g(r) and θ' = w(r),
+   then Θ = θ − ∫_1^r (w(ρ) − ω_0)/(ρ g(ρ)) dρ has dΘ/dt = ω_0 along every
+   trajectory. Here (w − ω_0)/(ρ g) = q/ρ, so Θ = θ − q ln r. In time units
+   the phase is Θ/ω_0, and the user's asymptotic phase is
+   (θ − q ln r)/2π (mod 1). The isochrons are the logarithmic spirals
+   θ = Θ_0 + q ln r. The gradient of Θ at r = 1 is −q r̂ + θ̂, and f = ω_0 θ̂
+   there, so Z = (−q r̂ + θ̂)/ω_0, with Z · f = 1. The Floquet multiplier is
+   λ = exp(−2T) = exp(−4π/ω_0) (div f = −2 at r = 1). The test checks phases
+   at several radii (the curved isochrons are what the radial clock cannot
+   show), the curves of method B, and Z.
+3. **Weak coupling of two lambda-omega systems**, coupled through both
+   variables, G = x_j − x_i (primed names are oscillator j, so the coupling
+   formulas are `x'-x` and `y'-y`). On the cycle γ(t) = (cos ω_0 t,
+   sin ω_0 t), with a = ω_0 t and ψ = ω_0 φ,
+
+       ω_0 Z · G = −q [cos a (cos(a+ψ) − cos a) + sin a (sin(a+ψ) − sin a)]
+                   + [−sin a (cos(a+ψ) − cos a) + cos a (sin(a+ψ) − sin a)]
+                 = −q (cos ψ − 1) + sin ψ,
+
+   which does not depend on a, so the mean over the period is the same:
+
+       H(φ) = [sin(ω_0 φ) − q (cos(ω_0 φ) − 1)] / ω_0,
+       H_odd(φ) = sin(ω_0 φ) / ω_0,  H_even(φ) = −q (cos(ω_0 φ) − 1)/ω_0.
+
+   H_odd has zeros at 0 and T/2. H_odd'(0) = 1 > 0, so synchrony is stable
+   for ε > 0; H_odd'(T/2) = −1, so antiphase is unstable. The test checks H,
+   H_odd, the locked states, and that a full simulation of the coupled pair
+   with small ε settles at φ = 0. These two locked states are only
+   synchrony and antiphase, which exist by symmetry in any model, so they do
+   not show that the roots are found in general.
+4. **A pair of Morris-Lecar cells** (`examples/lecar.ode`) is the test of a
+   locked state that is neither 0 nor T/2. The parameters of the cycle and
+   the coupling (for example through V, `V'-V` for V and 0 for the other
+   variable) are chosen in the
+   piece that implements the phase model, by running `Model.h_function` until
+   H_odd has an extra zero; this note does not claim one. The test then
+   compares the predicted locked phase and its stability with a full
+   simulation of the pair for small ε.
 
 ### Consistency with the engine
 
@@ -229,8 +313,8 @@ tolerance and are written in the test.
   φ_t(x), the phase of φ_t(x) equals the phase of x plus t/T, modulo 1.
 - Method B and method C draw the same curves where both work, to within the
   grid spacing.
-- The phase model's H equals `xppe_hfunction` for the same coupling, bit for
-  bit, and the locked-state stability agrees with a simulation of the pair.
+- The phase model's H, H_odd and H_even equal the `xppe_hfunction` columns
+  for the same coupling, bit for bit, and the locked-state stability agrees with a simulation of the pair.
 - Refusals: delays, noise, a run that is not one period, and an unstable
   cycle give an error and not a number.
 
@@ -248,7 +332,7 @@ valgrind jobs run the C tests as before.
    signature.
 2. **C API: isochrons in the plane** (method B), with the closed-form
    tests; refuses n > 2 for now.
-3. **C API: the phase model** (`xppe_phase_model`: ω, Z, H, locked states),
+3. **C API: the phase model** (`xppe_phase_model`: T, Z, H, locked states),
    with the coupled lambda-omega test and the comparison with a full
    simulation.
 4. **Python and MCP**: `asymptotic_phase`, `isochrons`, `phase_model`, the

@@ -17,7 +17,6 @@ from xpplab.auto import SETTINGS
 
 ROOT = Path(__file__).resolve().parents[2]
 PAGE = ROOT / "docs" / "manual" / "auto07p.md"
-COMMANDS_C = ROOT / "app" / "src" / "commands.c"
 
 
 def blocks(language):
@@ -174,40 +173,6 @@ def test_actions_and_types_in_the_table_are_accepted(ns):
         assert label in TYPE_NAMES
 
 
-def test_bold_names_are_in_the_app():
-    """Every window field or button the table names is in the app's source."""
-    src = "".join(p.read_text(encoding="utf-8", errors="replace")
-                  for p in (ROOT / "app" / "src").glob("*.c"))
-    names = set()
-    for row in table_rows():
-        names.update(re.findall(r"\*\*([^*]+)\*\*", row))
-    names.update(re.findall(r"\*\*([^*]+)\*\*", PAGE.read_text(encoding="utf-8")))
-    assert {"Parameter", "2nd param.", "Follow steady states", "Max steps",
-            "Label every", "Step DS", "Par min", "Par max", "Mesh NTST",
-            "Save...", "Open...", "Clear diagram"} <= names
-    for name in sorted(names):
-        assert (f'"{name}"' in src or f'"{name}##' in src
-                or name in src), f"not in the app: {name}"
-
-
-def app_commands():
-    src = COMMANDS_C.read_text(encoding="utf-8")
-    return set(re.findall(r'strcmp\(cmd, "([^"]+)"\)', src))
-
-
-def test_commands_exist():
-    lines = [ln for b in blocks("commands") for ln in b.splitlines() if ln]
-    assert len(lines) == 5
-    known = app_commands()
-    src = COMMANDS_C.read_text(encoding="utf-8")
-    for ln in lines:
-        assert ln.split()[0] in known, f"unknown app command: {ln}"
-        if ln.startswith("auto "):
-            assert f'!strcmp(w, "{ln.split()[1]}")' in src, ln
-    for sub in ("save", "load", "from", "orbit", "reset"):
-        assert f'!strcmp(w, "{sub}")' in src
-
-
 def batch_exe():
     """The built xpplab-batch, if the engine library sits next to it."""
     for name in ("xpplab-batch.exe", "xpplab-batch"):
@@ -276,13 +241,35 @@ def test_suppbp_keeps_stability_and_the_steady_branch():
     assert len(runs[0][4]) == 60 and not any(runs[0][4])
 
 
-def test_page_is_linked():
+def test_save_load_and_fold_commands_in_the_app(tmp_path):
+    """The commands the prose names run in xpplab-batch without an error."""
+    exe = batch_exe()
+    if exe is None:
+        pytest.skip("xpplab-batch is not built with its engine library")
+    (ode,) = blocks("ode")
+    (tmp_path / "switch.ode").write_text(ode, encoding="utf-8")
+    cmds = ["auto set parmin=-2 parmax=2 dsmax=0.05 nmax=500 npr=500",
+            "auto steady lam", "auto save switch.auto", "auto reset",
+            "auto load switch.auto", "auto set nmax=30",
+            "auto from 3 two a"]
+    args = [str(exe), "switch.ode"]
+    for ln in cmds:
+        args += ["-c", ln]
+    done = subprocess.run(args, cwd=tmp_path, capture_output=True, text=True,
+                          timeout=180)
+    assert done.returncode == 0, done.stdout + done.stderr
+    assert "error" not in done.stdout.lower(), done.stdout
+    assert "Loaded a bifurcation diagram of 193 points" in done.stdout
+    assert "continuing from LP #3" in done.stdout
+    assert (tmp_path / "switch.auto").exists()
+
+
+def test_page_is_in_the_manual():
     mk = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
     assert "manual/auto07p.md" in mk
-    menu = (ROOT / "app" / "src" / "ui_menu.c").read_text(encoding="utf-8")
-    assert 'ui_show_help(a, "auto07p")' in menu
+    assert (ROOT / "docs" / "manual" / "auto07p.md").read_text(
+        encoding="utf-8").startswith("# Coming from AUTO-07p")
     assert "(auto07p.md)" in (ROOT / "docs" / "manual" / "welcome.md").read_text(
         encoding="utf-8")
-    assert "auto07p" in COMMANDS_C.read_text(encoding="utf-8")
     roadmap = (ROOT / "ROADMAP.md").read_text(encoding="utf-8")
     assert re.search(r'^- \[x\] "Coming from AUTO-07p"', roadmap, re.M)

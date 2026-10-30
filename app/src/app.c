@@ -2171,8 +2171,13 @@ static void echo_auto_setup(App *a) {
     if (now == want[i]) continue;
     for (j = 0; keys[i][j] && j < 15; j++) low[j] = (char)tolower((unsigned char)keys[i][j]);
     low[j] = '\0';
-    k += (size_t)snprintf(line + k, sizeof line - k, "%s%s=%s", k ? ", " : "", low,
-                          echo_num(want[i], num, sizeof num));
+    /* nmax, npr and ntst (the last three keys) are counts. */
+    if (i >= 7)
+      k += (size_t)snprintf(line + k, sizeof line - k, "%s%s=%ld", k ? ", " : "", low,
+                            (long)floor(want[i] + 0.5));
+    else
+      k += (size_t)snprintf(line + k, sizeof line - k, "%s%s=%s", k ? ", " : "", low,
+                            echo_num(want[i], num, sizeof num));
   }
   if (k) echo_line(a, "m.auto.set(%s)", line);
 }

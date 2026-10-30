@@ -26,7 +26,7 @@ static void menu_file(App *a) {
   if (igMenuItem_Bool("Save as...", NULL, false, a->editor[0] != 0))
     ui_dialog_save_as(a);
   igSeparator();
-  if (igMenuItem_Bool("Export data as CSV...", NULL, false, a->have_traj))
+  if (igMenuItem_Bool("Export data as CSV or MAT...", NULL, false, a->have_traj))
     ui_dialog_export_csv(a);
   if (igMenuItem_Bool("Save session as Python script...", NULL, false,
                       a->echo.len > 0))
@@ -172,6 +172,8 @@ static void menu_help(App *a) {
     ui_show_help(a, "xppaut");
   if (igMenuItem_Bool("Coming from MATLAB", NULL, false, true))
     ui_show_help(a, "matlab");
+  if (igMenuItem_Bool("Coming from AUTO-07p", NULL, false, true))
+    ui_show_help(a, "auto07p");
   igSeparator();
   if (igMenuItem_Bool("About XPP Lab", NULL, false, true))
     ui_show_help(a, "about");

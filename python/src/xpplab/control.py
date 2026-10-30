@@ -391,6 +391,21 @@ class RootLocus:
             rows.append(row)
         write_csv(path, cols, rows)
 
+    def to_mat(self, path) -> None:
+        """The columns of :meth:`to_csv` as a MATLAB .mat file (the desktop
+        app's ``export FILE.mat locus`` writes the same file)."""
+        from .analysis import write_mat
+        n = self.poles.shape[1]
+        names = [self.name]
+        cols = [np.asarray(self.values, dtype=float)]
+        if self.x is not None:
+            names += list(self.variables)
+            cols += [np.asarray(self.x, dtype=float)[:, j] for j in range(len(self.variables))]
+        for b in range(n):
+            names += [f"re{b + 1}", f"im{b + 1}"]
+            cols += [self.poles[:, b].real + 0.0, self.poles[:, b].imag + 0.0]
+        write_mat(path, names, cols)
+
     def plot(self, ax=None):
         """The branches in the complex plane, each from an x (the first
         value) to an o (the last), with the stable region shaded."""

@@ -67,6 +67,7 @@ nav:
       - Commands and shortcuts: manual/commands.md
       - Coming from XPPAUT: manual/xppaut.md
       - Coming from MATLAB: manual/matlab.md
+      - Coming from AUTO-07p: manual/auto07p.md
   - Python:
       - Quick start: python/quickstart.md
       - Simulation: python/simulation.md

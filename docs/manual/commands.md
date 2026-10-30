@@ -90,6 +90,7 @@ commands. `help` lists them all.
 | `open file.ode`, `new`, `save` | Model files. |
 | `export run.csv` | Save the last run as CSV. Every number is written exactly. |
 | `export d.csv auto` | Save the points of the bifurcation diagram as CSV (`range`: the last Range that measures or follows equilibria; `analysis`: the Analysis result; `equilibria`: the last `eq all`; `nullclines`: those shown and frozen). |
+| `export run.mat` | Save the last run as a MATLAB file (see [MATLAB `.mat` files](#matlab-mat-files)). `export d.mat auto`, `range`, `analysis`, `equilibria`, `nullclines`, `many` and `locus` work the same way. |
 | `export fig.svg phase` | Save a figure (`time`, `phase`, `auto`, `auto2`) as SVG; `.png` saves it as shown. |
 | `script session.py` | Save the session as a Python script that repeats it (see below). |
 | `echo off`, `echo on` | Hide or show each action as Python in the command window. |
@@ -98,6 +99,50 @@ commands. `help` lists them all.
 | `show phase`, `hide help` | Bring a window forward, or close it: `time`, `phase`, `auto`, `editor`, `data`, `analysis`, `3d`, `animator`, `help`, `console`, `workspace`, `models`. |
 | `layout side`, `layout tabs` | Put the phase plane beside the time series (also in **View**), or all plots back in tabs. |
 | `help auto` | Open a manual page. |
+
+## MATLAB `.mat` files
+
+`export` writes a MATLAB file when the name ends in `.mat`, for everything
+it writes as CSV (Python: `to_mat(path)` beside `to_csv(path)`). MATLAB's
+`load` reads it with no toolbox. Every column is a column vector of doubles;
+the file is a Level 5 MAT-file, little-endian and uncompressed.
+
+| Export | Variables |
+|---|---|
+| a run | `t`, then one vector per variable and aux quantity, named as in the model, and the struct `params` with the parameter values the run used |
+| `range` | the swept value or values, then the measure (`V_max`, `V_min`, or `lyapunov`), and `params` (for a Range that follows equilibria, the columns of the CSV and no `params`) |
+| `auto` | `branch`, `point`, `label`, `stable`, `periodic`, `two_parameter`, `value`, `value2` (NaN for a one-parameter point), `norm`, `period`, then `V_max` and `V_min` for every variable. The text columns of the CSV (`type`, `parameter`, `parameter2`) are left out. |
+| `equilibria`, `nullclines`, `analysis`, `many`, `locus` | the columns of the CSV file |
+
+`export lin.mat analysis` after `linearize` is not available (the table has a
+column of state names): use CSV. A run in the Python package carries the
+parameters it was run with; a table that has none (`Table(..., params=...)`
+sets them) has no `params`.
+
+In MATLAB, `s = load("run.mat"); plot(s.t, s.V); s.params.iapp`.
+
+**Names.** MATLAB names must start with a letter and hold only letters,
+digits and underscores, up to 63 characters. XPP Lab changes each name with
+these rules, in this order:
+
+1. every character that is not a letter, digit or underscore (`A-Z`, `a-z`,
+   `0-9`, `_`) becomes `_` (a non-ASCII character becomes one `_`);
+2. if the result does not start with a letter, `x` is put in front (so `_u`
+   becomes `x_u`, `1x` becomes `x1x` and an empty name becomes `x`);
+3. the name is cut to 63 characters;
+4. a MATLAB keyword (the names `iskeyword` lists: `end`, `for`, `if`,
+   `function`, `global`, `while`, ...) gets `_` added, so `end` becomes `end_`;
+5. a name already used earlier in the file gets `_2`, `_3`, ... added until it
+   is new (the name is cut further so that the suffix fits). With a `params`
+   struct, `params` counts as used. The names of the parameters are made
+   unique among themselves in the same way.
+
+So the column `V max` is `V_max`, and a second `V_max` is `V_max_2`.
+
+**Same bytes.** The file has no date, host or version in it: its header text
+is always `MATLAB 5.0 MAT-file, written by XPP Lab`. The same data gives the
+same file every time, and the file the app writes and the one the echoed
+Python script writes are identical.
 
 ## Your session as Python
 
@@ -306,7 +351,8 @@ accepts options the app does not list.
 | `--keep-going` | Run every command even after one fails; the exit status is still 1. |
 
 `export FILE.dat` writes a run in XPPAUT's format (8 significant digits,
-no header); `.csv` writes every number exactly. Figures are written as SVG,
+no header); `.csv` writes every number exactly and `.mat` writes a
+MATLAB file. Figures are written as SVG,
 the phase plane over the model file's window (`@ xlo=..., xhi=...`) and the
 others fitted to the data. PNG figures and the Kinescope need the window.
 

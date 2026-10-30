@@ -39,8 +39,9 @@ original arrangement back, use **View > Reset window layout**.
 - **Figures**: every plot has an **Export...** button. Choose *PNG* for an
   image exactly as shown, or *SVG* for a vector figure that stays sharp at
   any size, for papers and posters.
-- **Data**: **File > Export data as CSV** saves the last run for
-  spreadsheets, MATLAB or Python.
+- **Data**: **File > Export data as CSV or MAT** saves the last run for
+  spreadsheets, MATLAB or Python. A name ending in `.mat` gives a MATLAB
+  file that `load` reads directly.
 - **Models**: **File > Save** (Ctrl+S) writes the `.ode` file. Parameters
   you changed in the Workspace are not written into the file; put values you
   want to keep in the file, or in a named `set`. The examples that come with
@@ -59,6 +60,8 @@ original arrangement back, use **View > Reset window layout**.
 - [The .ode file format](odefile.md), the complete reference.
 - [Coming from XPPAUT](xppaut.md), if you already know XPPAUT.
 - [Coming from MATLAB](matlab.md), if you know `ode45`, `fsolve` and `eig`.
+- [Coming from AUTO-07p](auto07p.md), if you know `IPS`, `ICP`, `NMX` and the
+  labels LP, HB, BP.
 
 > Tip: if you know XPPAUT's keyboard commands, they still work: I G
 > integrates, N N draws nullclines, S G finds an equilibrium. See

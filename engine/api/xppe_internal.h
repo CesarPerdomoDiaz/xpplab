@@ -12,6 +12,9 @@ int xppe_require_model(void);
 void xppe_set_error(const char *fmt, const char *arg);
 int xppe_same_name(const char *a, const char *b);
 
+/* fopen() by a UTF-8 name, also on Windows (xppe_file.c). */
+FILE *xppe_fopen_utf8(const char *path, const char *mode);
+
 /* Start and finish a call that may print: resets, then collects, the log. */
 void xppe_begin_call(void);
 void xppe_end_call(void);

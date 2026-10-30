@@ -138,7 +138,8 @@ static const char *usage =
     "  export FILE.csv [WHAT]   save data as CSV: the last run, or auto (the\n"
     "                           bifurcation diagram), range, analysis or\n"
     "                           equilibria (the last eq all) or nullclines\n"
-    "                           (those shown and frozen)\n"
+    "                           (those shown and frozen). FILE.mat writes a\n"
+    "                           MATLAB file instead (not for linearize)\n"
     "  export FILE.svg [WHICH]  save a figure (time, phase, auto, auto2);\n"
     "                           .png saves it as it looks on screen\n"
     "  script FILE.py           save the session as a Python script that\n"
@@ -151,7 +152,7 @@ static const char *usage =
     "                           all plots in tabs\n"
     "  help [TOPIC]             open the manual (topics: tutorial,\n"
     "                           neuron-tutorial, auto, analysis, odefile, numerics, commands, xppaut,\n"
-    "                           matlab)\n";
+    "                           matlab, auto07p)\n";
 
 static char *skip_space(char *s) {
   while (*s && isspace((unsigned char)*s)) s++;
@@ -1236,7 +1237,7 @@ void app_command(App *a, const char *line_in) {
     else
       app_apply_editor(a);
   } else if (!strcmp(cmd, "export")) {
-    /* export FILE.csv [run|auto|range|analysis|equilibria|nullclines] |
+    /* export FILE.csv|FILE.mat [run|auto|range|analysis|equilibria|nullclines] |
        export FILE.svg|FILE.png [time|phase|auto|auto2] */
     char *file = next_word(&rest), *which = next_word(&rest);
     size_t n = file ? strlen(file) : 0;
@@ -1274,7 +1275,7 @@ void app_command(App *a, const char *line_in) {
     } else if (which && !strcmp(which, "locus")) {
       app_export_locus_csv(a, file);
     } else if (which && strcmp(which, "run") != 0) {
-      app_log(a, "error: export FILE.csv takes run, auto, range, analysis, "
+      app_log(a, "error: export FILE.csv or FILE.mat takes run, auto, range, analysis, "
                  "equilibria, many or locus, not '%s'", which);
     } else {
       app_export_csv(a, file);

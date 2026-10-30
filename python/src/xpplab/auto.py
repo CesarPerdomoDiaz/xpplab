@@ -238,6 +238,31 @@ class Diagram:
                         + [p.umin[v] for v in self.variables])
         write_csv(path, cols, rows)
 
+    def to_mat(self, path) -> None:
+        """Write the points as a MATLAB .mat file: the numeric columns of
+        :meth:`to_csv` as column vectors (``branch``, ``point``, ``label``,
+        ``stable``, ``periodic``, ``two_parameter``, ``value``, ``value2``
+        (NaN for a one-parameter point), ``norm``, ``period``, then ``V_max``
+        and ``V_min`` of every variable). The text columns (``type``,
+        ``parameter``, ``parameter2``) are left out. The desktop app's
+        ``export FILE.mat auto`` writes the same file."""
+        from .analysis import write_mat
+        pts = self.points
+        two = [p.two_parameter and p.parameter2 for p in pts]
+        cols = {
+            "branch": [p.branch for p in pts], "point": [p.point for p in pts],
+            "label": [p.label for p in pts], "stable": [p.stable for p in pts],
+            "periodic": [p.periodic for p in pts],
+            "two_parameter": [p.two_parameter for p in pts],
+            "value": [p.value for p in pts],
+            "value2": [p.value2 if t else np.nan for p, t in zip(pts, two)],
+            "norm": [p.norm for p in pts], "period": [p.period for p in pts]}
+        for v in self.variables:
+            cols[f"{v}_max"] = [p.umax[v] for p in pts]
+        for v in self.variables:
+            cols[f"{v}_min"] = [p.umin[v] for p in pts]
+        write_mat(path, list(cols), [np.array(c, dtype=float) for c in cols.values()])
+
     def plot(self, y: str | None = None, *, ax=None, labels: bool = True, **kw):
         """Plot the diagram. Stable branches are solid, unstable dashed;
         periodic orbits show their max and min; special points are labelled.

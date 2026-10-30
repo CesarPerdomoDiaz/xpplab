@@ -51,14 +51,48 @@ def write_csv(path, columns, rows) -> None:
             f.write(",".join(_csv_cell(v) for v in row) + "\n")
 
 
+_mat_engine = None
+
+
+def write_mat(path, names, columns, params=None) -> None:
+    """Write named columns (and a ``params`` struct of the numbers in the
+    dictionary ``params``, if given) as a MATLAB Level 5 .mat file. The
+    engine writes it, so the desktop app's ``export FILE.mat`` produces the
+    same bytes. Names are made valid MATLAB names: every character that is
+    not a letter, digit or underscore becomes ``_``; ``x`` goes in front if
+    the name does not start with a letter; names are cut to 63 characters;
+    repeated names get ``_2``, ``_3``, ..."""
+    global _mat_engine
+    cols = [np.ascontiguousarray(c, dtype=np.float64).reshape(-1) for c in columns]
+    names = [str(n) for n in names]
+    n = len(cols)
+    rows = len(cols[0]) if cols else 0
+    if any(len(c) != rows for c in cols):
+        raise ValueError("the columns of a .mat file must have the same length")
+    params = dict(params) if params else {}
+    pnames = list(params)
+    pvals = (ctypes.c_double * max(len(pnames), 1))(*[float(params[k]) for k in pnames])
+    if _mat_engine is None:
+        _mat_engine = E.Engine()
+    c_names = (ctypes.c_char_p * max(n, 1))(*[s.encode("utf-8") for s in names])
+    c_cols = (ctypes.POINTER(ctypes.c_double) * max(n, 1))(
+        *[c.ctypes.data_as(ctypes.POINTER(ctypes.c_double)) for c in cols])
+    c_pn = (ctypes.c_char_p * max(len(pnames), 1))(*[s.encode("utf-8") for s in pnames])
+    _mat_engine.call("xppe_write_mat", os.fsencode(os.fspath(path)), n, c_names,
+                     c_cols, rows, len(pnames), c_pn, pvals)
+
+
 class Table:
-    """A table of results: named NumPy columns, the first one the x-axis."""
+    """A table of results: named NumPy columns, the first one the x-axis.
+    ``params`` (a dictionary of parameter values, or None) goes into a
+    ``.mat`` file as the struct ``params``."""
 
     def __init__(self, data: dict[str, np.ndarray], title: str = "",
-                 log: str = ""):
+                 log: str = "", params: dict | None = None):
         self._data = data
         self.title = title
         self.log = log
+        self.params = params
 
     @property
     def columns(self) -> list[str]:
@@ -87,7 +121,7 @@ class Table:
 
     @classmethod
     def from_grid(cls, name: str, values, name2: str, values2, columns: dict,
-                  title: str = "") -> "Table":
+                  title: str = "", params: dict | None = None) -> "Table":
         """A table of results on a grid (see :meth:`Model.sweep_grid`): one
         row per point, going through ``values`` for each of ``values2``, the
         two values first and then each of ``columns``, arrays of shape
@@ -96,7 +130,7 @@ class Table:
         data = {name: np.tile(v1, len(v2)), name2: np.repeat(v2, len(v1))}
         for key, arr in columns.items():
             data[key] = np.asarray(arr, dtype=float).reshape(len(v2), len(v1)).ravel()
-        return cls(data, title=title)
+        return cls(data, title=title, params=params)
 
     @classmethod
     def from_nullclines(cls, sets, first: int = 0, title: str = "") -> "Table":
@@ -121,6 +155,13 @@ class Table:
         ``export FILE.csv analysis`` writes the same file)."""
         cols = [np.asarray(v, dtype=float) for v in self._data.values()]
         write_csv(path, self.columns, zip(*cols))
+
+    def to_mat(self, path: str | os.PathLike) -> None:
+        """Write the table as a MATLAB .mat file: one column vector per
+        column (names made valid MATLAB names, see :func:`write_mat`), and
+        the struct ``params`` when the table has parameter values (the
+        desktop app's ``export FILE.mat analysis`` writes the same file)."""
+        write_mat(path, self.columns, self._data.values(), self.params)
 
     def plot(self, *y: str, ax=None, **kw):
         """Plot columns (by default the second) against the first."""

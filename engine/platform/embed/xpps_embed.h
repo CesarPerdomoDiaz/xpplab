@@ -22,6 +22,10 @@ extern "C" {
 /* Nonzero while the engine runs under the embedding API. */
 extern int xpps_embedded;
 
+/* fopen() for a model file: by its UTF-8 name while embedded (on Windows
+   fopen() reads the ANSI code page), plain fopen() otherwise. */
+FILE *xpps_fopen(const char *path, const char *mode);
+
 int xpps_printf(const char *fmt, ...);
 void xpps_exit(int code)
 #if defined(__GNUC__) || defined(__clang__)

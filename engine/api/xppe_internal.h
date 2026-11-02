@@ -15,6 +15,11 @@ int xppe_same_name(const char *a, const char *b);
 /* fopen() by a UTF-8 name, also on Windows (xppe_file.c). */
 FILE *xppe_fopen_utf8(const char *path, const char *mode);
 
+/* Windows: replace a UTF-8 directory path that has non-ASCII characters by
+   its short (8.3) name, which is ASCII, for code that reads the ANSI code
+   page (XPPAUT's). Left as it is when there is no short name, and elsewhere. */
+void xppe_ascii_path(char *path, size_t size);
+
 /* Start and finish a call that may print: resets, then collects, the log. */
 void xppe_begin_call(void);
 void xppe_end_call(void);

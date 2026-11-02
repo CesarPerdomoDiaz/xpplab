@@ -398,7 +398,7 @@ void load_eqn()
   }
   else
   {
-  if(got_file==1&&(fptr=fopen(this_file,"r"))!=NULL)
+  if(got_file==1&&(fptr=xpps_fopen(this_file,"r"))!=NULL) /* XPP Lab fix: UTF-8 name */
   {
     if(std==1)sprintf(this_file,"console");
    okay=get_eqn(fptr);

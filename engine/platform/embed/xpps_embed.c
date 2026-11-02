@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "xpps_embed.h"
+#include "xppe_internal.h"
 #include "xpps_embed_internal.h"
 
 #undef printf
@@ -29,6 +30,10 @@ FILE *xpps_log_stream(void) {
     if (capture) return capture;
   }
   return xpps_real_stdout();
+}
+
+FILE *xpps_fopen(const char *path, const char *mode) {
+  return xpps_embedded ? xppe_fopen_utf8(path, mode) : fopen(path, mode);
 }
 
 FILE *xpps_stdout(void) { return xpps_log_stream(); }

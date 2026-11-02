@@ -71,7 +71,7 @@ embed_file(${TP}/fonts/STIXGeneralItalic.ttf font_stix_it ${GEN}/font_stix_it.c)
 # Figures for papers (fig.h): layout, text, PNG, PDF, SVG, EPS. No SDL, so
 # tests/fig_check.c can use it alone.
 add_library(xpps_fig STATIC
-  src/fig_font.c src/fig_draw.c src/fig_out.c src/fig_stb.c
+  src/fig_font.c src/fig_draw.c src/fig_out.c src/fig_stb.c src/file_utf8.c
   ${GEN}/font_dejavu.c ${GEN}/font_dejavu_it.c ${GEN}/font_stix.c ${GEN}/font_stix_it.c)
 target_include_directories(xpps_fig PUBLIC src ${TP} ${TP}/imgui)
 if(NOT WIN32)

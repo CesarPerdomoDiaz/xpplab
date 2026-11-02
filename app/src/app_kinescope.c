@@ -8,6 +8,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "file_utf8.h"
 #include "app.h"
 #include "export.h"
 
@@ -254,7 +255,7 @@ bool app_kine_save_gif(App *a, const char *path, int ms) {
     }
     lut[i] = (unsigned char)best;
   }
-  if ((f = fopen(path, "wb")) == NULL) {
+  if ((f = app_fopen_utf8(path, "wb")) == NULL) {
     app_log(a, "error: cannot write %s", path);
     goto done;
   }

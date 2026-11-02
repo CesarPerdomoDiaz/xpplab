@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 
 #include "xpp_instance.h"
 
@@ -29,12 +30,35 @@ static void set_err(char *err, size_t errlen, const char *msg, const char *arg) 
   if (err && errlen) snprintf(err, errlen, msg, arg ? arg : "");
 }
 
+/* Paths are UTF-8. On Windows the wide-character calls take them; the ANSI
+   ones read the active code page, which breaks a user folder such as
+   a user name with accents. */
+#ifdef _WIN32
+static int to_wide(const char *s, wchar_t *w, int n) {
+  return MultiByteToWideChar(CP_UTF8, 0, s, -1, w, n) > 0;
+}
+
+static int to_utf8(const wchar_t *w, char *s, int n) {
+  return WideCharToMultiByte(CP_UTF8, 0, w, -1, s, n, NULL, NULL) > 0;
+}
+#endif
+
+static FILE *open_utf8(const char *path, const char *mode) {
+#ifdef _WIN32
+  wchar_t wp[2048], wm[8];
+  if (!to_wide(path, wp, 2048) || !to_wide(mode, wm, 8)) return NULL;
+  return _wfopen(wp, wm);
+#else
+  return fopen(path, mode);
+#endif
+}
+
 static int copy_file(const char *from, const char *to) {
-  FILE *in = fopen(from, "rb"), *out;
+  FILE *in = open_utf8(from, "rb"), *out;
   char buf[65536];
   size_t n;
   if (!in) return -1;
-  out = fopen(to, "wb");
+  out = open_utf8(to, "wb");
   if (!out) {
     fclose(in);
     return -1;
@@ -59,16 +83,17 @@ static const char *base_name(const char *path) {
 /* Make a fresh private directory and put its path in dir. */
 static int make_private_dir(char *dir, size_t len) {
 #ifdef _WIN32
-  char tmp[MAX_PATH];
+  wchar_t tmp[MAX_PATH], wdir[MAX_PATH + 64];
   static unsigned counter;
-  DWORD n = GetTempPathA(sizeof tmp, tmp);
+  DWORD n = GetTempPathW(MAX_PATH, tmp);
   int tries;
-  if (n == 0 || n >= sizeof tmp) return -1;
+  if (n == 0 || n >= MAX_PATH) return -1;
   for (tries = 0; tries < 100; tries++) {
-    snprintf(dir, len, "%sxpplab-%lu-%lu-%u", tmp,
+    swprintf(wdir, sizeof wdir / sizeof *wdir, L"%lsxpplab-%lu-%lu-%u", tmp,
              (unsigned long)GetCurrentProcessId(),
              (unsigned long)GetTickCount(), counter++);
-    if (CreateDirectoryA(dir, NULL)) return 0;
+    if (CreateDirectoryW(wdir, NULL))
+      return to_utf8(wdir, dir, (int)len) ? 0 : -1;
   }
   return -1;
 #else
@@ -80,24 +105,27 @@ static int make_private_dir(char *dir, size_t len) {
 
 static void remove_tree(const char *dir) {
 #ifdef _WIN32
-  char pattern[1100], path[1100];
-  WIN32_FIND_DATAA fd;
+  char path[1100], name[1100];
+  wchar_t pattern[1100], wpath[1100];
+  WIN32_FIND_DATAW fd;
   HANDLE h;
-  snprintf(pattern, sizeof pattern, "%s\\*", dir);
-  h = FindFirstFileA(pattern, &fd);
+  if (!to_wide(dir, pattern, 1096)) return;
+  wcscat(pattern, L"\\*");
+  h = FindFirstFileW(pattern, &fd);
   if (h != INVALID_HANDLE_VALUE) {
     do {
-      if (strcmp(fd.cFileName, ".") == 0 || strcmp(fd.cFileName, "..") == 0)
+      if (wcscmp(fd.cFileName, L".") == 0 || wcscmp(fd.cFileName, L"..") == 0)
         continue;
-      snprintf(path, sizeof path, "%s\\%s", dir, fd.cFileName);
+      if (!to_utf8(fd.cFileName, name, sizeof name)) continue;
+      snprintf(path, sizeof path, "%s\\%s", dir, name);
       if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
         remove_tree(path);
-      else
-        DeleteFileA(path);
-    } while (FindNextFileA(h, &fd));
+      else if (to_wide(path, wpath, 1100))
+        DeleteFileW(wpath);
+    } while (FindNextFileW(h, &fd));
     FindClose(h);
   }
-  RemoveDirectoryA(dir);
+  if (to_wide(dir, wpath, 1100)) RemoveDirectoryW(wpath);
 #else
   DIR *d = opendir(dir);
   struct dirent *e;
@@ -142,8 +170,11 @@ xpp_instance *xpp_instance_open(const char *library_path, char *err,
     return NULL;
   }
 #ifdef _WIN32
-  CreateDirectoryA(e->workdir, NULL);
-  e->handle_ = (void *)LoadLibraryA(e->libcopy_);
+  {
+    wchar_t w[1100];
+    if (to_wide(e->workdir, w, 1100)) CreateDirectoryW(w, NULL);
+    e->handle_ = to_wide(e->libcopy_, w, 1100) ? (void *)LoadLibraryW(w) : NULL;
+  }
 #else
   mkdir(e->workdir, 0700);
   e->handle_ = dlopen(e->libcopy_, RTLD_NOW | RTLD_LOCAL);

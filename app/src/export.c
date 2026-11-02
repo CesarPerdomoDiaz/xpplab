@@ -1,4 +1,5 @@
 /* Figure export: PNG from the screen, SVG drawn from the data. */
+#include "file_utf8.h"
 #include "export.h"
 
 #include <math.h>
@@ -170,7 +171,7 @@ static void axes(Svg *s, const char *xlabel, const char *ylabel) {
 
 static bool svg_begin(Svg *s, const char *path, const FigureState *fig) {
   memset(s, 0, sizeof *s);
-  s->f = fopen(path, "w");
+  s->f = app_fopen_utf8(path, "w");
   if (!s->f) return false;
   s->xmin = fig->xmin;
   s->xmax = fig->xmax;

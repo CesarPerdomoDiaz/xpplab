@@ -17,6 +17,7 @@ m.auto.diagram.plot()                    # the whole diagram
 from __future__ import annotations
 
 import ctypes
+import os
 from pathlib import Path
 from dataclasses import dataclass, field
 
@@ -338,14 +339,14 @@ class Auto:
         diagram: AUTO's settings, every point and AUTO's restart data, so
         that :meth:`load` brings back a diagram that can be continued from
         its labelled points. XPPAUT opens these files too."""
-        self._eng.call("xppe_auto_save", str(Path(path).resolve()).encode("latin-1"))
+        self._eng.call("xppe_auto_save", os.fsencode(Path(path).resolve()))
 
     def load(self, path) -> Diagram:
         """Replace the diagram with one saved by :meth:`save` or by XPPAUT
         (AUTO > File > Load diagram). Its settings and restart data come
         with it, so :meth:`continue_from` works on its labels. Returns the
         diagram."""
-        self._eng.call("xppe_auto_load", str(Path(path).resolve()).encode("latin-1"))
+        self._eng.call("xppe_auto_load", os.fsencode(Path(path).resolve()))
         return self.diagram
 
     def orbit(self, point: Point | int):

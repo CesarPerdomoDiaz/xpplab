@@ -8,6 +8,7 @@
 
 #include <SDL3/SDL.h>
 
+#include "file_utf8.h"
 #include "app.h"
 
 static const char *tool_names[AN_COUNT] = {
@@ -86,7 +87,7 @@ void app_analysis_reset(App *a) {
     size_t stem = dot ? (size_t)(dot - a->model_path) : strlen(a->model_path);
     FILE *f;
     snprintf(ani, sizeof ani, "%.*s.ani", (int)stem, a->model_path);
-    if ((f = fopen(ani, "r")) != NULL) {
+    if ((f = app_fopen_utf8(ani, "r")) != NULL) {
       fclose(f);
       /* Quietly: some .ani files belong to another model (lorenz.ani is
          for lorenz2.ode). */
@@ -379,7 +380,7 @@ done:
 
 /* Rows and numbers per row of a data file. */
 static bool file_shape(const char *path, int *rows, int *cols) {
-  FILE *f = fopen(path, "r");
+  FILE *f = app_fopen_utf8(path, "r");
   char line[4096];
   *rows = *cols = 0;
   if (!f) return false;
@@ -780,7 +781,7 @@ bool app_export_linear_csv(App *a, const char *path) {
     app_log(a, "error: the linearisation has a column of names; export it as CSV");
     return false;
   }
-  f = fopen(path, "w");
+  f = app_fopen_utf8(path, "w");
   if (!f) {
     app_log(a, "error: cannot write %s", path);
     return false;
@@ -1072,7 +1073,7 @@ bool app_closed_loop(App *a, const char *path) {
     app_log(a, "error: %s", len < 0 ? x->xppe_error() : "out of memory");
     goto done;
   }
-  f = fopen(out, "wb");
+  f = app_fopen_utf8(out, "wb");
   if (!f || fwrite(text, 1, (size_t)len, f) != (size_t)len) {
     if (f) fclose(f);
     app_log(a, "error: cannot write %s", out);
@@ -1526,7 +1527,7 @@ bool app_write_locus_csv(App *a, const char *path) {
     app_log(a, "Exported the root locus (%d steps) to %s", steps, path);
     return true;
   }
-  f = fopen(path, "w");
+  f = app_fopen_utf8(path, "w");
   if (!f) {
     app_log(a, "error: cannot write %s", path);
     return false;

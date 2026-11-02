@@ -10,6 +10,7 @@
 #include <windows.h>
 #endif
 
+#include "file_utf8.h"
 #include "ui.h"
 
 typedef struct {
@@ -27,7 +28,7 @@ static int by_name(const void *x, const void *y) {
 
 /* The first comment lines of a model usually say what it is. */
 static void read_about(const char *path, char *out, size_t len) {
-  FILE *f = fopen(path, "r");
+  FILE *f = app_fopen_utf8(path, "r");
   char line[256];
   size_t k = 0;
   int lines = 0;

@@ -22,7 +22,9 @@
 #include <string.h>
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h> /* UTF-8 arguments on Windows */
 
+#include "file_utf8.h"
 #include "app.h"
 #include "channel.h"
 #include "export.h"
@@ -135,7 +137,7 @@ int main(int argc, char **argv) {
     else if (!model)
       model = argv[i];
     else { /* a file of commands, read now so that -c ones come after */
-      FILE *f = fopen(argv[i], "r");
+      FILE *f = app_fopen_utf8(argv[i], "r");
       if (!f) return fprintf(stderr, "xpplab-batch: cannot read %s\n", argv[i]), 2;
       while (fgets(line, sizeof line, f) && ncmds < 512) {
         char *s = line, *e;

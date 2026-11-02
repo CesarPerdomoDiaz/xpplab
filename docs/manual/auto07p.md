@@ -201,9 +201,9 @@ The command window answers with these lines (`xpplab-batch switch.ode --echo
 written):
 
 ```text
->>> m.auto.set(dsmax=0.05, parmin=-2.0, nmax=500.0, npr=500.0)
+>>> m.auto.set(dsmax=0.05, parmin=-2.0, nmax=500, npr=500)
 >>> m.auto.equilibria("lam")
->>> m.auto.set(nmax=30.0)
+>>> m.auto.set(nmax=30)
 >>> m.auto.continue_from(2, "periodic")
 >>> sol = m.auto.orbit(7)
 ```

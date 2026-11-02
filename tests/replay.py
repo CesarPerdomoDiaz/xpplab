@@ -16,6 +16,7 @@ bit (a .mat file must be the same bytes).
 Each case opens a window for a few seconds. The scripts need numpy.
 """
 import argparse
+import ast
 import math
 import os
 import shutil
@@ -71,6 +72,10 @@ CASES = [
         "use hopf", "auto set parmax=0.6 nmax=220", "auto steady iapp",
         "auto from 2 periodic", "export {out}/diagram.csv auto",
         "auto reset", "auto steady iapp", "export {out}/again.csv auto"]),
+    # Counts are echoed as integers (nmax=600, not 600.0).
+    ("auto_counts", "lecar.ode", [
+        "use hopf", "auto set parmax=0.6 nmax=600 npr=50 ntst=25",
+        "auto steady iapp", "export {out}/diagram.csv auto"]),
     ("auto_files", "lecar.ode", [
         "use hopf", "auto set parmax=0.6 nmax=220", "auto steady iapp",
         "auto from 2 periodic", "auto save {out}/d.auto", "auto reset",
@@ -212,6 +217,18 @@ CASES = [
         "set iapp=0.1 total=100", "run",
         "export {out}/" + UNICODE_DIR + "/run.mat",
         "range iapp 0 0.5 6 V", "export {out}/" + UNICODE_DIR + "/range.mat range"]),
+    # The model, the exports, the session's files and the script all live in
+    # a folder with accents ("unicode_load" copies the model there).
+    ("unicode_load", "lecar.ode", [
+        "set iapp=0.1 total=100", "run",
+        "export {out}/" + UNICODE_DIR + "/run.csv",
+        "ic write {out}/" + UNICODE_DIR + "/ics.dat", "set V=0 W=0",
+        "ic read {out}/" + UNICODE_DIR + "/ics.dat", "run",
+        "export {out}/" + UNICODE_DIR + "/from_file.csv",
+        "use hopf", "auto set parmax=0.6 nmax=60", "auto steady iapp",
+        "auto save {out}/" + UNICODE_DIR + "/d.auto",
+        "auto reset", "auto load {out}/" + UNICODE_DIR + "/d.auto",
+        "export {out}/" + UNICODE_DIR + "/diagram.csv auto"]),
     ("mat_many", "tests/models/kite.ode", [
         "set VW=2.1",
         "many 6 seed 3 gam 0 1.5707963 om -1.3 1.3 keep tens 0 inf",
@@ -264,13 +281,52 @@ def compare(app_csv, py_csv):
     return None
 
 
+COUNTS = ("nmax", "npr", "ntst")
+
+
+def count_problems(script):
+    """Each count given to <...>.auto.set() in the script must be an int literal."""
+    tree = ast.parse(script.read_text(encoding="utf-8"))
+    bad = []
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "set"
+                and isinstance(node.func.value, ast.Attribute)
+                and node.func.value.attr == "auto"):
+            for kw in node.keywords:
+                if kw.arg in COUNTS and not (
+                        isinstance(kw.value, ast.Constant)
+                        and type(kw.value.value) is int):
+                    bad.append("auto.set(%s=...) is not an integer literal" % kw.arg)
+    return bad
+
+
+def auto_set_counts(script):
+    """The count keywords of the script's auto.set() calls, as {name: value}."""
+    found = {}
+    for node in ast.walk(ast.parse(script.read_text(encoding="utf-8"))):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "set"
+                and isinstance(node.func.value, ast.Attribute)
+                and node.func.value.attr == "auto"):
+            for kw in node.keywords:
+                if kw.arg in COUNTS and isinstance(kw.value, ast.Constant):
+                    found[kw.arg] = kw.value.value
+    return found
+
+
 def run_case(app, engine, out, name, model, cmds, timeout):
     d = out / name
     shutil.rmtree(d, ignore_errors=True)
     d.mkdir(parents=True)
     (d / UNICODE_DIR).mkdir()
     script, log, shot = d / "session.py", d / "app.log", d / "shot.png"
-    args = [str(app), str(ROOT / model if model.startswith("tests/") else EXAMPLES / model)]
+    model_file = ROOT / model if model.startswith("tests/") else EXAMPLES / model
+    if name == "unicode_load":
+        script = d / UNICODE_DIR / "séssion.py"
+        shutil.copy(model_file, d / UNICODE_DIR / ("lécar" + model_file.suffix))
+        model_file = d / UNICODE_DIR / ("lécar" + model_file.suffix)
+    args = [str(app), str(model_file)]
     for c in cmds:
         args += ["--cmd", c.replace("{out}", d.as_posix())]
     args += ["--then", "script " + script.as_posix(), "--screenshot", str(shot),
@@ -288,8 +344,13 @@ def run_case(app, engine, out, name, model, cmds, timeout):
     problems += ["app: " + l for l in text.splitlines() if l.startswith("error")]
     if not script.exists():
         return problems + ["the app saved no script"]
+    problems += count_problems(script)
+    if name == "auto_counts" and auto_set_counts(script) != {
+            "nmax": 600, "npr": 50, "ntst": 25}:
+        problems.append("auto.set() counts in the script: %r" % auto_set_counts(script))
     exported = sorted(list(d.glob("*.csv")) + list(d.glob("*.mat"))
-                      + list(d.glob(UNICODE_DIR + "/*.mat")))
+                      + list(d.glob(UNICODE_DIR + "/*.mat"))
+                      + list(d.glob(UNICODE_DIR + "/*.csv")))
     if not exported:
         problems.append("the commands exported nothing")
     renamed = []

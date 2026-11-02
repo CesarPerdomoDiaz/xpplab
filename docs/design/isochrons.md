@@ -22,10 +22,17 @@ are XPPAUT's, because Z and H come from `adjoint` and `make_h` in
   dθ_i/dt = 1 + ε Σ_j H(θ_j − θ_i), with
   H(φ) = (1/T) ∫_0^T Z(t) · G(γ(t), γ(t + φ)) dt, and φ in time units, as
   `make_h` computes it (a mean over the stored points of the cycle).
-- **H_odd and H_even** are the columns `Hodd` and `Heven` that XPPAUT
-  returns: H_odd(φ) = (H(φ) − H(−φ))/2 and H_even(φ) = (H(φ) + H(−φ))/2.
-  The phase model takes them from `xppe_hfunction`; it does not compute
-  them again.
+- **H_odd and H_even:** H_odd(φ) = (H(φ) − H(−φ))/2 and
+  H_even(φ) = (H(φ) + H(−φ))/2. XPPAUT returns them as the columns `Hodd`
+  and `Heven` only when the model has more than two equations (NEQ > 2:
+  `new_h_fun` sets `HODD_EV` only then, and `xppe_hfunction` returns four
+  columns instead of two). For these models the phase model takes the
+  columns from `xppe_hfunction`. For a model with two equations, such as
+  the lambda-omega pair and Morris-Lecar, only φ and H come back, and the
+  phase model computes H_odd and H_even from H by XPPAUT's own rule in
+  `make_h`: on the n stored points, 0.5 (H[k] ∓ H[n−1−k]) (the last stored
+  point repeats the first, so index n−1−k is −φ_k). The two paths give the
+  same numbers by construction.
 - **A pair.** With φ = θ_2 − θ_1, dφ/dt = ε (H(−φ) − H(φ)) = −2ε H_odd(φ).
   A zero of H_odd is a locked state; it is stable if H_odd'(φ) > 0 (for
   ε > 0). Zeros at 0 and T/2 always exist, by symmetry.
@@ -160,11 +167,13 @@ as the fallback, not as the default.
 
 ### D. The phase-reduced model
 
-Z comes from `xppe_adjoint`, and H, H_odd and H_even from `xppe_hfunction`;
-both exist and are tested against XPPAUT. The new part is to collect them:
+Z comes from `xppe_adjoint`, and H (and for NEQ > 2 also H_odd and H_even)
+from `xppe_hfunction`; both exist and are tested against XPPAUT. For two
+equations H_odd and H_even are computed from H as in Conventions. The new
+part is to collect them:
 the period T, the tables Z, H, H_odd and H_even on a common phase grid in
 time units, and the roots of H_odd with their stability. For the roots, the C
-routine finds sign changes of the XPPAUT `Hodd` column and refines each by a
+routine finds sign changes of H_odd and refines each by a
 few secant steps on a periodic cubic interpolation of it, so the app and
 Python print the same numbers. The interpolation is the only new numerics;
 the integration and the averages are XPPAUT's.
@@ -206,7 +215,8 @@ output arguments:
   (`xppe_phase_grid`) in a later piece.
 - `xppe_phase_model(int n, const char *const *coupling)`: T, then the
   table of phase (time units), Z for each variable, H, H_odd, H_even (the
-  columns of `xppe_hfunction`), and the locked states with their stability.
+  columns of `xppe_hfunction` when it returns them, else computed from H as
+  in Conventions), and the locked states with their stability.
 
 Each function that integrates calls XPPAUT's own step routines for the
 current method, as `xppe_lyapunov_integrate` does, and does not copy the
@@ -321,8 +331,13 @@ integration tolerance and δ.
   and on the lambda-omega model.
 - The phase advances by the time elapsed: for a point x and its flow
   φ_t(x), the phase of φ_t(x) equals the phase of x plus t/T, modulo 1.
-- The phase model's H, H_odd and H_even equal the `xppe_hfunction` columns
-  for the same coupling, bit for bit, and the locked-state stability agrees with a simulation of the pair.
+- The phase model's H equals the `xppe_hfunction` column for the same
+  coupling, bit for bit. For NEQ > 2 (a model with an auxiliary variable),
+  H_odd and H_even equal the `xppe_hfunction` columns bit for bit; for two
+  equations there is no such column, so they are tested against the closed
+  forms of test 3 and against 0.5 (H[k] ∓ H[n−1−k]) computed in the test from
+  the H column. The locked-state stability agrees with a simulation of the
+  pair.
 - Refusals: delays, noise, a run that is not one period, and an unstable
   cycle give an error and not a number.
 

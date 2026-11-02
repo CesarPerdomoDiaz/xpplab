@@ -41,7 +41,39 @@ static void check(const char *text, const char *want) {
   }
 }
 
-int main(void) {
+/* A manual page given on the command line: every image is drawn as an
+   image, and no link of the page points at a picture file. */
+static void check_page(const char *path) {
+  char line[4096];
+  int images = 0;
+  FILE *f = fopen(path, "r");
+  if (!f) {
+    printf("FAIL: cannot open %s\n", path);
+    failures++;
+    return;
+  }
+  while (fgets(line, sizeof line, f)) {
+    const char *s = line, *end = line + strlen(line);
+    HelpTok t;
+    for (;;) {
+      s = help_markup_next(line, s, end, &t);
+      if (t.kind == HM_END) break;
+      if (t.kind == HM_IMAGE) images++;
+      if (t.kind == HM_LINK && (t.target_end - t.target) > 4 &&
+          !strncmp(t.target_end - 4, ".png", 4)) {
+        printf("FAIL: a link to a picture: %s", line);
+        failures++;
+      }
+    }
+  }
+  fclose(f);
+  if (images < 1) {
+    printf("FAIL: no image found in %s\n", path);
+    failures++;
+  }
+}
+
+int main(int argc, char **argv) {
   check("see ![a caption](../images/x.png) here",
         "text:see |image:a caption=>../images/x.png|text: here");
   check("see [the page](auto.md) here",
@@ -52,6 +84,7 @@ int main(void) {
   check("2 * 3 * 4 and a `x*y` code",
         "text:2 |text:* 3 |text:* 4 and a |code:x*y|text: code");
   check("not a link [x] or ! mark", "text:not a link |text:[x] or ! mark");
+  if (argc > 1) check_page(argv[1]);
   if (failures) return 1;
   puts("help markup: ok");
   return 0;

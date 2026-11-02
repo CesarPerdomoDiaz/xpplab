@@ -10,13 +10,19 @@ Checks that
   3. running an entry of the palette does what the menu item or the command
      does: the same exported data, the same saved Python script, the same
      command-window output;
-  4. an entry that is not available is refused, with the reason.
+  4. an entry that is not available is refused, with the reason;
+  5. what people type finds the entry they mean, in a fresh session and after
+     a run (QUERIES);
+  6. every name that the command dispatcher of commands.c compares with is a
+     command of the palette, or an alias of one (ALIASES).
 """
 import re
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def batch(exe, model, cmds, *extra):
@@ -68,6 +74,55 @@ SAME = [
 ]
 
 
+AUTO = "Bifurcation diagram (AUTO)..."
+# What a user types and the entry that must come first, in a fresh session and
+# after a run alike.
+QUERIES = [
+    ("nullclines", "Nullclines"),
+    ("dir field", "Direction field"),
+    ("sing pts", "Find equilibrium"),
+    ("monte carlo", "Find all equilibria"),
+    ("equilibria", "Equilibria over a parameter..."),
+    ("integrate", "Integrate"),
+    ("continuation", AUTO),
+    ("branch", AUTO),
+    ("hopf", AUTO),
+    ("periodic orbit", AUTO),
+    ("two parameter", AUTO),
+    ("bifurcation", AUTO),
+    ("csv", "Export data as CSV or MAT..."),
+    ("export mat", "Export data as CSV or MAT..."),
+    ("liapunov", "Analyse the run: Statistics"),
+    ("phase response", "Analyse the run: Phase response"),
+    ("kinescope", "Kinescope..."),
+    ("matlab", "Help: Coming from MATLAB"),
+]
+
+# Names that commands.c compares the command with and that are another
+# spelling of a command of the table.
+ALIASES = {
+    "?": "help", "go": "run", "ig": "run", "cc": "continue", "who": "whos",
+    "list": "whos", "equilibrium": "eq", "sg": "eq", "nn": "nullclines",
+    "dd": "dirfield", "e": "erase", "wf": "fit", "psd": "spectrum",
+    "fft": "fourier", "linearise": "linearize", "closed": "closedloop",
+    "ks": "kinescope", "sweep": "range", "clc": "clear", "exit": "quit",
+    "fq": "quit", "fig": "figure",
+}
+
+
+def dispatched_names():
+    """The names app_command() compares the command with, in commands.c."""
+    src = (ROOT / "app" / "src" / "commands.c").read_text(encoding="utf-8")
+    body = src[src.index("void app_command("):]
+    return set(re.findall(r'strcmp\(cmd, "([^"]+)"\)', body))
+
+
+def first_hits(exe, model, query, before):
+    r = batch(exe, model, before + ["palette search " + query])
+    return [l.split(": ", 1)[1] for l in r.stdout.splitlines()
+            if l.startswith("palette hit ")]
+
+
 def main():
     exe, model = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
     problems = []
@@ -116,10 +171,31 @@ def main():
             if od != op:
                 problems.append("%s: the output differs: %r / %r" % (name, od, op))
 
+    for before, when in (([], "in a fresh session"), (["run"], "after a run")):
+        for text, want in QUERIES:
+            hits = first_hits(exe, model, text, before)
+            if not hits or hits[0] != want:
+                problems.append("'%s' %s finds %r first, not %r" % (
+                    text, when, hits[:1], want))
+
+    table = {l.split(" ")[0] for k, l, _, _ in rows if k == "command"}
+    for name in sorted(dispatched_names()):
+        if name not in table and ALIASES.get(name) not in table:
+            problems.append("app_command() takes '%s', the palette has no such "
+                            "command or alias" % name)
+    for alias, command in ALIASES.items():
+        if command not in table:
+            problems.append("the alias '%s' stands for '%s', which is not a command"
+                            % (alias, command))
+
     # Not available: AUTO's actions without a branch.
-    r = batch(exe, model, ["palette run auto from"], "--keep-going")
+    r = batch(exe, model, ["palette run auto from label"], "--keep-going")
     if "is not available" not in r.stdout or "branch" not in r.stdout:
         problems.append("an unavailable entry was not refused with a reason: %r" % r.stdout)
+    # A Help menu entry opens its manual page (xpplab-batch says which).
+    r = batch(exe, model, ["palette run coming from matlab"])
+    if "manual/matlab" not in r.stdout:
+        problems.append("Help > Coming from MATLAB did not open its page: %r" % r.stdout)
     r = batch(exe, model, ["palette run xyzzyxyzzy"], "--keep-going")
     if "nothing in the palette matches" not in r.stdout:
         problems.append("a text that matches nothing was not reported")

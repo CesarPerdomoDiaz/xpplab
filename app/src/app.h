@@ -371,6 +371,7 @@ typedef struct {
 typedef struct {
   bool open;
   bool focus;       /* put the cursor in the search box this frame */
+  bool enter;       /* act as if Enter were pressed (`palette enter`) */
   char query[128];
   int sel;          /* the highlighted row of the hits */
   char recent[APP_PAL_RECENT][96]; /* keys of the last actions, newest first */

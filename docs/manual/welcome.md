@@ -52,7 +52,7 @@ has a branch, is greyed out with the reason. A command that needs more than
 its name (`set`, `export`) is put in the command line for you to complete.
 Escape closes the palette.
 
-[The command palette, searching for auto](image:command-palette.png)
+![The command palette, searching for auto](../images/command-palette.png)
 
 ## Saving your work
 

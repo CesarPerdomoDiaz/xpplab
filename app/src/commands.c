@@ -151,6 +151,12 @@ static const char *usage =
     "                           console, workspace; hide WINDOW closes one\n"
     "  layout side | tabs       the phase plane beside the time series, or\n"
     "                           all plots in tabs\n"
+    "  freeze                   keep the current curve on the plots\n"
+    "  sets                     list the model's parameter sets (use SET applies one)\n"
+    "  fit                      fit the plots to the data: double-click a plot [W F]\n"
+    "  theme dark | light       the colour theme\n"
+    "  clear                    clear this window (also clc)\n"
+    "  quit                     leave the app [F Q] (also exit)\n"
     "  palette [TEXT]           the command palette: find and run any menu action\n"
     "                           or command by name [Ctrl+Shift+P]; palette run\n"
     "                           runs the first match of the text, palette list\n"
@@ -183,6 +189,7 @@ const CommandInfo app_command_table[] = {
     {"nullclines play", NULL, "Step through the frozen nullclines.", NULL, NEED_MODEL},
     {"dirfield", NULL, "Draw the direction field in the phase plane.", "D D", NEED_MODEL},
     {"erase", NULL, "Remove the kept curves.", "E", NEED_NONE},
+    {"fit", NULL, "How to fit the plots to the data: double-click a plot.", "W F", NEED_NONE},
     {"freeze", NULL, "Keep the current curve on the plots.", NULL, NEED_RUN},
     {"use", "SET", "Apply a named parameter set of the model.", NULL, NEED_MODEL},
     {"sets", NULL, "List the model's named parameter sets.", NULL, NEED_MODEL},

@@ -433,6 +433,68 @@ bool palette_available(App *a, int e, const char **reason) {
   return true;
 }
 
+
+/* Words people look for that the name and the description do not say:
+   XPPAUT's menu names and the usual terms. Keyed by an action's id or by
+   "cmd:" and a command's name. */
+static const struct {
+  const char *key, *words;
+} keyword_table[] = {
+    {"run.integrate", "initial conds go simulate solve trajectory"},
+    {"run.equilibrium", "sing pts steady state fixed point newton"},
+    {"run.equilibria", "sing pts monte carlo steady states fixed points"},
+    {"run.equilibria_range", "sing pts range steady state"},
+    {"run.linearise", "linearize jacobian eigenvalues stability"},
+    {"run.nullclines", "nullcline"},
+    {"run.dirfield", "dir field vector flow"},
+    {"run.keep", "overlay hold"},
+    {"run.auto", "bifurcation continuation branch hopf periodic orbit limit cycle two-parameter"},
+    {"run.range", "two parameter grid 2par brute force diagram sweep"},
+    {"run.bvp", "bndryval shooting boundary value"},
+    {"run.an.statistics", "lyapunov averaging"},
+    {"run.an.prc", "prc adjoint weak coupling"},
+    {"run.an.spectrum", "psd power fft stochastic"},
+    {"run.an.fourier", "fft"},
+    {"run.an.histogram", "hist stochastic"},
+    {"file.export", "csv matlab mat data table save"},
+    {"file.script", "python replay echo"},
+    {"cmd:run", "initial conds go integrate simulate"},
+    {"cmd:eq", "sing pts steady state fixed point"},
+    {"cmd:eq all", "sing pts monte carlo"},
+    {"cmd:auto steady", "continuation branch bifurcation"},
+    {"cmd:auto from", "continuation branch bifurcation two-parameter periodic orbit"},
+    {"cmd:auto orbit", "branch continuation"},
+    {"cmd:auto save", "branch diagram"},
+    {"cmd:auto load", "branch diagram"},
+    {"cmd:range", "two parameter grid 2par brute force sweep lyapunov"},
+    {"cmd:mean", "lyapunov averaging"},
+    {"cmd:export", "csv matlab mat save data"},
+    {"cmd:nullclines", "nullcline"},
+    {"cmd:dirfield", "dir field vector flow"},
+};
+
+static const char *keywords_of(App *a, int e) {
+  char key[96];
+  int i, k = entry_kind(a, e, &i);
+  size_t j;
+  if (k == E_FILE) return "";
+  if (k == E_ACTION)
+    snprintf(key, sizeof key, "%s", app_actions[i].id);
+  else
+    snprintf(key, sizeof key, "cmd:%s", app_command_table[i].name);
+  for (j = 0; j < sizeof keyword_table / sizeof keyword_table[0]; j++)
+    if (!strcmp(keyword_table[j].key, key)) return keyword_table[j].words;
+  return "";
+}
+
+/* What an entry is searched in apart from its name: the description and
+   the menu's longer tip. */
+static void match_text(App *a, int e, char *buf, size_t n) {
+  int i, k = entry_kind(a, e, &i);
+  snprintf(buf, n, "%s %s", palette_description(a, e),
+           k == E_ACTION && app_actions[i].tip ? app_actions[i].tip : "");
+}
+
 /* ---- Searching ------------------------------------------------------------- */
 
 static int sort_score[PALETTE_MAX_HITS * 2];
@@ -446,8 +508,10 @@ static int by_score(const void *p, const void *q) {
 }
 
 /* How well the words match; -1 if one is missing. A word counts most in the
-   name, most of all at its start or at the start of one of its words. */
-static int score_entry(const char *name, const char *desc, char (*word)[40], int nwords) {
+   name (most of all at its start or at the start of one of its words), less
+   in the keywords, least in the description and tip. */
+static int score_entry(const char *name, const char *kw, const char *desc, char (*word)[40],
+                       int nwords) {
   int total = 0, k;
   for (k = 0; k < nwords; k++) {
     const char *at = SDL_strcasestr(name, word[k]);
@@ -455,6 +519,8 @@ static int score_entry(const char *name, const char *desc, char (*word)[40], int
       total += 4;
       if (at == name) total += 3;
       else if (at[-1] == ' ' || at[-1] == ':' || at[-1] == '-' || at[-1] == '(') total += 1;
+    } else if (SDL_strcasestr(kw, word[k])) {
+      total += 2;
     } else if (SDL_strcasestr(desc, word[k])) {
       total += 1;
     } else {
@@ -467,7 +533,7 @@ static int score_entry(const char *name, const char *desc, char (*word)[40], int
 int palette_search(App *a, const char *query, int *hits, int max) {
   static int order[PALETTE_MAX_HITS * 2];
   char word[8][40];
-  char name[256], key[96];
+  char name[256], key[96], text[1500];
   int nwords = 0, n = palette_entries(a), count = 0, e;
   const char *s = query ? query : "";
   if (n > PALETTE_MAX_HITS) n = PALETTE_MAX_HITS;
@@ -482,8 +548,11 @@ int palette_search(App *a, const char *query, int *hits, int max) {
   for (e = 0; e < n; e++) {
     int i, k = entry_kind(a, e, &i);
     match_name(a, e, name, sizeof name);
-    sort_score[e] = score_entry(name, palette_description(a, e), word, nwords);
+    match_text(a, e, text, sizeof text);
+    sort_score[e] = score_entry(name, keywords_of(a, e), text, word, nwords);
     if (sort_score[e] < 0) continue;
+    /* What cannot run now ranks below what can, unless it matches much better. */
+    if (!palette_available(a, e, NULL)) sort_score[e] = (sort_score[e] + 1) / 2;
     if (k == E_ACTION) snprintf(key, sizeof key, "%s", app_actions[i].id);
     else if (k == E_COMMAND) snprintf(key, sizeof key, "cmd:%s", app_command_table[i].name);
     else snprintf(key, sizeof key, "file:%s", a->recent[i]);
@@ -625,6 +694,27 @@ void palette_command(App *a, char *rest) {
   while (*rest == ' ') rest++;
   if (!*rest) {
     palette_open(a);
+  } else if (!strcmp(rest, "enter")) {
+    /* As if Enter were pressed: the window acts on it in its next frame. */
+    if (a->batch) {
+      app_log(a, "error: palette enter needs the app's window");
+    } else if (!a->pal.open) {
+      app_log(a, "error: the palette is not open");
+    } else {
+      a->pal.enter = true;
+    }
+  } else if (!strncmp(rest, "search", 6) && (rest[6] == '\0' || rest[6] == ' ')) {
+    /* The best matches of a text, for tests: nothing is run. */
+    const char *text = rest + 6;
+    int found, k;
+    char label[256];
+    while (*text == ' ') text++;
+    found = palette_search(a, text, hits, PALETTE_MAX_HITS);
+    for (k = 0; k < found && k < 5; k++) {
+      palette_label(a, hits[k], label, sizeof label);
+      app_log(a, "palette hit %d: %s", k + 1, label);
+    }
+    if (!found) app_log(a, "palette: no match");
   } else if (!strcmp(rest, "check")) {
     palette_check(a);
   } else if (!strcmp(rest, "list")) {

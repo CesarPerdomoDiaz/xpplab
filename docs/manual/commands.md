@@ -44,7 +44,7 @@ so the echoed Python script is the same. Greyed entries cannot run now; the
 reason is under the name. A command that takes arguments is put in the
 command line to be completed. Escape closes it.
 
-[The command palette, searching for auto](image:command-palette.png)
+![The command palette, searching for auto](../images/command-palette.png)
 
 The same from the command window, for scripts and tests: `palette TEXT`
 opens it with the text typed, `palette run TEXT` runs the best match

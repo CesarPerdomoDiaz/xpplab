@@ -239,6 +239,18 @@ CASES = [
         "palette type null", "palette run find all equilibria",
         "export {out}/equilibria.csv equilibria",
         "palette run nullclines"]),
+    # The window's own path: the text typed in the palette, Enter pressed in
+    # its next frame ("then:" commands run after the first frames).
+    ("palette_enter", "lecar.ode", [
+        "palette type integrate", "palette enter", "then:export {out}/run.csv"]),
+    ("palette_enter_command", "lecar.ode", [
+        "run", "palette type ic last", "palette enter", "then:run",
+        "then:export {out}/from_end.csv"]),
+    # A greyed entry (AUTO's, with no branch yet) is refused, with its
+    # reason in the command window; nothing else changes.
+    ("palette_refused", "lecar.ode", [
+        "run", "palette type auto from label", "palette enter",
+        "then:export {out}/run.csv"]),
     ("mat_many", "tests/models/kite.ode", [
         "set VW=2.1",
         "many 6 seed 3 gam 0 1.5707963 om -1.3 1.3 keep tens 0 inf",
@@ -338,7 +350,11 @@ def run_case(app, engine, out, name, model, cmds, timeout):
         model_file = d / UNICODE_DIR / ("lécar" + model_file.suffix)
     args = [str(app), str(model_file)]
     for c in cmds:
-        args += ["--cmd", c.replace("{out}", d.as_posix())]
+        if not c.startswith("then:"):
+            args += ["--cmd", c.replace("{out}", d.as_posix())]
+    for c in cmds:
+        if c.startswith("then:"):
+            args += ["--then", c[5:].replace("{out}", d.as_posix())]
     args += ["--then", "script " + script.as_posix(), "--screenshot", str(shot),
              "--frames", "8", "--log", str(log)]
     problems = []
@@ -351,7 +367,14 @@ def run_case(app, engine, out, name, model, cmds, timeout):
     except subprocess.TimeoutExpired:
         return ["the app did not exit within %d s" % timeout]
     text = log.read_text(errors="replace") if log.exists() else ""
-    problems += ["app: " + l for l in text.splitlines() if l.startswith("error")]
+    errors = [l for l in text.splitlines() if l.startswith("error")]
+    if name == "palette_refused":
+        # The refusal is what the case is for: it must be there, with a reason.
+        refusal = [l for l in errors if "is not available: " in l and "branch" in l]
+        if not refusal:
+            problems.append("the greyed entry was not refused with its reason")
+        errors = [l for l in errors if l not in refusal]
+    problems += ["app: " + l for l in errors]
     if not script.exists():
         return problems + ["the app saved no script"]
     problems += count_problems(script)

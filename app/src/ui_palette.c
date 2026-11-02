@@ -36,6 +36,10 @@ void ui_palette(App *a) {
     enter = igIsKeyPressed_Bool(ImGuiKey_Enter, false) ||
             igIsKeyPressed_Bool(ImGuiKey_KeypadEnter, false);
   }
+  if (p->enter) { /* `palette enter` */
+    enter = true;
+    p->enter = false;
+  }
 
   igSetNextWindowPos(V2(vp->WorkPos.x + vp->WorkSize.x / 2, vp->WorkPos.y + 70),
                      ImGuiCond_Always, V2(0.5f, 0));
@@ -103,6 +107,7 @@ void ui_palette(App *a) {
       char label[256];
       palette_label(a, run, label, sizeof label);
       app_status(a, "%s is not available: %s", label, why);
+      app_log(a, "error: %s is not available: %s", label, why);
     }
   }
 }

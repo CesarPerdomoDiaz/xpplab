@@ -101,8 +101,9 @@ and labels 4 and 5 are their mirror images at `-0.3849` and `-0.1521`.
 These four points are the starting points of the curves below.
 
 The same scan at two other values of `b` shows why one curve is not enough.
-At `b = 0.2` the branch has no fold and no Hopf point in the range, and at
-`b = 1.5` it has two folds and no Hopf point:
+At `b = 0.2` the branch has no fold, and its Hopf points are at
+`lam = +-2.834`, outside the range -2 to 2. At `b = 1.5` it has two folds
+and no Hopf point:
 
 ```python
 for b in (0.2, 1.5):
@@ -116,8 +117,9 @@ for b in (0.2, 1.5):
 # 1.5 [('EP', -2.0), ('LP', 1.3719), ('LP', -1.3719), ('EP', 2.0095)]
 ```
 
-The fold exists only when `b > 1/3`, which is the cusp's `b`, and the Hopf
-point only when `b < 1`, which is the BT point's.
+The fold exists only when `b > 1/3`, which is the cusp's `b`, and a Hopf
+point only when `b < 1`, which is the BT point's. At `b = 0.2` the Hopf
+points are where `x^2 = 1 - b/3`, so `lam = x^3 - (3 - 1/b) x = +-2.834`.
 
 ## Step 2: the curves of folds and of Hopf points
 
@@ -272,13 +274,19 @@ The command window answers with these lines (`xpplab-batch codim2.ode --echo
 >>> m.auto.continue_from(2, "two-parameter", parameter="lam", second="b")
 ```
 
+The line `m.auto.parameters("lam", "b")` records that `auto from 3 two b`
+named `b` as the second parameter, which the engine did not have yet. The
+Python above gives it as `second="b"` in the call, and the echo's calls also
+carry `parameter="lam"`.
+
 In the window, fill in **Par min**, **Par max**, **DS max**, **Max steps** and
 **Label every**; press **Follow steady states**; choose `b` in **2nd param.**;
 select the row `3 LP` and press the two-parameter action; set **Step DS** to
 `-0.02` and press it again; and do the same from the row `2 HB` with the
 steps and the signs of the commands above. The curves appear in the
-**Two parameters** tab. The fold has no other action: from a fold, AUTO
-always follows it in two parameters.
+**Two parameters** tab. On an `LP` row the window offers only the
+two-parameter curve, as the [AUTO page](auto.md) says; an `HB` row also offers
+the periodic orbits.
 
 ## Where to go next
 

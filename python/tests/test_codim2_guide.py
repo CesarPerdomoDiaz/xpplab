@@ -89,6 +89,10 @@ def test_scans_at_other_values_of_the_second_parameter():
     # lam = 2 (1 - 1/(3b))^(3/2) on the folds
     assert found[1.5][1][1] == pytest.approx(2 * (1 - 1 / 4.5) ** 1.5, abs=1e-4)
     assert [round(v, 4) for t, v in found[0.2] if t == "EP"] == [-2.0, 2.0177]
+    # b = 0.2: Hopf where x^2 = 1 - b/3, lam = x^3 - (3 - 1/b) x, outside the range
+    x = np.sqrt(1 - 0.2 / 3)
+    lam = x ** 3 - (3 - 1 / 0.2) * x
+    assert round(lam, 3) == 2.834 and lam > SETTINGS["parmax"]
 
 
 def test_labels_along_the_curves(ns):

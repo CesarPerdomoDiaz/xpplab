@@ -160,7 +160,10 @@ static const char *usage =
     "  palette [TEXT]           the command palette: find and run any menu action\n"
     "                           or command by name [Ctrl+Shift+P]; palette run\n"
     "                           runs the first match of the text, palette list\n"
-    "                           lists everything it finds\n"
+    "                           lists everything it finds, palette search TEXT\n"
+    "                           shows the best five matches without running\n"
+    "                           any, palette enter acts on the open palette as\n"
+    "                           Enter does (it needs the app's window)\n"
     "  help [TOPIC]             open the manual (topics: tutorial,\n"
     "                           neuron-tutorial, auto, analysis, odefile, numerics, commands, xppaut,\n"
     "                           matlab, auto07p)\n";

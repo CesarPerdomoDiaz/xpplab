@@ -337,6 +337,16 @@ def auto_set_counts(script):
     return found
 
 
+# A case that runs an action through the palette must fail if the action was
+# skipped: its line must be in the saved script, as often as the case runs it.
+SCRIPT_HAS = {
+    "palette_enter": ("sol = m.run()", 2),
+    "palette_enter_command": ("m.initial_conditions.update(", 1),
+    "palette_refused": ("sol = m.run()", 2),
+    "palette": ("m.initial_conditions.update(", 1),
+}
+
+
 def run_case(app, engine, out, name, model, cmds, timeout):
     d = out / name
     shutil.rmtree(d, ignore_errors=True)
@@ -378,6 +388,12 @@ def run_case(app, engine, out, name, model, cmds, timeout):
     if not script.exists():
         return problems + ["the app saved no script"]
     problems += count_problems(script)
+    if name in SCRIPT_HAS:
+        line, times = SCRIPT_HAS[name]
+        found = script.read_text(encoding="utf-8").count(line)
+        if found != times:
+            problems.append("the script has %d line(s) with %r, not %d: the palette "
+                            "did not run the action" % (found, line, times))
     if name == "auto_counts" and auto_set_counts(script) != {
             "nmax": 600, "npr": 50, "ntst": 25}:
         problems.append("auto.set() counts in the script: %r" % auto_set_counts(script))

@@ -48,7 +48,10 @@ command line to be completed. Escape closes it.
 
 The same from the command window, for scripts and tests: `palette TEXT`
 opens it with the text typed, `palette run TEXT` runs the best match
-without opening it, and `palette list` writes every entry.
+without opening it, `palette list` writes every entry and `palette search
+TEXT` writes the best five matches without running any. `palette enter`
+acts on the open palette as the Enter key does, on its next frame; it needs
+the app's window and is an error in `xpplab-batch`.
 
 ## The command window
 
@@ -59,6 +62,7 @@ commands. `help` lists them all.
 |---|---|
 | `run` | Integrate. |
 | `palette`, `palette TEXT`, `palette run TEXT`, `palette list` | The command palette: open it (with the text typed), run its best match for the text, or list its entries. |
+| `palette search TEXT`, `palette enter` | Write the best five matches for the text without running any; or act on the open palette as Enter does (needs the app's window). |
 | `set I=0.5 total=200` | Set parameters, initial values or options. |
 | `get I` | Show a value. |
 | `whos` | List variables and parameters with their values. |

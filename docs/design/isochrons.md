@@ -107,8 +107,8 @@ cycle:
     λ = exp(∫_0^T div f(γ(t)) dt),
 
 which is computed from the stored orbit by the trapezoid rule on the points
-the adjoint already uses (or read from the Floquet multipliers of the
-monodromy matrix that `adjoint` integrates). A single backward trajectory
+the adjoint already uses. (`adjoint` returns no multipliers, so the
+divergence integral is the only source of λ.) A single backward trajectory
 from a point near the cycle is *not* an isochron: it crosses every isochron
 as it goes, because its phase falls by s/T after the backward time s. The
 construction below uses backward times that are whole periods, which keep the
@@ -195,9 +195,13 @@ return their results in the result table (`xppe_result_*`) or through
 output arguments:
 
 - `xppe_asymptotic_phase(const double *x, double delta, double tmax,
-  double *phase, double *elapsed)`: method A for one state.
+  double *phase, double *elapsed)`: method A for one state. `phase` is
+  θ/T in [0, 1), as users see it. For the correction, Z is evaluated
+  between the stored points of the adjoint by linear interpolation in θ,
+  which is enough for the O(δ²) error.
 - `xppe_isochrons(int count, double length, int max_points, ...)`: method B;
-  a table with columns `phase`, then the plotted pair of variables, one
+  a table with columns `phase` (θ/T in [0, 1), the same unit as above), then
+  the plotted pair of variables, one
   polyline per phase separated by a row of NaN. Method C as an option
   (`xppe_phase_grid`) in a later piece.
 - `xppe_phase_model(int n, const char *const *coupling)`: T, then the
@@ -253,8 +257,13 @@ no existing numerics, and no file in `engine/xppaut/` needs an edit.
 
 ### Models with a closed-form answer
 
-All in `tests/models/`, with tolerances that follow from the integration
-tolerance and are written in the test.
+All in `tests/models/`, with tolerances written in the test. The accuracy of Z and H is set by
+XPPAUT's adjoint and `make_h`, not by the integrator's tolerance: by the
+time step and the number of stored points of the cycle, and by the `float`
+storage in `adj2.c`. Tests of Z, H, H_odd and the locked states use
+tolerances for that error (found by running, and written down in the
+test); tests of the asymptotic phase and the isochron curves use the
+integration tolerance and δ.
 
 1. **The radial isochron clock**, r' = r(1 − r), θ' = 1 (in Cartesian
    coordinates x = r cos θ, y = r sin θ). The cycle is r = 1, T = 2π, so the
@@ -312,8 +321,6 @@ tolerance and are written in the test.
   and on the lambda-omega model.
 - The phase advances by the time elapsed: for a point x and its flow
   φ_t(x), the phase of φ_t(x) equals the phase of x plus t/T, modulo 1.
-- Method B and method C draw the same curves where both work, to within the
-  grid spacing.
 - The phase model's H, H_odd and H_even equal the `xppe_hfunction` columns
   for the same coupling, bit for bit, and the locked-state stability agrees with a simulation of the pair.
 - Refusals: delays, noise, a run that is not one period, and an unstable
@@ -332,7 +339,9 @@ valgrind jobs run the C tests as before.
    clock and lambda-omega tests, the API version bump and the Python
    signature.
 2. **C API: isochrons in the plane** (method B), with the closed-form
-   tests; refuses n > 2 for now.
+   tests; refuses n > 2 for now. Its tests use only the closed forms, so it
+   does not depend on piece 1; if a test uses `xppe_asymptotic_phase`, it
+   depends on piece 1.
 3. **C API: the phase model** (`xppe_phase_model`: T, Z, H, locked states),
    with the coupled lambda-omega test and the comparison with a full
    simulation.
@@ -343,7 +352,9 @@ valgrind jobs run the C tests as before.
 6. **Documentation**: the manual section, the Python page and a notebook;
    ticks the roadmap line.
 7. **Later, optional**: isochrons on a grid (method C) as the stiff-model
-   fallback, and isochrons of cycles in more than two variables.
+   fallback, with the test that methods B and C draw the same curves where both
+   work, to within the grid spacing; and isochrons of cycles in more than two
+   variables.
 
 Pieces 1 to 3 do not depend on each other except for the shared table
 layout, which piece 1 fixes; 4 needs 1 to 3, 5 needs 4, and 6 comes last.

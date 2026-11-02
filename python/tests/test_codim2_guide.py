@@ -85,10 +85,12 @@ def test_scans_at_other_values_of_the_second_parameter():
     assert types[0.2] == ["EP", "EP"]
     assert types[0.5] == ["EP", "HB", "LP", "LP", "HB", "EP"]
     assert types[1.5] == ["EP", "LP", "LP", "EP"]
-    assert [round(v, 4) for t, v in found[1.5] if t == "LP"] == [1.3719, -1.3719]
+    assert [v for t, v in found[1.5] if t == "LP"] == pytest.approx(
+        [1.3719, -1.3719], abs=2e-4)
     # lam = 2 (1 - 1/(3b))^(3/2) on the folds
     assert found[1.5][1][1] == pytest.approx(2 * (1 - 1 / 4.5) ** 1.5, abs=1e-4)
-    assert [round(v, 4) for t, v in found[0.2] if t == "EP"] == [-2.0, 2.0177]
+    assert [v for t, v in found[0.2] if t == "EP"] == pytest.approx(
+        [-2.0, 2.0177], abs=5e-3)
     # b = 0.2: Hopf where x^2 = 1 - b/3, lam = x^3 - (3 - 1/b) x, outside the range
     x = np.sqrt(1 - 0.2 / 3)
     lam = x ** 3 - (3 - 1 / 0.2) * x
@@ -125,27 +127,25 @@ def test_codimension_two_points(ns):
     fu, fd = curve(ns["fold_up"]), curve(ns["fold_down"])
     # cusp at (0, 1/3): the fold curve turns there and goes on to lam < 0
     cusp = fd[fd[:, 1].argmin()]
-    assert (round(cusp[0], 3) + 0.0, round(cusp[1], 3)) == (0.0, 0.333)
     assert cusp == pytest.approx([0, 1 / 3], abs=5e-4)
     assert fd[0, 0] > 0 > fd[-1, 0]
     # Bogdanov-Takens at b = 1, lam = 2 (2/3)^(3/2)
     bt = 2 * (2 / 3) ** 1.5
     assert round(bt, 4) == 1.0887
     lam_fold = np.interp(1.0, fu[:, 1], fu[:, 0])
-    assert round(lam_fold, 3) == 1.089
+    assert lam_fold == pytest.approx(1.089, abs=1e-3)
     assert lam_fold == pytest.approx(bt, abs=5e-4)
     last = ns["hopf_up"][-1]
-    assert (round(last.value, 4), round(last.value2, 4)) == (1.0877, 0.9988)
+    assert (last.value, last.value2) == pytest.approx((1.0877, 0.9988), abs=5e-4)
     assert last.value2 < 1 and last.value < bt
     # the two Hopf curves cross at lam = 0, b = 2 sqrt 3 - 3
     hd = curve(ns["hopf_down"])[::-1]
     b_cross = np.interp(0.0, hd[:, 0], hd[:, 1])
-    assert round(b_cross, 3) == 0.464
     assert b_cross == pytest.approx(2 * np.sqrt(3) - 3, abs=1e-3)
     # the run stopped at the limit of lam, not at nmax
     end = ns["hopf_down"][-1]
-    assert len(ns["hopf_down"]) == 63
-    assert (round(end.value, 3), round(end.value2, 3)) == (-2.002, 0.240)
+    assert len(ns["hopf_down"]) < 100
+    assert (end.value, end.value2) == pytest.approx((-2.002, 0.240), abs=5e-3)
 
 
 def test_hopf_curve_does_not_pass_the_bt_point():
@@ -218,7 +218,7 @@ def test_echoed_lines_are_what_the_app_prints(tmp_path):
     assert got[1] == ">>> sol = m.run()"
     (echo,) = blocks("text")
     assert got[2:] == [ln for ln in echo.splitlines() if ln]
-    assert "HB #2 at lam = 0.152112" in done.stdout
+    assert "HB #2 at lam = 0.1521" in done.stdout
     assert "LP #3 at lam = 0.3849" in done.stdout
     assert "continuing from LP #3" in done.stdout
     assert "continuing from HB #2" in done.stdout

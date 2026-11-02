@@ -232,7 +232,7 @@ are in [AUTO](auto.md).
   again from the same label with the opposite sign of `ds` for the other way.
   The sign that means "up" depends on the curve; the first points tell.
 - **`parmin` and `parmax` limit the first parameter only.** `hopf_down` ends
-  after 63 of its 100 steps because `lam` reached the limit -2 (at
+  before its 100 steps because `lam` reached the limit -2 (at
   `lam = -2.002`, `b = 0.240`). The second parameter has no limit, so the
   fold curves would run to large `b`: use `nmax` to stop them.
 - **Read the points from the data.** Use `p.value` and `p.value2` of the

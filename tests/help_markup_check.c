@@ -44,29 +44,32 @@ static void check(const char *text, const char *want) {
 /* A manual page given on the command line: every image is drawn as an
    image, and no link of the page points at a picture file. */
 static void check_page(const char *path) {
-  char line[4096];
+  static char text[1 << 18];
   int images = 0;
-  FILE *f = fopen(path, "r");
+  size_t n;
+  const char *s = text, *end;
+  HelpTok t;
+  FILE *f = fopen(path, "rb");
   if (!f) {
     printf("FAIL: cannot open %s\n", path);
     failures++;
     return;
   }
-  while (fgets(line, sizeof line, f)) {
-    const char *s = line, *end = line + strlen(line);
-    HelpTok t;
-    for (;;) {
-      s = help_markup_next(line, s, end, &t);
-      if (t.kind == HM_END) break;
-      if (t.kind == HM_IMAGE) images++;
-      if (t.kind == HM_LINK && (t.target_end - t.target) > 4 &&
-          !strncmp(t.target_end - 4, ".png", 4)) {
-        printf("FAIL: a link to a picture: %s", line);
-        failures++;
-      }
+  n = fread(text, 1, sizeof text - 1, f);
+  fclose(f);
+  text[n] = 0;
+  end = text + n;
+  for (;;) {
+    s = help_markup_next(text, s, end, &t);
+    if (t.kind == HM_END) break;
+    if (t.kind == HM_IMAGE) images++;
+    if (t.kind == HM_LINK && (t.target_end - t.target) > 4 &&
+        !strncmp(t.target_end - 4, ".png", 4)) {
+      printf("FAIL: a link to a picture: %.*s\n", (int)(t.target_end - t.target),
+             t.target);
+      failures++;
     }
   }
-  fclose(f);
   if (images < 1) {
     printf("FAIL: no image found in %s\n", path);
     failures++;

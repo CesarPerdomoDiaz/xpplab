@@ -301,7 +301,7 @@ const Action app_actions[] = {
     HELP("help.auto07p", false, "Coming from AUTO-07p", NULL,
          "XPP Lab for AUTO-07p users.", 9),
     HELP("help.codim2", false, "Codimension-two bifurcations", NULL,
-         "Curves of folds and Hopf points in two parameters, worked on an example.", 10),
+         "Fold and Hopf curves, cusps and Bogdanov-Takens points, on a worked example.", 10),
     HELP("help.about", true, "About XPP Lab", NULL, "The version, the licence and the credits.",
          11),
 };
@@ -443,7 +443,7 @@ static const struct {
   const char *key, *words;
 } keyword_table[] = {
     {"run.integrate", "initial conds go simulate solve trajectory"},
-    {"help.codim2", "cusp bogdanov takens two-parameter"},
+    {"help.codim2", "codim-2 codimension two"},
     {"run.equilibrium", "sing pts steady state fixed point newton"},
     {"run.equilibria", "sing pts monte carlo steady states fixed points"},
     {"run.equilibria_range", "sing pts range steady state"},

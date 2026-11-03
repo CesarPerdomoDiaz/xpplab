@@ -166,7 +166,7 @@ static const char *usage =
     "                           Enter does (it needs the app's window)\n"
     "  help [TOPIC]             open the manual (topics: tutorial,\n"
     "                           neuron-tutorial, auto, analysis, odefile, numerics, commands, xppaut,\n"
-    "                           matlab, auto07p)\n";
+    "                           matlab, auto07p, codim2)\n";
 
 const char *app_command_usage(void) { return usage; }
 

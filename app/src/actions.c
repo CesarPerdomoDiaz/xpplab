@@ -75,7 +75,7 @@ static void act_palette(App *a, int arg) { (void)arg, palette_open(a); }
 
 static const char *help_pages[] = {"welcome", "tutorial", "neuron-tutorial", "auto",
                                    "odefile", "numerics", "commands", "xppaut",
-                                   "matlab", "auto07p", "about"};
+                                   "matlab", "auto07p", "codim2", "about"};
 static void act_help(App *a, int arg) { ui_show_help(a, help_pages[arg]); }
 
 /* An action that is a command of the command window. */
@@ -300,8 +300,10 @@ const Action app_actions[] = {
          "XPP Lab for MATLAB users.", 8),
     HELP("help.auto07p", false, "Coming from AUTO-07p", NULL,
          "XPP Lab for AUTO-07p users.", 9),
+    HELP("help.codim2", false, "Codimension-two bifurcations", NULL,
+         "Curves of folds and Hopf points in two parameters, worked on an example.", 10),
     HELP("help.about", true, "About XPP Lab", NULL, "The version, the licence and the credits.",
-         10),
+         11),
 };
 const int app_nactions = (int)(sizeof app_actions / sizeof app_actions[0]);
 
@@ -441,6 +443,7 @@ static const struct {
   const char *key, *words;
 } keyword_table[] = {
     {"run.integrate", "initial conds go simulate solve trajectory"},
+    {"help.codim2", "cusp bogdanov takens two-parameter"},
     {"run.equilibrium", "sing pts steady state fixed point newton"},
     {"run.equilibria", "sing pts monte carlo steady states fixed points"},
     {"run.equilibria_range", "sing pts range steady state"},

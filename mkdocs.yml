@@ -68,6 +68,7 @@ nav:
       - Coming from XPPAUT: manual/xppaut.md
       - Coming from MATLAB: manual/matlab.md
       - Coming from AUTO-07p: manual/auto07p.md
+      - Codimension-two bifurcations: manual/codim2.md
   - Python:
       - Quick start: python/quickstart.md
       - Simulation: python/simulation.md
@@ -96,5 +97,6 @@ nav:
       - Architecture: development/architecture.md
       - macOS plan: development/macos.md
       - ModelDB models: development/modeldb.md
+      - "Design: isochrons and phase reduction": design/isochrons.md
       - Upstream issues: upstream-issues.md
       - About and credits: manual/about.md

@@ -23,7 +23,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
@@ -60,7 +60,7 @@ jobs:
         run: |
           cd build/app
           gdb -batch -ex run -ex bt --args ./xpplab.exe examples/lecar.ode --screenshot dbg.bmp --frames 5
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: windows-preview
@@ -75,10 +75,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0  # the reference build needs the import commit
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: System packages (Linux)
@@ -134,7 +134,7 @@ jobs:
       - name: Package the macOS app
         if: runner.os == 'macOS'
         run: cd build && cpack
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: runner.os == 'macOS' && always()
         with:
           name: macos-preview
@@ -147,7 +147,7 @@ jobs:
     name: Linux desktop app (SDL3 from source)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libx11-dev libxext-dev libxrandr-dev             libxcursor-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libwayland-dev             wayland-protocols libegl1-mesa-dev libgl1-mesa-dev libdbus-1-dev xvfb
@@ -182,7 +182,7 @@ jobs:
     env:
       ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: sudo apt-get update && sudo apt-get install -y ninja-build
       - name: Build with AddressSanitizer
         run: |
@@ -221,8 +221,8 @@ jobs:
     env:
       VG: valgrind --error-exitcode=0 --track-origins=yes --fullpath-after= --num-callers=30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: sudo apt-get update && sudo apt-get install -y ninja-build valgrind
@@ -252,7 +252,7 @@ jobs:
             python -m pytest -q python/tests --ignore=python/tests/test_mcp.py || true
       - name: Errors in XPP Lab code
         run: python tests/valgrind_report.py vg-*.log
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: valgrind-logs

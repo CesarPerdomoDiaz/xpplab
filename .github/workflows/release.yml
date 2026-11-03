@@ -23,7 +23,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
@@ -81,7 +81,7 @@ jobs:
                 (Test-Path (Join-Path $env:XPPLAB_RUNTIME_DIR "python\xpplab-runtime.txt"))
           if (-not $ok) { Write-Output $text; throw "python fetch did not work (exit code $($p.ExitCode))" }
           $text -split "`n" | Where-Object { $_ -match "^(Downloading|  checked|Python|fetched|Starting)" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: app-windows
           path: build/XPPLab-*.zip
@@ -89,7 +89,7 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # A universal app (Apple Silicon and Intel). Homebrew's SDL3 is built
       # for one architecture only, so SDL3 is compiled from source here.
       - run: brew install ninja
@@ -151,11 +151,11 @@ jobs:
           hdiutil detach /tmp/xpps
       # The disk image alone in its artifact: with the screenshots beside
       # it, it landed in a build/ subfolder that publish did not look in.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: app-macos
           path: build/XPPLab-*.dmg
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos-screenshots
           path: macos-*.bmp
@@ -165,7 +165,7 @@ jobs:
     # runs on newer distributions, not the other way round.
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build dependencies for SDL3
         run: |
           sudo apt-get update
@@ -193,7 +193,7 @@ jobs:
         run: |
           cd /tmp/pkg/XPPLab-Linux-x86_64
           sh "$GITHUB_WORKSPACE/tests/release_fetch.sh" "$PWD/examples/lecar.ode" xvfb-run -a ./xpplab
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: app-linux
           path: build/XPPLab-*.tar.gz
@@ -212,8 +212,8 @@ jobs:
     steps:
       # Only for tests/release_fetch.sh; before the download, which it
       # would clean away.
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: app-linux
       - name: A desktop's libraries and a virtual display
@@ -256,8 +256,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: MinGW-w64 toolchain (Windows)
@@ -292,7 +292,7 @@ jobs:
           # without mcp, the tests that need its client are skipped there.
           CIBW_TEST_REQUIRES_MACOS: pytest matplotlib pandas
           CIBW_TEST_COMMAND: pytest -q {project}/python/tests
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wheel-${{ matrix.os }}
           path: wheelhouse/*.whl
@@ -305,8 +305,8 @@ jobs:
       contents: write
       actions: write      # to start pypi.yml
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
@@ -322,7 +322,7 @@ jobs:
           sed -e "s/@VERSION@/$version/g" -e "s/@TAG@/$GITHUB_REF_NAME/g" \
               .github/release-notes.md > notes.md
           { echo; echo "## Checksums (SHA-256)"; echo; echo '```text'; cat dist/SHA256SUMS; echo '```'; } >> notes.md
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           name: XPP Lab ${{ github.ref_name }}
           body_path: notes.md

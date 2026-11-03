@@ -454,6 +454,9 @@ XPPE_API int xppe_ani_get(int i, xppe_ani_item *out);
  * point (-1 if none was grabbed). *runnow is 1 when the file asks for a run
  * (runnow=1); the caller then calls xppe_run(). */
 XPPE_API int xppe_ani_segments(int i, double *out, int max);
+/* The shapes for the values the variables have now, without taking them from
+   the run: what the animator draws while a grab point is dragged. */
+XPPE_API int xppe_ani_frame_current(void);
 XPPE_API int xppe_ani_nullclines(int ix, int iy, int grid, const char *param,
                                  int steps, double plo, double phi);
 XPPE_API int xppe_ani_grab_count(void);

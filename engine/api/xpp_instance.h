@@ -105,6 +105,7 @@ extern "C" {
   X(int, xppe_ani_frame, (int))                                               \
   X(int, xppe_ani_get, (int, xppe_ani_item *))                                \
   X(int, xppe_ani_segments, (int, double *, int))                             \
+  X(int, xppe_ani_frame_current, (void))                                      \
   X(int, xppe_ani_nullclines, (int, int, int, const char *, int, double,      \
                                double))                                       \
   X(int, xppe_ani_grab_count, (void))                                         \

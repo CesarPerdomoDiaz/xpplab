@@ -113,8 +113,9 @@ static void colour(int j, xppe_ani_item *it) {
   }
 }
 
-/* ani_flip1() and render_ani() without the drawing. */
-int xppe_ani_frame(int row) {
+/* ani_flip1() and render_ani() without the drawing. With `current`, as after
+   a grab move, the variables keep the values they have: ani_frame(0). */
+static int frame_at(int row, int current) {
   double y[MAXODE], t;
   int rc, i, j, size = 0, serif = 0, text_colour = 0;
   float **ss;
@@ -124,19 +125,21 @@ int xppe_ani_frame(int row) {
     return XPPE_ERR_STATE;
   }
   ss = my_browser.data;
-  if (my_browser.maxrow < 1 || !ss) {
+  if (!current && (my_browser.maxrow < 1 || !ss)) {
     xppe_set_error("integrate the model first", NULL);
     return XPPE_ERR_STATE;
   }
   if (row < 0) row = 0;
-  if (row >= my_browser.maxrow) row = my_browser.maxrow - 1;
+  if (!current && row >= my_browser.maxrow) row = my_browser.maxrow - 1;
   nitems = 0;
   nsegs = 0;
   XPPE_GUARD_BEGIN((void)0);
-  if (row == 0) set_ani_perm();
-  t = (double)ss[0][row];
-  for (i = 0; i < NODE + NMarkov; i++) y[i] = (double)ss[i + 1][row];
-  set_fix_rhs(t, y);
+  if (!current) {
+    if (row == 0) set_ani_perm();
+    t = (double)ss[0][row];
+    for (i = 0; i < NODE + NMarkov; i++) y[i] = (double)ss[i + 1][row];
+    set_fix_rhs(t, y);
+  }
   for (j = 0; j < n_anicom; j++) {
     int type = my_ani[j].type;
     xppe_ani_item *it = &items[nitems];
@@ -264,6 +267,10 @@ int xppe_ani_frame(int row) {
   XPPE_GUARD_END;
   return nitems;
 }
+
+int xppe_ani_frame(int row) { return frame_at(row, 0); }
+
+int xppe_ani_frame_current(void) { return frame_at(0, 1); }
 
 int xppe_ani_get(int i, xppe_ani_item *out) {
   if (i < 0 || i >= nitems) {

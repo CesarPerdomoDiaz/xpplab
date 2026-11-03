@@ -2,6 +2,7 @@
    The engine evaluates each frame with XPPAUT's code; this draws it. */
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "ui.h"
@@ -38,7 +39,7 @@ void ui_animator(App *a) {
   ImDrawList *dl;
   ImVec2_c pos, size, org;
   double sx, sy, s;
-  int rows, n, i;
+  int rows, n, i, ngrab;
   if (!igBegin(WIN_ANI, &a->show_ani, 0)) {
     igEnd();
     return;
@@ -91,6 +92,41 @@ void ui_animator(App *a) {
   igCheckbox("Loop", &v->loop);
   igSameLine(0, -1);
   igTextDisabled("t = %.4g", rows > 0 ? a->traj.cols[0][v->row < rows ? v->row : rows - 1] : 0.0);
+  ngrab = x->xppe_ani_grab_count();
+  if (ngrab > 0) {
+    igSameLine(0, -1);
+    if (igCheckbox("Grab", &v->grab)) {
+      v->dragging = false;
+      if (v->grab) {
+        v->playing = false;
+        v->row = 0;
+      }
+    }
+    Tooltip("Show the grab points of the file and drag one with the mouse. "
+            "Releasing sets the values the file names (initial values or "
+            "parameters) and runs the model if the file says runnow=1. The "
+            "mode ends after one drag. The command: ani grab X Y X2 Y2.");
+  }
+  if (v->has_null) {
+    igSetNextItemWidth(110);
+    Combo("##ncpar", &v->nc_par, a->pars, a->npars);
+    igSameLine(0, -1);
+    igSetNextItemWidth(60);
+    igInputInt("steps##nc", &v->nc_steps, 0, 0, 0);
+    igSameLine(0, -1);
+    igSetNextItemWidth(80);
+    InputDouble("from##nc", &v->nc_lo, "%.4g");
+    igSameLine(0, -1);
+    igSetNextItemWidth(80);
+    InputDouble("to##nc", &v->nc_hi, "%.4g");
+    igSameLine(0, -1);
+    if (Button("Freeze range") && v->nc_par < a->npars)
+      app_ani_nullclines(a, a->pars[v->nc_par], v->nc_steps, v->nc_lo, v->nc_hi);
+    Tooltip("xnull and ynull lines draw the nullclines of the phase plane's "
+            "variables. A line that picks a number k draws the k-th of a set "
+            "frozen over a range of the parameter (wcstim: s0 from 0 to 1.2 "
+            "in 12 steps). The command: ani nullclines PAR STEPS LO HI.");
+  }
 
   /* Play: advance by speed x elapsed time. */
   if (v->playing && rows > 0) {
@@ -128,7 +164,9 @@ void ui_animator(App *a) {
                            V2(org.x + (float)(s * (v->xhi - v->xlo)),
                               org.y + (float)(s * (v->yhi - v->ylo))),
                            igGetColorU32_Vec4(HEX(0xffffff)), 0, 0);
-  n = x->xppe_ani_frame(v->row);
+  if (v->has_null && v->null_dirty) app_ani_nullclines(a, NULL, 0, 0, 0);
+  if (v->grab && v->row != 0) v->row = 0;
+  n = v->dragging ? x->xppe_ani_frame_current() : x->xppe_ani_frame(v->row);
   for (i = 0; i < n; i++) {
     xppe_ani_item it;
     ImU32 col;
@@ -141,6 +179,17 @@ void ui_animator(App *a) {
       ImDrawList_AddLine(dl, V2(PX(it.x1), PY(it.y1)), V2(PX(it.x2), PY(it.y2)),
                          col, w, 0);
       break;
+    case XPPE_ANI_NULLCLINE: {
+      int ns = x->xppe_ani_segments(i, NULL, 0), k;
+      double *sg = ns > 0 ? malloc(sizeof(double) * 4 * (size_t)ns) : NULL;
+      if (!sg) break;
+      x->xppe_ani_segments(i, sg, ns);
+      for (k = 0; k < ns; k++)
+        ImDrawList_AddLine(dl, V2(PX(sg[4 * k]), PY(sg[4 * k + 1])),
+                           V2(PX(sg[4 * k + 2]), PY(sg[4 * k + 3])), col, w, 0);
+      free(sg);
+      break;
+    }
     case XPPE_ANI_RECT: {
       ImVec2_c p1 = V2(PX(it.x1 < it.x2 ? it.x1 : it.x2), PY(it.y1 > it.y2 ? it.y1 : it.y2));
       ImVec2_c p2 = V2(PX(it.x1 < it.x2 ? it.x2 : it.x1), PY(it.y1 > it.y2 ? it.y2 : it.y1));
@@ -196,6 +245,35 @@ void ui_animator(App *a) {
     }
     default:
       break;
+    }
+  }
+  if (v->grab) {
+    /* the grab points as crosses the size of their tolerance, and the mouse */
+    ImVec2_c m = igGetMousePos();
+    ImGuiIO *io = igGetIO_Nil();
+    double mx = v->xlo + (m.x - org.x) / s, my = v->yhi - (m.y - org.y) / s;
+    for (i = 0; i < ngrab; i++) {
+      double gx, gy, tol;
+      if (x->xppe_ani_grab_point(i, &gx, &gy, &tol) != XPPE_OK) continue;
+      ImDrawList_AddLine(dl, V2(PX(gx - tol), PY(gy - tol)), V2(PX(gx + tol), PY(gy + tol)),
+                         igGetColorU32_Vec4(HEX(0x000000)), 1.5f, 0);
+      ImDrawList_AddLine(dl, V2(PX(gx - tol), PY(gy + tol)), V2(PX(gx + tol), PY(gy - tol)),
+                         igGetColorU32_Vec4(HEX(0x000000)), 1.5f, 0);
+    }
+    if (!v->dragging && igIsMouseClicked_Bool(ImGuiMouseButton_Left, false) &&
+        igIsWindowHovered(0) && m.x >= pos.x && m.x < pos.x + size.x &&
+        m.y >= pos.y && m.y < pos.y + size.y) {
+      app_ani_grab_press(a, mx, my);
+    } else if (v->dragging) {
+      if (igIsMouseDown_Nil(ImGuiMouseButton_Left)) {
+        app_ani_grab_drag(a, mx, my, io->DeltaTime > 0 ? io->DeltaTime : 0.016);
+      } else {
+        ImDrawList_PopClipRect(dl);
+        app_ani_grab_release(a);
+        v->last_row = v->row;
+        igEnd();
+        return;
+      }
     }
   }
 #undef PX

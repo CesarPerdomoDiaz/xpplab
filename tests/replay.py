@@ -234,7 +234,37 @@ CASES = [
         "many 6 seed 3 gam 0 1.5707963 om -1.3 1.3 keep tens 0 inf",
         "export {out}/many.mat many", "export {out}/many.csv many",
         "run", "export {out}/run.mat"]),
+    # Grab points in the animator: the first point of itoy.ani runs the
+    # model (runnow=1), the second only sets t2, which the next run uses.
+    ("ani_grab", "itoy.ode", [
+        "set total=3", "run", "ani itoy.ani",
+        "ani grab 0.9987 0.05 -0.3 0.9", "export {out}/first.csv",
+        "ani grab 3.0987 -0.05 2.5 0.5", "run", "export {out}/second.csv"]),
 ]
+
+# What a case's script must contain, line by line in this order (regular
+# expressions): the lines of the action that the case is about, so that the
+# case fails when the action is skipped.
+SCRIPT_LINES = {
+    "ani_grab": [r"(?i)initial_conditions.*\"t1\"", r"^sol = m\.run\(\)",
+                 r"(?i)initial_conditions.*\"t2\"", r"^sol = m\.run\(\)"],
+}
+
+
+def missing_lines(script, patterns):
+    """The patterns that no line of the script matches after the previous
+    pattern's line."""
+    import re
+    lines = script.read_text(encoding="utf-8").splitlines()
+    out, at = [], 0
+    for pat in patterns:
+        for i in range(at, len(lines)):
+            if re.search(pat, lines[i]):
+                at = i + 1
+                break
+        else:
+            out.append("the script has no line like %s after line %d" % (pat, at))
+    return out
 
 
 def cells_equal(x, y):
@@ -345,6 +375,7 @@ def run_case(app, engine, out, name, model, cmds, timeout):
     if not script.exists():
         return problems + ["the app saved no script"]
     problems += count_problems(script)
+    problems += missing_lines(script, SCRIPT_LINES.get(name, []))
     if name == "auto_counts" and auto_set_counts(script) != {
             "nmax": 600, "npr": 50, "ntst": 25}:
         problems.append("auto.set() counts in the script: %r" % auto_set_counts(script))

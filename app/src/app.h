@@ -284,6 +284,14 @@ typedef struct {
   double acc;
   CometTrail comet[APP_MAX_COMETS];
   int ncomets;
+  /* nullclines (xnull, ynull) of the phase plane's variables; the frozen
+     sets the file picks with its "who" are made from a parameter range */
+  bool has_null, null_dirty;
+  int nc_par, nc_steps;
+  double nc_lo, nc_hi;
+  /* the Grab mode: on until a drag is done */
+  bool grab, dragging;
+  double drag_time;
 } AniUI;
 
 /* Many runs kept together (app_figure.c): from random initial values in a
@@ -624,6 +632,11 @@ const char *app_analysis_name(int tool);
 bool app_bvp(App *a);
 void app_view3d_reset(App *a);
 bool app_ani_load(App *a, const char *path);
+bool app_ani_nullclines(App *a, const char *par, int steps, double lo, double hi);
+bool app_ani_grab_press(App *a, double x, double y);
+void app_ani_grab_drag(App *a, double x, double y, double dt);
+void app_ani_grab_release(App *a);
+bool app_ani_grab(App *a, double x, double y, double x2, double y2);
 
 /* AUTO */
 bool app_auto_equilibria(App *a);

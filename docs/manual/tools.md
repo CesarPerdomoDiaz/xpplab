@@ -240,6 +240,59 @@ between, or a formula from 0 to 1 along the colour scale.
 
 Commands: `ani pend.ani`, `ani play`, `ani row 200`.
 
+### Nullclines in an animation
+
+`xnull x1;y1;x2;y2;color;who` and `ynull ...` draw the nullclines of the
+phase plane (the variables of the Phase Plane window) inside the animation.
+The box (x1, y1)-(x2, y2) of the phase plane is mapped onto 0..1, the
+animation's coordinates when the file has no `dimension` line. `who` is a
+formula, evaluated at every frame. With -1 the lines are the current
+nullclines, which the Animator computes when it opens the file and again
+after a grab. With k = 0, 1, ... they are the k-th of a set of nullclines
+frozen over a range of one parameter, and a formula of the time moves
+through the set as the run goes on. wcstim.ani does this with
+`10*stim(t)`, so the nullclines follow the stimulus. To make that set, choose
+the parameter, the number of steps and the range in the row of the Animator
+that appears for such a file, and press **Freeze range**. For wcstim that is
+s0, 12 steps, from 0 to 1.2; the same as `ani nullclines s0 12 0 1.2`.
+A frame with no such set draws no line.
+
+![The animation of wcstim with its nullclines, the red one for u and the
+green one for v, at t = 0.6 of the run](../images/animator-wcstim.png)
+
+### Grab points
+
+A `grab x;y;tol` line in an `.ani` file makes a point of the animation
+draggable. Two lines of `{name=formula; ...}` follow it: the first is
+evaluated while the mouse moves, the second when it is released. They can
+use `mouse_x`, `mouse_y`, `mouse_vx` and `mouse_vy`, the position and the
+velocity of the mouse in the animation's coordinates. A `runnow=1` in the
+second line runs the model after the release.
+
+Press **Grab** in the Animator. The window shows the first frame and a
+cross of size `tol` at each grab point. Press on a point, drag it and
+release: the model's auxiliary quantities follow while you drag, and on
+release the names in the second line get their values. Variables become
+initial values, parameters keep their new values, the Workspace shows them
+and, with `runnow=1`, the model runs. The mode ends after one drag. A press
+farther than `tol` from every point grabs nothing.
+
+![The animation of itoy in Grab mode, with a cross at the two grab points,
+the end of the first arm of each magnet pair](../images/animator-itoy-grab.png)
+
+In itoy.ani the first point sets `t1=a+atan2(mouse_y,mouse_x)`, the angle of
+the first arm, and runs the model; the second point sets `t2` and does not.
+
+`ani grab X Y X2 Y2` presses at (X, Y) and releases at (X2, Y2), in the
+animation's coordinates, so that scripts can drag a point. The session's
+Python then holds the initial values and parameters the grab set, followed by
+`sol = m.run()` if it ran.
+
+In Python, `ani.nullclines("u", "v", grid=40, parameter="s0", steps=12, low=0,
+high=1.2)` makes the sets, `ani.frame(row)` returns the nullcline of each
+`xnull` and `ynull` line as a shape with its `segments`, and
+`ani.grab(x, y, x2, y2)` does the same drag as the command.
+
 ## The Kinescope
 
 The **Kinescope** (*View > Kinescope*, or *Run > Kinescope...*) is

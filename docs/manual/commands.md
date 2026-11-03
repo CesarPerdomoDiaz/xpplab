@@ -27,6 +27,7 @@ under **View > XPPAUT keyboard commands**.
 | K C, K A, K R | Kinescope > Capture, Autoplay, Reset | Capture a figure, play the frames, empty the Kinescope |
 | D D | Dir.field > Direct field | Toggle the direction field |
 | S G | Sing pts > Go | Find an equilibrium |
+| C C | Continue | Integrate further from the end of the last run |
 | E | Erase | Clear kept curves |
 | W F | Window > Fit | Fit the plots (or double-click a plot) |
 | F Q | File > Quit | Quit |
@@ -67,7 +68,7 @@ commands. `help` lists them all.
 | `nullclines freeze`, `nullclines freeze iapp 0 0.4 6` | Keep the nullclines drawn, or those for 6 values of iapp from 0 to 0.4 (XPPAUT's Freeze, Freeze > Range). `nullclines show 3` shows the third set alone (0: all), `nullclines play` steps through them, `nullclines unfreeze` deletes them. |
 | `dirfield` | Toggle the direction field. |
 | `erase` | Remove kept curves. |
-| `use hopf` | Apply a named parameter set. |
+| `use hopf` | Apply a named parameter set. `sets` lists the model's sets. |
 | `auto steady iapp` | Follow steady states as iapp varies. |
 | `auto from 2 periodic` | Continue from labelled point 2. Actions: `periodic`, `two`, `extend`, `switch`, `doubling`, `fixed`. |
 | `auto set ds=0.01 nmax=300` | AUTO numerics. |
@@ -75,6 +76,9 @@ commands. `help` lists them all.
 | `auto save d.auto`, `auto load d.auto` | Save the diagram, with AUTO's settings and restart data, as XPPAUT's `.auto` file; load one back to continue from its points. |
 | `auto orbit 6` | Make the periodic orbit at point 6 the current run (one period). |
 | `range I 0 1.6 50 V` | Run 50 times with I from 0 to 1.6 and plot the max and min of V (XPPAUT's Range). Leave out `V` to keep each trajectory, write `lyap` for the Liapunov exponent, add `continue` to start each run where the last ended, or `eq` to follow the equilibrium instead of running (XPPAUT's Sing pts > Range). The name can also be a variable (its initial value). After the first range a second one, `range I 0 1.6 50 gk 1 3 20 V`, runs a 50 by 20 grid (XPPAUT's 2par range); without its count, `range I 0 1.6 50 gk 1 3 V`, both move together along a line. `sweep` does the same. |
+| `many 100 seed 1 V -0.5 0.5 W 0 1 keep tens 0 inf` | N runs from initial values drawn in a box, kept where a column (here the aux `tens`) lies in a range (see *Many runs and shooting* in the Tools page). |
+| `shoot eps 1e-5 time 50 unstable` | Runs off the equilibrium along its real eigenvectors, both ways (`unstable`, `stable` or `both`; XPPAUT's sHoot). |
+| `figure new 86 65 1 2`, `figure run T V`, `figure export fig.pdf` | The Figure window: a figure for papers, made panel by panel. The commands are listed on the Figures page. |
 | `bvp` | Solve the boundary-value problem given by the model's `bndry` statements. |
 | `view3d X Y Z` | Show three columns in the 3D view. `view3d spin` turns it slowly (`view3d spin 60` at 60 degrees a second, `view3d spin off` stops it); `view3d angles 30 60` sets theta and phi. |
 | `ani pend.ani`, `ani play`, `ani row 100` | Open an XPPAUT animation, play it, or show one frame. |
@@ -96,9 +100,11 @@ commands. `help` lists them all.
 | `echo off`, `echo on` | Hide or show each action as Python in the command window. |
 | `continue 50` | Integrate 50 more time units from the end of the last run (C C). |
 | `clc` | Clear the command window. |
-| `show phase`, `hide help` | Bring a window forward, or close it: `time`, `phase`, `auto`, `editor`, `data`, `analysis`, `3d`, `animator`, `help`, `console`, `workspace`, `models`. |
+| `show phase`, `hide help` | Bring a window forward, or close it: `time`, `phase`, `auto`, `editor`, `data`, `analysis`, `3d`, `animator`, `help`, `console`, `workspace`, `models`, `array`; `show` also takes `kinescope` and `figure`. |
 | `layout side`, `layout tabs` | Put the phase plane beside the time series (also in **View**), or all plots back in tabs. |
-| `help auto` | Open a manual page. |
+| `theme dark`, `theme light` | Dark or light colours (**View > Dark theme**). |
+| `help auto` | Open a manual page: `welcome`, `tutorial`, `neuron-tutorial`, `auto`, `analysis`, `tools`, `figures`, `odefile`, `numerics`, `commands`, `xppaut`, `matlab`, `auto07p`, `codim2`, `about`. `help` alone lists the commands. |
+| `quit` | Leave the app (`exit` works too). |
 
 ## MATLAB `.mat` files
 

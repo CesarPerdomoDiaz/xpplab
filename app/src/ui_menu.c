@@ -174,6 +174,8 @@ static void menu_help(App *a) {
     ui_show_help(a, "matlab");
   if (igMenuItem_Bool("Coming from AUTO-07p", NULL, false, true))
     ui_show_help(a, "auto07p");
+  if (igMenuItem_Bool("Codimension-two bifurcations", NULL, false, true))
+    ui_show_help(a, "codim2");
   igSeparator();
   if (igMenuItem_Bool("About XPP Lab", NULL, false, true))
     ui_show_help(a, "about");

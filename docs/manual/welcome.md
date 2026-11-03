@@ -62,6 +62,8 @@ original arrangement back, use **View > Reset window layout**.
 - [Coming from MATLAB](matlab.md), if you know `ode45`, `fsolve` and `eig`.
 - [Coming from AUTO-07p](auto07p.md), if you know `IPS`, `ICP`, `NMX` and the
   labels LP, HB, BP.
+- [Codimension-two bifurcations](codim2.md), the curves of folds and of Hopf
+  points in two parameters, with a worked example.
 
 > Tip: if you know XPPAUT's keyboard commands, they still work: I G
 > integrates, N N draws nullclines, S G finds an equilibrium. See

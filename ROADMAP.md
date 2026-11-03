@@ -195,7 +195,7 @@ To do:
 - [ ] Isochrons and phase reduction (design in
       [docs/design/isochrons.md](docs/design/isochrons.md), which lists
       the pieces)
-- [ ] Codimension-two bifurcations through AUTO, explained in the manual
+- [x] Codimension-two bifurcations through AUTO, explained in the manual
 
 ### M8 Working with coding agents
 - [x] An MCP server and a Claude Code skill (`python -m xpplab.mcp`)

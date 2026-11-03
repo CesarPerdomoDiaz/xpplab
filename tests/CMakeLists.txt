@@ -43,6 +43,13 @@ if(TARGET xpplab)
     ${PROJECT_SOURCE_DIR}/app/third_party/cimgui
     ${PROJECT_SOURCE_DIR}/app/third_party/cimplot)
   add_test(NAME app_plot_view COMMAND plot_view_check)
+  # The manual's inline Markdown: images are not links, italics lose their
+  # asterisks (a header of the app, no window).
+  add_executable(help_markup_check help_markup_check.c)
+  target_include_directories(help_markup_check PRIVATE
+    ${PROJECT_SOURCE_DIR}/app/src)
+  add_test(NAME app_help_markup COMMAND help_markup_check
+           ${PROJECT_SOURCE_DIR}/docs/manual/codim2.md)
   # Figures for papers: layout, mathtext and the four file formats.
   add_executable(fig_check fig_check.c)
   target_link_libraries(fig_check PRIVATE xpps_fig)

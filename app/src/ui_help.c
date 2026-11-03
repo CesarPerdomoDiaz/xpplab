@@ -10,6 +10,7 @@
 #include <SDL3/SDL.h>
 
 #include "docs.h"
+#include "help_markup.h"
 #include "ui.h"
 
 static char search[64];
@@ -19,7 +20,7 @@ void ui_show_help(App *a, const char *page) {
   if (!p) {
     app_log(a, "No help page '%s'. Pages: welcome, tutorial, "
                "neuron-tutorial, auto, odefile, numerics, commands, xppaut, "
-               "matlab, auto07p, about.", page);
+               "matlab, auto07p, codim2, about.", page);
     return;
   }
   snprintf(a->help_page, sizeof a->help_page, "%s", p->name);
@@ -101,54 +102,49 @@ static bool flow_run(Flow *f, const char *s, const char *end, ImVec4_c *color,
   return clicked;
 }
 
-/* Render Markdown inline text: [links](target), `code` and **bold**
-   (shown plain). */
+/* Render Markdown inline text: [links](target), `code`, *italics* and
+   **bold** (shown plain), and ![caption](file) as its caption, dimmed. */
 static void inline_text(App *a, const char *s, const char *end) {
   Flow f;
   ImVec4_c link = a->dark ? HEX(0x64b5f6) : HEX(0x1565c0);
   ImVec4_c code = a->dark ? HEX(0xffb74d) : HEX(0x6a1b9a);
+  ImVec4_c dim = a->dark ? HEX(0x9e9e9e) : HEX(0x616161);
+  const char *begin = s;
   char plain[2048];
   int k = 0;
+  HelpTok t;
   flow_begin(&f);
-#define FLUSH()                                       \
-  if (k > 0) {                                        \
+#define FLUSH()                                        \
+  if (k > 0) {                                         \
     flow_run(&f, plain, plain + k, NULL, false, NULL); \
-    k = 0;                                            \
+    k = 0;                                             \
   }
-  while (s < end) {
-    if (*s == '[') {
-      const char *close = memchr(s, ']', (size_t)(end - s));
-      const char *rp = close && close + 1 < end && close[1] == '('
-                           ? memchr(close, ')', (size_t)(end - close))
-                           : NULL;
-      if (rp) {
-        char target[256], tip[300];
-        FLUSH();
-        snprintf(target, sizeof target, "%.*s", (int)(rp - close - 2), close + 2);
-        snprintf(tip, sizeof tip, "%s",
-                 strncmp(target, "example:", 8) == 0 ? "Open this example"
-                 : strncmp(target, "cmd:", 4) == 0   ? target + 4
-                                                     : target);
-        if (flow_run(&f, s + 1, close, &link, false, tip)) follow_link(a, target);
-        s = rp + 1;
-        continue;
-      }
+  for (;;) {
+    s = help_markup_next(begin, s, end, &t);
+    if (t.kind == HM_END) break;
+    if (t.kind == HM_TEXT) {
+      size_t n = (size_t)(t.text_end - t.text);
+      if (n > sizeof plain - 1 - (size_t)k) n = sizeof plain - 1 - (size_t)k;
+      memcpy(plain + k, t.text, n);
+      k += (int)n;
+    } else if (t.kind == HM_LINK) {
+      char target[256], tip[300];
+      FLUSH();
+      snprintf(target, sizeof target, "%.*s", (int)(t.target_end - t.target), t.target);
+      snprintf(tip, sizeof tip, "%s",
+               strncmp(target, "example:", 8) == 0 ? "Open this example"
+               : strncmp(target, "cmd:", 4) == 0   ? target + 4
+                                                   : target);
+      if (flow_run(&f, t.text, t.text_end, &link, false, tip)) follow_link(a, target);
+    } else if (t.kind == HM_IMAGE) {
+      static const char note[] = " (figure on the website)";
+      FLUSH();
+      flow_run(&f, t.text, t.text_end, &dim, false, NULL);
+      flow_run(&f, note, note + sizeof note - 1, &dim, false, NULL);
+    } else if (t.kind == HM_CODE) {
+      FLUSH();
+      flow_run(&f, t.text, t.text_end, &code, true, NULL);
     }
-    if (*s == '`') {
-      const char *close = memchr(s + 1, '`', (size_t)(end - s - 1));
-      if (close) {
-        FLUSH();
-        flow_run(&f, s + 1, close, &code, true, NULL);
-        s = close + 1;
-        continue;
-      }
-    }
-    if (*s == '*' && s + 1 < end && s[1] == '*') {
-      s += 2;
-      continue;
-    }
-    if (k < (int)sizeof plain - 1) plain[k++] = *s;
-    s++;
   }
   FLUSH();
 #undef FLUSH

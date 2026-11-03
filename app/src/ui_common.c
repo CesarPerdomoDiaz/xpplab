@@ -555,6 +555,12 @@ static void shortcuts(App *a) {
     igSetWindowFocus_Str(WIN_HELP);
   }
   if (chord(ImGuiMod_Ctrl | ImGuiKey_Enter)) app_apply_editor(a);
+  if (chord(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_P)) {
+    if (a->pal.open)
+      a->pal.open = false;
+    else
+      palette_open(a);
+  }
   classic_keys(a);
 }
 
@@ -661,6 +667,7 @@ void ui_draw(App *a) {
   if (a->show_ani) ui_animator(a);
   if (a->show_kine) ui_kinescope(a);
   if (a->show_figure) ui_figure(a);
+  ui_palette(a);
   if (a->show_demo) {
     igShowDemoWindow(&a->show_demo);
     ImPlot_ShowDemoWindow(&a->show_demo);

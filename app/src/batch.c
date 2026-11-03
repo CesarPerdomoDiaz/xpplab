@@ -25,6 +25,7 @@
 #include <SDL3/SDL_main.h> /* UTF-8 arguments on Windows */
 
 #include "file_utf8.h"
+#include "actions.h"
 #include "app.h"
 #include "channel.h"
 #include "export.h"
@@ -37,6 +38,16 @@ void ui_show_help(App *a, const char *page) {
              "https://cesarperdomodiaz.github.io/xpplab/%s%s",
           page && *page ? "manual/" : "", page && *page ? page : "");
 }
+
+void ui_console_prefill(App *a, const char *text) {
+  app_log(a, "Type: %s...", text);
+}
+void ui_apply_theme(App *a) { (void)a; }
+static void needs_window(App *a) { app_log(a, "error: this needs the app's window"); }
+void ui_dialog_open(App *a) { needs_window(a); }
+void ui_dialog_save_as(App *a) { needs_window(a); }
+void ui_dialog_export_csv(App *a) { needs_window(a); }
+void ui_dialog_save_script(App *a) { needs_window(a); }
 
 bool figure_on_screen(FigureKind kind) {
   (void)kind;

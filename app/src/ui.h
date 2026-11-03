@@ -6,6 +6,7 @@
 #include "cimgui.h"
 #include "cimplot.h"
 
+#include "actions.h"
 #include "app.h"
 
 /* Window names double as docking IDs: keep them stable. */
@@ -24,14 +25,6 @@
 #define WIN_ANI "Animator"
 #define WIN_KINE "Kinescope"
 #define WIN_FIGURE "Figure"
-
-/* The shortcut modifier as shown in menus. ImGui maps its Ctrl shortcuts
-   to the Command key on macOS. */
-#ifdef __APPLE__
-#define MOD "Cmd+"
-#else
-#define MOD "Ctrl+"
-#endif
 
 typedef struct {
   ImFont *ui, *mono;
@@ -97,6 +90,7 @@ void ui_animator(App *a);
 void ui_kinescope(App *a);
 void ui_figure(App *a);
 void ui_dialog_open_ani(App *a);
+void ui_palette(App *a); /* the command palette, when open */
 
 /* Native file dialogs (results arrive on a later frame). */
 void ui_dialog_open(App *a);

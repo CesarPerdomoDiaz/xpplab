@@ -5,6 +5,7 @@ page tells the reader to type is one the desktop app has.
 """
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
 import numpy as np
@@ -77,5 +78,25 @@ def test_commands_exist():
 def test_page_is_linked():
     mk = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
     assert "manual/neuron-tutorial.md" in mk
-    menu = (ROOT / "app" / "src" / "ui_menu.c").read_text(encoding="utf-8")
-    assert '"neuron-tutorial"' in menu
+
+
+def help_menu_opens(entry, page):
+    """The palette lists the Help menu entry, and running it opens the page."""
+    for name in ("xpplab-batch.exe", "xpplab-batch"):
+        exe = ROOT / "build" / "app" / name
+        if exe.exists() and any((exe.parent / lib).exists() for lib in (
+                "libxppe.dll", "libxppe.dylib", "libxppe.so")):
+            break
+    else:
+        pytest.skip("xpplab-batch is not built with its engine library")
+    ode = ROOT / "engine" / "xppaut" / "ode" / "lecar.ode"
+    listed = subprocess.run([str(exe), str(ode), "-c", "palette list"],
+                            capture_output=True, text=True, timeout=120).stdout
+    assert " | %s | " % entry in listed
+    opened = subprocess.run([str(exe), str(ode), "-c", "palette run " + entry],
+                            capture_output=True, text=True, timeout=120).stdout
+    assert "manual/" + page in opened
+
+
+def test_page_is_in_the_help_menu():
+    help_menu_opens("Help: Tutorial: why does a neuron fire?", "neuron-tutorial")

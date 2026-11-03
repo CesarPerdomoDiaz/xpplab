@@ -114,7 +114,11 @@ static void inline_text(App *a, const char *s, const char *end) {
   int k = 0;
   HelpTok t;
   flow_begin(&f);
-#define FLUSH()                                         if (k > 0) {                                            flow_run(&f, plain, plain + k, NULL, false, NULL);     k = 0;                                              }
+#define FLUSH()                                        \
+  if (k > 0) {                                         \
+    flow_run(&f, plain, plain + k, NULL, false, NULL); \
+    k = 0;                                             \
+  }
   for (;;) {
     s = help_markup_next(begin, s, end, &t);
     if (t.kind == HM_END) break;

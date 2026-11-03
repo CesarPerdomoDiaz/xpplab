@@ -604,6 +604,141 @@ int xppe_hfunction(int n, const char *const *coupling) {
   return XPPE_OK;
 }
 
+/* ---- Asymptotic phase ---------------------------------------------------- */
+
+/* The point of the stored cycle (a polyline through the stored points, which
+   run from t = 0 to the period) nearest to y: its distance, the position
+   k + u (u in [0, 1]) in units of the output step, and the cycle point and
+   Z there, both interpolated linearly between the stored points k and k+1. */
+static double cycle_nearest(const double *y, double *pos, double *gam,
+                            double *z) {
+  double best = HUGE_VAL;
+  int i, k;
+  for (k = 0; k + 1 < adj_len; k++) {
+    double dd = 0, yd = 0, u, d2 = 0;
+    for (i = 0; i < NODE; i++) {
+      double a = storage[i + 1][k], d = storage[i + 1][k + 1] - a;
+      dd += d * d;
+      yd += (y[i] - a) * d;
+    }
+    u = dd > 0 ? yd / dd : 0;
+    u = u < 0 ? 0 : (u > 1 ? 1 : u);
+    for (i = 0; i < NODE; i++) {
+      double a = storage[i + 1][k], p = a + u * (storage[i + 1][k + 1] - a);
+      d2 += (y[i] - p) * (y[i] - p);
+    }
+    if (d2 < best) {
+      best = d2;
+      *pos = k + u;
+      for (i = 0; i < NODE; i++) {
+        double a = storage[i + 1][k], b = my_adj[i + 1][k];
+        gam[i] = a + u * (storage[i + 1][k + 1] - a);
+        z[i] = b + u * (my_adj[i + 1][k + 1] - b);
+      }
+    }
+  }
+  return sqrt(best);
+}
+
+/* Method A of docs/design/isochrons.md. The state is stepped with
+   one_step_int(), as in xppe_lyapunov_integrate(), one output step at a
+   time, until it lies within delta of the stored cycle. With theta_c the
+   time position of the nearest cycle point, the phase is
+   theta_c/T + Z(theta_c) . (end state - gamma(theta_c))/T - s/T, mod 1. */
+int xppe_asymptotic_phase(const double *x, double delta, double tmax,
+                          double *phase, double *elapsed) {
+  double y[MAXODE], gam[MAXODE], z[MAXODE];
+  double h, t, t1, pos, dist, period, theta, corr = 0, s = 0, ph;
+  int rc, i, k, nmax, istart, ok = 1, out = 0;
+  if ((rc = xppe_require_model()) != XPPE_OK) return rc;
+  if (DelayFlag || NKernel > 0) {
+    xppe_set_error("the asymptotic phase needs a model without delays or "
+                   "integrals", NULL);
+    return XPPE_ERR_STATE;
+  }
+  if (NWiener > 0 || NMarkov > 0) {
+    xppe_set_error("the asymptotic phase needs a model without noise "
+                   "(wiener or Markov variables)", NULL);
+    return XPPE_ERR_STATE;
+  }
+  if (METHOD == METHOD_DISCRETE) {
+    xppe_set_error("the asymptotic phase needs differential equations, not "
+                   "a map", NULL);
+    return XPPE_ERR_STATE;
+  }
+  if (!ADJ_HERE || storind != adj_len || adj_len < 2) {
+    xppe_set_error("compute the adjoint of one period of a stable limit "
+                   "cycle first (the run must still be that period)", NULL);
+    return XPPE_ERR_STATE;
+  }
+  if (!x || !(delta > 0) || !(tmax > 0)) {
+    xppe_set_error("give a state, a distance delta > 0 and a time limit "
+                   "tmax > 0", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  h = DELTA_T * NJMP; /* the spacing of the stored cycle and of Z */
+  if (!(h > 0)) {
+    xppe_set_error("the asymptotic phase needs a positive output step", NULL);
+    return XPPE_ERR_STATE;
+  }
+  period = h * (adj_len - 1);
+  nmax = (int)floor(tmax / h + 1e-9);
+  for (i = 0; i < NODE; i++) y[i] = x[i];
+  xppe_begin_call();
+  XPPE_GUARD_BEGIN((void)0);
+  evaluate_derived();
+  for (k = 0;; k++) {
+    for (i = 0; i < NODE && fabs(y[i]) <= BOUND; i++)
+      ;
+    if (i < NODE) { /* out of bounds or NaN: a run would end here */
+      out = 1;
+      ok = 0;
+      break;
+    }
+    dist = cycle_nearest(y, &pos, gam, z);
+    if (dist < delta) break;
+    if (k >= nmax) {
+      ok = 0;
+      break;
+    }
+    t = T0 + k * h;
+    t1 = T0 + (k + 1) * h;
+    istart = METHOD == METHOD_GEAR ? 0 : 1;
+    if (!one_step_int(y, t, t1, &istart)) {
+      ok = -1;
+      break;
+    }
+#ifdef CVODE_YES
+    if (METHOD == METHOD_CVODE) end_cv(); /* start_cv() would leak it */
+#endif
+  }
+  XPPE_GUARD_END;
+  xppe_end_call();
+  if (ok == -1) {
+    xppe_set_error("the integration failed", NULL);
+    return XPPE_ERR_NUMERIC;
+  }
+  if (!ok) {
+    if (out)
+      xppe_set_error("the state left the bounds (BOUND) before it came near "
+                     "the cycle: the asymptotic phase is undefined here", NULL);
+    else
+      xppe_set_error("the state did not come within delta of the cycle by "
+                     "tmax: the asymptotic phase is undefined here (outside "
+                     "the basin of the cycle, or tmax is too short)", NULL);
+    return XPPE_ERR_NUMERIC;
+  }
+  s = k * h;
+  for (i = 0; i < NODE; i++) corr += z[i] * (y[i] - gam[i]);
+  theta = pos * h;
+  ph = (theta + corr - s) / period;
+  ph -= floor(ph);
+  if (ph >= 1) ph = 0; /* a tiny negative value rounds up to 1 */
+  if (phase) *phase = ph;
+  if (elapsed) *elapsed = s;
+  return XPPE_OK;
+}
+
 /* ---- Curve fitting ---------------------------------------------------- */
 
 /* test_fit() without its dialog: the same checks, then run_fit(). */

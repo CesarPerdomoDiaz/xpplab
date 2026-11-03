@@ -155,7 +155,11 @@ def main():
                 cmds = setup + [step, "export %s/out.csv" % d.as_posix()]
                 r = batch(exe, model, cmds, "--script", d.as_posix() + "/session.py")
                 csv, py = d / "out.csv", d / "session.py"
-                clean = lambda t: re.sub(r"\d+_(direct|palette)", "CASE", t)
+                # The script's first line has the minute it was saved in: the two
+                # runs can fall either side of a minute change.
+                clean = lambda t: re.sub(
+                    r"saved \d{4}-\d\d-\d\d \d\d:\d\d", "saved TIME",
+                    re.sub(r"\d+_(direct|palette)", "CASE", t))
                 runs.append((r, csv.read_bytes() if csv.exists() else None,
                              clean(py.read_text()) if py.exists() else None,
                              [clean(l) for l in output_of(r)]))

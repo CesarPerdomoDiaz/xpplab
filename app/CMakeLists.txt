@@ -15,7 +15,7 @@ if(NOT SDL3_FOUND)
   set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
   FetchContent_Declare(SDL3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-    GIT_TAG release-3.4.16 # ImGui 1.93's SDL3 backends need SDL 3.4
+    GIT_TAG release-3.4.20 # ImGui 1.93's SDL3 backends need SDL 3.4
     GIT_SHALLOW TRUE)
   FetchContent_MakeAvailable(SDL3)
 endif()
@@ -104,6 +104,8 @@ set(APP_SOURCES
   src/app_kinescope.c
   src/echo.c
   src/commands.c
+  src/actions.c
+  src/ui_palette.c
   src/docs.c
   src/ui_common.c
   src/ui_menu.c
@@ -177,7 +179,7 @@ target_compile_definitions(xpplab PRIVATE
 # it shares the app's core: the commands, the echo, the exports.
 add_executable(xpplab-batch
   src/batch.c src/app.c src/app_analysis.c src/app_kinescope.c src/echo.c
-  src/commands.c src/export.c src/app_figure.c
+  src/commands.c src/actions.c src/export.c src/app_figure.c
   ${PROJECT_SOURCE_DIR}/engine/api/xpp_instance.c)
 target_include_directories(xpplab-batch PRIVATE src ${PROJECT_SOURCE_DIR}/engine/api ${TP})
 target_link_libraries(xpplab-batch PRIVATE xpps_fig SDL3::SDL3)

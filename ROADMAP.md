@@ -144,7 +144,7 @@ To do:
 - [x] Several plots in one figure, with insets (the Figure window, `figure`)
 - [ ] Text, Make window, Graphic stuff (free labels and arrows)
 - [x] PDF, SVG and EPS figures at any size and resolution (the Figure window)
-- [ ] Command palette
+- [x] Command palette (Ctrl+Shift+P: every menu action and command, by name)
 - [x] MATLAB `.mat` export (runs, diagrams and tables: `to_mat` and `export FILE.mat`)
 
 ### M5 Documentation and examples

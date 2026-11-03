@@ -374,6 +374,18 @@ typedef struct {
   const char *load_line; /* the next model load's line, if not m = xs.load() */
 } Echo;
 
+/* The command palette (actions.c, ui_palette.c). */
+#define APP_PAL_RECENT 12
+typedef struct {
+  bool open;
+  bool focus;       /* put the cursor in the search box this frame */
+  bool enter;       /* act as if Enter were pressed (`palette enter`) */
+  char query[128];
+  int sel;          /* the highlighted row of the hits */
+  char recent[APP_PAL_RECENT][96]; /* keys of the last actions, newest first */
+  int nrecent;
+} CmdPalette;
+
 typedef struct App {
   /* engine */
   char engine_path[1024];
@@ -431,6 +443,7 @@ typedef struct App {
   ManyUI mu;
   FigUI fg;
   Echo echo;
+  CmdPalette pal;
 
   /* console */
   char *log;

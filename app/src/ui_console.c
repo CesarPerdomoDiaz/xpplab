@@ -10,6 +10,7 @@
 
 static char input[1024];
 static int history_pos = -1;
+static bool prefilled; /* put the cursor in the command line */
 static int comp_start = -1, comp_len; /* the word waiting for its completion */
 
 /* A line of a Python traceback's end: "NameError: ...", "Traceback ...". */
@@ -75,6 +76,17 @@ static void remember(App *a, const char *line) {
     a->nhistory--;
   }
   snprintf(a->history[a->nhistory++], sizeof a->history[0], "%s", line);
+}
+
+/* Put text in the command line and bring the window forward (the palette
+   does so for a command that needs arguments). */
+void ui_console_prefill(App *a, const char *text) {
+  snprintf(input, sizeof input, "%s", text);
+  history_pos = -1;
+  a->py_mode = false;
+  a->show_console = true;
+  snprintf(a->focus, sizeof a->focus, "console");
+  prefilled = true;
 }
 
 void ui_console(App *a) {
@@ -192,6 +204,10 @@ void ui_console(App *a) {
     reclaim = true;
   }
   igSetItemDefaultFocus();
+  if (prefilled) {
+    reclaim = true;
+    prefilled = false;
+  }
   if (reclaim) igSetKeyboardFocusHere(-1);
   igPopFont();
   igEnd();

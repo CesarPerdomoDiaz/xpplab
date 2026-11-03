@@ -229,6 +229,28 @@ CASES = [
         "auto save {out}/" + UNICODE_DIR + "/d.auto",
         "auto reset", "auto load {out}/" + UNICODE_DIR + "/d.auto",
         "export {out}/" + UNICODE_DIR + "/diagram.csv auto"]),
+    # Entries of the command palette run what the menu items and commands
+    # run, and the script says the same.
+    ("palette", "lecar.ode", [
+        "palette run integrate", "export {out}/run.csv",
+        "palette run continue", "export {out}/continued.csv",
+        "palette run ic last", "palette run integrate",
+        "export {out}/from_end.csv",
+        "palette type null", "palette run find all equilibria",
+        "export {out}/equilibria.csv equilibria",
+        "palette run nullclines"]),
+    # The window's own path: the text typed in the palette, Enter pressed in
+    # its next frame ("then:" commands run after the first frames).
+    ("palette_enter", "lecar.ode", [
+        "palette type integrate", "palette enter", "then:export {out}/run.csv"]),
+    ("palette_enter_command", "lecar.ode", [
+        "run", "palette type ic last", "palette enter", "then:run",
+        "then:export {out}/from_end.csv"]),
+    # A greyed entry (AUTO's, with no branch yet) is refused, with its
+    # reason in the command window; nothing else changes.
+    ("palette_refused", "lecar.ode", [
+        "run", "palette type auto from label", "palette enter",
+        "then:export {out}/run.csv"]),
     ("mat_many", "tests/models/kite.ode", [
         "set VW=2.1",
         "many 6 seed 3 gam 0 1.5707963 om -1.3 1.3 keep tens 0 inf",
@@ -345,6 +367,16 @@ def auto_set_counts(script):
     return found
 
 
+# A case that runs an action through the palette must fail if the action was
+# skipped: its line must be in the saved script, as often as the case runs it.
+SCRIPT_HAS = {
+    "palette_enter": ("sol = m.run()", 2),
+    "palette_enter_command": ("m.initial_conditions.update(", 1),
+    "palette_refused": ("sol = m.run()", 2),
+    "palette": ("m.initial_conditions.update(", 1),
+}
+
+
 def run_case(app, engine, out, name, model, cmds, timeout):
     d = out / name
     shutil.rmtree(d, ignore_errors=True)
@@ -358,7 +390,11 @@ def run_case(app, engine, out, name, model, cmds, timeout):
         model_file = d / UNICODE_DIR / ("lécar" + model_file.suffix)
     args = [str(app), str(model_file)]
     for c in cmds:
-        args += ["--cmd", c.replace("{out}", d.as_posix())]
+        if not c.startswith("then:"):
+            args += ["--cmd", c.replace("{out}", d.as_posix())]
+    for c in cmds:
+        if c.startswith("then:"):
+            args += ["--then", c[5:].replace("{out}", d.as_posix())]
     args += ["--then", "script " + script.as_posix(), "--screenshot", str(shot),
              "--frames", "8", "--log", str(log)]
     problems = []
@@ -371,11 +407,24 @@ def run_case(app, engine, out, name, model, cmds, timeout):
     except subprocess.TimeoutExpired:
         return ["the app did not exit within %d s" % timeout]
     text = log.read_text(errors="replace") if log.exists() else ""
-    problems += ["app: " + l for l in text.splitlines() if l.startswith("error")]
+    errors = [l for l in text.splitlines() if l.startswith("error")]
+    if name == "palette_refused":
+        # The refusal is what the case is for: it must be there, with a reason.
+        refusal = [l for l in errors if "is not available: " in l and "branch" in l]
+        if not refusal:
+            problems.append("the greyed entry was not refused with its reason")
+        errors = [l for l in errors if l not in refusal]
+    problems += ["app: " + l for l in errors]
     if not script.exists():
         return problems + ["the app saved no script"]
     problems += count_problems(script)
     problems += missing_lines(script, SCRIPT_LINES.get(name, []))
+    if name in SCRIPT_HAS:
+        line, times = SCRIPT_HAS[name]
+        found = script.read_text(encoding="utf-8").count(line)
+        if found != times:
+            problems.append("the script has %d line(s) with %r, not %d: the palette "
+                            "did not run the action" % (found, line, times))
     if name == "auto_counts" and auto_set_counts(script) != {
             "nmax": 600, "npr": 50, "ntst": 25}:
         problems.append("auto.set() counts in the script: %r" % auto_set_counts(script))

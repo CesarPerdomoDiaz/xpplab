@@ -148,9 +148,29 @@ def test_echoed_lines_are_calls_of_the_package(ns):
 def test_page_is_linked():
     mk = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
     assert "manual/matlab.md" in mk
-    menu = (ROOT / "app" / "src" / "ui_menu.c").read_text(encoding="utf-8")
-    assert 'ui_show_help(a, "matlab")' in menu
     assert "(matlab.md)" in (ROOT / "docs" / "manual" / "welcome.md").read_text(
         encoding="utf-8")
     roadmap = (ROOT / "ROADMAP.md").read_text(encoding="utf-8")
     assert re.search(r'^- \[x\] "Coming from MATLAB"', roadmap, re.M)
+
+
+def help_menu_opens(entry, page):
+    """The palette lists the Help menu entry, and running it opens the page."""
+    for name in ("xpplab-batch.exe", "xpplab-batch"):
+        exe = ROOT / "build" / "app" / name
+        if exe.exists() and any((exe.parent / lib).exists() for lib in (
+                "libxppe.dll", "libxppe.dylib", "libxppe.so")):
+            break
+    else:
+        pytest.skip("xpplab-batch is not built with its engine library")
+    ode = ROOT / "engine" / "xppaut" / "ode" / "lecar.ode"
+    listed = subprocess.run([str(exe), str(ode), "-c", "palette list"],
+                            capture_output=True, text=True, timeout=120).stdout
+    assert " | %s | " % entry in listed
+    opened = subprocess.run([str(exe), str(ode), "-c", "palette run " + entry],
+                            capture_output=True, text=True, timeout=120).stdout
+    assert "manual/" + page in opened
+
+
+def test_page_is_in_the_help_menu():
+    help_menu_opens("Help: Coming from MATLAB", "matlab")

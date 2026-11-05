@@ -103,7 +103,10 @@ Z is the adjoint with the normalisation above, so Z · δx is a time shift.
 the correction removes the effect of stopping between steps. The distance to
 the cycle is measured to the polyline through the stored points, and the
 nearest point on it gives θ_c and γ(θ_c); Z is interpolated linearly along the
-same segment. θ_c is counted in output steps, with T = (stored points − 1)
+same segment. Phase 0 is the first stored point of the run (after TRANS, if
+set). Fixed-step methods take NJMP steps of DT per output step, as
+`integrate()` does, and the adaptive ones run without a restart between output
+steps. A model with global flags or `@ fold` is refused. θ_c is counted in output steps, with T = (stored points − 1)
 times the step, so the run must be the period on that grid. The call refuses
 a run whose length is not the adjoint's, but it cannot tell a different run
 of the same length from the original.

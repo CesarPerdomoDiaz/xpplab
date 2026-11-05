@@ -43,7 +43,8 @@ done
 
 TOOLS = {"check_model", "describe_model", "find_examples", "simulate",
          "equilibria", "sweep", "continuation", "spectrum", "lyapunov",
-         "limit_cycle", "phase_response", "fit", "bvp", "plot_simulation",
+         "limit_cycle", "phase_response", "fit", "bvp", "linearize",
+         "place_poles", "lqr", "root_locus", "sensitivity", "plot_simulation",
          "plot_phase_plane", "plot_bifurcation", "plot_table",
          "app_status", "app_command", "app_run"}
 
@@ -327,6 +328,155 @@ def test_bvp(session):
     r = session.bvp("cable.ode")
     assert "VX" in r["initial_conditions"]
     assert Path(r["csv"]).is_file()
+
+
+# -- control design -----------------------------------------------------------------------
+
+OSC = """\
+# damped oscillator x'' + c x' + k x = u
+par c=0.5, k=4, u=0
+x'=v
+v'=-k*x-c*v+u
+init x=0.1, v=0
+@ total=10
+done
+"""
+
+UNCONTROLLABLE = """\
+par u=0
+x'=-x+u
+y'=-2*y
+init x=0, y=0
+@ total=10
+done
+"""
+
+
+def _pairs(z):
+    """[re, im] pairs as complex numbers, sorted for comparison."""
+    return sorted((complex(a, b) for a, b in z), key=lambda w: (w.real, w.imag))
+
+
+def _sorted(z):
+    return sorted(np.asarray(z, dtype=complex), key=lambda w: (w.real, w.imag))
+
+
+def test_linearize_matches_the_package(session):
+    r = session.linearize(OSC, inputs=["u"])
+    lin = xs.Model.from_text(OSC).linearize(inputs=["u"])
+    np.testing.assert_allclose(r["A"], lin.A, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(r["B"], lin.B, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(_pairs(r["eigenvalues"]), _sorted(lin.eigenvalues),
+                               rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(r["controllability"], lin.controllability,
+                               rtol=1e-5, atol=1e-8)
+    assert r["rank"] == lin.rank == 2 and r["controllable"] and r["stable"]
+    assert r["inputs"] == ["u"] and Path(r["csv"]).is_file()
+
+
+def test_linearize_without_inputs_and_uncontrollable(session):
+    r = session.linearize(OSC)
+    assert not r["controllable"] and "inputs" in r["hint"]
+    r = session.linearize(UNCONTROLLABLE, inputs=["u"])
+    assert r["rank"] == 1 and not r["controllable"] and "uncontrollable" in r["hint"]
+    r = session.linearize(OSC, inputs=["u"], at={"x": 1.0})
+    assert r["point"]["X"] == 1.0 and r["residual"] > 1
+
+
+def test_place_poles_matches_the_package(session):
+    want = [-2.0, -5.0]
+    r = session.place_poles(OSC, ["u"], want)
+    lin = xs.Model.from_text(OSC).linearize(inputs=["u"])
+    K = lin.place_poles(want)
+    np.testing.assert_allclose(r["K"], K, rtol=1e-5)
+    np.testing.assert_allclose(_pairs(r["closed_loop_eigenvalues"]),
+                               _sorted(want), rtol=1e-5)
+    # the .ode that came back loads, and its equilibrium has those poles
+    assert Path(r["closed_loop_ode"]).read_text(encoding="latin-1") == r["closed_loop_text"]
+    closed = xs.load(r["closed_loop_ode"])
+    np.testing.assert_allclose(_sorted(closed.equilibrium().eigenvalues),
+                               _sorted(want), atol=1e-2)
+    closed.close()
+    r = session.place_poles(OSC, ["u"], [[-1, 2], [-1, -2]])
+    np.testing.assert_allclose(_pairs(r["closed_loop_eigenvalues"]),
+                               [-1 - 2j, -1 + 2j], atol=1e-6)
+
+
+def test_place_poles_errors(session):
+    with pytest.raises(ToolError, match="not controllable"):
+        session.place_poles(UNCONTROLLABLE, ["u"], [-1, -2])
+    with pytest.raises(ToolError, match="inputs"):
+        session.place_poles(OSC, [], [-1, -2])
+    with pytest.raises(ToolError, match="need 2 poles"):
+        session.place_poles(OSC, ["u"], [-1, -2, -3])
+    with pytest.raises(ToolError, match="conjugate"):
+        session.place_poles(OSC, ["u"], [[-1, 2], -3])
+    with pytest.raises(ToolError, match="no parameter named"):
+        session.place_poles(OSC, ["nope"], [-1, -2])
+
+
+def test_lqr_matches_the_package(session):
+    r = session.lqr(OSC, ["u"], q=[10, 1], r=0.5)
+    lin = xs.Model.from_text(OSC).linearize(inputs=["u"])
+    res = lin.lqr([10, 1], 0.5)
+    np.testing.assert_allclose(r["K"], res.K, rtol=1e-5)
+    np.testing.assert_allclose(r["P"], res.P, rtol=1e-5)
+    np.testing.assert_allclose(_pairs(r["closed_loop_eigenvalues"]),
+                               _sorted(res.poles), rtol=1e-5)
+    assert all(z[0] < 0 for z in r["closed_loop_eigenvalues"])
+    closed = xs.load(r["closed_loop_ode"])
+    np.testing.assert_allclose(_sorted(closed.equilibrium().eigenvalues),
+                               _sorted(res.poles), atol=1e-2)
+    closed.close()
+    with pytest.raises(ToolError, match="R"):
+        session.lqr(OSC, ["u"], r=[1, 2])
+
+
+def test_root_locus_over_a_parameter(session):
+    r = session.root_locus(OSC, start=-1.0, stop=1.0, steps=21, parameter="c")
+    rl = xs.Model.from_text(OSC).root_locus("c", (-1.0, 1.0), 21)
+    assert r["over"] == "c" and r["branches"] == rl.poles.shape[1]
+    np.testing.assert_allclose(_pairs(r["start"]), _sorted(rl.poles[0]), rtol=1e-5)
+    np.testing.assert_allclose(_pairs(r["end"]), _sorted(rl.poles[-1]), rtol=1e-5)
+    got = [c["c"] for c in r["crossings"]]
+    want = [v for v, _ in rl.crossings()]
+    np.testing.assert_allclose(got, want, rtol=1e-5, atol=1e-8)
+    assert len(got) == 2 and not r["stable_at_start"] and r["stable_at_end"]
+    assert Path(r["csv"]).is_file()
+
+
+def test_root_locus_over_a_feedback_gain(session):
+    lin = xs.Model.from_text(OSC).linearize(inputs=["u"])
+    K = lin.place_poles([-2.0, -5.0])
+    r = session.root_locus(OSC, start=0.0, stop=1.0, steps=11, inputs=["u"],
+                           K=K.tolist())
+    rl = lin.root_locus(K, (0.0, 1.0), 11)
+    assert r["over"] == "gain"
+    np.testing.assert_allclose(_pairs(r["end"]), [-5.0, -2.0], atol=1e-5)
+    np.testing.assert_allclose(_pairs(r["start"]), _sorted(rl.poles[0]), rtol=1e-5)
+    # feeding back one state through one input, as with K = [[0, 1]]
+    a = session.root_locus(OSC, start=0.0, stop=3.0, steps=7, inputs=["u"],
+                           state="v", input="u")
+    b = lin.root_locus([[0, 1]], (0.0, 3.0), 7)
+    np.testing.assert_allclose(_pairs(a["end"]), _sorted(b.poles[-1]), rtol=1e-5)
+    with pytest.raises(ToolError, match="start and stop"):
+        session.root_locus(OSC, parameter="c")
+    with pytest.raises(ToolError, match="needs K"):
+        session.root_locus(OSC, start=0, stop=1, inputs=["u"])
+
+
+def test_sensitivity_matches_the_package(session):
+    r = session.sensitivity(OSC, ["c"])
+    s = xs.Model.from_text(OSC).sensitivity(["c"])
+    for j, v in enumerate(s.variables):
+        assert r["sensitivity"]["c"][v]["final"] == pytest.approx(
+            s["c"][-1, j], rel=1e-5)
+        k = int(np.argmax(np.abs(s["c"][:, j])))
+        assert r["sensitivity"]["c"][v]["peak"] == pytest.approx(s["c"][k, j], rel=1e-5)
+    assert r["points"] == len(s.t) and Path(r["csv"]).is_file()
+    assert set(session.sensitivity(OSC)["sensitivity"]) == {"c", "k", "u"}
+    with pytest.raises(ToolError, match="no parameter named"):
+        session.sensitivity(OSC, ["nope"])
 
 
 # -- plots ------------------------------------------------------------------------------

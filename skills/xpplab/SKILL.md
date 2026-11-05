@@ -17,6 +17,7 @@ as a library. Its MCP server, `xpplab`, gives you these tools:
 | Brute force | `sweep` (XPPAUT's Range: max/min, period, Liapunov per value) |
 | Oscillations | `limit_cycle`, `phase_response`, `spectrum`, `lyapunov` |
 | Data | `fit` (Levenberg-Marquardt), `bvp` (shooting), `plot_table` |
+| Control design | `linearize`, `place_poles`, `lqr`, `root_locus`, `sensitivity` |
 | In the researcher's open app | `app_status`, `app_command` (any command-window command), `app_run`: the app's plots follow |
 
 The .ode format is in the resource `xpplab://docs/ode-format`, the AUTO
@@ -102,6 +103,28 @@ MCP server" below.
     where the rest state loses stability, how oscillations are born (and
     whether there is bistability), their period and amplitude. Give the
     `python` snippet so the user can repeat it.
+
+## Control design
+
+The control-design tools treat chosen parameters as inputs. Pass them as
+`inputs=["u"]`.
+
+- `linearize` gives A and B at the equilibrium (or at `at`), the eigenvalues
+  and the controllability rank. Check `controllable` first, and `residual`:
+  it is near 0 only at an equilibrium.
+- `place_poles(inputs, poles)` takes one pole per state: a number, or
+  `[re, im]` for each member of a complex pair. `lqr(inputs, q, r)` takes
+  weights: a number, one per state or input, or a matrix. Both return K for
+  the law u = u0 - K (x - x*), the closed-loop eigenvalues and
+  `closed_loop_text`, an `.ode` model with the law built in (its file is in
+  `closed_loop_ode`). Run `simulate` on that file to see the controller work.
+  The design holds near the point only; a large `residual` means the closed
+  loop will not settle there.
+- `root_locus(parameter=..., start, stop)` follows the equilibrium's
+  eigenvalues along a parameter and lists the `crossings` of the stability
+  edge (Hopf points). With `inputs` and `K` it follows A - g B K in g.
+- `sensitivity` gives dx/dp along a run; it does not work for models with
+  tables, delays, maps or noise.
 
 ## Reading the results
 

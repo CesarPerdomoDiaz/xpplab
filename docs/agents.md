@@ -114,6 +114,10 @@ the server saves it under the work folder.
 | `limit_cycle`, `phase_response` | One period of a stable cycle; its phase response curves (type I or II). |
 | `spectrum`, `lyapunov` | Welch spectra with their peaks; the largest Liapunov exponent. |
 | `fit`, `bvp` | Parameter fitting to data; boundary-value problems by shooting. |
+| `linearize` | A and B at an equilibrium (the parameters in `inputs` are the controls), eigenvalues, stability, controllability matrix and rank. |
+| `place_poles`, `lqr` | A feedback gain K from wanted poles, or from the weights `q` and `r` (with the Riccati solution). Both return the closed-loop eigenvalues and the closed-loop model as `.ode` text, also saved in the work folder. |
+| `root_locus` | The eigenvalues along a parameter, or along a feedback gain (`K`, or one `state` through one `input`), with the values where a pole crosses the edge of stability. |
+| `sensitivity` | dx/dp along a run for each parameter and variable (final value, peak, when it peaks), with the whole time course in a CSV. |
 | `plot_simulation`, `plot_phase_plane`, `plot_bifurcation`, `plot_table` | PNG or SVG figures in the work folder. The agent also receives the PNG, so it can look at it. |
 | `app_status`, `app_command`, `app_run` | Act in the XPP Lab window the researcher has open, through its local channel ([Driving the desktop app](python/app.md)): `app_command` takes any command of the app's command window (`run`, `set iapp=0.2`, `nullclines`, `auto steady iapp`, ...), so the researcher watches the plots follow. Values set here stay set in the app. |
 

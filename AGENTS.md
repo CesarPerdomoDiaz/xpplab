@@ -28,7 +28,9 @@ args = ["-m", "xpplab.mcp"]
 
 Its tools: `check_model`, `describe_model`, `find_examples`, `simulate`,
 `equilibria`, `continuation` (AUTO), `sweep`, `limit_cycle`,
-`phase_response`, `spectrum`, `lyapunov`, `fit`, `bvp`, the plots
+`phase_response`, `spectrum`, `lyapunov`, `fit`, `bvp`, the control-design
+tools `linearize`, `place_poles`, `lqr`, `root_locus` and `sensitivity`
+(pass the control parameters as `inputs`), the plots
 `plot_simulation`, `plot_phase_plane`, `plot_bifurcation`, `plot_table`,
 and `app_status`, `app_command`, `app_run`, which act in the XPP Lab
 window the researcher has open.

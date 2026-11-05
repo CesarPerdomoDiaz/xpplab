@@ -10,6 +10,7 @@
  * itself is never changed.
  */
 #include <ctype.h>
+#include <limits.h>
 #include <math.h>
 #include <setjmp.h>
 #include <stdlib.h>
@@ -54,6 +55,9 @@ void norm_vec(double *v, double *mu, int n);
 /* The integration (integrate.c, numerics, delay, Volterra, noise) */
 extern double DELTA_T, TEND, T0, TRANS, BOUND;
 extern int METHOD, NJMP, DelayFlag, NKernel, NMarkov, NWiener;
+extern int NFlags, TORUS; /* global flags, @ fold */
+extern int (*solver)();   /* the fixed-step method */
+extern double *WORK;
 void get_ic(int it, double *x);
 void evaluate_derived(void);
 void end_cv(void);
@@ -435,7 +439,16 @@ int xppe_lyapunov(double *exponent) {
    before TRANS carry the perturbation along without counting, and the
    integration stops, as a run does, when a variable passes BOUND. Nothing
    is stored. */
-enum { METHOD_DISCRETE = 0, METHOD_GEAR = 5, METHOD_CVODE = 10 };
+enum {
+  METHOD_DISCRETE = 0,
+  METHOD_GEAR = 5,
+  METHOD_RKQS = 8,
+  METHOD_STIFF = 9,
+  METHOD_CVODE = 10,
+  METHOD_DP5 = 11,
+  METHOD_DP83 = 12,
+  METHOD_RB23 = 13
+};
 
 int xppe_lyapunov_integrate(double eps, double *exponent) {
   double y[MAXODE], y2[MAXODE], dy[MAXODE];
@@ -641,15 +654,16 @@ static double cycle_nearest(const double *y, double *pos, double *gam,
 }
 
 /* Method A of docs/design/isochrons.md. The state is stepped with
-   one_step_int(), as in xppe_lyapunov_integrate(), one output step at a
-   time, until it lies within delta of the stored cycle. With theta_c the
+   XPPAUT's own routines, one output step at a time (one_step_int() for the
+   adaptive methods, as in xppe_lyapunov_integrate(); the fixed-step solver
+   as integrate() calls it for the others), without restarting between steps, until it lies within delta of the stored cycle. With theta_c the
    time position of the nearest cycle point, the phase is
    theta_c/T + Z(theta_c) . (end state - gamma(theta_c))/T - s/T, mod 1. */
 int xppe_asymptotic_phase(const double *x, double delta, double tmax,
                           double *phase, double *elapsed) {
   double y[MAXODE], gam[MAXODE], z[MAXODE];
-  double h, t, t1, pos, dist, period, theta, corr = 0, s = 0, ph;
-  int rc, i, k, nmax, istart, ok = 1, out = 0;
+  double h, t, t1, pos, dist, period, theta, corr = 0, s = 0, ph, q;
+  int rc, i, k, nmax, istart, fixed, ok = 1, out = 0;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
   if (DelayFlag || NKernel > 0) {
     xppe_set_error("the asymptotic phase needs a model without delays or "
@@ -664,6 +678,12 @@ int xppe_asymptotic_phase(const double *x, double delta, double tmax,
   if (METHOD == METHOD_DISCRETE) {
     xppe_set_error("the asymptotic phase needs differential equations, not "
                    "a map", NULL);
+    return XPPE_ERR_STATE;
+  }
+  if (NFlags > 0 || TORUS == 1) {
+    xppe_set_error("the asymptotic phase needs a model without global flags "
+                   "or folded variables (@ fold): the stored cycle is reset "
+                   "or folded there, the free integration is not", NULL);
     return XPPE_ERR_STATE;
   }
   if (!ADJ_HERE || storind != adj_len || adj_len < 2) {
@@ -682,11 +702,27 @@ int xppe_asymptotic_phase(const double *x, double delta, double tmax,
     return XPPE_ERR_STATE;
   }
   period = h * (adj_len - 1);
-  nmax = (int)floor(tmax / h + 1e-9);
+  /* DT or NOUT changed since the run: the stored cycle has another spacing */
+  if (fabs((double)storage[0][adj_len - 1] - (double)storage[0][0] - period) >
+      1e-5 * period + 1e-6 * fabs((double)storage[0][adj_len - 1])) {
+    xppe_set_error("DT or NOUT is not what the stored cycle was made with: "
+                   "run one period again and compute the adjoint again", NULL);
+    return XPPE_ERR_STATE;
+  }
+  q = floor(tmax / h + 1e-9);
+  nmax = q >= INT_MAX ? INT_MAX : (int)q;
+  fixed = !(METHOD == METHOD_GEAR || METHOD == METHOD_RKQS ||
+            METHOD == METHOD_STIFF || METHOD == METHOD_CVODE ||
+            METHOD == METHOD_DP5 || METHOD == METHOD_DP83 ||
+            METHOD == METHOD_RB23);
   for (i = 0; i < NODE; i++) y[i] = x[i];
   xppe_begin_call();
   XPPE_GUARD_BEGIN((void)0);
   evaluate_derived();
+  /* One start for the whole integration, as integrate() does (gear() takes
+     0 for a fresh start). */
+  istart = METHOD == METHOD_GEAR ? 0 : 1;
+  t = T0;
   for (k = 0;; k++) {
     for (i = 0; i < NODE && fabs(y[i]) <= BOUND; i++)
       ;
@@ -701,18 +737,25 @@ int xppe_asymptotic_phase(const double *x, double delta, double tmax,
       ok = 0;
       break;
     }
-    t = T0 + k * h;
-    t1 = T0 + (k + 1) * h;
-    istart = METHOD == METHOD_GEAR ? 0 : 1;
-    if (!one_step_int(y, t, t1, &istart)) {
-      ok = -1;
-      break;
+    if (fixed) {
+      /* NJMP steps of DT, as integrate() takes them: a step to a rounded
+         end time could be a short one, which adams() cannot take. */
+      if (solver(y, &t, DELTA_T, NJMP, NODE, &istart, WORK) < 0) {
+        ok = -1;
+        break;
+      }
+    } else {
+      t1 = T0 + (k + 1) * h;
+      if (!one_step_int(y, T0 + k * h, t1, &istart)) {
+        ok = -1;
+        break;
+      }
     }
-#ifdef CVODE_YES
-    if (METHOD == METHOD_CVODE) end_cv(); /* start_cv() would leak it */
-#endif
   }
   XPPE_GUARD_END;
+#ifdef CVODE_YES
+  if (METHOD == METHOD_CVODE) end_cv(); /* safe to call twice */
+#endif
   xppe_end_call();
   if (ok == -1) {
     xppe_set_error("the integration failed", NULL);

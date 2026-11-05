@@ -123,6 +123,44 @@ def test_lambda_omega_has_curved_isochrons(lamom):
     assert circ(ph, (2.0 - lamom.theta0) / (2 * np.pi)) > 0.2
 
 
+@pytest.mark.parametrize("meth", ["rungekutta", "adams", "gear", "stiff",
+                                  "cvode"])
+def test_every_method_gives_the_closed_form(meth):
+    """The lambda-omega phases of test_lambda_omega_has_curved_isochrons
+    with the same bound, whichever method steps the flow. The adaptive
+    methods run at TOL = ATOL = 1e-9, so that their error (they stop at a
+    multiple of the output step and carry on without restarting) is far
+    below the 3e-4 of the method itself. Adams is the case a short step
+    to a rounded end time breaks: DT = T/2000 is not exact in binary."""
+    with xs.load(MODELS / "lambda_omega.ode") as m:
+        m.set(w=1.5, q=1.5, meth=meth)
+        if meth in ("gear", "stiff", "cvode"):
+            m.set(TOL=1e-9, ATOL=1e-9)
+        set_cycle(m, 2 * np.pi / 1.5)
+        m.adjoint()
+        orbit = m._collect()
+        theta0 = float(np.arctan2(orbit["Y"][0], orbit["X"][0]))
+        worst = 0.0
+        for r, a in POINTS:
+            ph, _ = phase(m, [r * np.cos(a), r * np.sin(a)], 0.02)
+            expect = (a - 1.5 * np.log(r) - theta0) / (2 * np.pi)
+            worst = max(worst, circ(ph, expect))
+        assert worst < 3e-4, (meth, worst)
+
+
+@pytest.mark.parametrize("change", [{"DT": 2 * 2 * np.pi / NSTEP},
+                                    {"NOUT": 2}])
+def test_refuses_when_dt_or_nout_changed_since_the_cycle(change):
+    with xs.load(MODELS / "radial_clock.ode") as m:
+        set_cycle(m, 2 * np.pi)
+        m.adjoint()
+        assert call(m, [0.5, 0.5], 0.05)[0] is None
+        m.set(**change)
+        err, ph, el = call(m, [0.5, 0.5], 0.05)
+        assert err is not None and "adjoint again" in str(err)
+        assert (ph, el) == (-1, -1)
+
+
 @pytest.mark.parametrize("name, par", [("radial_clock.ode", {}),
                                        ("lambda_omega.ode",
                                         {"w": 1.5, "q": 1.5})])
@@ -271,6 +309,38 @@ def test_refusals():
      "noise"),
 ])
 def test_refuses_delays_and_noise(text, word):
+    with xs.Model.from_text(text) as m:
+        m.run()
+        err, ph, el = call(m, [0.5, 0.5], 0.05)
+        assert err is not None and word in str(err) and ph == -1
+
+
+LAMVOLT = ODE / "lamvolt.ode"
+
+
+def test_refuses_integral_equations():
+    with xs.load(LAMVOLT) as m:
+        m.set(TOTAL=1)
+        m.run()
+        err, ph, el = call(m, [0.1, 0.1, 0.1, 0.1], 0.05)
+        assert err is not None and "integrals" in str(err) and ph == -1
+
+
+def test_refuses_maps():
+    text = "x(t+1)=r*x*(1-x)" + chr(10) + "par r=4" + chr(10) +         "init x=0.3" + chr(10) + "@ meth=discrete,total=20" + chr(10) +         "done" + chr(10)
+    with xs.Model.from_text(text) as m:
+        m.run()
+        err, ph, el = call(m, [0.3], 0.05)
+        assert err is not None and "map" in str(err) and ph == -1
+
+
+@pytest.mark.parametrize("extra, word", [
+    ("@ fold=th", "fold"),
+    ("global 1 x-0.5 {x=1}", "global flags"),
+])
+def test_refuses_fold_and_global_flags(extra, word):
+    text = chr(10).join(["x'=-x", "th'=1", "init x=1", "@ total=5", extra,
+                         "done", ""])
     with xs.Model.from_text(text) as m:
         m.run()
         err, ph, el = call(m, [0.5, 0.5], 0.05)

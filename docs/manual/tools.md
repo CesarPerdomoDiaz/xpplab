@@ -248,7 +248,8 @@ The box (x1, y1)-(x2, y2) of the phase plane is mapped onto 0..1, the
 animation's coordinates when the file has no `dimension` line. `who` is a
 formula, evaluated at every frame. With -1 the lines are the current
 nullclines, which the Animator computes when it opens the file and again
-after a grab. With k = 0, 1, ... they are the k-th of a set of nullclines
+when a parameter or initial value changes, a grab ends or the phase plane's
+variables change. With k = 0, 1, ... they are the k-th of a set of nullclines
 frozen over a range of one parameter, and a formula of the time moves
 through the set as the run goes on. wcstim.ani does this with
 `10*stim(t)`, so the nullclines follow the stimulus. To make that set, choose
@@ -269,12 +270,15 @@ use `mouse_x`, `mouse_y`, `mouse_vx` and `mouse_vy`, the position and the
 velocity of the mouse in the animation's coordinates. A `runnow=1` in the
 second line runs the model after the release.
 
-Press **Grab** in the Animator. The window shows the first frame and a
-cross of size `tol` at each grab point. Press on a point, drag it and
-release: the model's auxiliary quantities follow while you drag, and on
-release the names in the second line get their values. Variables become
-initial values, parameters keep their new values, the Workspace shows them
-and, with `runnow=1`, the model runs. The mode ends after one drag. A press
+Press **Grab** in the Animator. The window shows the frame of the initial
+values, as XPPAUT's Grab button does, and a cross of size `tol` at each grab
+point. Press on a point, drag it and release: the model's auxiliary
+quantities follow while you drag, and on release the names in the second
+line get their values. Variables become initial values, parameters keep
+their new values, the Workspace shows them and, with `runnow=1`, the model
+runs. The mode ends after one drag. If the model did not run, the window
+keeps showing the initial values until you press Play, move the row slider
+or run, and a second grab starts from the values the first one set. A press
 farther than `tol` from every point grabs nothing.
 
 ![The animation of itoy in Grab mode, with a cross at the two grab points,

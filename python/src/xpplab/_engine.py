@@ -260,6 +260,7 @@ _SIGNATURES = {
     "xppe_ani_segments": ([ctypes.c_int, ctypes.POINTER(ctypes.c_double),
                            ctypes.c_int], ctypes.c_int),
     "xppe_ani_frame_current": ([], ctypes.c_int),
+    "xppe_ani_frame_initial": ([], ctypes.c_int),
     "xppe_ani_nullclines": ([ctypes.c_int, ctypes.c_int, ctypes.c_int,
                              ctypes.c_char_p, ctypes.c_int, ctypes.c_double,
                              ctypes.c_double], ctypes.c_int),

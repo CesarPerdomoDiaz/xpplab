@@ -434,7 +434,10 @@ XPPE_API int xppe_ani_get(int i, xppe_ani_item *out);
  * steps > 0 it also replaces the frozen sets by steps+1 of them, for the
  * parameter at plo, ..., phi (it is put back). It returns the number of
  * frozen sets. xppe_ani_frame() then gives each xnull and ynull command one
- * XPPE_ANI_NULLCLINE item (none if its set does not exist);
+ * XPPE_ANI_NULLCLINE item, with no segments when its set exists but is empty
+ * (the current ones before they are computed, or k equal to the number of
+ * frozen sets), and no item at all when there is no such set (none frozen
+ * yet, or k beyond them);
  * xppe_ani_segments() copies the segments of item i as (x1, y1, x2, y2)
  * quadruples, up to max, and returns their number (all of them if out is
  * NULL). As XPPAUT draws them, the box maps onto 0..1 in the animation's
@@ -457,6 +460,10 @@ XPPE_API int xppe_ani_segments(int i, double *out, int max);
 /* The shapes for the values the variables have now, without taking them from
    the run: what the animator draws while a grab point is dragged. */
 XPPE_API int xppe_ani_frame_current(void);
+/* The shapes for the initial conditions, as XPPAUT's Grab button shows them
+   (it does not need a run): grab points are searched and dragged from this
+   frame, so a grab that did not run is kept by the next. */
+XPPE_API int xppe_ani_frame_initial(void);
 XPPE_API int xppe_ani_nullclines(int ix, int iy, int grid, const char *param,
                                  int steps, double plo, double phi);
 XPPE_API int xppe_ani_grab_count(void);

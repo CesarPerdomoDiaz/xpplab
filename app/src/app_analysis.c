@@ -231,11 +231,21 @@ bool app_ani_nullclines(App *a, const char *par, int steps, double lo, double hi
   if (!a->model_ok || !v->loaded) return false;
   x = &a->eng->api;
   v->null_dirty = false;
+  if (par && steps <= 0) {
+    app_log(a, "error: ani nullclines needs at least 1 step.");
+    return false;
+  }
   rc = x->xppe_ani_nullclines(a->pp.xvar, a->pp.yvar, a->pp.grid > 1 ? a->pp.grid : 40,
                               par, steps, lo, hi);
+  v->nc_x = a->pp.xvar;
+  v->nc_y = a->pp.yvar;
   if (rc < 0) {
-    v->has_null = false;
-    if (par) app_log(a, "error: %s", x->xppe_error());
+    /* only the current nullclines say whether the file has any; a bad
+       range leaves the window as it was */
+    if (par)
+      app_log(a, "error: %s", x->xppe_error());
+    else
+      v->has_null = false;
     return false;
   }
   v->has_null = true;
@@ -259,12 +269,17 @@ bool app_ani_grab_press(App *a, double x, double y) {
   int index = -1;
   if (!a->model_ok || !v->loaded) return false;
   e = &a->eng->api;
-  e->xppe_ani_frame(0);
+  /* the Grab button's frame: from the initial values, which an earlier grab
+     that did not run has set */
+  e->xppe_ani_frame_initial();
   if (e->xppe_ani_grab_begin(x, y, &index) != XPPE_OK || index < 0) {
     app_status(a, "Nothing grabbed: press on one of the crosses.");
     return false;
   }
   v->dragging = true;
+  v->drag_time = 0;
+  v->drag_x = x;
+  v->drag_y = y;
   return true;
 }
 
@@ -288,6 +303,8 @@ void app_ani_grab_release(App *a) {
   if (runnow) app_run(a);
   else app_status(a, "Grabbed point %d: the values are now initial values.", index + 1);
   v->row = 0;
+  v->show_initial = !runnow; /* until Play, a row change or a run */
+  v->init_serial = a->run_serial;
 }
 
 /* ani grab X Y X2 Y2: press at one point, release at another. */
@@ -296,7 +313,6 @@ bool app_ani_grab(App *a, double x, double y, double x2, double y2) {
     app_log(a, "error: open an animation first (ani FILE.ani)");
     return false;
   }
-  if (!a->have_traj) app_run(a); /* the animation needs a run */
   if (!app_ani_grab_press(a, x, y)) {
     app_log(a, "Nothing grabbed at (%g, %g).", x, y);
     return false;

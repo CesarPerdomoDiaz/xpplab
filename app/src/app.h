@@ -291,7 +291,12 @@ typedef struct {
   double nc_lo, nc_hi;
   /* the Grab mode: on until a drag is done */
   bool grab, dragging;
-  double drag_time;
+  double drag_time, drag_x, drag_y; /* the last move sent: when, where */
+  /* After a grab that did not run, the window keeps showing the initial
+     values until Play, a row change or a run (serial: a->run_serial then). */
+  bool show_initial;
+  unsigned init_serial;
+  int nc_x, nc_y; /* the phase plane's variables the current nullclines are for */
 } AniUI;
 
 /* Many runs kept together (app_figure.c): from random initial values in a
@@ -438,6 +443,7 @@ typedef struct App {
   AnalysisUI an;
   View3D v3;
   AniUI ani;
+  unsigned run_serial; /* counts the runs, for what depends on the last one */
   int nbcs;          /* the model's boundary conditions (bndry) */
   RunSet many;
   ManyUI mu;

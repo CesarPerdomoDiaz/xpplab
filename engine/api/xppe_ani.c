@@ -87,6 +87,7 @@ int xppe_ani_load(const char *path) {
   xppe_end_call();
   loaded_ani = ok == 0;
   nitems = 0;
+  who_was_grabbed = -1;
   if (!loaded_ani) {
     xppe_set_error("could not read the animation file; see the log", NULL);
     return XPPE_ERR_LOAD;
@@ -113,9 +114,13 @@ static void colour(int j, xppe_ani_item *it) {
   }
 }
 
-/* ani_flip1() and render_ani() without the drawing. With `current`, as after
-   a grab move, the variables keep the values they have: ani_frame(0). */
-static int frame_at(int row, int current) {
+/* ani_flip1() and render_ani() without the drawing. Mode 0 takes the state
+   from a row of the run; 1 keeps the values the variables have, as after a
+   grab move (ani_frame(0)); 2 starts from the initial values, as XPPAUT's Grab
+   button does (ani_frame(1): set_ani_perm(), which calls
+   set_from_init_data()). */
+static int frame_at(int row, int mode) {
+  int current = mode != 0;
   double y[MAXODE], t;
   int rc, i, j, size = 0, serif = 0, text_colour = 0;
   float **ss;
@@ -125,7 +130,7 @@ static int frame_at(int row, int current) {
     return XPPE_ERR_STATE;
   }
   ss = my_browser.data;
-  if (!current && (my_browser.maxrow < 1 || !ss)) {
+  if (mode == 0 && (my_browser.maxrow < 1 || !ss)) {
     xppe_set_error("integrate the model first", NULL);
     return XPPE_ERR_STATE;
   }
@@ -134,7 +139,9 @@ static int frame_at(int row, int current) {
   nitems = 0;
   nsegs = 0;
   XPPE_GUARD_BEGIN((void)0);
-  if (!current) {
+  if (mode == 2) {
+    set_ani_perm();
+  } else if (mode == 0) {
     if (row == 0) set_ani_perm();
     t = (double)ss[0][row];
     for (i = 0; i < NODE + NMarkov; i++) y[i] = (double)ss[i + 1][row];
@@ -169,11 +176,11 @@ static int frame_at(int row, int current) {
       if (get_nullcline_floats(&v, &n, (int)my_ani[j].zval, type - AXNULL))
         continue;
       if (nsegs + n > segcap) {
-        double *g;
-        segcap = 2 * (nsegs + n);
-        g = realloc(segs, sizeof(double) * 4 * (size_t)segcap);
+        int cap = 2 * (nsegs + n);
+        double *g = realloc(segs, sizeof(double) * 4 * (size_t)cap);
         if (!g) continue;
         segs = g;
+        segcap = cap;
       }
       for (k = 0; k < n; k++) {
         double *o = segs + 4 * (size_t)(nsegs + k);
@@ -272,6 +279,8 @@ int xppe_ani_frame(int row) { return frame_at(row, 0); }
 
 int xppe_ani_frame_current(void) { return frame_at(0, 1); }
 
+int xppe_ani_frame_initial(void) { return frame_at(0, 2); }
+
 int xppe_ani_get(int i, xppe_ani_item *out) {
   if (i < 0 || i >= nitems) {
     xppe_set_error("no such animation item", NULL);
@@ -345,7 +354,8 @@ int xppe_ani_nullclines(int ix, int iy, int grid, const char *param, int steps,
   }
   xppe_begin_call();
   XPPE_GUARD_BEGIN((NTop = old_top, NBot = old_bot,
-                    *name ? (void)set_val(name, zold) : (void)0));
+                    *name ? (void)set_val(name, zold) : (void)0, free(xs),
+                    free(ys), free(top), free(bot)));
   box[0] = evaluate(my_ani[j].x1);
   box[1] = evaluate(my_ani[j].y1);
   box[2] = evaluate(my_ani[j].x2);
@@ -429,6 +439,13 @@ int xppe_ani_grab_begin(double x, double y, int *index) {
     ani_grab[i].zy = evaluate(ani_grab[i].y);
   }
   who_was_grabbed = search_for_grab(x, y);
+  if (who_was_grabbed >= 0) {
+    /* a release without a move must not use the last drag's values */
+    set_val("mouse_x", x);
+    set_val("mouse_y", y);
+    set_val("mouse_vx", 0.0);
+    set_val("mouse_vy", 0.0);
+  }
   XPPE_GUARD_END;
   mouse.x = x;
   mouse.y = y;
@@ -440,7 +457,8 @@ int xppe_ani_grab_move(double x, double y, double dt) {
   int rc;
   double vx, vy;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
-  if (who_was_grabbed < 0 || !loaded_ani) return 0;
+  if (!loaded_ani || who_was_grabbed < 0 || who_was_grabbed >= n_ani_grab)
+    return 0;
   if (dt == 0.0) dt = 10000000000.0;
   vx = (x - mouse.x) / dt;
   vy = (y - mouse.y) / dt;
@@ -462,7 +480,7 @@ int xppe_ani_grab_end(int *index, int *runnow) {
   if (index) *index = -1;
   if (runnow) *runnow = 0;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
-  if (who < 0 || !loaded_ani) return XPPE_OK;
+  if (!loaded_ani || who < 0 || who >= n_ani_grab) return XPPE_OK;
   XPPE_GUARD_BEGIN((void)0);
   do_grab_tasks(2);
   /* set_to_init_data() without its last call, redraw_ics(), which draws the

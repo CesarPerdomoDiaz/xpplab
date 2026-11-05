@@ -108,8 +108,9 @@ class Animation:
 
     def grab_points(self) -> list[tuple[float, float, float]]:
         """The grab points of the file as ``(x, y, tolerance)``, where the
-        state of the last frame puts them."""
+        initial values put them (the frame XPPAUT's Grab button shows)."""
         eng = self.model._engine
+        eng.call("xppe_ani_frame_initial")
         out = []
         for i in range(eng.call("xppe_ani_grab_count", check=False)):
             v = [ctypes.c_double() for _ in range(3)]
@@ -127,7 +128,7 @@ class Animation:
         the file says ``runnow=1`` (unless ``run`` is false)."""
         eng = self.model._engine
         index, runnow = ctypes.c_int(), ctypes.c_int()
-        eng.call("xppe_ani_frame", 0, check=False)
+        eng.call("xppe_ani_frame_initial")
         eng.call("xppe_ani_grab_begin", float(x), float(y), ctypes.byref(index))
         if index.value < 0:
             return None

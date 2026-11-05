@@ -163,3 +163,23 @@ def test_press_outside_every_tolerance_changes_nothing():
         assert ani.grab(x0 + 2 * tol, y0, 0.0, 1.0) is None
         assert (m.get("t1"), m.get("t1p"), m.get("t2"), m.get("t2p")) == before
         assert len(m.last_run()) == rows
+
+
+def test_two_grabs_in_a_row_keep_the_first():
+    """idoubpend: the first point sets t1 and does not run, the second runs.
+    Both press on the frame of the initial values, so the second keeps t1."""
+    with xs.load(ODE / "idoubpend.ode") as m:
+        m.set(total=2)
+        m.run()
+        old_t1 = m.get("t1")
+        ani = m.animation("idoubpend.ani")
+        x0, y0, _ = ani.grab_points()[0]
+        n = len(m.last_run())
+        assert ani.grab(x0, y0, 0.7, 0.5) == 0
+        t1 = m.get("t1")
+        assert t1 != pytest.approx(old_t1, abs=1e-3)  # the drag moved it
+        assert len(m.last_run()) == n and m.last_run()["t1"][0] == pytest.approx(old_t1)  # no run yet
+        x1, y1, _ = ani.grab_points()[1]  # the second point moved with t1
+        assert ani.grab(x1, y1, 0.9, 0.3) == 1
+        assert m.get("t1") == pytest.approx(t1, abs=1e-12)
+        assert m.last_run()["t1"][0] == pytest.approx(t1, abs=1e-6)

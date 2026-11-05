@@ -1207,12 +1207,12 @@ void app_command(App *a, const char *line_in) {
     app_bvp(a);
   } else if (!strcmp(cmd, "ani")) {
     char *p = skip_space(rest);
-    if (!strncmp(p, "grab ", 5)) {
+    if (!strncmp(p, "grab", 4) && (!p[4] || isspace((unsigned char)p[4]))) {
       /* ani grab X Y X2 Y2: press at (X, Y), release at (X2, Y2) */
       double g[4];
       char *w;
       int k, ok = 1;
-      p += 5;
+      p += 4;
       if (!strncmp(skip_space(p), "on", 2) || !strncmp(skip_space(p), "off", 3)) {
         /* ani grab on | off: the Grab mode of the window, for a screenshot */
         a->ani.grab = !strncmp(skip_space(p), "on", 2);
@@ -1243,8 +1243,11 @@ void app_command(App *a, const char *line_in) {
       for (k = 0; k < 4; k++) w[k] = next_word(&p);
       if (w[3])
         app_ani_nullclines(a, w[0], atoi(w[1]), atof(w[2]), atof(w[3]));
-      else
+      else if (!w[0])
         app_ani_nullclines(a, NULL, 0, 0, 0);
+      else
+        app_log(a, "Write: ani nullclines PAR STEPS LO HI (frozen sets), or "
+                   "ani nullclines alone (the current ones)");
       a->show_ani = true;
       snprintf(a->focus, sizeof a->focus, "animator");
     } else if (!strncmp(p, "play", 4) || !strncmp(p, "row ", 4) ||

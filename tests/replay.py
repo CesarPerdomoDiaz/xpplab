@@ -258,6 +258,12 @@ CASES = [
         "run", "export {out}/run.mat"]),
     # Grab points in the animator: the first point of itoy.ani runs the
     # model (runnow=1), the second only sets t2, which the next run uses.
+    # The press coordinates are the arm ends of the initial values (t1 = 0,
+    # t2 = 0, a = 0.05, d = 0.1): point 1 is (cos(t1 + a), sin(t1 + a)) =
+    # (0.99875, 0.04998), point 2 is (2 + d + cos(t2 - a), sin(t2 - a)) =
+    # (3.09875, -0.04998). Both lie within the tolerance 0.05 of the press.
+    # The second press is on the initial values the first grab set, where t1
+    # has moved but t2 has not, so point 2 stays where it was.
     ("ani_grab", "itoy.ode", [
         "set total=3", "run", "ani itoy.ani",
         "ani grab 0.9987 0.05 -0.3 0.9", "export {out}/first.csv",

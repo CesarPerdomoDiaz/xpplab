@@ -1,0 +1,9 @@
+# The radial isochron clock of docs/design/isochrons.md (test 1):
+# r' = r(1-r), theta' = 1 in Cartesian coordinates. The cycle is r = 1 with
+# period 2*pi; the isochrons are the rays theta = const.
+r=sqrt(x^2+y^2)
+x'=x*(1-r)-y
+y'=y*(1-r)+x
+init x=1,y=0
+@ total=60,dt=0.01
+done

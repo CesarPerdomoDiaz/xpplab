@@ -1,7 +1,8 @@
 # Design: isochrons and phase reduction
 
-Status: proposal. This note describes the work; no code exists yet. The
-roadmap entry is *Isochrons and phase reduction* under M7.
+Status: proposal. This note describes the work; piece 1 (`xppe_asymptotic_phase`)
+exists, the others do not yet. The roadmap entry is *Isochrons and phase
+reduction* under M7.
 
 
 ## Conventions
@@ -96,6 +97,19 @@ which can be far from it:
     phase(x) = θ_c/T + Z(θ_c) · (φ_s(x) − γ(θ_c))/T − s/T   (mod 1).
 
 Z is the adjoint with the normalisation above, so Z · δx is a time shift.
+
+*As built (`xppe_asymptotic_phase`).* The state is stepped one output step
+(DT times NOUT) at a time, so the elapsed time s is a multiple of that step;
+the correction removes the effect of stopping between steps. The distance to
+the cycle is measured to the polyline through the stored points, and the
+nearest point on it gives θ_c and γ(θ_c); Z is interpolated linearly along the
+same segment. Phase 0 is the first stored point of the run (after TRANS, if
+set). Fixed-step methods take NJMP steps of DT per output step, as
+`integrate()` does, and the adaptive ones run without a restart between output
+steps. A model with global flags or `@ fold` is refused. θ_c is counted in output steps, with T = (stored points − 1)
+times the step, so the run must be the period on that grid. The call refuses
+a run whose length is not the adjoint's, but it cannot tell a different run
+of the same length from the original.
 
 *Limits.* It is the most robust method, because it only integrates forward
 and uses whatever method and tolerances the model has, stiff solvers
@@ -371,5 +385,9 @@ valgrind jobs run the C tests as before.
    work, to within the grid spacing; and isochrons of cycles in more than two
    variables.
 
-Pieces 1 to 3 do not depend on each other except for the shared table
-layout, which piece 1 fixes; 4 needs 1 to 3, 5 needs 4, and 6 comes last.
+Piece 1 returns scalars and has no table. The isochron table (`phase`, then
+the plotted pair, one polyline per phase separated by a row of NaN) is fixed
+by piece 2, and the phase-model table by piece 3. Pieces 1 to 3 do not depend
+on each other, except that a test of piece 2 that calls
+`xppe_asymptotic_phase` needs piece 1 (as piece 2's entry says); 4 needs 1 to
+3, 5 needs 4, and 6 comes last.

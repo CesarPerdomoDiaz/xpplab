@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 13
+#define XPPE_API_VERSION 14
 
 enum {
   XPPE_OK = 0,
@@ -355,6 +355,32 @@ XPPE_API int xppe_adjoint(int max_iterations, double tolerance);
    the other oscillator's variables. Result: phi, H, and for three or more
    columns also Hodd and Heven. */
 XPPE_API int xppe_hfunction(int n, const char *const *coupling);
+/* The asymptotic phase of the state x (one value per ODE variable), by
+   forward integration (docs/design/isochrons.md, method A). Works on the
+   cycle and adjoint of the last run, as xppe_hfunction() does: the run must
+   still be the one-period run that xppe_adjoint() used. The state is
+   stepped with the current method, one output step (DT times NOUT) at a
+   time, until it is within delta of the stored cycle (a polyline through
+   the stored points); the time taken is elapsed (a multiple of the output
+   step). phase is theta/T in [0, 1), the point of the cycle the state ends
+   up synchronised with, where phase 0 is the first stored point of the run
+   (the run starts at T0 + TRANS, if TRANS is set), with the correction Z(theta_c) . (end state -
+   gamma(theta_c)) / T for the end state's distance from the cycle: its
+   error is of order delta squared (plus the integration error and the
+   spacing of the stored cycle), where without it is of order delta. phase or
+   elapsed may be NULL. Refuses, with an error and no number
+   (XPPE_ERR_STATE): no adjoint, a run that is not that period, or DT or
+   NOUT changed since it; delays, Volterra integrals, noise and maps; global
+   flags and folded variables (@ fold), which reset or fold the stored cycle
+   but not the free integration. Also: delta <= 0 or tmax <= 0
+   (XPPE_ERR_RANGE); and a state that has not come within delta of the cycle
+   by tmax or leaves BOUND, where the phase is undefined, near the boundary
+   of the basin (XPPE_ERR_NUMERIC). A huge or infinite tmax means no limit in
+   practice (the count of steps is capped at INT_MAX). The run is left as it
+   was. Since API
+   version 14. */
+XPPE_API int xppe_asymptotic_phase(const double *x, double delta, double tmax,
+                                   double *phase, double *elapsed);
 
 /* Least-squares fit of parameters and initial conditions to data with
    XPPAUT's Levenberg-Marquardt (stocHastic > fIt data). file holds npts

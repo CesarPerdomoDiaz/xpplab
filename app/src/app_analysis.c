@@ -206,12 +206,121 @@ static bool ani_load(App *a, const char *path, bool quiet) {
   v->last_row = -1;
   v->ncomets = 0;
   v->playing = false;
+  v->grab = v->dragging = false;
+  v->null_dirty = true;
+  v->has_null = true; /* until the first try says otherwise */
   if (v->speed <= 0) v->speed = 60;
+  if (v->nc_steps <= 0) {
+    v->nc_steps = 10;
+    v->nc_lo = 0;
+    v->nc_hi = 1;
+  }
   if (!quiet) app_log(a, "Loaded the animation %s (%d commands).", path, n);
   return true;
 }
 
 bool app_ani_load(App *a, const char *path) { return ani_load(a, path, false); }
+
+/* The nullclines of the phase plane's two variables over the box of the
+   file's xnull and ynull commands; with a parameter, also the frozen sets
+   that the commands' "who" picks. */
+bool app_ani_nullclines(App *a, const char *par, int steps, double lo, double hi) {
+  AniUI *v = &a->ani;
+  xpp_engine_api *x;
+  int rc;
+  if (!a->model_ok || !v->loaded) return false;
+  x = &a->eng->api;
+  v->null_dirty = false;
+  if (par && steps <= 0) {
+    app_log(a, "error: ani nullclines needs at least 1 step.");
+    return false;
+  }
+  rc = x->xppe_ani_nullclines(a->pp.xvar, a->pp.yvar, a->pp.grid > 1 ? a->pp.grid : 40,
+                              par, steps, lo, hi);
+  v->nc_x = a->pp.xvar;
+  v->nc_y = a->pp.yvar;
+  if (rc < 0) {
+    /* only the current nullclines say whether the file has any; a bad
+       range leaves the window as it was */
+    if (par)
+      app_log(a, "error: %s", x->xppe_error());
+    else
+      v->has_null = false;
+    return false;
+  }
+  v->has_null = true;
+  if (par) {
+    int k = app_find_par(a, par);
+    if (k >= 0) v->nc_par = k; /* the window's fields show what was done */
+    v->nc_steps = steps;
+    v->nc_lo = lo;
+    v->nc_hi = hi;
+  }
+  if (par) app_status(a, "Made %d sets of frozen nullclines for %s.", rc, par);
+  return true;
+}
+
+/* The Grab mode (ani_buttonx and update_ani_motion_stuff in aniparse.c):
+   press on a point, drag it, release. The release makes what the file sets
+   initial values and parameters, which the script writes before the run. */
+bool app_ani_grab_press(App *a, double x, double y) {
+  AniUI *v = &a->ani;
+  xpp_engine_api *e;
+  int index = -1;
+  if (!a->model_ok || !v->loaded) return false;
+  e = &a->eng->api;
+  /* the Grab button's frame: from the initial values, which an earlier grab
+     that did not run has set */
+  e->xppe_ani_frame_initial();
+  if (e->xppe_ani_grab_begin(x, y, &index) != XPPE_OK || index < 0) {
+    app_status(a, "Nothing grabbed: press on one of the crosses.");
+    return false;
+  }
+  v->dragging = true;
+  v->drag_time = 0;
+  v->drag_x = x;
+  v->drag_y = y;
+  return true;
+}
+
+void app_ani_grab_drag(App *a, double x, double y, double dt) {
+  if (a->ani.dragging) a->eng->api.xppe_ani_grab_move(x, y, dt);
+}
+
+void app_ani_grab_release(App *a) {
+  AniUI *v = &a->ani;
+  xpp_engine_api *e;
+  int index = -1, runnow = 0;
+  if (!v->dragging) return;
+  v->dragging = false;
+  e = &a->eng->api;
+  if (e->xppe_ani_grab_end(&index, &runnow) != XPPE_OK || index < 0) return;
+  v->grab = false; /* one drag, as in XPPAUT */
+  v->null_dirty = true;
+  app_refresh_values(a);
+  a->pp.nc_dirty = true;
+  a->echo.dirty = true; /* the script writes the values the grab set */
+  if (runnow) app_run(a);
+  else app_status(a, "Grabbed point %d: the values are now initial values.", index + 1);
+  v->row = 0;
+  v->show_initial = !runnow; /* until Play, a row change or a run */
+  v->init_serial = a->run_serial;
+}
+
+/* ani grab X Y X2 Y2: press at one point, release at another. */
+bool app_ani_grab(App *a, double x, double y, double x2, double y2) {
+  if (!a->ani.loaded || !a->model_ok) {
+    app_log(a, "error: open an animation first (ani FILE.ani)");
+    return false;
+  }
+  if (!app_ani_grab_press(a, x, y)) {
+    app_log(a, "Nothing grabbed at (%g, %g).", x, y);
+    return false;
+  }
+  app_ani_grab_drag(a, x2, y2, 0.1);
+  app_ani_grab_release(a);
+  return true;
+}
 
 /* ---- Helpers -------------------------------------------------------------- */
 

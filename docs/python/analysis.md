@@ -250,6 +250,8 @@ ani = m.animation("pend.ani")   # parsed and evaluated by XPPAUT
 ani.frame(100)                  # the shapes at row 100: lines, ellipses, ...
 ani.plot(100)                   # one frame with matplotlib
 ani.save_gif("pend.gif")        # an animated GIF (needs Pillow)
+ani.nullclines("u", "v")        # what the file's xnull and ynull lines draw
+ani.grab(.5, .5, .2, .8)        # drag a grab point; runs if the file says runnow=1
 
 xs.load("lorenz.ode").run().plot3d("X", "Y", "Z")
 ```

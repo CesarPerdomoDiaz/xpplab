@@ -106,6 +106,8 @@ commands. `help` lists them all.
 | `bvp` | Solve the boundary-value problem given by the model's `bndry` statements. |
 | `view3d X Y Z` | Show three columns in the 3D view. `view3d spin` turns it slowly (`view3d spin 60` at 60 degrees a second, `view3d spin off` stops it); `view3d angles 30 60` sets theta and phi. |
 | `ani pend.ani`, `ani play`, `ani row 100` | Open an XPPAUT animation, play it, or show one frame. |
+| `ani grab X Y X2 Y2` | Press a grab point of the animation at X Y, drag it and release at X2 Y2, as the Animator's Grab mode does. `ani grab on` shows the points. |
+| `ani nullclines s0 12 0 1.2` | Freeze the nullclines for 13 values of a parameter, for the `xnull` and `ynull` lines of the animation; without arguments, recompute the current ones. |
 | `spectrum V 1024` | Power spectral density of V in windows of 1024 points. `spectrum V W coherence` compares two columns (`psd`, `cross`, `coherence`). |
 | `fourier V`, `power V` | Fourier series of V over the run: cos and sin, or amplitude and phase. |
 | `hist V 50 -1 1` | Histogram of V in 50 bins from -1 to 1 (leave out the range to take it from the data). |

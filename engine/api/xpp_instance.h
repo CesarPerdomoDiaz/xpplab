@@ -104,6 +104,16 @@ extern "C" {
   X(int, xppe_ani_window, (double *, double *, double *, double *))           \
   X(int, xppe_ani_frame, (int))                                               \
   X(int, xppe_ani_get, (int, xppe_ani_item *))                                \
+  X(int, xppe_ani_segments, (int, double *, int))                             \
+  X(int, xppe_ani_frame_current, (void))                                      \
+  X(int, xppe_ani_frame_initial, (void))                                      \
+  X(int, xppe_ani_nullclines, (int, int, int, const char *, int, double,      \
+                               double))                                       \
+  X(int, xppe_ani_grab_count, (void))                                         \
+  X(int, xppe_ani_grab_point, (int, double *, double *, double *))            \
+  X(int, xppe_ani_grab_begin, (double, double, int *))                        \
+  X(int, xppe_ani_grab_move, (double, double, double))                        \
+  X(int, xppe_ani_grab_end, (int *, int *))                                   \
   X(int, xppe_auto_get, (const char *, double *))                             \
   X(int, xppe_auto_set, (const char *, double))                               \
   X(int, xppe_auto_parameters, (const char *, const char *))                  \

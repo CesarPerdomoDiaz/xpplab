@@ -1,0 +1,12 @@
+# A lambda-omega system of docs/design/isochrons.md (test 2):
+# r' = r(1-r^2), theta' = w + q(1-r^2) in Cartesian coordinates. The cycle is
+# r = 1 with period 2*pi/w; the asymptotic phase is (theta - q ln r)/w, so
+# for q != 0 the isochrons are logarithmic spirals.
+par w=1,q=1.5
+g=1-x^2-y^2
+om=w+q*g
+x'=x*g-y*om
+y'=y*g+x*om
+init x=1,y=0
+@ total=60,dt=0.01
+done

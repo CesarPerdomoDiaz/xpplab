@@ -16,7 +16,7 @@ import xpplab as xs
 
 ROOT = Path(__file__).resolve().parents[2]
 LEARN = ROOT / "docs" / "learn"
-PAGES = ["neuroscience", "ecology", "chemistry", "mechanics", "kite"]
+PAGES = ["neuroscience", "ecology", "chemistry", "mechanics", "kite", "control"]
 
 
 def blocks(page, language):
@@ -758,3 +758,100 @@ def test_kite_quoted_text(runs):
     text = (LEARN / "kite.md").read_text(encoding="utf-8")
     for number in ("2.0098", "2.2207", "22.08", "62.66", "79.28", "0.07090", "67.16"):
         assert number in text
+
+
+# -- control ----------------------------------------------------------------------
+
+def test_control_pendulum(runs):
+    r = runs["control"]
+    assert r.first("sol")["th"][-1] == pytest.approx(3.0638, abs=5e-5)   # fell
+    lin = r.history["lin"][0]
+    assert np.allclose(lin.A, [[0, 1], [1, -0.2]], atol=1e-6)
+    assert np.allclose(lin.B, [[0], [1]], atol=1e-6)
+    ev = sorted(lin.eigenvalues.real)
+    approx(ev[0], -1.1050, 5e-5)
+    approx(ev[1], 0.9050, 5e-5)
+    assert np.allclose(lin.controllability, [[0, 1], [1, -0.2]], atol=1e-6)
+    assert (lin.rank, lin.controllable) == (2, True)
+    K = r.history["K"][0]
+    assert np.allclose(K, [[6.0, 3.8]], atol=1e-6)
+    poles = np.linalg.eigvals(lin.A - lin.B @ K)
+    assert np.allclose(sorted(poles.imag), [-1, 1], atol=1e-6)
+    assert np.allclose(poles.real, -2, atol=1e-6)
+    q = r.history["lqr"][0]
+    assert np.allclose(q.K, [[4.3166, 2.9102]], atol=5e-5)
+    assert np.allclose(q.poles.real, -1.5551, atol=5e-5)
+    approx(abs(q.poles[0].imag), 0.9478, 5e-5)
+    # the closed loop holds the pendulum, also from far away
+    closed = r.history["closed"][0]
+    held = closed.run(th=0.5, w=0)
+    assert abs(held["th"][-1]) < 1e-9
+    far = r.first("far")
+    assert abs(far["th"][-1]) < 1e-9
+    approx(r.first("peak"), 18.0, 1e-6)
+    # without feedback the same start does not settle at the top
+    pend = r.ns["pend"]
+    assert abs(pend.run(th=0.5, w=0)["th"][-1]) > 1
+
+
+def test_control_pendulum_exercises(runs):
+    r = runs["control"]
+    pend, lin = r.ns["pend"], r.history["lin"][0]
+    for poles, gain, peak in (([-1, -1.5], [2.5, 2.3], 1.25),
+                              ([-2 + 1j, -2 - 1j], [6, 3.8], 3.0),
+                              ([-4 + 4j, -4 - 4j], [33, 7.8], 16.5)):
+        K = lin.place_poles(poles)
+        assert np.allclose(K, [gain], atol=1e-6)
+        s = lin.closed_loop(K).run(th=0.5, w=0)
+        approx(abs(K[0, 0] * s["th"] + K[0, 1] * s["w"]).max(), peak, 1e-6)
+    for R, want in ((0.01, [32.64, 12.66]), (1, [4.317, 2.910]),
+                    (100, [2.049, 1.837])):
+        assert np.allclose(lin.lqr(Q=[10, 1], R=R).K, [want], atol=5e-3)
+    pend.set(th=0.001, w=0, u=0, total=20)
+    s = pend.run()
+    t = s.t
+    grow = t[np.argmax(s["th"] >= 0.1)] - t[np.argmax(s["th"] >= 0.01)]
+    approx(grow, 2.55, 0.01)
+    approx(np.log(10) / 0.9050, 2.54, 0.005)
+
+
+def test_control_reactor(runs):
+    r = runs["control"]
+    eq = r.first("eq")
+    assert eq.kind == "saddle"
+    approx(eq["x1"], 0.4472, 5e-5)
+    approx(eq["x2"], 2.7517, 5e-5)
+    assert sorted(np.round(eq.eigenvalues.real, 4)) == [-0.8378, 0.4958]
+    cstr = r.ns["cstr"]
+    cstr.set(x1=0.5, x2=3.0, total=30)
+    approx(cstr.run()["x2"][-1], 4.705, 5e-4)       # runs away to the hot state
+    lin = r.history["lin"][1]
+    assert np.allclose(lin.A, [[-1.809, 0.346], [-6.471, 1.464]], atol=5e-4)
+    assert np.allclose(lin.B, [[0], [0.3]], atol=1e-6)
+    assert (lin.rank, lin.controllable) == (2, True)
+    approx(lin.valid_radius(), 0.060, 5e-4)
+    assert np.allclose(r.history["K"][1], [[-19.16, 7.185]], atol=5e-3)
+    q = r.history["lqr"][1]
+    assert np.allclose(q.K, [[-10.56, 4.172]], atol=5e-3)
+    assert np.allclose(q.poles.real, -0.798, atol=5e-4)
+    approx(abs(q.poles[0].imag), 0.346, 5e-4)
+    closed = r.history["closed"][1]
+    end = r.ns["sol"]
+    approx(end["x1"][-1], eq["x1"], 1e-4)
+    approx(end["x2"][-1], eq["x2"], 1e-4)
+    # the law is in the file, with the sign the text reads
+    text = Path(closed.path).read_text()
+    assert "uc" in text and "uc=" in text.replace(" ", "")
+    # exercises
+    for start in ((0.2, 1.0), (0.9, 8.0)):
+        closed.set(x1=start[0], x2=start[1], total=60)
+        s = closed.run()
+        approx(s["x1"][-1], eq["x1"], 1e-4)
+        approx(s["x2"][-1], eq["x2"], 1e-4)
+    heavy = lin.lqr(Q=[1000, 1], R=1)
+    assert np.allclose(heavy.K, [[-6.22, 8.12]], atol=5e-3)
+    assert np.allclose(heavy.poles.real, -1.39, atol=5e-3)
+    approx(abs(heavy.poles[0].imag), 1.19, 5e-3)
+    nolin = r.ns["cstr"].linearize()
+    with pytest.raises(ValueError):
+        nolin.place_poles([-1, -2])

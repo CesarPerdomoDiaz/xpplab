@@ -1,7 +1,7 @@
 # Learn by example
 
 These pages teach the mathematics of dynamical systems through models from
-five fields. Each page opens with the theory it needs, then works through
+six fields. Each page opens with the theory it needs, then works through
 examples: a model you can save and run, what to expect and why, the Python
 that reproduces it, and exercises with worked solutions. They are meant for
 a course, or for self-study with the desktop app open beside the text.
@@ -23,6 +23,9 @@ subject in full:
   Dynamics* (Oxford University Press, 1998), with Murray, Keener and Sneyd,
   and Atkins for the kinetics.
 
+- control: Åström and Murray, *Feedback Systems* (Princeton University
+  Press, 2021).
+
 The full references are at the end of each page.
 
 | Page | Models | What you learn |
@@ -31,6 +34,7 @@ The full references are at the end of each page.
 | [Ecology](ecology.md) | harvested population, Lotka-Volterra, Rosenzweig-MacArthur, competition | tipping points and hysteresis, conserved quantities, the paradox of enrichment, basins of attraction |
 | [Chemistry](chemistry.md) | consecutive reactions, Michaelis-Menten, Schlögl, Brusselator | exact solutions as tests, time scales and stiffness, bistability, chemical oscillators |
 | [Aerospace: a kite on a tether](kite.md) | single-line kite, from the Lagrangian to the lab | fold and subcritical Hopf, unstable orbits and Floquet multipliers, tether tension, invariant manifolds, which flights survive, scaling of the minimum wind, figures for a report |
+| [Control](control.md) | inverted pendulum, unstable reactor | linearisation, controllability, pole placement, LQR, the closed loop on the nonlinear model |
 | [Mechanics](mechanics.md) | pendulum, pendulum on a rotating hoop, pendulum with a vibrating support, van der Pol, forced pendulum | energy and Lagrange's theorem, pitchfork and Hopf bifurcations, averaging, parametric resonance, period doubling and chaos |
 
 ## How a page works

@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 14
+#define XPPE_API_VERSION 15
 
 enum {
   XPPE_OK = 0,
@@ -450,7 +450,7 @@ XPPE_API int xppe_ani_window(double *xlo, double *ylo, double *xhi,
 XPPE_API int xppe_ani_frame(int row);
 XPPE_API int xppe_ani_get(int i, xppe_ani_item *out);
 
-/* Nullclines and grab points (since API version 14).
+/* Nullclines and grab points (since API version 15).
  *
  * xnull and ynull draw the nullclines XPPAUT keeps: who = -1 the current
  * ones, k >= 0 the k-th frozen set (counted from 0). xppe_ani_nullclines()
@@ -462,8 +462,8 @@ XPPE_API int xppe_ani_get(int i, xppe_ani_item *out);
  * frozen sets. xppe_ani_frame() then gives each xnull and ynull command one
  * XPPE_ANI_NULLCLINE item, with no segments when its set exists but is empty
  * (the current ones before they are computed, or k equal to the number of
- * frozen sets), and no item at all when there is no such set (none frozen
- * yet, or k beyond them);
+ * frozen sets), and no item at all for k beyond that, or for any k >= 0
+ * before a nullcline has been computed;
  * xppe_ani_segments() copies the segments of item i as (x1, y1, x2, y2)
  * quadruples, up to max, and returns their number (all of them if out is
  * NULL). As XPPAUT draws them, the box maps onto 0..1 in the animation's

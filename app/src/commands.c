@@ -1254,6 +1254,7 @@ void app_command(App *a, const char *line_in) {
         !strncmp(p, "stop", 4)) {
       /* ani play | ani stop | ani row N: drive the animator from scripts */
       a->ani.playing = p[0] == 'p';
+      a->ani.show_initial = false; /* a row or Play shows the run again */
       if (p[0] == 'r') a->ani.row = atoi(p + 4);
       a->show_ani = true;
       snprintf(a->focus, sizeof a->focus, "animator");

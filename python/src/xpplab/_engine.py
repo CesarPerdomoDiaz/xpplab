@@ -19,7 +19,7 @@ from pathlib import Path
 
 __all__ = ["Engine", "EngineError", "find_engine_library"]
 
-API_VERSION = 14
+API_VERSION = 15
 
 OK = 0
 ERR_STATE = -1

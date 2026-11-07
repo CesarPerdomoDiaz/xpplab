@@ -195,7 +195,8 @@ void ui_animator(App *a) {
                            V2(org.x + (float)(s * (v->xhi - v->xlo)),
                               org.y + (float)(s * (v->yhi - v->ylo))),
                            igGetColorU32_Vec4(HEX(0xffffff)), 0, 0);
-  if (v->has_null &&
+  /* x equal to y happens for a moment while the axes are swapped: wait */
+  if (v->has_null && a->pp.xvar != a->pp.yvar &&
       (v->null_dirty || v->nc_x != a->pp.xvar || v->nc_y != a->pp.yvar))
     app_ani_nullclines(a, NULL, 0, 0, 0);
   if (v->grab && v->row != 0) v->row = 0;

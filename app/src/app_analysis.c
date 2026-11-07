@@ -244,7 +244,7 @@ bool app_ani_nullclines(App *a, const char *par, int steps, double lo, double hi
        range leaves the window as it was */
     if (par)
       app_log(a, "error: %s", x->xppe_error());
-    else
+    else if (rc == XPPE_ERR_STATE) /* no xnull or ynull in the file */
       v->has_null = false;
     return false;
   }

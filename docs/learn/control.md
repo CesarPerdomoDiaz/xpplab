@@ -252,12 +252,16 @@ feedback goes to the middle one and stays. In the app, load `cstr.ode`,
 run `eq` after setting the initial values to 0.45 and 2.7, then
 `linearize at eq inputs uc`, `lqr Q 10 1 R 1` and `closedloop`.
 
-The closed-loop model is also a file, shown by `closed.path`. The input
-is gone from its parameters and a line defines it from the states:
+The closed-loop model is also a file, at `closed.path`. The input is gone
+from its parameters and a line defines it from the states:
 
+```python
+law = next(s for s in open(closed.path) if s.startswith("uc="))
+law                                    # shortened: uc=0-(-10.56)*(X1-(0.4472))-(4.172)*(X2-(2.7517))
 ```
-uc = 0 - (-10.56)*(X1 - 0.4472) - (4.172)*(X2 - 2.7517)
-```
+
+The file has the numbers at full precision; the comment shows them to four
+digits. This is `uc = 0 - K (x - x*)`, written out.
 
 Read the gain sign: when the reactor is too hot, `uc` falls, the coolant
 is colder, and the temperature is pulled back.

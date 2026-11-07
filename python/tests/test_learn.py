@@ -839,9 +839,12 @@ def test_control_reactor(runs):
     end = r.ns["sol"]
     approx(end["x1"][-1], eq["x1"], 1e-4)
     approx(end["x2"][-1], eq["x2"], 1e-4)
-    # the law is in the file, with the sign the text reads
-    text = Path(closed.path).read_text()
-    assert "uc" in text and "uc=" in text.replace(" ", "")
+    # the law the page quotes is the one in the file: 0 - K (x - x*)
+    nums = [float(v) for v in re.findall(
+        r"-?\d+\.\d+(?:e[-+]?\d+)?|(?<![\w.])-?\d+(?![\w.])",
+        r.ns["law"].split("=", 1)[1])]
+    assert np.allclose(nums, [0, q.K[0, 0], eq["x1"], q.K[0, 1], eq["x2"]],
+                       atol=1e-9)
     # exercises
     for start in ((0.2, 1.0), (0.9, 8.0)):
         closed.set(x1=start[0], x2=start[1], total=60)

@@ -463,6 +463,8 @@ def test_root_locus_over_a_feedback_gain(session):
         session.root_locus(OSC, parameter="c")
     with pytest.raises(ToolError, match="needs K"):
         session.root_locus(OSC, start=0, stop=1, inputs=["u"])
+    with pytest.raises(ToolError, match="not both"):
+        session.root_locus(OSC, parameter="c", start=0, stop=1, input="u")
 
 
 def test_sensitivity_matches_the_package(session):
@@ -477,6 +479,8 @@ def test_sensitivity_matches_the_package(session):
     assert set(session.sensitivity(OSC)["sensitivity"]) == {"c", "k", "u"}
     with pytest.raises(ToolError, match="no parameter named"):
         session.sensitivity(OSC, ["nope"])
+    with pytest.raises(ToolError, match="no parameters"):
+        session.sensitivity("x'=-x\ninit x=1\n@ total=1\ndone\n")
 
 
 # -- plots ------------------------------------------------------------------------------

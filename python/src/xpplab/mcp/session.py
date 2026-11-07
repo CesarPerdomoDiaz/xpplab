@@ -1311,7 +1311,7 @@ class Session:
         if start is None or stop is None:
             raise ToolError("give start and stop: the range of the parameter, "
                             "or of the gain g when feeding back")
-        if parameter and (inputs or K is not None or state):
+        if parameter and (inputs or input or K is not None or state):
             raise ToolError("give either parameter (a locus over a parameter) "
                             "or inputs with K (or input and state) (a locus "
                             "over a feedback gain), not both")
@@ -1377,6 +1377,9 @@ class Session:
         """Sensitivities dx/dp along one run, from the variational equations."""
         entry, notes = self._entry(model)
         m = entry.model
+        if not list(m.parameters):
+            raise ToolError("the model has no parameters, so there is no "
+                            "sensitivity to compute")
         names = ([_match(p, list(m.parameters), "parameter") for p in parameters]
                  if parameters else None)
         with self._using(entry, values, parameter_set):

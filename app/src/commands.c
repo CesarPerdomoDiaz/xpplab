@@ -10,246 +10,178 @@
 #include "actions.h"
 #include "app.h"
 #include "channel.h"
+#include "docs.h"
 #include "export.h"
 #include "pyconsole.h"
 #include "pyfetch.h"
 
 void ui_show_help(App *a, const char *page);
 
-static const char *usage =
-    "Commands (XPPAUT keyboard equivalents in brackets):\n"
-    "  run                      integrate from the initial values [I G]\n"
-    "  continue [TIME]          integrate further from the end of the last\n"
-    "                           run and append to it [C C]\n"
-    "  set NAME=VALUE ...       set parameters, initial values or options\n"
-    "                           e.g.  set I=0.5 total=200 meth=stiff\n"
-    "  get NAME                 show a value\n"
-    "  whos                     list variables and parameters\n"
-    "  ic last                  start the next run where the last ended [I L]\n"
-    "  ic shift                 the same, and the time goes on from there [I S]\n"
-    "  ic read FILE             initial values from a file, one number per\n"
-    "                           variable [I F]; ic write FILE saves them\n"
-    "  ic NAME = FORMULA        a variable, or a range u[1..20] with [j] for\n"
-    "                           the index, from a formula [I U]\n"
-    "  click X Y                start a run at a point of the phase plane, as a\n"
-    "                           click does [I M]\n"
-    "  eq                       find an equilibrium and its stability [S G]\n"
-    "  eq all [GUESSES]         every equilibrium in the phase plane's window,\n"
-    "                           from random guesses (Sing pts > Monte Carlo)\n"
-    "  nullclines [off]         draw nullclines in the phase plane [N N]\n"
-    "  nullclines freeze        keep the nullclines drawn [N F]; nullclines\n"
-    "                           freeze PAR FROM TO N: for N values of PAR;\n"
-    "                           nullclines unfreeze deletes them; nullclines\n"
-    "                           show K shows the K-th alone (0: all), and\n"
-    "                           nullclines play steps through them\n"
-    "  dirfield [off]           draw the direction field [D D]\n"
-    "  erase                    remove kept curves [E]\n"
-    "  use SET                  apply a named parameter set\n"
-    "  auto steady [PAR]        follow steady states as PAR varies\n"
-    "  auto from LABEL ACTION [PAR2]\n"
-    "                           continue from a labelled point; ACTION is\n"
-    "                           periodic | two | extend | switch | doubling\n"
-    "  auto set DS=0.01 ...     AUTO numerics (ds, dsmin, dsmax, nmax, npr,\n"
-    "                           parmin, parmax, ntst)\n"
-    "  auto reset               clear the bifurcation diagram\n"
-    "  auto save FILE.auto      save the diagram, AUTO's settings and restart\n"
-    "                           data; auto load FILE.auto brings it back\n"
-    "  auto orbit LABEL         the periodic orbit at a point as the run\n"
-    "  range NAME FROM TO N [NAME2 FROM2 TO2 [N2]] [VAR|lyap|eq] [continue]\n"
-    "                           XPPAUT's Range: N runs over a parameter or\n"
-    "                           initial value; with VAR plot its max and min\n"
-    "                           (a brute-force diagram), with lyap the\n"
-    "                           Liapunov exponent; continue starts each run\n"
-    "                           where the last ended (also: sweep); eq\n"
-    "                           follows the equilibrium (Sing pts > Range).\n"
-    "                           NAME2: a second value too, on a grid of\n"
-    "                           N2 steps, or without N2 along with the first\n"
-    "                           (XPPAUT's 2par range). film [FIGURE]: each\n"
-    "                           run drawn alone and captured by the Kinescope\n"
-    "                           (Range's Movie)\n"
-    "  kinescope capture [FIG]  a picture of a figure (time, phase, auto,\n"
-    "                           auto2) for the Kinescope [K C]; kinescope\n"
-    "                           play [MS], stop, show K, clear, save F.gif\n"
-    "                           [MS], frames BASE (PNG files), film [FIG]\n"
-    "  py CODE                  run a line of Python in the console (xs, np,\n"
-    "                           app and m, the model here, are defined);\n"
-    "                           py alone: the command window takes Python\n"
-    "  python [use PATH | stop] the console's Python: choose one, or stop it;\n"
-    "                           python fetch downloads XPP Lab's own (once);\n"
-    "                           python install PKG... runs pip for it\n"
-    "  serve [on|off]           let Python drive the app: in Python,\n"
-    "                           app = xpplab.app.connect()\n"
-    "  many N [seed S] VAR LO HI ... [keep COL LO HI]\n"
-    "                           N runs from initial values drawn in a box,\n"
-    "                           kept where COL (e.g. an aux) lies in LO HI;\n"
-    "                           each keeps the global flag that stopped it\n"
-    "  shoot [eps E] [time T] [unstable|stable|both]\n"
-    "                           runs off the equilibrium along its real\n"
-    "                           eigenvectors, both ways (XPPAUT's sHoot)\n"
-    "  figure [new W H [ROWS COLS] | panel K | grid R C | inset]\n"
-    "                           the Figure window: a figure for papers\n"
-    "  figure run X Y | many X Y [split] | diagram Y [x X] [min]\n"
-    "         [stable|unstable] [steady|orbits] [branch B] [between L1 L2]\n"
-    "         | range [max|min] | function F LO HI | curve Y X LO HI | eq\n"
-    "         | from time|phase|auto|auto2\n"
-    "                           add series to the selected panel\n"
-    "  figure title|xlabel|ylabel TEXT, xlim|ylim LO HI|auto,\n"
-    "         style K [color #rrggbb] [line --] [width W] [marker o]\n"
-    "         [scale SX SY] [label TEXT], export FILE.pdf|svg|eps|png [DPI]\n"
-    "  bvp                      solve the boundary-value problem (bndry)\n"
-    "  ani FILE.ani             open an XPPAUT animation of the run;\n"
-    "                           ani play, ani stop, ani row N\n"
-    "  ani grab X Y X2 Y2       press a grab point at X Y, release at X2 Y2\n"
-    "  ani nullclines [PAR N LO HI]  the nullclines of an xnull/ynull file\n"
-    "  view3d X Y Z             show three columns in the 3-D view;\n"
-    "                           view3d spin [DEG/S | off], view3d angles TH PHI\n"
-    "Analysis of the last run (XPPAUT's Numerics > stocHastic, Averaging):\n"
-    "  spectrum COL [COL2] [psd|cross|coherence] [N]\n"
-    "                           spectral density, windows of N points\n"
-    "  fourier COL | power COL  Fourier series: cos/sin, amplitude/phase\n"
-    "  hist COL [BINS] [LO HI]  histogram of a column\n"
-    "  hist2d X Y [BINS]        two-dimensional histogram\n"
-    "  xcorr COL [COL2] [LAGS]  auto- or cross-correlation\n"
-    "  mean COL                 mean, deviation, Liapunov exponent\n"
-    "  ensemble [N]             N runs of a noisy model averaged: the mean\n"
-    "                           and variance at each time (stocHastic >\n"
-    "                           Compute; export F.csv analysis saves them)\n"
-    "  prc                      phase response curves of the limit cycle\n"
-    "  hfun F1; F2; ...         H function: one coupling per variable,\n"
-    "                           primed names are the other cell (V'-V)\n"
-    "  fitdata FILE VARS COLS PARS\n"
-    "                           fit parameters to data (comma lists)\n"
-    "Control:\n"
-    "  linearize [at eq|ic] [inputs] P1 P2 ...\n"
-    "                           A and B at the equilibrium (or the initial\n"
-    "                           values), the eigenvalues, and whether the\n"
-    "                           parameters P1 ... can steer every state\n"
-    "                           (export F.csv analysis saves the table)\n"
-    "  poles P1 P2 ...          the feedback gain K that gives A - B K these\n"
-    "                           poles (one per state: -2, -1+2i, -1-2i)\n"
-    "  lqr [Q q1 ...] [R r1 ...] the optimal gain K for state weights Q and\n"
-    "                           input weights R (diagonal; one number for\n"
-    "                           all alike), as poles gives one\n"
-    "  closedloop [FILE]        write the closed loop u = u0 - K (x - x*) as\n"
-    "                           a model next to this one, open it and run it\n"
-    "  locus gain LO HI [N]     root locus: the poles of A - g B K for N gains\n"
-    "                           g from LO to HI (K from poles); locus feedback\n"
-    "                           INPUT STATE LO HI [N] feeds one state back;\n"
-    "                           locus par P LO HI [N] follows the equilibrium\n"
-    "                           as P changes (export F.csv locus saves it)\n"
-    "  open FILE | new | save   models\n"
-    "  export FILE.csv [WHAT]   save data as CSV: the last run, or auto (the\n"
-    "                           bifurcation diagram), range, analysis or\n"
-    "                           equilibria (the last eq all) or nullclines\n"
-    "                           (those shown and frozen). FILE.mat writes a\n"
-    "                           MATLAB file instead (not for linearize)\n"
-    "  export FILE.svg [WHICH]  save a figure (time, phase, auto, auto2);\n"
-    "                           .png saves it as it looks on screen\n"
-    "  script FILE.py           save the session as a Python script that\n"
-    "                           repeats it with the xpplab package\n"
-    "  echo on | off            show each action as Python here, or not\n"
-    "  show WINDOW              bring a window forward: time, phase, auto,\n"
-    "                           editor, data, analysis, 3d, animator, help,\n"
-    "                           console, workspace; hide WINDOW closes one\n"
-    "  layout side | tabs       the phase plane beside the time series, or\n"
-    "                           all plots in tabs\n"
-    "  freeze                   keep the current curve on the plots\n"
-    "  sets                     list the model's parameter sets (use SET applies one)\n"
-    "  fit                      fit the plots to the data: double-click a plot [W F]\n"
-    "  theme dark | light       the colour theme\n"
-    "  clear                    clear this window (also clc)\n"
-    "  quit                     leave the app [F Q] (also exit)\n"
-    "  palette [TEXT]           the command palette: find and run any menu action\n"
-    "                           or command by name [Ctrl+Shift+P]; palette run\n"
-    "                           runs the first match of the text, palette list\n"
-    "                           lists everything it finds, palette search TEXT\n"
-    "                           shows the best five matches without running\n"
-    "                           any, palette enter acts on the open palette as\n"
-    "                           Enter does (it needs the app's window)\n"
-    "  help [TOPIC]             open the manual (topics: tutorial,\n"
-    "                           neuron-tutorial, auto, analysis, odefile, numerics, commands, xppaut,\n"
-    "                           matlab, auto07p, codim2)\n";
-
-const char *app_command_usage(void) { return usage; }
-
-/* Every command of the command window, for the palette. `help` (the usage
-   text above) describes them in full; `palette check` makes sure each
-   command it lists is here. A command with args needs more than its name. */
+/* Every command of the command window. `help` is generated from this table,
+   and so is the command palette. A command with args needs more than its
+   name; detail is more text for `help`, or NULL. */
 const CommandInfo app_command_table[] = {
     {"run", NULL, "Integrate from the initial values.", "I G", NEED_MODEL},
-    {"continue", NULL, "Integrate further from the end of the last run and append to it.", "C C", NEED_RUN},
-    {"set", "NAME=VALUE ...", "Set parameters, initial values or options (total, meth, ...).", NULL, NEED_MODEL},
+    {"continue", NULL, "Integrate further from the end of the last run and append to it.", "C C", NEED_RUN, "continue [TIME] integrates for TIME more."},
+    {"set", "NAME=VALUE ...", "Set parameters, initial values or options (total, meth, ...).", NULL, NEED_MODEL, "e.g.  set I=0.5 total=200 meth=stiff"},
     {"get", "NAME", "Show the value of a variable, parameter or option.", NULL, NEED_MODEL},
     {"whos", NULL, "List the variables and parameters.", NULL, NEED_MODEL},
     {"ic last", NULL, "Start the next run where the last one ended.", "I L", NEED_RUN},
     {"ic shift", NULL, "Start the next run where the last ended, and let time go on from there.", "I S", NEED_RUN},
-    {"ic read", "FILE", "Read initial values from a file, one number per variable.", "I F", NEED_MODEL},
+    {"ic read", "FILE", "Read initial values from a file, one number per variable.", "I F", NEED_MODEL, "ic write FILE saves them."},
     {"ic write", "FILE", "Write the initial values to a file.", NULL, NEED_MODEL},
+    {"ic", "NAME = FORMULA", "Set a variable, or a range u[1..20] with [j] for the index, from a formula.", "I U", NEED_MODEL},
     {"click", "X Y", "Start a run at a point of the phase plane, as a click does.", "I M", NEED_MODEL},
     {"eq", NULL, "Find an equilibrium near the initial values and its stability.", "S G", NEED_MODEL},
-    {"eq all", NULL, "Find every equilibrium in the phase plane's window from random guesses.", NULL, NEED_MODEL},
-    {"nullclines", NULL, "Draw the nullclines in the phase plane.", "N N", NEED_MODEL},
-    {"nullclines freeze", NULL, "Keep the nullclines drawn.", "N F", NEED_MODEL},
+    {"eq all", NULL, "Find every equilibrium in the phase plane's window from random guesses.", NULL, NEED_MODEL, "eq all [GUESSES] sets the number of random guesses (Sing pts > Monte Carlo)."},
+    {"nullclines", NULL, "Draw the nullclines in the phase plane.", "N N", NEED_MODEL, "nullclines off hides them."},
+    {"nullclines freeze", NULL, "Keep the nullclines drawn.", "N F", NEED_MODEL, "nullclines freeze PAR FROM TO N keeps them for N values of PAR.\nnullclines show K shows the K-th alone (0: all)."},
     {"nullclines unfreeze", NULL, "Delete the frozen nullclines.", NULL, NEED_MODEL},
     {"nullclines play", NULL, "Step through the frozen nullclines.", NULL, NEED_MODEL},
-    {"dirfield", NULL, "Draw the direction field in the phase plane.", "D D", NEED_MODEL},
+    {"dirfield", NULL, "Draw the direction field in the phase plane.", "D D", NEED_MODEL, "dirfield off hides it."},
     {"erase", NULL, "Remove the kept curves.", "E", NEED_NONE},
     {"fit", NULL, "How to fit the plots to the data: double-click a plot.", "W F", NEED_NONE},
     {"freeze", NULL, "Keep the current curve on the plots.", NULL, NEED_RUN},
     {"use", "SET", "Apply a named parameter set of the model.", NULL, NEED_MODEL},
     {"sets", NULL, "List the model's named parameter sets.", NULL, NEED_MODEL},
     {"auto steady", NULL, "Follow steady states as a parameter varies (AUTO).", NULL, NEED_MODEL},
-    {"auto from", "LABEL ACTION [PAR2]", "Continue from a labelled point of the diagram: periodic, two, extend, switch, doubling.", NULL, NEED_BRANCH},
+    {"auto from", "LABEL ACTION [PAR2]", "Continue from a labelled point of the diagram: periodic, two, extend, switch, doubling.", NULL, NEED_BRANCH, "ACTION is periodic | two | extend | switch | doubling."},
     {"auto set", "DS=0.01 ...", "Set AUTO's numerics (ds, dsmin, dsmax, nmax, npr, parmin, parmax, ntst).", NULL, NEED_MODEL},
     {"auto reset", NULL, "Clear the bifurcation diagram.", NULL, NEED_NONE},
     {"auto save", "FILE.auto", "Save the diagram, AUTO's settings and restart data.", NULL, NEED_BRANCH},
     {"auto load", "FILE.auto", "Bring a saved diagram back.", NULL, NEED_MODEL},
     {"auto orbit", "LABEL", "Show the periodic orbit at a point of the diagram as the run.", NULL, NEED_BRANCH},
-    {"range", "NAME FROM TO N ...", "Run over a range of a parameter or initial value (also sweep).", NULL, NEED_MODEL},
-    {"kinescope capture", NULL, "Take a picture of a figure for the Kinescope.", "K C", NEED_MODEL},
-    {"kinescope play", NULL, "Play the Kinescope's pictures.", "K A", NEED_NONE},
+    {"range", "NAME FROM TO N ...", "Run over a range of a parameter or initial value (also sweep).", NULL, NEED_MODEL, "range NAME FROM TO N [NAME2 FROM2 TO2 [N2]] [VAR|lyap|eq] [continue]\nXPPAUT's Range: N runs over a parameter or initial value. With VAR\nit plots the maximum and minimum (a brute-force diagram), with lyap\nthe Liapunov exponent; continue starts each run where the last\nended; eq follows the equilibrium (Sing pts > Range). NAME2: a\nsecond value too, on a grid of N2 steps, or without N2 along with\nthe first (XPPAUT's 2par range). film [FIGURE] draws each run\nalone and captures it for the Kinescope (Range's Movie)."},
+    {"kinescope capture", NULL, "Take a picture of a figure for the Kinescope.", "K C", NEED_MODEL, "kinescope capture [FIG]: FIG is time, phase, auto or auto2.\nAlso: kinescope stop, show K, save F.gif [MS], frames BASE (PNG\nfiles), film [FIG]."},
+    {"kinescope play", NULL, "Play the Kinescope's pictures.", "K A", NEED_NONE, "kinescope play [MS] sets the time per picture."},
     {"kinescope clear", NULL, "Delete the Kinescope's pictures.", "K R", NEED_NONE},
-    {"py", "CODE", "Run a line of Python in the console.", NULL, NEED_NONE},
-    {"python", "use PATH | stop | fetch | install PKG", "Choose, stop or download the console's Python.", NULL, NEED_NONE},
-    {"serve", NULL, "Let Python drive the app (xpplab.app.connect()).", NULL, NEED_NONE},
-    {"many", "N VAR LO HI ...", "Many runs from initial values drawn in a box.", NULL, NEED_MODEL},
-    {"shoot", NULL, "Runs off the equilibrium along its real eigenvectors, both ways.", NULL, NEED_MODEL},
-    {"figure", "new W H | panel K | run X Y | ...", "The Figure window: build a figure for papers.", NULL, NEED_MODEL},
+    {"py", "CODE", "Run a line of Python in the console.", NULL, NEED_NONE, "xs, np, app and m (the model here) are defined. py alone: the\ncommand window takes Python until you leave it."},
+    {"python", "use PATH | stop | fetch | install PKG", "Choose, stop or download the console's Python.", NULL, NEED_NONE, "python fetch downloads XPP Lab's own Python (once); python\ninstall PKG... runs pip for it."},
+    {"serve", NULL, "Let Python drive the app (xpplab.app.connect()).", NULL, NEED_NONE, "serve [on|off]. In Python:  app = xpplab.app.connect()"},
+    {"many", "N VAR LO HI ...", "Many runs from initial values drawn in a box.", NULL, NEED_MODEL, "many N [seed S] VAR LO HI ... [keep COL LO HI]\nRuns from initial values drawn in a box, kept where COL (e.g. an\naux) lies in LO HI; each keeps the global flag that stopped it."},
+    {"shoot", NULL, "Runs off the equilibrium along its real eigenvectors, both ways.", NULL, NEED_MODEL, "shoot [eps E] [time T] [unstable|stable|both]  (XPPAUT's sHoot)"},
+    {"figure", "new W H | panel K | run X Y | ...", "The Figure window: build a figure for papers.", NULL, NEED_MODEL, "figure [new W H [ROWS COLS] | panel K | grid R C | inset]\nfigure run X Y | many X Y [split] | diagram Y [x X] [min]\n       [stable|unstable] [steady|orbits] [branch B] [between L1 L2]\n       | range [max|min] | function F LO HI | curve Y X LO HI | eq\n       | from time|phase|auto|auto2   add series to the panel\nfigure title|xlabel|ylabel TEXT, xlim|ylim LO HI|auto,\n       style K [color #rrggbb] [line --] [width W] [marker o]\n       [scale SX SY] [label TEXT], export FILE.pdf|svg|eps|png [DPI]"},
     {"bvp", NULL, "Solve the boundary-value problem (bndry conditions).", NULL, NEED_MODEL},
-    {"ani", "FILE.ani", "Open an XPPAUT animation of the run.", NULL, NEED_MODEL},
-    {"view3d", "X Y Z", "Show three columns in the 3-D view.", NULL, NEED_RUN},
-    {"spectrum", "COL [COL2] [N]", "Power spectral density, cross spectrum or coherence of the last run.", NULL, NEED_RUN},
+    {"ani", "FILE.ani", "Open an XPPAUT animation of the run.", NULL, NEED_MODEL, "ani play, ani stop, ani row N; ani grab X Y X2 Y2 presses a\ngrab point at X Y and releases it at X2 Y2; ani nullclines [PAR N\nLO HI] draws the nullclines of an xnull/ynull file."},
+    {"view3d", "X Y Z", "Show three columns in the 3-D view.", NULL, NEED_RUN, "view3d spin [DEG/S | off], view3d angles TH PHI"},
+    {"spectrum", "COL [COL2] [N]", "Power spectral density, cross spectrum or coherence of the last run.", NULL, NEED_RUN, "spectrum COL [COL2] [psd|cross|coherence] [N]: windows of N points."},
     {"fourier", "COL", "Fourier series of a column: cos/sin and amplitude/phase.", NULL, NEED_RUN},
     {"power", "COL", "Fourier series of a column as amplitude and phase.", NULL, NEED_RUN},
-    {"hist", "COL [BINS]", "Histogram of a column of the last run.", NULL, NEED_RUN},
+    {"hist", "COL [BINS]", "Histogram of a column of the last run.", NULL, NEED_RUN, "hist COL [BINS] [LO HI]"},
     {"hist2d", "X Y [BINS]", "Two-dimensional histogram of two columns.", NULL, NEED_RUN},
     {"xcorr", "COL [COL2] [LAGS]", "Auto- or cross-correlation of the last run.", NULL, NEED_RUN},
     {"mean", "COL", "Mean, deviation and Liapunov exponent of a column.", NULL, NEED_RUN},
-    {"ensemble", NULL, "Average many runs of a noisy model: mean and variance at each time.", NULL, NEED_MODEL},
+    {"ensemble", NULL, "Average many runs of a noisy model: mean and variance at each time.", NULL, NEED_MODEL, "ensemble [N]: stocHastic > Compute; export F.csv analysis saves\nthe mean and variance."},
     {"prc", NULL, "Phase response curves of the limit cycle.", NULL, NEED_MODEL},
-    {"hfun", "F1; F2; ...", "H function: the weak-coupling interaction, one per variable.", NULL, NEED_MODEL},
+    {"hfun", "F1; F2; ...", "H function: the weak-coupling interaction, one per variable.", NULL, NEED_MODEL, "Primed names are the other cell (V'-V)."},
     {"fitdata", "FILE VARS COLS PARS", "Fit parameters to data.", NULL, NEED_MODEL},
-    {"linearize", NULL, "A and B at the equilibrium, its eigenvalues and controllability.", NULL, NEED_MODEL},
-    {"poles", "P1 P2 ...", "The feedback gain K that gives A - B K these poles.", NULL, NEED_MODEL},
-    {"lqr", NULL, "The optimal feedback gain for state and input weights.", NULL, NEED_MODEL},
-    {"closedloop", NULL, "Write the closed loop as a model next to this one and open it.", NULL, NEED_MODEL},
-    {"locus", "gain LO HI [N]", "Root locus of the closed loop over a gain, a state or a parameter.", NULL, NEED_MODEL},
+    {"linearize", NULL, "A and B at the equilibrium, its eigenvalues and controllability.", NULL, NEED_MODEL, "linearize [at eq|ic] [inputs] P1 P2 ...: A and B at the\nequilibrium (or the initial values), the eigenvalues, and whether\nthe parameters P1 ... can steer every state (export F.csv\nanalysis saves the table)."},
+    {"poles", "P1 P2 ...", "The feedback gain K that gives A - B K these poles.", NULL, NEED_MODEL, "One pole per state: -2, -1+2i, -1-2i."},
+    {"lqr", NULL, "The optimal feedback gain for state and input weights.", NULL, NEED_MODEL, "lqr [Q q1 ...] [R r1 ...]: diagonal weights; one number for all\nalike. Without them it gives the gain of poles."},
+    {"closedloop", NULL, "Write the closed loop as a model next to this one and open it.", NULL, NEED_MODEL, "closedloop [FILE]: the loop is u = u0 - K (x - x*)."},
+    {"locus", "gain LO HI [N]", "Root locus of the closed loop over a gain, a state or a parameter.", NULL, NEED_MODEL, "locus gain LO HI [N]: the poles of A - g B K for N gains g (K from\npoles). locus feedback INPUT STATE LO HI [N] feeds one state back;\nlocus par P LO HI [N] follows the equilibrium as P changes\n(export F.csv locus saves it)."},
     {"open", "FILE", "Open a model file.", NULL, NEED_NONE},
     {"new", NULL, "Start a new model from a template.", NULL, NEED_NONE},
     {"save", NULL, "Save the model in the editor and reload it.", NULL, NEED_NONE},
-    {"export", "FILE.csv [WHAT]", "Save data as CSV or MATLAB .mat, or a figure as SVG or PNG.", NULL, NEED_NONE},
+    {"export", "FILE.csv [WHAT]", "Save data as CSV or MATLAB .mat, or a figure as SVG or PNG.", NULL, NEED_NONE, "export FILE.csv [auto|range|analysis|equilibria|nullclines|locus]:\nthe last run, or the bifurcation diagram, a range, the analysis,\nthe last eq all, or the nullclines shown and frozen. FILE.mat\nwrites a MATLAB file (not for linearize). export FILE.svg|png\n[time|phase|auto|auto2] saves a figure; .png as it looks on screen."},
     {"script", "FILE.py", "Save the session as a Python script that repeats it.", NULL, NEED_NONE},
     {"echo", "on | off", "Show each action as Python in the command window, or not.", NULL, NEED_NONE},
-    {"show", "WINDOW", "Bring a window forward (time, phase, auto, editor, data, ...).", NULL, NEED_NONE},
+    {"show", "WINDOW", "Bring a window forward (time, phase, auto, editor, data, ...).", NULL, NEED_NONE, "WINDOW: time, phase, auto, editor, data, analysis, 3d, animator,\nhelp, console, workspace."},
     {"hide", "WINDOW", "Close a window.", NULL, NEED_NONE},
     {"layout", "side | tabs", "The phase plane beside the time series, or all plots in tabs.", NULL, NEED_NONE},
     {"theme", "dark | light", "Switch the colour theme.", NULL, NEED_NONE},
-    {"help", NULL, "List the commands, or open a manual page (help TOPIC).", NULL, NEED_NONE},
-    {"palette", NULL, "Open the command palette.", MOD "Shift+P", NEED_NONE},
-    {"clear", NULL, "Clear the command window.", NULL, NEED_NONE},
-    {"quit", NULL, "Leave the app.", "F Q", NEED_NONE},
+    {"help", NULL, "List the commands, or open a manual page (help TOPIC).", NULL, NEED_NONE, "help COMMAND prints that command's entry; help PAGE opens a\nmanual page."},
+    {"palette", NULL, "Open the command palette.", MOD "Shift+P", NEED_NONE, "palette run runs the first match of the text, palette list lists\neverything it finds, palette search TEXT shows the best five\nmatches without running any, palette enter acts on the open\npalette as Enter does (it needs the app's window)."},
+    {"clear", NULL, "Clear the command window.", NULL, NEED_NONE, "Also clc."},
+    {"quit", NULL, "Leave the app.", "F Q", NEED_NONE, "Also exit."},
 };
 const int app_ncommands = (int)(sizeof app_command_table / sizeof app_command_table[0]);
+
+static char *skip_space(char *s);
+
+/* ---- help, generated from the table ---------------------------------------- */
+
+enum { HELP_INDENT = 27, HELP_WIDTH = 78 };
+
+/* Append text to buf, wrapped at HELP_WIDTH with each new line indented. */
+static void help_wrap(char *buf, size_t n, const char *text, int col) {
+  size_t len = strlen(buf);
+  while (*text) {
+    size_t w = strcspn(text, " ");
+    if (col > HELP_INDENT && col + 1 + (int)w > HELP_WIDTH) {
+      len += (size_t)snprintf(buf + len, n - len, "\n%*s", HELP_INDENT, "");
+      col = HELP_INDENT;
+    } else if (col > HELP_INDENT) {
+      len += (size_t)snprintf(buf + len, n - len, " ");
+      col++;
+    }
+    len += (size_t)snprintf(buf + len, n - len, "%.*s", (int)w, text);
+    col += (int)w;
+    text += w;
+    while (*text == ' ') text++;
+  }
+}
+
+/* One command's entry of `help`: name and arguments, the description, the
+   XPPAUT keys, and the longer text. */
+static void help_entry(App *a, const CommandInfo *c) {
+  char buf[2048], head[160];
+  const char *d;
+  int col;
+  snprintf(head, sizeof head, "  %s%s%s", c->name, c->args ? " " : "", c->args ? c->args : "");
+  col = (int)strlen(head);
+  if (col < HELP_INDENT - 1) {
+    snprintf(buf, sizeof buf, "%-*s", HELP_INDENT, head);
+    col = HELP_INDENT;
+  } else {
+    snprintf(buf, sizeof buf, "%s\n%*s", head, HELP_INDENT, "");
+    col = HELP_INDENT;
+  }
+  help_wrap(buf, sizeof buf, c->description, col);
+  if (c->shortcut) {
+    size_t len = strlen(buf);
+    snprintf(buf + len, sizeof buf - len, " [%s]", c->shortcut);
+  }
+  for (d = c->detail; d && *d;) {
+    size_t len = strlen(buf), k = strcspn(d, "\n");
+    snprintf(buf + len, sizeof buf - len, "\n%*s%.*s", HELP_INDENT, "", (int)k, d);
+    d += k + (d[k] == '\n');
+  }
+  app_log(a, "%s", buf);
+}
+
+/* The rows whose name is `topic` or starts with it and a space; how many. */
+static int help_commands(App *a, const char *topic) {
+  size_t n = strlen(topic);
+  int i, found = 0;
+  for (i = 0; i < app_ncommands; i++) {
+    const char *c = app_command_table[i].name;
+    if (SDL_strncasecmp(c, topic, n) == 0 && (c[n] == '\0' || c[n] == ' ')) {
+      help_entry(a, &app_command_table[i]);
+      found++;
+    }
+  }
+  return found;
+}
+
+/* `help`: every command; `help COMMAND`: its entry; `help PAGE`: a page. */
+static void cmd_help(App *a, char *rest) {
+  char pages[512], *topic = skip_space(rest), *end;
+  int i;
+  for (end = topic + strlen(topic); end > topic && isspace((unsigned char)end[-1]);) *--end = '\0';
+  docs_names(pages, sizeof pages);
+  if (!*topic) {
+    app_log(a, "Commands (XPPAUT keyboard equivalents in brackets; help COMMAND "
+               "for one command):");
+    for (i = 0; i < app_ncommands; i++) help_entry(a, &app_command_table[i]);
+    app_log(a, "Manual pages (help NAME opens one): %s", pages);
+  } else if (!strchr(topic, ' ') && docs_find(topic)) {
+    ui_show_help(a, topic);
+  } else if (!help_commands(a, topic)) {
+    app_log(a, "error: no command or manual page '%s'. Pages: %s. "
+               "'help' lists the commands.", topic, pages);
+  }
+}
 
 static char *skip_space(char *s) {
   while (*s && isspace((unsigned char)*s)) s++;
@@ -976,11 +908,7 @@ void app_command(App *a, const char *line_in) {
   for (char *c = cmd; *c; c++) *c = (char)tolower((unsigned char)*c);
 
   if (!strcmp(cmd, "help") || !strcmp(cmd, "?")) {
-    char *topic = next_word(&rest);
-    if (topic)
-      ui_show_help(a, topic);
-    else
-      app_log(a, "%s", usage);
+    cmd_help(a, rest);
   } else if (!strcmp(cmd, "run") || !strcmp(cmd, "go") || !strcmp(cmd, "ig")) {
     app_run(a);
   } else if (!strcmp(cmd, "continue") || !strcmp(cmd, "cc")) {

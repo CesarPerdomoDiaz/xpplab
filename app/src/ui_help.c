@@ -18,9 +18,9 @@ static char search[64];
 void ui_show_help(App *a, const char *page) {
   const doc_page *p = docs_find(page);
   if (!p) {
-    app_log(a, "No help page '%s'. Pages: welcome, tutorial, "
-               "neuron-tutorial, auto, odefile, numerics, commands, xppaut, "
-               "matlab, auto07p, codim2, about.", page);
+    char names[512];
+    docs_names(names, sizeof names);
+    app_log(a, "No help page '%s'. Pages: %s.", page, names);
     return;
   }
   snprintf(a->help_page, sizeof a->help_page, "%s", p->name);

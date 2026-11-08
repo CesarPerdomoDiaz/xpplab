@@ -179,7 +179,8 @@ target_compile_definitions(xpplab PRIVATE
 # it shares the app's core: the commands, the echo, the exports.
 add_executable(xpplab-batch
   src/batch.c src/app.c src/app_analysis.c src/app_kinescope.c src/echo.c
-  src/commands.c src/actions.c src/export.c src/app_figure.c
+  src/commands.c src/actions.c src/export.c src/app_figure.c src/docs.c
+  ${GEN}/docs_index.c ${DOC_SOURCES}
   ${PROJECT_SOURCE_DIR}/engine/api/xpp_instance.c)
 target_include_directories(xpplab-batch PRIVATE src ${PROJECT_SOURCE_DIR}/engine/api ${TP})
 target_link_libraries(xpplab-batch PRIVATE xpps_fig SDL3::SDL3)

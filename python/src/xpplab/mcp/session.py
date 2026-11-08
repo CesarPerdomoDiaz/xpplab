@@ -24,6 +24,7 @@ import os
 import re
 import tempfile
 import threading
+import warnings
 from collections import OrderedDict
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -127,6 +128,54 @@ def _r(x, digits: int = 6):
 
 def _rlist(a, digits: int = 6) -> list:
     return [_r(v, digits) for v in np.asarray(a, dtype=float).ravel()]
+
+
+def _rmat(a) -> list:
+    """A matrix as rows of rounded numbers."""
+    a = np.asarray(a, dtype=float)
+    return [_rlist(row) for row in a.reshape(a.shape[0], -1)] if a.size else \
+        [[] for _ in range(a.shape[0] if a.ndim else 0)]
+
+
+def _eigs(z) -> list:
+    """Eigenvalues as [re, im] pairs, the largest real part first."""
+    z = np.atleast_1d(np.asarray(z, dtype=complex))
+    return [[_r(v.real), _r(v.imag)] for v in z[np.argsort(-z.real, kind="stable")]]
+
+
+def _stable(z, discrete: bool) -> bool:
+    z = np.asarray(z, dtype=complex)
+    z = z[np.isfinite(z)]
+    return bool(np.all(np.abs(z) < 1) if discrete else np.all(z.real < 0))
+
+
+def _poles(poles) -> np.ndarray:
+    """Poles from numbers (real) and [re, im] pairs."""
+    if not isinstance(poles, (list, tuple)) or not poles:
+        raise ToolError("poles is a list with one entry per state: a real "
+                        "number, or [re, im] for a complex one (give both "
+                        "members of a conjugate pair)")
+    out = []
+    for p in poles:
+        if isinstance(p, (list, tuple)):
+            if len(p) != 2:
+                raise ToolError(f"a complex pole is [re, im], not {p!r}")
+            out.append(complex(float(p[0]), float(p[1])))
+        else:
+            out.append(complex(float(p)))
+    return np.array(out)
+
+
+def _law(lin, K) -> list[str]:
+    """The control law of each input, as text."""
+    K = np.atleast_2d(K)
+    names = list(lin.point)
+    out = []
+    for i, p in enumerate(lin.inputs):
+        terms = " ".join(f"- ({_r(K[i, j], 6)})*({v} - {_r(lin.point[v], 6)})"
+                         for j, v in enumerate(names))
+        out.append(f"{p} = {_r(lin._p0[i], 6)} {terms}")
+    return out
 
 
 def _key(name: str) -> str:
@@ -1115,6 +1164,247 @@ class Session:
                            for c in sol.columns if c != "T"}}
         out["csv"] = self._write_csv(entry, "bvp", {k: sol[k] for k in sol.columns})
         out["python"] = self._snippet(entry, values, parameter_set, "sol = m.bvp()")
+        if notes:
+            out["notes"] = notes
+        return out
+
+    # -- tools: control design -----------------------------------------------------------
+
+    def _lin(self, entry: _Entry, inputs, at, need_inputs: bool = True):
+        """Linearise the model (inside ``_using``): the Linearization and the
+        Python code that makes it."""
+        m = entry.model
+        if isinstance(inputs, str):
+            inputs = [inputs]
+        inputs = [_match(p, list(m.parameters), "parameter") for p in (inputs or [])]
+        if need_inputs and not inputs:
+            raise ToolError("give inputs=[...]: the parameters that act as "
+                            f"controls (parameters: {', '.join(list(m.parameters)[:40])})")
+        point = None
+        if at:
+            point = {_match(k, m.variables, "variable"): float(v)
+                     for k, v in at.items()}
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            lin = m.linearize(at=point, inputs=inputs)
+        code = "lin = m.linearize(" + _kwargs(
+            {k: v for k, v in (("at", point), ("inputs", inputs)) if v}) + ")"
+        return lin, code, [str(w.message) for w in caught]
+
+    def _lin_head(self, entry: _Entry, lin) -> dict:
+        return {"model": entry.name, "point": {k: _r(v, 8) for k, v in lin.point.items()},
+                "inputs": lin.inputs, "residual": _r(lin.residual),
+                "controllable": bool(lin.controllable), "rank": int(lin.rank),
+                "discrete": bool(lin.discrete)}
+
+    def _closed_loop(self, entry: _Entry, lin, K) -> dict:
+        """Write the closed-loop model u = u0 - K (x - x*) to the work folder."""
+        path = self._output(entry, "closed-loop", "ode")
+        new = lin.closed_loop(K, path)
+        new.close()
+        return {"closed_loop_ode": str(path),
+                "closed_loop_text": path.read_text(encoding="latin-1")}
+
+    @_guarded
+    def linearize(self, model: str, inputs: list[str] | None = None,
+                  at: dict | None = None, values: dict | None = None,
+                  parameter_set: str | None = None) -> dict:
+        """The linear system dx = A dx + B du at an equilibrium (or at ``at``),
+        its eigenvalues and its controllability."""
+        entry, notes = self._entry(model)
+        with self._using(entry, values, parameter_set):
+            lin, code, warns = self._lin(entry, inputs, at, need_inputs=False)
+        out = self._lin_head(entry, lin)
+        out.update({"A": _rmat(lin.A), "B": _rmat(lin.B),
+                    "eigenvalues": _eigs(lin.eigenvalues),
+                    "stable": _stable(lin.eigenvalues, lin.discrete)})
+        if lin.inputs:
+            out["controllability"] = _rmat(lin.controllability)
+            out["singular_values"] = _rlist(lin.singular_values)
+        else:
+            out["hint"] = ("no inputs chosen: pass inputs=[...], the parameters "
+                           "that act as controls, to test controllability")
+        if not lin.controllable and lin.inputs:
+            out["hint"] = (f"the pair (A, B) has rank {lin.rank} of "
+                           f"{len(lin.point)}: poles of the uncontrollable part "
+                           f"cannot be moved")
+        if warns:
+            out["warnings"] = warns
+        path = self._output(entry, "linearize", "csv")
+        lin.to_csv(path)
+        out["csv"] = str(path)
+        out["python"] = self._snippet(entry, values, parameter_set, code,
+                                      "lin.A, lin.B, lin.eigenvalues, lin.controllable")
+        if notes:
+            out["notes"] = notes
+        return out
+
+    @_guarded
+    def place_poles(self, model: str, inputs: list[str], poles: list,
+                    at: dict | None = None, values: dict | None = None,
+                    parameter_set: str | None = None) -> dict:
+        """The feedback gain K that puts the closed-loop poles where asked,
+        and the closed-loop model as .ode text."""
+        entry, notes = self._entry(model)
+        want = _poles(poles)
+        with self._using(entry, values, parameter_set):
+            lin, code, warns = self._lin(entry, inputs, at)
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                K = lin.place_poles(want)
+            warns += [str(w.message) for w in caught]
+            loop = self._closed_loop(entry, lin, K)
+        out = self._lin_head(entry, lin)
+        got = np.linalg.eigvals(lin.A - lin.B @ K)
+        out.update({"requested_poles": _eigs(want), "K": _rmat(K),
+                    "closed_loop_eigenvalues": _eigs(got),
+                    "control_law": _law(lin, K), **loop})
+        if warns:
+            out["warnings"] = warns
+        out["python"] = self._snippet(
+            entry, values, parameter_set, code,
+            f"K = lin.place_poles({[complex(z) for z in want]!r})",
+            f"closed = lin.closed_loop(K, {Path(loop['closed_loop_ode']).name!r})")
+        if notes:
+            out["notes"] = notes
+        return out
+
+    @_guarded
+    def lqr(self, model: str, inputs: list[str], q=None, r=None,
+            at: dict | None = None, values: dict | None = None,
+            parameter_set: str | None = None) -> dict:
+        """The optimal state feedback for the weights Q and R, its Riccati
+        solution, closed-loop poles and the closed-loop model as .ode text."""
+        entry, notes = self._entry(model)
+        with self._using(entry, values, parameter_set):
+            lin, code, warns = self._lin(entry, inputs, at)
+            res = lin.lqr(q, r)
+            loop = self._closed_loop(entry, lin, res.K)
+        out = self._lin_head(entry, lin)
+        out.update({"K": _rmat(res.K), "P": _rmat(res.P),
+                    "closed_loop_eigenvalues": _eigs(res.poles),
+                    "open_loop_eigenvalues": _eigs(lin.eigenvalues),
+                    "Q": _rmat(res.Q), "R": _rmat(res.R),
+                    "control_law": _law(lin, res.K), **loop})
+        if warns:
+            out["warnings"] = warns
+        args = ", ".join(f"{k}={v!r}" for k, v in (("Q", q), ("R", r)) if v is not None)
+        out["python"] = self._snippet(
+            entry, values, parameter_set, code, f"res = lin.lqr({args})",
+            f"closed = lin.closed_loop(res.K, {Path(loop['closed_loop_ode']).name!r})")
+        if notes:
+            out["notes"] = notes
+        return out
+
+    @_guarded
+    def root_locus(self, model: str, parameter: str | None = None,
+                   start: float | None = None, stop: float | None = None,
+                   steps: int = 101, inputs: list[str] | None = None,
+                   K: list | None = None, input: str | None = None,
+                   state: str | None = None, at: dict | None = None,
+                   values: dict | None = None,
+                   parameter_set: str | None = None) -> dict:
+        """The eigenvalues along a parameter (following the equilibrium), or
+        along a feedback gain g in u = u0 - g K (x - x*)."""
+        entry, notes = self._entry(model)
+        m = entry.model
+        if start is None or stop is None:
+            raise ToolError("give start and stop: the range of the parameter, "
+                            "or of the gain g when feeding back")
+        if parameter and (inputs or input or K is not None or state):
+            raise ToolError("give either parameter (a locus over a parameter) "
+                            "or inputs with K (or input and state) (a locus "
+                            "over a feedback gain), not both")
+        steps = int(steps)
+        if not 2 <= steps <= 5000:
+            raise ToolError("steps must be between 2 and 5000")
+        rng = (float(start), float(stop))
+        with self._using(entry, values, parameter_set):
+            if parameter:
+                parameter = _match(parameter, list(m.parameters), "parameter")
+                guess = ({_match(k, m.variables, "variable"): float(v)
+                          for k, v in at.items()} if at else None)
+                rl = m.root_locus(parameter, rng, steps, guess=guess)
+                code = (f"rl = m.root_locus({parameter!r}, {rng!r}, {steps}"
+                        + (f", guess={guess!r}" if guess else "") + ")")
+                cols = None
+            else:
+                if state and input is None and inputs and len(inputs) == 1:
+                    input = inputs[0]
+                lin, lcode, warns = self._lin(entry, inputs or ([input] if input else []), at)
+                if K is None:
+                    if not (state and input):
+                        raise ToolError("a locus over a feedback gain needs K "
+                                        "(inputs x states) or input and state: "
+                                        "u = -g * (that state)")
+                    state = _match(state, list(lin.point), "variable")
+                    input = _match(input, lin.inputs, "input")
+                    Km = np.zeros((len(lin.inputs), len(lin.point)))
+                    Km[lin.inputs.index(input), list(lin.point).index(state)] = 1.0
+                else:
+                    Km = np.atleast_2d(np.asarray(K, dtype=float))
+                rl = lin.root_locus(Km, rng, steps)
+                code = (lcode + f"\nrl = lin.root_locus({Km.tolist()!r}, "
+                        f"{rng!r}, {steps})")
+        cross = rl.crossings()
+        out = {"model": entry.name, "over": rl.name, "steps": len(rl.values),
+               "range": [_r(rl.values[0]), _r(rl.values[-1])],
+               "branches": int(rl.poles.shape[1]),
+               "start": _eigs(rl.poles[0]), "end": _eigs(rl.poles[-1]),
+               "crossings": [{rl.name: _r(v, 8), "pole": [_r(z.real), _r(z.imag)]}
+                             for v, z in cross],
+               "stable_at_start": _stable(rl.poles[0], rl.discrete),
+               "stable_at_end": _stable(rl.poles[-1], rl.discrete)}
+        if not parameter and warns:
+            out["warnings"] = warns
+        cols = {rl.name: rl.values}
+        for j, v in enumerate(rl.variables):
+            cols[v] = rl.x[:, j]
+        for b in range(rl.poles.shape[1]):
+            cols[f"re{b + 1}"] = rl.poles[:, b].real
+            cols[f"im{b + 1}"] = rl.poles[:, b].imag
+        out["csv"] = self._write_csv(entry, "locus", cols)
+        out["python"] = self._snippet(entry, values, parameter_set, code,
+                                      "rl.values, rl.poles, rl.crossings()")
+        if notes:
+            out["notes"] = notes
+        return out
+
+    @_guarded
+    def sensitivity(self, model: str, parameters: list[str] | None = None,
+                    values: dict | None = None,
+                    parameter_set: str | None = None) -> dict:
+        """Sensitivities dx/dp along one run, from the variational equations."""
+        entry, notes = self._entry(model)
+        m = entry.model
+        if not list(m.parameters):
+            raise ToolError("the model has no parameters, so there is no "
+                            "sensitivity to compute")
+        names = ([_match(p, list(m.parameters), "parameter") for p in parameters]
+                 if parameters else None)
+        with self._using(entry, values, parameter_set):
+            sens = m.sensitivity(names)
+        summary, cols = {}, {"T": sens.t}
+        for p in (names or list(m.parameters)):
+            s = sens[p]
+            per = {}
+            for j, v in enumerate(sens.variables):
+                x = s[:, j]
+                k = int(np.argmax(np.abs(x))) if len(x) else 0
+                per[v] = {"final": _r(x[-1]), "peak": _r(x[k]),
+                          "peak_time": _r(sens.t[k])}
+                cols[f"d{v}_d{p}"] = x
+            summary[p] = per
+        out = {"model": entry.name, "points": len(sens.t),
+               "t": [_r(sens.t[0]), _r(sens.t[-1])],
+               "meaning": "sensitivity[p][v] is dv/dp along the run (S = 0 at "
+                          "the start): the change of v per unit change of p",
+               "sensitivity": summary}
+        out["csv"] = self._write_csv(entry, "sensitivity", cols)
+        arg = repr(names) if names else ""
+        out["python"] = self._snippet(entry, values, parameter_set,
+                                      f"s = m.sensitivity({arg})",
+                                      "s.t, s[" + repr((names or list(m.parameters))[0]) + "]")
         if notes:
             out["notes"] = notes
         return out

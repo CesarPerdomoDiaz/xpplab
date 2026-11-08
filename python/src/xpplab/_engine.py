@@ -19,7 +19,7 @@ from pathlib import Path
 
 __all__ = ["Engine", "EngineError", "find_engine_library"]
 
-API_VERSION = 14
+API_VERSION = 15
 
 OK = 0
 ERR_STATE = -1
@@ -260,6 +260,20 @@ _SIGNATURES = {
     "xppe_ani_window": ([ctypes.POINTER(ctypes.c_double)] * 4, ctypes.c_int),
     "xppe_ani_frame": ([ctypes.c_int], ctypes.c_int),
     "xppe_ani_get": ([ctypes.c_int, ctypes.POINTER(AniItem)], ctypes.c_int),
+    "xppe_ani_segments": ([ctypes.c_int, ctypes.POINTER(ctypes.c_double),
+                           ctypes.c_int], ctypes.c_int),
+    "xppe_ani_frame_current": ([], ctypes.c_int),
+    "xppe_ani_frame_initial": ([], ctypes.c_int),
+    "xppe_ani_nullclines": ([ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                             ctypes.c_char_p, ctypes.c_int, ctypes.c_double,
+                             ctypes.c_double], ctypes.c_int),
+    "xppe_ani_grab_count": ([], ctypes.c_int),
+    "xppe_ani_grab_point": ([ctypes.c_int] + [ctypes.POINTER(ctypes.c_double)] * 3,
+                            ctypes.c_int),
+    "xppe_ani_grab_begin": ([ctypes.c_double, ctypes.c_double,
+                             ctypes.POINTER(ctypes.c_int)], ctypes.c_int),
+    "xppe_ani_grab_move": ([ctypes.c_double] * 3, ctypes.c_int),
+    "xppe_ani_grab_end": ([ctypes.POINTER(ctypes.c_int)] * 2, ctypes.c_int),
     "xppe_nullcline": ([ctypes.c_int, ctypes.c_int, ctypes.c_int,
                         ctypes.c_double, ctypes.c_double, ctypes.c_double,
                         ctypes.c_double, ctypes.c_int,

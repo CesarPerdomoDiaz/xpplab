@@ -760,6 +760,7 @@ int app_find_par(App *a, const char *name) {
 
 static void after_change(App *a) {
   a->pp.nc_dirty = true;
+  a->ani.null_dirty = true;
   a->echo.dirty = true;
   if (a->live) a->needs_run = true;
 }
@@ -777,6 +778,7 @@ bool app_set_ic(App *a, int i, double v) {
   if (a->eng->api.xppe_set_number(a->vars[i], v) != XPPE_OK) return false;
   a->ic[i] = get_value(a, a->vars[i]);
   a->echo.dirty = true;
+  a->ani.null_dirty = true;
   if (a->live) a->needs_run = true;
   return true;
 }
@@ -941,6 +943,7 @@ static bool run(App *a) {
   rows = a->traj.nrows;
   snprintf(a->traj.label, sizeof a->traj.label, "run %d", a->nfrozen + 1);
   a->have_traj = true;
+  a->run_serial++;
   {
     const char *log = x->xppe_log();
     if (strstr(log, "not completed")) {

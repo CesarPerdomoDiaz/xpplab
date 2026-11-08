@@ -802,6 +802,10 @@ static void cmd_annotate(App *a, char *rest) {
   }
   if (!strcmp(kind, "clear")) {
     char *k = next_word(&rest);
+    if (k && (!is_number(k) || atoi(k) < 1)) {
+      app_log(a, "error: annotate %s clear [K]: K is the annotation's number, from 1", where);
+      return;
+    }
     app_note_clear(a, w, k ? atoi(k) - 1 : -1);
     return;
   }

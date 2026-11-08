@@ -68,6 +68,12 @@ Values = Annotated[Optional[Dict[str, Union[float, str]]], Field(
 ParameterSet = Annotated[Optional[str], Field(
     description="A named parameter set from the file "
                               "('set name {...}'), applied before values.")]
+Inputs = Annotated[Optional[List[str]], Field(description=(
+    "The parameters that act as control inputs, e.g. ['u']."))]
+At = Annotated[Optional[Dict[str, float]], Field(description=(
+    "The state to linearise at, by variable name (others keep their initial "
+    "value). Default: the equilibrium Newton's method finds from the "
+    "initial conditions."))]
 Format = Annotated[str, Field(description="'png' or 'svg'.")]
 Show = Annotated[bool, Field(description=(
     "Also return the PNG image itself, so you can look at it."))]
@@ -371,6 +377,113 @@ def create_server(session: Optional[Session] = None):
         conditions as the first guess. Returns the initial conditions that
         solve it and the CSV of the solution."""
         return call("bvp", model=model, values=values, parameter_set=parameter_set)
+
+    # -- control design ------------------------------------------------------------------
+
+    @tool
+    def linearize(
+            model: ModelArg,
+            inputs: Inputs = None, at: At = None,
+            values: Values = None, parameter_set: ParameterSet = None,
+    ) -> str:
+        """Linearise the model at an equilibrium (or at the state in at):
+        the matrices A (Jacobian) and B (derivative with respect to each
+        input parameter), the eigenvalues, whether they are stable, and the
+        controllability matrix with its rank. A controllable pair can have
+        its poles placed (place_poles) or an LQR gain designed (lqr)."""
+        return call("linearize", model=model, inputs=inputs, at=at,
+                    values=values, parameter_set=parameter_set)
+
+    @tool
+    def place_poles(
+            model: ModelArg,
+            inputs: Annotated[List[str], Field(description=(
+                "The parameters that act as controls, e.g. ['u']."))],
+            poles: Annotated[List[Union[float, List[float]]], Field(description=(
+                "The wanted closed-loop poles, one per state: a real number, "
+                "or [re, im] for a complex one (give both members of a "
+                "conjugate pair), e.g. [-2, [-1, 3], [-1, -3]]."))],
+            at: At = None, values: Values = None,
+            parameter_set: ParameterSet = None,
+    ) -> str:
+        """Pole placement: the feedback gain K (inputs x states) so that
+        A - B K has the given eigenvalues, with the control law
+        u = u0 - K (x - x*). Returns K, the closed-loop eigenvalues, and the
+        closed-loop model as .ode text (also saved as a file) in which each
+        input is replaced by its control law. Fails with an explanation when
+        the pair is not controllable or the poles do not fit."""
+        return call("place_poles", model=model, inputs=inputs, poles=poles,
+                    at=at, values=values, parameter_set=parameter_set)
+
+    @tool
+    def lqr(
+            model: ModelArg,
+            inputs: Annotated[List[str], Field(description=(
+                "The parameters that act as controls, e.g. ['u']."))],
+            q: Annotated[Optional[Union[float, List[float], List[List[float]]]],
+                         Field(description=(
+                "State weight Q: a number (times the identity), one number "
+                "per state (diagonal) or a full matrix. Default: identity."))] = None,
+            r: Annotated[Optional[Union[float, List[float], List[List[float]]]],
+                         Field(description=(
+                "Input weight R, in the same forms. Default: identity."))] = None,
+            at: At = None, values: Values = None,
+            parameter_set: ParameterSet = None,
+    ) -> str:
+        """Linear-quadratic regulator: the gain K that minimises the integral
+        of dx'Q dx + du'R du (for a map, the sum), with the Riccati solution
+        P, the closed-loop eigenvalues, and the closed-loop model as .ode text
+        (also saved as a file). Larger q makes the states settle faster at
+        the cost of larger inputs; larger r does the opposite."""
+        return call("lqr", model=model, inputs=inputs, q=q, r=r, at=at,
+                    values=values, parameter_set=parameter_set)
+
+    @tool
+    def root_locus(
+            model: ModelArg,
+            start: Annotated[float, Field(description=(
+                "First value of the parameter, or of the feedback gain g."))],
+            stop: Annotated[float, Field(description="Last value.")],
+            parameter: Annotated[Optional[str], Field(description=(
+                "A parameter to vary: the eigenvalues of the equilibrium "
+                "(followed by Newton's method from the initial conditions) "
+                "at each value. Leave out for a feedback gain."))] = None,
+            steps: Annotated[int, Field(description="Number of values.")] = 101,
+            inputs: Inputs = None,
+            K: Annotated[Optional[List[List[float]]], Field(description=(
+                "For a feedback locus: the gain matrix (inputs x states), "
+                "e.g. the K of place_poles. The poles are those of "
+                "A - g B K for g from start to stop."))] = None,
+            input: Annotated[Optional[str], Field(description=(
+                "Instead of K: the input to drive with the state."))] = None,
+            state: Annotated[Optional[str], Field(description=(
+                "Instead of K: the state fed back, u = u0 - g (state - x*)."))] = None,
+            at: At = None, values: Values = None,
+            parameter_set: ParameterSet = None,
+    ) -> str:
+        """Root locus: how the eigenvalues move as a parameter changes (give
+        parameter), or as a feedback gain grows (give inputs with K, or input
+        and state). Returns the poles at both ends, the values where a branch
+        crosses into or out of the stable region (a Hopf point, say), and the
+        CSV of every pole."""
+        return call("root_locus", model=model, parameter=parameter, start=start,
+                    stop=stop, steps=steps, inputs=inputs, K=K, input=input,
+                    state=state, at=at, values=values, parameter_set=parameter_set)
+
+    @tool
+    def sensitivity(
+            model: ModelArg,
+            parameters: Annotated[Optional[List[str]], Field(description=(
+                "Parameters to differentiate with respect to (default: all)."))] = None,
+            values: Values = None, parameter_set: ParameterSet = None,
+    ) -> str:
+        """Sensitivity dx/dp of the variables along one run, from the
+        variational equations integrated with the model. Returns for each
+        parameter and variable the final value, the peak and when it occurs,
+        and the CSV of the whole time course. Not available for models with
+        tables, delays, maps or noise."""
+        return call("sensitivity", model=model, parameters=parameters,
+                    values=values, parameter_set=parameter_set)
 
     # -- plots -------------------------------------------------------------------------
 

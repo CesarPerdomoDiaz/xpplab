@@ -96,6 +96,12 @@ static const char *usage =
     "  figure title|xlabel|ylabel TEXT, xlim|ylim LO HI|auto,\n"
     "         style K [color #rrggbb] [line --] [width W] [marker o]\n"
     "         [scale SX SY] [label TEXT], export FILE.pdf|svg|eps|png [DPI]\n"
+    "  annotate WHERE text X Y [size PT] [color #rrggbb] TEXT\n"
+    "  annotate WHERE arrow X1 Y1 X2 Y2 | marker X Y [o|s|^|D|x|+|*|.]\n"
+    "  annotate WHERE clear [K]\n"
+    "                           text, arrows and markers on a plot, in its\n"
+    "                           own units; WHERE is time, phase, auto, auto2\n"
+    "                           or figure (the Figure window's panel)\n"
     "  bvp                      solve the boundary-value problem (bndry)\n"
     "  ani FILE.ani             open an XPPAUT animation of the run;\n"
     "                           ani play, ani stop, ani row N\n"
@@ -215,6 +221,7 @@ const CommandInfo app_command_table[] = {
     {"many", "N VAR LO HI ...", "Many runs from initial values drawn in a box.", NULL, NEED_MODEL},
     {"shoot", NULL, "Runs off the equilibrium along its real eigenvectors, both ways.", NULL, NEED_MODEL},
     {"figure", "new W H | panel K | run X Y | ...", "The Figure window: build a figure for papers.", NULL, NEED_MODEL},
+    {"annotate", "WHERE text|arrow|marker|clear ...", "Add text, an arrow or a marker to a plot, or clear them.", NULL, NEED_NONE},
     {"bvp", NULL, "Solve the boundary-value problem (bndry conditions).", NULL, NEED_MODEL},
     {"ani", "FILE.ani", "Open an XPPAUT animation of the run.", NULL, NEED_MODEL},
     {"view3d", "X Y Z", "Show three columns in the 3-D view.", NULL, NEED_RUN},
@@ -776,6 +783,83 @@ static void cmd_shoot(App *a, char *rest) {
   app_shoot(a);
 }
 
+/* annotate WHERE text X Y [size PT] [color #rrggbb] TEXT
+   annotate WHERE arrow X1 Y1 X2 Y2 [color #rrggbb]
+   annotate WHERE marker X Y [o|s|^|D|x|+|*|.] [color #rrggbb]
+   annotate WHERE clear [K]: XPPAUT's Text, etc. menu. WHERE is time, phase,
+   auto, auto2 or figure (the Figure window's selected panel). */
+static void cmd_annotate(App *a, char *rest) {
+  static const char *symbols[] = {"", "o", "s", "^", "D", "x", "+", "*", "."};
+  char *where = next_word(&rest), *kind = next_word(&rest), *v[4] = {0};
+  int w, i, need = 0;
+  FigNote n;
+  const char *usage = "annotate time|phase|auto|auto2|figure text X Y [size PT] [color #rrggbb] "
+                      "TEXT | arrow X1 Y1 X2 Y2 | marker X Y [SYMBOL] | clear [K]";
+  w = where && !strcmp(where, "figure") ? APP_NOTE_FIGURE : figure_word(where);
+  if (w < 0 || !kind) {
+    app_log(a, "error: %s", usage);
+    return;
+  }
+  if (!strcmp(kind, "clear")) {
+    char *k = next_word(&rest);
+    app_note_clear(a, w, k ? atoi(k) - 1 : -1);
+    return;
+  }
+  memset(&n, 0, sizeof n);
+  if (!strcmp(kind, "text")) n.kind = FIG_NOTE_TEXT, need = 2;
+  else if (!strcmp(kind, "arrow")) n.kind = FIG_NOTE_ARROW, need = 4;
+  else if (!strcmp(kind, "marker")) n.kind = FIG_NOTE_MARKER, need = 2;
+  else {
+    app_log(a, "error: %s", usage);
+    return;
+  }
+  for (i = 0; i < need; i++) {
+    v[i] = next_word(&rest);
+    if (!is_number(v[i])) {
+      app_log(a, "error: annotate %s: %d numbers (the position in the plot's own units)", kind,
+              need);
+      return;
+    }
+  }
+  n.x = strtod(v[0], NULL);
+  n.y = strtod(v[1], NULL);
+  if (need == 4) {
+    n.x2 = strtod(v[2], NULL);
+    n.y2 = strtod(v[3], NULL);
+  }
+  n.marker = FIG_MARK_CIRCLE;
+  for (;;) {
+    char *p = skip_space(rest), *o;
+    bool opt = (!strncmp(p, "size", 4) && isspace((unsigned char)p[4])) ||
+               (!strncmp(p, "color", 5) && isspace((unsigned char)p[5]));
+    if (n.kind == FIG_NOTE_MARKER && !opt) {
+      int m;
+      for (m = 1; m < FIG_MARK_COUNT; m++)
+        if (!strncmp(p, symbols[m], strlen(symbols[m])) &&
+            (!p[strlen(symbols[m])] || isspace((unsigned char)p[strlen(symbols[m])]))) {
+          n.marker = m;
+          next_word(&rest);
+          break;
+        }
+      if (m < FIG_MARK_COUNT) continue;
+    }
+    if (!opt) break;
+    o = next_word(&rest);
+    if (!strcmp(o, "size")) {
+      char *s = next_word(&rest);
+      n.pt = s ? (float)atof(s) : 0;
+    } else {
+      char *c = next_word(&rest);
+      unsigned u = c ? (unsigned)strtoul(c[0] == '#' ? c + 1 : c, NULL, 16) : 0;
+      n.rgb[0] = ((u >> 16) & 255) / 255.0f;
+      n.rgb[1] = ((u >> 8) & 255) / 255.0f;
+      n.rgb[2] = (u & 255) / 255.0f;
+    }
+  }
+  if (n.kind == FIG_NOTE_TEXT) snprintf(n.text, FIG_TEXT, "%s", skip_space(rest));
+  app_note_add(a, w, &n);
+}
+
 /* figure ...: the Figure window from the command window and scripts. */
 static void cmd_figure(App *a, char *rest) {
   FigUI *g = &a->fg;
@@ -1201,6 +1285,8 @@ void app_command(App *a, const char *line_in) {
     cmd_many(a, rest);
   } else if (!strcmp(cmd, "shoot")) {
     cmd_shoot(a, rest);
+  } else if (!strcmp(cmd, "annotate")) {
+    cmd_annotate(a, rest);
   } else if (!strcmp(cmd, "figure") || !strcmp(cmd, "fig")) {
     cmd_figure(a, rest);
   } else if (!strcmp(cmd, "bvp")) {

@@ -969,6 +969,59 @@ void app_fig_remove(App *a, int panel, int k) {
   echo_end(a);
 }
 
+bool app_fig_note_add(App *a, int panel, const FigNote *n) {
+  FigUI *g = &a->fg;
+  char msg[200], call[1400];
+  bool outer;
+  if (panel < 0 || panel >= g->fig.npanels) return false;
+  if (n->kind == FIG_NOTE_TEXT &&
+      (!n->text[0] || !fig_text_check(n->text, msg, sizeof msg))) {
+    app_log(a, "error: annotate text: %s", n->text[0] ? msg : "there is no text to write");
+    return false;
+  }
+  if (!isfinite(n->x) || !isfinite(n->y) ||
+      (n->kind == FIG_NOTE_ARROW && (!isfinite(n->x2) || !isfinite(n->y2)))) {
+    app_log(a, "error: annotate: the position must be a number");
+    return false;
+  }
+  app_fig_sync_echo(a);
+  if (!fig_note_add(&g->fig.p[panel], n)) {
+    app_log(a, "error: panel %d has %d annotations already; clear some first", panel + 1,
+            FIG_MAX_NOTES);
+    return false;
+  }
+  g->dirty = true;
+  outer = echo_begin(a);
+  if (outer) {
+    echo_new_figure(a);
+    app_note_call(n, call, sizeof call);
+    echo_line(a, "fig[%d].%s", panel, call);
+  }
+  echo_end(a);
+  return true;
+}
+
+void app_fig_note_clear(App *a, int panel, int k) {
+  FigUI *g = &a->fg;
+  bool outer;
+  if (panel < 0 || panel >= g->fig.npanels) return;
+  if (k >= g->fig.p[panel].nnote) {
+    app_log(a, "error: panel %d has %d annotations", panel + 1, g->fig.p[panel].nnote);
+    return;
+  }
+  if (g->fig.p[panel].nnote == 0) return;
+  app_fig_sync_echo(a);
+  fig_note_remove(&g->fig.p[panel], k);
+  g->dirty = true;
+  outer = echo_begin(a);
+  if (outer) {
+    echo_new_figure(a);
+    if (k < 0) echo_line(a, "fig[%d].clear_annotations()", panel);
+    else echo_line(a, "fig[%d].clear_annotations(%d)", panel, k);
+  }
+  echo_end(a);
+}
+
 static int col_index(App *a, int c) { return c; } /* a->traj columns are a->cols */
 
 bool app_fig_add_run(App *a, int panel, int xcol, int ycol) {
@@ -1429,6 +1482,10 @@ bool app_fig_from_plot(App *a, int figure) {
   }
   g->dirty = true;
   app_fig_sync_echo(a);
+  if (any && figure >= 0 && figure < APP_PLOTS) {
+    int i;
+    for (i = 0; i < a->nt.n[figure]; i++) app_fig_note_add(a, panel, &a->nt.note[figure][i]);
+  }
   if (any) app_status(a, "Added the plot to the figure's panel %d.", panel + 1);
   return any;
 }
@@ -1505,10 +1562,7 @@ void app_fig_sync_echo(App *a) {
   }
   echo_end(a);
   /* the shadow keeps the settings only: its data pointers are the figure's */
-  {
-    Figure keep = *f;
-    *s = keep;
-  }
+  *s = *f;
 }
 
 bool app_fig_export(App *a, const char *path) {

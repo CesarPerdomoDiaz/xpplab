@@ -83,6 +83,8 @@ void ui_time_plot(App *a) {
           "(W F). Double-click the plot does the same.");
   igSameLine(0, -1);
   ui_export_button(a, FIG_TIME);
+  igSameLine(0, -1);
+  ui_notes_menu(a, FIG_TIME);
   ui_view_hint(&time_view, "Drag to pan, scroll to zoom, right-click for options.");
 
   if (ImPlot_BeginPlot("##time", V2(-1, -1), ImPlotFlags_NoTitle)) {
@@ -113,6 +115,7 @@ void ui_time_plot(App *a) {
                                            a->traj.cols[j], a->traj.nrows,
                                            Spec(palette[(j - 1) % NPAL], 2.0f));
       }
+    ui_notes_draw(a, FIG_TIME);
     ui_figure_limits(FIG_TIME);
     ui_view_end(&time_view, false);
     ImPlot_EndPlot();
@@ -458,6 +461,8 @@ void ui_phase_plot(App *a) {
   if (Button("Fit")) ImPlot_SetNextAxesToFit();
   igSameLine(0, -1);
   ui_export_button(a, FIG_PHASE);
+  igSameLine(0, -1);
+  ui_notes_menu(a, FIG_PHASE);
 
   if (ImPlot_BeginPlot("##phase", V2(-1, -1), ImPlotFlags_NoTitle)) {
     ImPlotRect_c lim;
@@ -518,7 +523,7 @@ void ui_phase_plot(App *a) {
     if (p->show_equilibria) draw_equilibria(a);
 
     /* A click without dragging starts a trajectory there. */
-    if (p->click_to_start && ImPlot_IsPlotHovered() &&
+    if (p->click_to_start && a->nt.mode < 0 && ImPlot_IsPlotHovered() &&
         igIsMouseReleased_Nil(ImGuiMouseButton_Left)) {
       ImVec2_c drag = igGetMouseDragDelta(ImGuiMouseButton_Left, 0);
       if (fabsf(drag.x) < 3 && fabsf(drag.y) < 3) {
@@ -526,6 +531,7 @@ void ui_phase_plot(App *a) {
         app_click_start(a, m.x, m.y);
       }
     }
+    ui_notes_draw(a, FIG_PHASE);
     ui_figure_limits(FIG_PHASE);
     ImPlot_EndPlot();
     ui_figure_rect(FIG_PHASE);

@@ -268,6 +268,23 @@ CASES = [
         "set total=3", "run", "ani itoy.ani",
         "ani grab 0.9987 0.05 -0.3 0.9", "export {out}/first.csv",
         "ani grab 3.0987 -0.05 2.5 0.5", "run", "export {out}/second.csv"]),
+    # Annotations: text, an arrow and a marker on the phase plane, one on
+    # the time series, copied to a figure panel with it, more added there,
+    # one deleted, and the phase plane exported (the script draws them too).
+    ("annotate", "lecar.ode", [
+        "run", "export {out}/run.csv",
+        "annotate phase text -0.2 0.2 size 14 color #d62728 saddle $V_W$",
+        "annotate phase arrow -0.4 0 -0.2 0.2",
+        "annotate phase marker 0 0.1 s",
+        "annotate time text 12 0.1 spike",
+        "figure from phase",
+        "annotate figure text 0 0 hello",
+        "annotate figure arrow 0 0 0.1 0.1",
+        "annotate figure marker 0.1 0.1 ^",
+        "annotate figure clear 1",
+        "figure export {out}/fig.pdf",
+        "annotate phase clear 3", "show phase",
+        "then:export {out}/phase.png phase"]),
 ]
 
 # What a case's script must contain, line by line in this order (regular
@@ -276,6 +293,26 @@ CASES = [
 SCRIPT_LINES = {
     "ani_grab": [r"(?i)initial_conditions.*\"t1\"", r"^sol = m\.run\(\)",
                  r"(?i)initial_conditions.*\"t2\"", r"^sol = m\.run\(\)"],
+    # Each action's own line: the notes of the plot windows, then the same
+    # notes carried to the figure panel, the figure's own, the deletions, and
+    # the drawing of the notes with the exported plot.
+    "annotate": [r"^notes = xs\.Annotations\(\)",
+                 r"^notes\[\"phase\"\]\.text\(-0\.2, 0\.2, \"saddle \$V_W\$\", size=14\.0, "
+                 r"color=\"#d62728\"\)",
+                 r"^notes\[\"phase\"\]\.arrow\(-0\.4, 0\.0, -0\.2, 0\.2\)",
+                 r"^notes\[\"phase\"\]\.marker\(0\.0, 0\.1, \"s\"\)",
+                 r"^notes\[\"time\"\]\.text\(12\.0, 0\.1, \"spike\", size=12\.0\)",
+                 r"^fig\[0\]\.text\(-0\.2, 0\.2, \"saddle",
+                 r"^fig\[0\]\.arrow\(-0\.4, 0\.0, -0\.2, 0\.2\)",
+                 r"^fig\[0\]\.marker\(0\.0, 0\.1, \"s\"\)",
+                 r"^fig\[0\]\.text\(0\.0, 0\.0, \"hello\"\)",
+                 r"^fig\[0\]\.arrow\(0\.0, 0\.0, 0\.1, 0\.1\)",
+                 r"^fig\[0\]\.marker\(0\.1, 0\.1, \"\^\"\)",
+                 r"^fig\[0\]\.clear_annotations\(0\)",
+                 r"^fig\.save\(",
+                 r"^notes\[\"phase\"\]\.clear_annotations\(2\)",
+                 r"^notes\[\"phase\"\]\.draw\(ax\)",
+                 r"^ax\.figure\.savefig\("],
 }
 
 

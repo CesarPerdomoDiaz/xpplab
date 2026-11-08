@@ -202,6 +202,39 @@ static void legend_add(Svg *s, const char *label, const char *color, bool dashed
   s->legend_dashed[s->legend_n++] = dashed;
 }
 
+/* The plot's annotations, in its coordinates. */
+static void svg_notes(const App *a, FigureKind kind, Svg *s) {
+  int i;
+  for (i = 0; kind < APP_PLOTS && i < a->nt.n[kind]; i++) {
+    const FigNote *n = &a->nt.note[kind][i];
+    char col[16];
+    double x = px(s, n->x), y = py(s, n->y);
+    snprintf(col, sizeof col, "#%02x%02x%02x", (int)(n->rgb[0] * 255 + 0.5f),
+             (int)(n->rgb[1] * 255 + 0.5f), (int)(n->rgb[2] * 255 + 0.5f));
+    if (n->kind == FIG_NOTE_TEXT) {
+      fprintf(s->f, "<text x='%.1f' y='%.1f' font-size='%.1f' fill='%s'>", x, y,
+              (n->pt > 0 ? n->pt : 12) * 96.0 / 72.0, col);
+      esc(s->f, n->text);
+      fputs("</text>\n", s->f);
+    } else if (n->kind == FIG_NOTE_ARROW) {
+      double x2 = px(s, n->x2), y2 = py(s, n->y2), dx = x2 - x, dy = y2 - y;
+      double len = sqrt(dx * dx + dy * dy), ux, uy, bx, by;
+      if (len < 0.5) continue;
+      ux = dx / len;
+      uy = dy / len;
+      bx = len > 9 ? x2 - ux * 9 : x;
+      by = len > 9 ? y2 - uy * 9 : y;
+      fprintf(s->f, "<line x1='%.1f' y1='%.1f' x2='%.1f' y2='%.1f' stroke='%s' "
+                    "stroke-width='1.5'/>\n", x, y, bx, by, col);
+      fprintf(s->f, "<polygon points='%.1f,%.1f %.1f,%.1f %.1f,%.1f' fill='%s'/>\n", x2, y2,
+              x2 - ux * 9 - uy * 4.5, y2 - uy * 9 + ux * 4.5, x2 - ux * 9 + uy * 4.5,
+              y2 - uy * 9 - ux * 4.5, col);
+    } else {
+      fprintf(s->f, "<circle cx='%.1f' cy='%.1f' r='4.5' fill='%s'/>\n", x, y, col);
+    }
+  }
+}
+
 static void svg_end(Svg *s) {
   int i;
   if (s->legend_n) {
@@ -493,6 +526,7 @@ bool export_svg(App *a, FigureKind kind, const char *path) {
   if (kind == FIG_PHASE) svg_phase(a, &s);
   if (kind == FIG_AUTO) svg_auto(a, &s, false);
   if (kind == FIG_AUTO2) svg_auto(a, &s, true);
+  svg_notes(a, kind, &s);
   svg_end(&s);
   app_log(a, "Saved %s (vector figure).", path);
   return true;

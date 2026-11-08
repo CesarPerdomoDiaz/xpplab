@@ -576,6 +576,13 @@ void ui_figure(App *a) {
     }
   }
 
+  igSeparatorText("Annotations");
+  ui_notes_menu(a, APP_NOTE_FIGURE);
+  if (p->nnote > 0) {
+    igSameLine(0, -1);
+    igTextDisabled("%d on this panel", p->nnote);
+  }
+
   igSeparatorText("Add to this panel");
   add_form(a);
 
@@ -639,7 +646,12 @@ void ui_figure(App *a) {
         double x, y;
         fig_from_page(&preview.axes[over], px, py, &x, &y);
         igText("panel %d: x = %.6g, y = %.6g. Drag to zoom, double-click for all.", over + 1, x, y);
-        if (igIsMouseClicked_Bool(ImGuiMouseButton_Left, false)) {
+        if (a->nt.mode >= 0 && a->nt.plot == APP_NOTE_FIGURE) {
+          if (igIsMouseClicked_Bool(ImGuiMouseButton_Left, false)) {
+            g->panel = over;
+            app_note_click(a, APP_NOTE_FIGURE, x, y);
+          }
+        } else if (igIsMouseClicked_Bool(ImGuiMouseButton_Left, false)) {
           g->panel = over;
           dragging = true;
           start = m;

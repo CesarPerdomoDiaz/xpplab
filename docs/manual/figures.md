@@ -92,6 +92,31 @@ wind speed into the dimensionless one of a model.
   initial values: the residual whose zeros are the equilibria, for example.
 - **Equilibria**: markers at the equilibria found in the phase plane.
 
+## Annotations
+
+Text, arrows and markers go anywhere on a plot, in the plot's own
+coordinates, so they stay on the point they mark when the axes change
+(XPPAUT's Text, etc. menu).
+
+- On a plot window (Time Series, Phase Plane, Bifurcation), click
+  **Annotate...** next to **Export...**, type the text and its size, pick a
+  colour, then press **Text**, **Arrow** or **Marker** and click the plot:
+  once for text and markers, twice for an arrow (its tail, then its head).
+  Esc cancels. The same menu lists the annotations, each with **delete**.
+- In the Figure window, the **Annotations** section has the same menu for the
+  selected panel, and you click the preview to place them.
+
+A plot keeps its annotations through new runs; a new model clears them. The
+plot window draws the text as you typed it; the Figure window and its PDF,
+SVG, EPS and PNG files typeset it as a label, so `$V_W$` gives a subscript.
+A text's position is the left end of its baseline; with no size it has the
+panel's label size (12 points on a plot window). An arrow's head has a fixed
+size, and a marker is 6 points wide. The SVG and PNG exports of a plot
+window show them too. **Add to the Figure window** copies a plot's
+annotations to the new panel.
+
+A panel holds up to 16 annotations, and so does each plot window.
+
 ## Export
 
 **PDF...**, **SVG...** and **EPS...** write vector figures: lines stay sharp
@@ -118,4 +143,9 @@ figure xlabel Wind velocity $V_W$ [m/s]
 figure xlim 2.1 2.3            (ylim, or xlim auto)
 figure style 1 color #d62728 line -- width 1 marker o scale 1 57.2958 label Stable
 figure export figure.pdf       (or .svg, .eps, .png 600)
+annotate figure text 2.2 0.4 size 10 color #d62728 saddle $V_W$
+annotate figure arrow 2.1 0.2 2.2 0.35
+annotate figure marker 2.2 0.35 o
+annotate figure clear 2        (delete the second; without a number, all)
+annotate phase text -0.2 0.2 peak     (also time, auto, auto2: the plot windows)
 ```

@@ -303,10 +303,9 @@ is colder, and the temperature is pulled back.
     2. The gain on the conversion changes from -10.56 to -6.22: its size
        falls. The gain on the temperature grows from 4.17 to 8.12. The poles
        become `-1.39 +- 1.19i`: faster and more oscillatory than with
-       `Q = [10, 1]`. The coolant acts on the temperature alone, and the
-       temperature reaches the conversion through `A[0, 1]`; the larger
-       weight on the conversion is met by a larger gain on the temperature,
-       which is the quantity the coolant moves.
+       `Q = [10, 1]`. The conversion gain falls in size and the temperature
+       gain grows, so more of the correction goes through the temperature,
+       the quantity the coolant moves, via `A[0, 1] = 0.346`.
     3. It raises a `ValueError`: no inputs were chosen, and there is
        nothing to place the poles with.
 

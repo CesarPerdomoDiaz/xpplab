@@ -8,7 +8,7 @@ a coolant temperature). The task is to choose that push, from the
 measured state, so that the equilibrium becomes stable.
 
 The standard answer is **state feedback** on the linearised model
-[AM ch. 7 and 8; FPE ch. 7]. This page follows it in five steps, first for
+[AM ch. 7; FPE ch. 7]. This page follows it in five steps, first for
 the pendulum and then for the reactor: linearise, test controllability,
 place the poles, compute the optimal gain (LQR), and run the closed loop on
 the full nonlinear model. Each step is a Python call and a command of the
@@ -40,7 +40,7 @@ part [AM ch. 7].
 
 **LQR.** Instead of choosing poles, choose what the motion costs: the
 feedback that minimises the integral of `dx' Q dx + du' R du` is
-`du = -K dx`, with `K` from the algebraic Riccati equation [AM ch. 8]. A
+`du = -K dx`, with `K` from the algebraic Riccati equation [AM ch. 7; FPE ch. 7]. A
 large `Q` asks for a small error, a large `R` asks for a gentle input.
 
 **Where the linear model is valid.** The feedback is designed on the linear
@@ -87,9 +87,10 @@ lin.eigenvalues                        # 0.9050 and -1.1050: a saddle
 ```
 
 The positive eigenvalue is the rate at which a small tilt grows: about
-`exp(0.905 t)`. In the app, open `pend.ode`, set the initial values to the upright position
-and run `linearize at ic inputs u` in the command line. It shows `A`, `B`,
-the eigenvalues in the complex plane and the controllability result.
+`exp(0.905 t)`. In the app, open `pend.ode`, set the initial values to the
+upright position and run `linearize at ic inputs u` in the command line. It
+shows `A`, `B`, the eigenvalues in the complex plane and the controllability
+result.
 
 **Controllability.** The matrix `[B, AB]` and its rank:
 
@@ -136,7 +137,9 @@ sol = closed.run(th=0.5, w=0)
 sol["th"][-1]                          # 0, to 1e-12: it is held upright
 ```
 
-In the app, `closedloop` does the same and runs it: the angle, drawn as a
+In the app, `closedloop` uses the last gain computed, here the LQR one
+(the Python above closes the loop with the pole-placement `K`). It writes
+the closed loop and runs it: the angle, drawn as a
 solid line, decays to zero. The simulation checks what the linear model
 only promises. The feedback built for small tilts also holds a pendulum
 that starts at `th = 3`, close to hanging, because the torque it asks for
@@ -163,7 +166,7 @@ linear design does not know it. The exercises compare gains.
        `ln(10)` over the positive eigenvalue.
 
 ??? success "Solutions"
-    1. The first-order gain needs `k1 = 1 + 1.5 = 2.5` and
+    1. The real pair needs `k1 = 1 + 1.5 = 2.5` and
        `k2 = 2.5 - c = 2.3` (the polynomial is `s^2 + 2.5 s + 1.5`). The
        faster pair needs `k1 = 33` and `k2 = 7.8`. The peak torque from
        `th = 0.5` is 1.25 for the first pair, 3.0 for the pole pair of the
@@ -177,8 +180,9 @@ linear design does not know it. The exercises compare gains.
 ## Example 2: an unstable reactor
 
 A continuous stirred-tank reactor with an exothermic first order reaction
-(the dimensionless model of Uppal, Ray and Poore [UR], textbook form [FPE
-ch. 7]). The state is the conversion `x1` and the temperature `x2`
+(the dimensionless model of Uppal, Ray and Poore [UR]; the parameter
+values are chosen here to give three steady states). The state is the
+conversion `x1` and the temperature `x2`
 (relative to the feed), and the input `uc` is the temperature of the
 coolant, relative to its nominal value:
 
@@ -196,7 +200,7 @@ With these parameters the reactor has three steady states. The lowest and
 the highest are stable. The middle one is a saddle: the operating point
 you may want, with a conversion near 45%, between a cold and little
 converted state and a hot, highly converted one. Start Newton's method
-near it:
+near the middle one:
 
 ```python
 cstr = xs.load("cstr.ode")
@@ -205,6 +209,22 @@ eq = cstr.equilibrium()
 eq.kind                                # saddle
 eq["x1"], eq["x2"]                     # 0.4472, 2.7517
 eq.eigenvalues                         # -0.8378 and 0.4958
+```
+
+Newton's method from starts near the other two finds the cold and the hot
+state, and the distance of each from the middle one:
+
+```python
+others = {}
+for name, start in {"cold": (0.15, 0.9), "hot": (0.76, 4.7)}.items():
+    cstr.set(x1=start[0], x2=start[1])
+    others[name] = cstr.equilibrium()
+others["cold"].kind, others["hot"].kind    # stable node, stable focus
+others["cold"]["x1"], others["cold"]["x2"] # 0.1440, 0.8860
+others["hot"]["x1"], others["hot"]["x2"]   # 0.7646, 4.7050
+dist = {k: np.hypot(v["x1"] - eq["x1"], v["x2"] - eq["x2"])
+        for k, v in others.items()}
+dist                                       # cold 1.890, hot 1.979
 ```
 
 Without control, the reactor runs away from that state, to the hot one
@@ -276,13 +296,17 @@ is colder, and the temperature is pulled back.
        `place_poles` say?
 
 ??? success "Solutions"
-    1. Both starts reach it, as do the other starts we tried. The radius
+    1. Both starts reach it. The radius
        of 0.06 is where the linear model is accurate, not where the
        feedback works, which is much larger here. Only the simulation of
        the full model tells.
-    2. The gain on the conversion falls to -6.22 and the gain on the
-       temperature grows to 8.12. The poles become `-1.39 +- 1.19i`: faster
-       and more oscillatory than with `Q = [10, 1]`.
+    2. The gain on the conversion changes from -10.56 to -6.22: its size
+       falls. The gain on the temperature grows from 4.17 to 8.12. The poles
+       become `-1.39 +- 1.19i`: faster and more oscillatory than with
+       `Q = [10, 1]`. The coolant acts on the temperature alone, and the
+       temperature reaches the conversion through `A[0, 1]`; the larger
+       weight on the conversion is met by a larger gain on the temperature,
+       which is the quantity the coolant moves.
     3. It raises a `ValueError`: no inputs were chosen, and there is
        nothing to place the poles with.
 
@@ -301,8 +325,8 @@ is colder, and the temperature is pulled back.
 
 - **[AM]** Åström, K. J. and Murray, R. M. (2021). *Feedback Systems: An
   Introduction for Scientists and Engineers*, 2nd edition. Princeton:
-  Princeton University Press. Chapter 7 (state feedback, reachability and
-  pole placement) and chapter 8 (linear quadratic regulator).
+  Princeton University Press. Chapter 7 (reachability, state
+  feedback, pole placement and the linear quadratic regulator).
 - **[FPE]** Franklin, G. F., Powell, J. D. and Emami-Naeini, A. (2019).
   *Feedback Control of Dynamic Systems*, 8th edition. Pearson. Chapter 7
   (state-space design).

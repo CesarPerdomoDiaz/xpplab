@@ -822,6 +822,22 @@ def test_control_reactor(runs):
     approx(eq["x1"], 0.4472, 5e-5)
     approx(eq["x2"], 2.7517, 5e-5)
     assert sorted(np.round(eq.eigenvalues.real, 4)) == [-0.8378, 0.4958]
+    # the other two steady states: stable, and farther than the linear radius
+    others = r.ns["others"]
+    cold, hot = others["cold"], others["hot"]
+    assert (cold.kind, hot.kind) == ("stable node", "stable focus")
+    approx(cold["x1"], 0.1440, 5e-5)
+    approx(cold["x2"], 0.8860, 5e-5)
+    approx(hot["x1"], 0.7646, 5e-5)
+    approx(hot["x2"], 4.7050, 5e-5)
+    assert max(v.real for v in cold.eigenvalues) < 0
+    assert max(v.real for v in hot.eigenvalues) < 0
+    dist = r.ns["dist"]
+    for name, state in (("cold", cold), ("hot", hot)):
+        approx(dist[name], np.hypot(state["x1"] - eq["x1"], state["x2"] - eq["x2"]), 1e-9)
+    approx(dist["cold"], 1.890, 5e-4)
+    approx(dist["hot"], 1.979, 5e-4)
+    assert r.history["lin"][1].valid_radius() < 0.1 * min(dist.values())
     cstr = r.ns["cstr"]
     cstr.set(x1=0.5, x2=3.0, total=30)
     approx(cstr.run()["x2"][-1], 4.705, 5e-4)       # runs away to the hot state

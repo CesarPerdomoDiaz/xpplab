@@ -19,6 +19,7 @@ import argparse
 import ast
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -161,6 +162,17 @@ CASES = [
     ("pole_placement_2", "lecar.ode", [
         "linearize inputs gca gk", "poles -0.3 -0.7",
         "closedloop {out}/closed2.ode", "export {out}/run.csv"]),
+    # The command sequences of the control tutorial (docs/learn/control.md),
+    # on the models of the page: a renamed command fails here.
+    ("learn_control_pendulum", "learn:control.md:pend.ode", [
+        "set th=0 w=0", "linearize at ic inputs u",
+        "export {out}/linear.csv analysis", "poles -2+1i -2-1i",
+        "lqr Q 10 1 R 1", "closedloop {out}/closed.ode",
+        "export {out}/run.csv"]),
+    ("learn_control_reactor", "learn:control.md:cstr.ode", [
+        "set x1=0.45 x2=2.7", "eq", "linearize at eq inputs uc",
+        "export {out}/linear.csv analysis", "lqr Q 10 1 R 1",
+        "closedloop {out}/closed.ode", "export {out}/run.csv"]),
     # Root loci: over the gain from pole placement, over one state fed
     # back, and over a parameter with the equilibrium followed.
     ("root_locus", "lecar.ode", [
@@ -345,6 +357,11 @@ SCRIPT_HAS = {
     "palette_refused": ("sol = m.run()", 2),
     "palette": ("m.initial_conditions.update(", 1),
 }
+# The tutorial's sequences leave their own lines in the script.
+for _name in ("learn_control_pendulum", "learn_control_reactor"):
+    SCRIPT_HAS[_name] = [("lin = m.linearize(", 1), ("K = lin.lqr(", 1),
+                         ("m = lin.closed_loop(K", 1)]
+SCRIPT_HAS["learn_control_pendulum"].append(("K = lin.place_poles(", 1))
 
 
 def run_case(app, engine, out, name, model, cmds, timeout):
@@ -353,7 +370,16 @@ def run_case(app, engine, out, name, model, cmds, timeout):
     d.mkdir(parents=True)
     (d / UNICODE_DIR).mkdir()
     script, log, shot = d / "session.py", d / "app.log", d / "shot.png"
-    model_file = ROOT / model if model.startswith("tests/") else EXAMPLES / model
+    if model.startswith("learn:"):
+        # a model of a Learn page, taken from the page itself
+        _, page, ode = model.split(":")
+        text = (ROOT / "docs" / "learn" / page).read_text(encoding="utf-8")
+        body = [b for b in re.findall(r"^```ode\n(.*?)^```", text, re.S | re.M)
+                if b.startswith("# " + ode + "\n")]
+        model_file = d / ode
+        model_file.write_text(body[0], encoding="utf-8")
+    else:
+        model_file = ROOT / model if model.startswith("tests/") else EXAMPLES / model
     if name == "unicode_load":
         script = d / UNICODE_DIR / "séssion.py"
         shutil.copy(model_file, d / UNICODE_DIR / ("lécar" + model_file.suffix))
@@ -389,11 +415,12 @@ def run_case(app, engine, out, name, model, cmds, timeout):
         return problems + ["the app saved no script"]
     problems += count_problems(script)
     if name in SCRIPT_HAS:
-        line, times = SCRIPT_HAS[name]
-        found = script.read_text(encoding="utf-8").count(line)
-        if found != times:
-            problems.append("the script has %d line(s) with %r, not %d: the palette "
-                            "did not run the action" % (found, line, times))
+        wanted = SCRIPT_HAS[name]
+        for line, times in [wanted] if isinstance(wanted, tuple) else wanted:
+            found = script.read_text(encoding="utf-8").count(line)
+            if found != times:
+                problems.append("the script has %d line(s) with %r, not %d: the "
+                                "action did not run" % (found, line, times))
     if name == "auto_counts" and auto_set_counts(script) != {
             "nmax": 600, "npr": 50, "ntst": 25}:
         problems.append("auto.set() counts in the script: %r" % auto_set_counts(script))

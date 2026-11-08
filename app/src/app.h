@@ -284,6 +284,19 @@ typedef struct {
   double acc;
   CometTrail comet[APP_MAX_COMETS];
   int ncomets;
+  /* nullclines (xnull, ynull) of the phase plane's variables; the frozen
+     sets the file picks with its "who" are made from a parameter range */
+  bool has_null, null_dirty;
+  int nc_par, nc_steps;
+  double nc_lo, nc_hi;
+  /* the Grab mode: on until a drag is done */
+  bool grab, dragging;
+  double drag_time, drag_x, drag_y; /* the last move sent: when, where */
+  /* After a grab that did not run, the window keeps showing the initial
+     values until Play, a row change or a run (serial: a->run_serial then). */
+  bool show_initial;
+  unsigned init_serial;
+  int nc_x, nc_y; /* the phase plane's variables the current nullclines are for */
 } AniUI;
 
 /* Many runs kept together (app_figure.c): from random initial values in a
@@ -430,6 +443,7 @@ typedef struct App {
   AnalysisUI an;
   View3D v3;
   AniUI ani;
+  unsigned run_serial; /* counts the runs, for what depends on the last one */
   int nbcs;          /* the model's boundary conditions (bndry) */
   RunSet many;
   ManyUI mu;
@@ -637,6 +651,11 @@ const char *app_analysis_name(int tool);
 bool app_bvp(App *a);
 void app_view3d_reset(App *a);
 bool app_ani_load(App *a, const char *path);
+bool app_ani_nullclines(App *a, const char *par, int steps, double lo, double hi);
+bool app_ani_grab_press(App *a, double x, double y);
+void app_ani_grab_drag(App *a, double x, double y, double dt);
+void app_ani_grab_release(App *a);
+bool app_ani_grab(App *a, double x, double y, double x2, double y2);
 
 /* AUTO */
 bool app_auto_equilibria(App *a);

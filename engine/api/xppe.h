@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 14
+#define XPPE_API_VERSION 15
 
 enum {
   XPPE_OK = 0,
@@ -425,7 +425,9 @@ enum {
   XPPE_ANI_RECT = 1,    /* corners (x1,y1) and (x2,y2) */
   XPPE_ANI_ELLIPSE = 2, /* centre (x1,y1), radii x2 and y2 (circles too) */
   XPPE_ANI_TEXT = 3,    /* text at (x1,y1) */
-  XPPE_ANI_COMET = 4    /* the newest point (x1,y1) of a trail of `trail` */
+  XPPE_ANI_COMET = 4,   /* the newest point (x1,y1) of a trail of `trail` */
+  XPPE_ANI_NULLCLINE = 5 /* xnull or ynull: `trail` segments, see
+                            xppe_ani_segments(); colour as for lines */
 };
 
 typedef struct {
@@ -447,6 +449,54 @@ XPPE_API int xppe_ani_window(double *xlo, double *ylo, double *xhi,
                              double *yhi);
 XPPE_API int xppe_ani_frame(int row);
 XPPE_API int xppe_ani_get(int i, xppe_ani_item *out);
+
+/* Nullclines and grab points (since API version 15).
+ *
+ * xnull and ynull draw the nullclines XPPAUT keeps: who = -1 the current
+ * ones, k >= 0 the k-th frozen set (counted from 0). xppe_ani_nullclines()
+ * computes them as Nullcline > New and > Range do, in the plane of ODE
+ * variables ix and iy (0-based) over the box (x1,y1)-(x2,y2) of the file's
+ * first xnull or ynull command, on a grid x grid mesh. With a parameter and
+ * steps > 0 it also replaces the frozen sets by steps+1 of them, for the
+ * parameter at plo, ..., phi (it is put back). It returns the number of
+ * frozen sets. xppe_ani_frame() then gives each xnull and ynull command one
+ * XPPE_ANI_NULLCLINE item, with no segments when its set exists but is empty
+ * (the current ones before they are computed, or k equal to the number of
+ * frozen sets), and no item at all for k beyond that, or for any k >= 0
+ * before a nullcline has been computed;
+ * xppe_ani_segments() copies the segments of item i as (x1, y1, x2, y2)
+ * quadruples, up to max, and returns their number (all of them if out is
+ * NULL). As XPPAUT draws them, the box maps onto 0..1 in the animation's
+ * coordinates, whatever "dimension" says.
+ *
+ * The grab points follow the animator's Grab mode. Call xppe_ani_frame(0)
+ * first, as the Grab button shows the first frame. xppe_ani_grab_point()
+ * gives the position and tolerance of point i at the state of the last frame.
+ * xppe_ani_grab_begin(x, y, &index) is the mouse press: *index is the
+ * nearest point within its tolerance, or -1, in which case the next two
+ * calls do nothing. xppe_ani_grab_move(x, y, dt) is a mouse move, dt seconds
+ * after the last event: it sets mouse_x, mouse_y, mouse_vx and mouse_vy and
+ * runs the point's first {...}; it returns 1 if a point is grabbed (0
+ * otherwise). Call xppe_ani_frame(0) to see the result.
+ * xppe_ani_grab_end(&index, &runnow) is the release: it runs the second
+ * {...}, makes the values initial conditions and gives the index of the
+ * point (-1 if none was grabbed). *runnow is 1 when the file asks for a run
+ * (runnow=1); the caller then calls xppe_run(). */
+XPPE_API int xppe_ani_segments(int i, double *out, int max);
+/* The shapes for the values the variables have now, without taking them from
+   the run: what the animator draws while a grab point is dragged. */
+XPPE_API int xppe_ani_frame_current(void);
+/* The shapes for the initial conditions, as XPPAUT's Grab button shows them
+   (it does not need a run): grab points are searched and dragged from this
+   frame, so a grab that did not run is kept by the next. */
+XPPE_API int xppe_ani_frame_initial(void);
+XPPE_API int xppe_ani_nullclines(int ix, int iy, int grid, const char *param,
+                                 int steps, double plo, double phi);
+XPPE_API int xppe_ani_grab_count(void);
+XPPE_API int xppe_ani_grab_point(int i, double *x, double *y, double *tol);
+XPPE_API int xppe_ani_grab_begin(double x, double y, int *index);
+XPPE_API int xppe_ani_grab_move(double x, double y, double dt);
+XPPE_API int xppe_ani_grab_end(int *index, int *runnow);
 
 /* ---- AUTO continuation ----------------------------------------------------
  *

@@ -40,8 +40,9 @@ part [AM ch. 7].
 
 **LQR.** Instead of choosing poles, choose what the motion costs: the
 feedback that minimises the integral of `dx' Q dx + du' R du` is
-`du = -K dx`, with `K` from the algebraic Riccati equation [AM ch. 7; FPE ch. 7]. A
-large `Q` asks for a small error, a large `R` asks for a gentle input.
+`du = -K dx`, with `K` from the algebraic Riccati equation
+[AM ch. 7; FPE ch. 7]. A large `Q` asks for a small error, a large `R`
+asks for a gentle input.
 
 **Where the linear model is valid.** The feedback is designed on the linear
 model but applied to the real one. It is sure to work only close to `x*`,
@@ -288,24 +289,23 @@ is colder, and the temperature is pulled back.
 
 !!! note "Exercises"
     1. Change the start to `(0.2, 1.0)`, in the basin of the cold state,
-       and then to `(0.9, 8.0)`, near the hot state. Does the closed loop
-       still reach the middle state?
+       and then to `(0.9, 8.0)`, in the basin of the hot state. Does the
+       closed loop still reach the middle state?
     2. Make the weights `Q = [1000, 1]`. What happens to the gain, and
        to the poles?
     3. Remove the input: `linearize` without `inputs`. What does
        `place_poles` say?
 
 ??? success "Solutions"
-    1. Both starts reach it. The radius
-       of 0.06 is where the linear model is accurate, not where the
-       feedback works, which is much larger here. Only the simulation of
-       the full model tells.
+    1. Both starts reach it. The radius of 0.06 is where the linear model
+       is accurate, not where the feedback works, which is much larger
+       here. Only the simulation of the full model tells.
     2. The gain on the conversion changes from -10.56 to -6.22: its size
        falls. The gain on the temperature grows from 4.17 to 8.12. The poles
        become `-1.39 +- 1.19i`: faster and more oscillatory than with
-       `Q = [10, 1]`. The conversion gain falls in size and the temperature
-       gain grows, so more of the correction goes through the temperature,
-       the quantity the coolant moves, via `A[0, 1] = 0.346`.
+       `Q = [10, 1]`. So more of the correction comes from the measured
+       temperature, which is what the coolant moves; the temperature then
+       moves the conversion through `A[0, 1] = 0.346`.
     3. It raises a `ValueError`: no inputs were chosen, and there is
        nothing to place the poles with.
 

@@ -45,24 +45,24 @@ const CommandInfo app_command_table[] = {
     {"use", "SET", "Apply a named parameter set of the model.", NULL, NEED_MODEL},
     {"sets", NULL, "List the model's named parameter sets.", NULL, NEED_MODEL},
     {"auto steady", NULL, "Follow steady states as a parameter varies (AUTO).", NULL, NEED_MODEL},
-    {"auto from", "LABEL ACTION [PAR2]", "Continue from a labelled point of the diagram: periodic, two, extend, switch, doubling.", NULL, NEED_BRANCH, "ACTION is periodic | two | extend | switch | doubling."},
+    {"auto from", "LABEL ACTION [PAR2]", "Continue from a labelled point of the diagram: periodic, two, extend, switch, doubling.", NULL, NEED_BRANCH},
     {"auto set", "DS=0.01 ...", "Set AUTO's numerics (ds, dsmin, dsmax, nmax, npr, parmin, parmax, ntst).", NULL, NEED_MODEL},
     {"auto reset", NULL, "Clear the bifurcation diagram.", NULL, NEED_NONE},
     {"auto save", "FILE.auto", "Save the diagram, AUTO's settings and restart data.", NULL, NEED_BRANCH},
     {"auto load", "FILE.auto", "Bring a saved diagram back.", NULL, NEED_MODEL},
     {"auto orbit", "LABEL", "Show the periodic orbit at a point of the diagram as the run.", NULL, NEED_BRANCH},
-    {"range", "NAME FROM TO N ...", "Run over a range of a parameter or initial value (also sweep).", NULL, NEED_MODEL, "range NAME FROM TO N [NAME2 FROM2 TO2 [N2]] [VAR|lyap|eq] [continue]\nXPPAUT's Range: N runs over a parameter or initial value. With VAR\nit plots the maximum and minimum (a brute-force diagram), with lyap\nthe Liapunov exponent; continue starts each run where the last\nended; eq follows the equilibrium (Sing pts > Range). NAME2: a\nsecond value too, on a grid of N2 steps, or without N2 along with\nthe first (XPPAUT's 2par range). film [FIGURE] draws each run\nalone and captures it for the Kinescope (Range's Movie)."},
-    {"kinescope capture", NULL, "Take a picture of a figure for the Kinescope.", "K C", NEED_MODEL, "kinescope capture [FIG]: FIG is time, phase, auto or auto2.\nAlso: kinescope stop, show K, save F.gif [MS], frames BASE (PNG\nfiles), film [FIG]."},
+    {"range", "NAME FROM TO N ...", "Run over a range of a parameter or initial value (also sweep).", NULL, NEED_MODEL, "range NAME FROM TO N [NAME2 FROM2 TO2 [N2]] [VAR|lyap|eq] [continue]\nXPPAUT's Range: N runs over a parameter or initial value. With VAR it plots the maximum and minimum (a brute-force diagram), with lyap the Liapunov exponent; continue starts each run where the last ended; eq follows the equilibrium (Sing pts > Range). NAME2: a second value too, on a grid of N2 steps, or without N2 along with the first (XPPAUT's 2par range). film [FIGURE] draws each run alone and captures it for the Kinescope (Range's Movie)."},
+    {"kinescope capture", NULL, "Take a picture of a figure for the Kinescope.", "K C", NEED_MODEL, "kinescope capture [FIG]: FIG is time, phase, auto or auto2. Also: kinescope stop, show K, save F.gif [MS], frames BASE (PNG files), film [FIG]."},
     {"kinescope play", NULL, "Play the Kinescope's pictures.", "K A", NEED_NONE, "kinescope play [MS] sets the time per picture."},
     {"kinescope clear", NULL, "Delete the Kinescope's pictures.", "K R", NEED_NONE},
-    {"py", "CODE", "Run a line of Python in the console.", NULL, NEED_NONE, "xs, np, app and m (the model here) are defined. py alone: the\ncommand window takes Python until you leave it."},
-    {"python", "use PATH | stop | fetch | install PKG", "Choose, stop or download the console's Python.", NULL, NEED_NONE, "python fetch downloads XPP Lab's own Python (once); python\ninstall PKG... runs pip for it."},
+    {"py", "CODE", "Run a line of Python in the console.", NULL, NEED_NONE, "xs, np, app and m (the model here) are defined. py alone: the command window takes Python; click py> or type :cmd to go back to commands."},
+    {"python", "use PATH | stop | fetch | install PKG", "Choose, stop or download the console's Python.", NULL, NEED_NONE, "python fetch downloads XPP Lab's own Python (once); python install PKG... runs pip for it."},
     {"serve", NULL, "Let Python drive the app (xpplab.app.connect()).", NULL, NEED_NONE, "serve [on|off]. In Python:  app = xpplab.app.connect()"},
-    {"many", "N VAR LO HI ...", "Many runs from initial values drawn in a box.", NULL, NEED_MODEL, "many N [seed S] VAR LO HI ... [keep COL LO HI]\nRuns from initial values drawn in a box, kept where COL (e.g. an\naux) lies in LO HI; each keeps the global flag that stopped it."},
+    {"many", "N VAR LO HI ...", "Many runs from initial values drawn in a box.", NULL, NEED_MODEL, "many N [seed S] VAR LO HI ... [keep COL LO HI]\nRuns from initial values drawn in a box, kept where COL (e.g. an aux) lies in LO HI; each keeps the global flag that stopped it."},
     {"shoot", NULL, "Runs off the equilibrium along its real eigenvectors, both ways.", NULL, NEED_MODEL, "shoot [eps E] [time T] [unstable|stable|both]  (XPPAUT's sHoot)"},
-    {"figure", "new W H | panel K | run X Y | ...", "The Figure window: build a figure for papers.", NULL, NEED_MODEL, "figure [new W H [ROWS COLS] | panel K | grid R C | inset]\nfigure run X Y | many X Y [split] | diagram Y [x X] [min]\n       [stable|unstable] [steady|orbits] [branch B] [between L1 L2]\n       | range [max|min] | function F LO HI | curve Y X LO HI | eq\n       | from time|phase|auto|auto2   add series to the panel\nfigure title|xlabel|ylabel TEXT, xlim|ylim LO HI|auto,\n       style K [color #rrggbb] [line --] [width W] [marker o]\n       [scale SX SY] [label TEXT], export FILE.pdf|svg|eps|png [DPI]"},
+    {"figure", "new W H | panel K | run X Y | ...", "The Figure window: build a figure for papers.", NULL, NEED_MODEL, "figure new W H [ROWS COLS]\nfigure panel K | grid R C | inset\nAdd series to the selected panel:\nfigure run X Y | many X Y [split] | eq\nfigure diagram Y [x X] [min] [stable|unstable]\n       [steady|orbits] [branch B] [between L1 L2]\nfigure range [max|min] | function F LO HI\n       | curve Y X LO HI\n       | from time|phase|auto|auto2\nText, limits and style:\nfigure title|xlabel|ylabel TEXT\nfigure xlim|ylim LO HI|auto\nfigure style K [color #rrggbb] [line --] [width W]\n       [marker o] [scale SX SY] [label TEXT]\nfigure export FILE.pdf|svg|eps|png [DPI]"},
     {"bvp", NULL, "Solve the boundary-value problem (bndry conditions).", NULL, NEED_MODEL},
-    {"ani", "FILE.ani", "Open an XPPAUT animation of the run.", NULL, NEED_MODEL, "ani play, ani stop, ani row N; ani grab X Y X2 Y2 presses a\ngrab point at X Y and releases it at X2 Y2; ani nullclines [PAR N\nLO HI] draws the nullclines of an xnull/ynull file."},
+    {"ani", "FILE.ani", "Open an XPPAUT animation of the run.", NULL, NEED_MODEL, "ani play, ani stop, ani row N; ani grab X Y X2 Y2 presses a grab point at X Y and releases it at X2 Y2; ani nullclines [PAR N LO HI] draws the nullclines of an xnull/ynull file."},
     {"view3d", "X Y Z", "Show three columns in the 3-D view.", NULL, NEED_RUN, "view3d spin [DEG/S | off], view3d angles TH PHI"},
     {"spectrum", "COL [COL2] [N]", "Power spectral density, cross spectrum or coherence of the last run.", NULL, NEED_RUN, "spectrum COL [COL2] [psd|cross|coherence] [N]: windows of N points."},
     {"fourier", "COL", "Fourier series of a column: cos/sin and amplitude/phase.", NULL, NEED_RUN},
@@ -71,27 +71,27 @@ const CommandInfo app_command_table[] = {
     {"hist2d", "X Y [BINS]", "Two-dimensional histogram of two columns.", NULL, NEED_RUN},
     {"xcorr", "COL [COL2] [LAGS]", "Auto- or cross-correlation of the last run.", NULL, NEED_RUN},
     {"mean", "COL", "Mean, deviation and Liapunov exponent of a column.", NULL, NEED_RUN},
-    {"ensemble", NULL, "Average many runs of a noisy model: mean and variance at each time.", NULL, NEED_MODEL, "ensemble [N]: stocHastic > Compute; export F.csv analysis saves\nthe mean and variance."},
+    {"ensemble", NULL, "Average many runs of a noisy model: mean and variance at each time.", NULL, NEED_MODEL, "ensemble [N]: stocHastic > Compute; export F.csv analysis saves the mean and variance."},
     {"prc", NULL, "Phase response curves of the limit cycle.", NULL, NEED_MODEL},
     {"hfun", "F1; F2; ...", "H function: the weak-coupling interaction, one per variable.", NULL, NEED_MODEL, "Primed names are the other cell (V'-V)."},
-    {"fitdata", "FILE VARS COLS PARS", "Fit parameters to data.", NULL, NEED_MODEL},
-    {"linearize", NULL, "A and B at the equilibrium, its eigenvalues and controllability.", NULL, NEED_MODEL, "linearize [at eq|ic] [inputs] P1 P2 ...: A and B at the\nequilibrium (or the initial values), the eigenvalues, and whether\nthe parameters P1 ... can steer every state (export F.csv\nanalysis saves the table)."},
+    {"fitdata", "FILE VARS COLS PARS", "Fit parameters to data.", NULL, NEED_MODEL, "VARS, COLS and PARS are comma lists, e.g.\nfitdata v.dat V 2 gca,gk"},
+    {"linearize", NULL, "A and B at the equilibrium, its eigenvalues and controllability.", NULL, NEED_MODEL, "linearize [at eq|ic] [inputs] P1 P2 ...: A and B at the equilibrium (or the initial values), the eigenvalues, and whether the parameters P1 ... can steer every state (export F.csv analysis saves the table)."},
     {"poles", "P1 P2 ...", "The feedback gain K that gives A - B K these poles.", NULL, NEED_MODEL, "One pole per state: -2, -1+2i, -1-2i."},
-    {"lqr", NULL, "The optimal feedback gain for state and input weights.", NULL, NEED_MODEL, "lqr [Q q1 ...] [R r1 ...]: diagonal weights; one number for all\nalike. Without them it gives the gain of poles."},
+    {"lqr", NULL, "The optimal feedback gain for state and input weights.", NULL, NEED_MODEL, "lqr [Q q1 ...] [R r1 ...]: diagonal weights; one number for all alike. linearize sets every weight to 1; weights you do not give stay as they were."},
     {"closedloop", NULL, "Write the closed loop as a model next to this one and open it.", NULL, NEED_MODEL, "closedloop [FILE]: the loop is u = u0 - K (x - x*)."},
-    {"locus", "gain LO HI [N]", "Root locus of the closed loop over a gain, a state or a parameter.", NULL, NEED_MODEL, "locus gain LO HI [N]: the poles of A - g B K for N gains g (K from\npoles). locus feedback INPUT STATE LO HI [N] feeds one state back;\nlocus par P LO HI [N] follows the equilibrium as P changes\n(export F.csv locus saves it)."},
+    {"locus", "gain LO HI [N]", "Root locus of the closed loop over a gain, a state or a parameter.", NULL, NEED_MODEL, "locus gain LO HI [N]: the poles of A - g B K for N gains g (K from poles). locus feedback INPUT STATE LO HI [N] feeds one state back; locus par P LO HI [N] follows the equilibrium as P changes (export F.csv locus saves it)."},
     {"open", "FILE", "Open a model file.", NULL, NEED_NONE},
     {"new", NULL, "Start a new model from a template.", NULL, NEED_NONE},
     {"save", NULL, "Save the model in the editor and reload it.", NULL, NEED_NONE},
-    {"export", "FILE.csv [WHAT]", "Save data as CSV or MATLAB .mat, or a figure as SVG or PNG.", NULL, NEED_NONE, "export FILE.csv [auto|range|analysis|equilibria|nullclines|locus]:\nthe last run, or the bifurcation diagram, a range, the analysis,\nthe last eq all, or the nullclines shown and frozen. FILE.mat\nwrites a MATLAB file (not for linearize). export FILE.svg|png\n[time|phase|auto|auto2] saves a figure; .png as it looks on screen."},
+    {"export", "FILE.csv [WHAT]", "Save data as CSV or MATLAB .mat, or a figure as SVG or PNG.", NULL, NEED_NONE, "export FILE.csv [auto|range|analysis|equilibria|nullclines|locus]: the last run, or the bifurcation diagram, a range, the analysis, the last eq all, or the nullclines shown and frozen. FILE.mat writes a MATLAB file (not for linearize). export FILE.svg|png [time|phase|auto|auto2] saves a figure; .png as it looks on screen."},
     {"script", "FILE.py", "Save the session as a Python script that repeats it.", NULL, NEED_NONE},
     {"echo", "on | off", "Show each action as Python in the command window, or not.", NULL, NEED_NONE},
-    {"show", "WINDOW", "Bring a window forward (time, phase, auto, editor, data, ...).", NULL, NEED_NONE, "WINDOW: time, phase, auto, editor, data, analysis, 3d, animator,\nhelp, console, workspace."},
-    {"hide", "WINDOW", "Close a window.", NULL, NEED_NONE},
+    {"show", "WINDOW", "Bring a window forward (time, phase, auto, editor, data, ...).", NULL, NEED_NONE, "WINDOW: time, phase, auto, editor, data, analysis, 3d, animator, help, console, workspace, models, array, kinescope, figure. The start of a name is enough. show python opens the Workspace's Python tab."},
+    {"hide", "WINDOW", "Close a window.", NULL, NEED_NONE, "WINDOW is as for show, except kinescope, figure and python."},
     {"layout", "side | tabs", "The phase plane beside the time series, or all plots in tabs.", NULL, NEED_NONE},
     {"theme", "dark | light", "Switch the colour theme.", NULL, NEED_NONE},
-    {"help", NULL, "List the commands, or open a manual page (help TOPIC).", NULL, NEED_NONE, "help COMMAND prints that command's entry; help PAGE opens a\nmanual page."},
-    {"palette", NULL, "Open the command palette.", MOD "Shift+P", NEED_NONE, "palette run runs the first match of the text, palette list lists\neverything it finds, palette search TEXT shows the best five\nmatches without running any, palette enter acts on the open\npalette as Enter does (it needs the app's window)."},
+    {"help", NULL, "List the commands, or open a manual page (help TOPIC).", NULL, NEED_NONE, "help COMMAND prints that command's entry; help PAGE opens a manual page. A word that is both, such as auto, does both."},
+    {"palette", NULL, "Open the command palette.", MOD "Shift+P", NEED_NONE, "palette run runs the first match of the text, palette list lists everything it finds, palette search TEXT shows the best five matches without running any, palette enter acts on the open palette as Enter does (it needs the app's window)."},
     {"clear", NULL, "Clear the command window.", NULL, NEED_NONE, "Also clc."},
     {"quit", NULL, "Leave the app.", "F Q", NEED_NONE, "Also exit."},
 };
@@ -103,49 +103,80 @@ static char *skip_space(char *s);
 
 enum { HELP_INDENT = 27, HELP_WIDTH = 78 };
 
-/* Append text to buf, wrapped at HELP_WIDTH with each new line indented. */
-static void help_wrap(char *buf, size_t n, const char *text, int col) {
+static void help_put(char *buf, size_t n, const char *s, int k) {
   size_t len = strlen(buf);
-  while (*text) {
-    size_t w = strcspn(text, " ");
-    if (col > HELP_INDENT && col + 1 + (int)w > HELP_WIDTH) {
-      len += (size_t)snprintf(buf + len, n - len, "\n%*s", HELP_INDENT, "");
-      col = HELP_INDENT;
-    } else if (col > HELP_INDENT) {
-      len += (size_t)snprintf(buf + len, n - len, " ");
-      col++;
+  for (; k > 0 && len + 1 < n; k--, s++) buf[len++] = *s == '\001' ? ' ' : *s;
+  buf[len] = '\0';
+}
+
+static void help_break(char *buf, size_t n, int indent) {
+  size_t len = strlen(buf);
+  if (len < n) snprintf(buf + len, n - len, "\n%*s", indent, "");
+}
+
+/* Append text to buf, wrapped at HELP_WIDTH. col is the column the text
+   starts at; continuation lines start at indent. A '\n' in the text breaks
+   the line, and the next line keeps its own leading spaces on top of the
+   indent. A '\001' is a space that does not break. */
+static void help_wrap(char *buf, size_t n, const char *text, int col, int indent) {
+  bool first = true;
+  for (;;) {
+    const char *nl = strchr(text, '\n'), *w;
+    const char *end = nl ? nl : text + strlen(text);
+    int lead = 0, cont;
+    bool placed = first && col > indent;
+    while (text + lead < end && text[lead] == ' ') lead++;
+    if (!first) {
+      help_break(buf, n, indent + lead);
+      col = indent + lead;
     }
-    len += (size_t)snprintf(buf + len, n - len, "%.*s", (int)w, text);
-    col += (int)w;
-    text += w;
-    while (*text == ' ') text++;
+    cont = indent + lead;
+    for (w = text + lead; w < end;) {
+      int k = (int)strcspn(w, " \n");
+      if (placed && col + 1 + k > HELP_WIDTH) {
+        help_break(buf, n, cont);
+        col = cont;
+        placed = false;
+      }
+      if (placed) {
+        help_put(buf, n, " ", 1);
+        col++;
+      }
+      help_put(buf, n, w, k);
+      col += k;
+      placed = true;
+      w += k;
+      while (w < end && *w == ' ') w++;
+    }
+    if (!nl) break;
+    text = nl + 1;
+    first = false;
   }
 }
 
 /* One command's entry of `help`: name and arguments, the description, the
    XPPAUT keys, and the longer text. */
 static void help_entry(App *a, const CommandInfo *c) {
-  char buf[2048], head[160];
-  const char *d;
+  char buf[2048], head[160], text[512];
   int col;
   snprintf(head, sizeof head, "  %s%s%s", c->name, c->args ? " " : "", c->args ? c->args : "");
   col = (int)strlen(head);
-  if (col < HELP_INDENT - 1) {
-    snprintf(buf, sizeof buf, "%-*s", HELP_INDENT, head);
-    col = HELP_INDENT;
-  } else {
-    snprintf(buf, sizeof buf, "%s\n%*s", head, HELP_INDENT, "");
-    col = HELP_INDENT;
-  }
-  help_wrap(buf, sizeof buf, c->description, col);
+  if (col < HELP_INDENT - 1) snprintf(buf, sizeof buf, "%-*s", HELP_INDENT, head);
+  else snprintf(buf, sizeof buf, "%s\n%*s", head, HELP_INDENT, "");
+  snprintf(text, sizeof text, "%s", c->description);
   if (c->shortcut) {
-    size_t len = strlen(buf);
-    snprintf(buf + len, sizeof buf - len, " [%s]", c->shortcut);
+    size_t len = strlen(text);
+    char keys[32];
+    int i;
+    snprintf(keys, sizeof keys, "%s", c->shortcut);
+    for (i = 0; keys[i]; i++)
+      if (keys[i] == ' ') keys[i] = '\001';
+    snprintf(text + len, sizeof text - len, " [%s]", keys);
   }
-  for (d = c->detail; d && *d;) {
-    size_t len = strlen(buf), k = strcspn(d, "\n");
-    snprintf(buf + len, sizeof buf - len, "\n%*s%.*s", HELP_INDENT, "", (int)k, d);
-    d += k + (d[k] == '\n');
+  help_wrap(buf, sizeof buf, text, HELP_INDENT, HELP_INDENT);
+  if (c->detail) {
+    help_break(buf, sizeof buf, HELP_INDENT);
+    help_wrap(buf, sizeof buf, c->detail, HELP_INDENT, HELP_INDENT);
   }
   app_log(a, "%s", buf);
 }
@@ -164,22 +195,61 @@ static int help_commands(App *a, const char *topic) {
   return found;
 }
 
-/* `help`: every command; `help COMMAND`: its entry; `help PAGE`: a page. */
+/* Other names that app_command() takes for a command of the table. */
+static const struct {
+  const char *alias, *command;
+} help_aliases[] = {
+    {"?", "help"},        {"go", "run"},         {"ig", "run"},
+    {"cc", "continue"},   {"who", "whos"},       {"list", "whos"},
+    {"equilibrium", "eq"}, {"sg", "eq"},         {"nn", "nullclines"},
+    {"dd", "dirfield"},   {"e", "erase"},        {"wf", "fit"},
+    {"psd", "spectrum"},  {"fft", "fourier"},    {"linearise", "linearize"},
+    {"closed", "closedloop"}, {"ks", "kinescope"}, {"sweep", "range"},
+    {"clc", "clear"},     {"exit", "quit"},      {"fq", "quit"},
+    {"fig", "figure"},
+};
+
+/* Log a line of text wrapped at HELP_WIDTH, its continuation indented. */
+static void help_say(App *a, const char *text) {
+  char buf[2048];
+  buf[0] = '\0';
+  help_wrap(buf, sizeof buf, text, 0, 4);
+  app_log(a, "%s", buf);
+}
+
+/* `help`: every command; `help COMMAND`: its entry; `help PAGE`: a manual
+   page. A word that is both opens the page and prints the entries. */
 static void cmd_help(App *a, char *rest) {
-  char pages[512], *topic = skip_space(rest), *end;
-  int i;
+  char pages[512], line[1024], *topic = skip_space(rest), *end;
+  const doc_page *p;
+  int i, found;
   for (end = topic + strlen(topic); end > topic && isspace((unsigned char)end[-1]);) *--end = '\0';
   docs_names(pages, sizeof pages);
   if (!*topic) {
-    app_log(a, "Commands (XPPAUT keyboard equivalents in brackets; help COMMAND "
-               "for one command):");
+    help_say(a, "Commands (XPPAUT keyboard equivalents in brackets; help COMMAND "
+                "for one command, help PAGE for a manual page):");
     for (i = 0; i < app_ncommands; i++) help_entry(a, &app_command_table[i]);
-    app_log(a, "Manual pages (help NAME opens one): %s", pages);
-  } else if (!strchr(topic, ' ') && docs_find(topic)) {
-    ui_show_help(a, topic);
-  } else if (!help_commands(a, topic)) {
-    app_log(a, "error: no command or manual page '%s'. Pages: %s. "
-               "'help' lists the commands.", topic, pages);
+    snprintf(line, sizeof line, "Manual pages (help NAME opens one): %s", pages);
+    help_say(a, line);
+    return;
+  }
+  p = strchr(topic, ' ') ? NULL : docs_find(topic);
+  if (p) ui_show_help(a, p->name);
+  found = help_commands(a, topic);
+  if (!found && !p) {
+    for (i = 0; i < (int)(sizeof help_aliases / sizeof help_aliases[0]); i++)
+      if (SDL_strcasecmp(help_aliases[i].alias, topic) == 0) {
+        snprintf(line, sizeof line, "%s is another name for %s.", help_aliases[i].alias,
+                 help_aliases[i].command);
+        help_say(a, line);
+        found = help_commands(a, help_aliases[i].command);
+        break;
+      }
+  }
+  if (!found && !p) {
+    snprintf(line, sizeof line, "error: no command or manual page '%s'. Pages: %s. "
+                                "'help' lists the commands.", topic, pages);
+    help_say(a, line);
   }
 }
 

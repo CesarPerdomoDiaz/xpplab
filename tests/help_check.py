@@ -8,7 +8,10 @@ Checks that
      the palette) and with `help NAME`, and the Help menu opens no other page;
   2. `help` has an entry for every command of the command table, in the
      table's order, and `help COMMAND` prints that command's entry;
-  3. `help` of an unknown topic says so and names every page.
+  3. `help` of an unknown topic says so and names every page;
+  4. a word that is a page and a command (auto) does both, in any case, and
+     the other names of a command (sweep, clc, ...) find its entries;
+  5. no line of `help` is wider than 78 columns.
 """
 import re
 import subprocess
@@ -16,6 +19,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from palette_check import ALIASES  # noqa: E402
 PAGE = re.compile(r"/manual/([A-Za-z0-9_-]+)\s*$")
 
 
@@ -97,15 +102,44 @@ def main():
         if not is_entry_of(line, label):
             problems.append("help has %r where the command '%s' should be" % (line.strip(), label))
             break
-    # Every command by name: the entries of the commands starting with that word.
+    # Every command by name, in lower case, capitals and with a capital: the
+    # entries of the commands starting with that word, and the page too when
+    # the word is also a page (help auto).
+    outputs = [text]
     for word in sorted({c.split(" ")[0] for c in commands}):
-        if word in pages:
-            continue  # `help auto` opens the page
         want = [c for c in commands if c == word or c.startswith(word + " ")]
-        got = [l for l in output_of(batch(exe, model, ["help " + word]))
-               if re.match(r"^  \S", l)]
-        if len(got) != len(want) or not all(is_entry_of(l, c) for l, c in zip(got, want)):
-            problems.append("help %s prints %r, not the entries of %r" % (word, got, want))
+        for spelling in (word, word.upper(), word.capitalize()):
+            out = output_of(batch(exe, model, ["help " + spelling]))
+            outputs.append(out)
+            got = [l for l in out if re.match(r"^  \S", l)]
+            if len(got) != len(want) or not all(is_entry_of(l, c) for l, c in zip(got, want)):
+                problems.append("help %s prints %r, not the entries of %r" % (spelling, got, want))
+            shown = [m.group(1) for m in map(PAGE.search, out) if m]
+            if shown != ([word] if word in pages else []):
+                problems.append("help %s opens the pages %r" % (spelling, shown))
+    for name in pages:
+        for spelling in (name.upper(), name.capitalize()):
+            if opens(exe, model, "help " + spelling) != name:
+                problems.append("help %s does not open the page %s" % (spelling, name))
+
+    # Other names of a command (ALIASES of palette_check.py, which checks that
+    # they are all the names app_command() takes) print the command's entries.
+    for alias, command in sorted(ALIASES.items()):
+        out = output_of(batch(exe, model, ["help " + alias], "--keep-going"))
+        outputs.append(out)
+        entries = [l for l in out if re.match(r"^  \S", l)]
+        want = [c for c in commands if c == command or c.startswith(command + " ")]
+        if ("%s is another name for %s." % (alias, command)) not in out:
+            problems.append("help %s does not say it is another name for %s" % (alias, command))
+        if len(entries) != len(want) or not all(is_entry_of(l, c) for l, c in zip(entries, want)):
+            problems.append("help %s prints %r, not the entries of %r" % (alias, entries, want))
+
+    # No line is wider than 78 columns, unless it is one long word (the line
+    # that xpplab-batch prints for an opened page is not part of the help).
+    for out in outputs:
+        for line in out:
+            if len(line) > 78 and " " in line.strip() and not PAGE.search(line):
+                problems.append("help line wider than 78: %r" % line)
 
     text = batch(exe, model, ["help nosuchtopic"], "--keep-going")
     if "nosuchtopic" not in text or any(

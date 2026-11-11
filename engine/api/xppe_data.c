@@ -450,10 +450,22 @@ enum {
   METHOD_RB23 = 13
 };
 
+/* One output step from t to t1 (1 on success). The fixed-step methods take
+   NJMP steps of DT as integrate() does, with one solver() call: a step to
+   the rounded end time t1 could be a short one, which adams() cannot take.
+   The adaptive methods go through one_step_int(). The two states take turns
+   on the one solver state (Adams history, Gear and CVODE workspaces), so
+   each call starts the method afresh; a saved copy of that state for each
+   trajectory is not available. */
+static int lyap_step(double *y, double t, double t1, int *istart, int fixed) {
+  if (fixed) return solver(y, &t, DELTA_T, NJMP, NODE, istart, WORK) >= 0;
+  return one_step_int(y, t, t1, istart);
+}
+
 int xppe_lyapunov_integrate(double eps, double *exponent) {
   double y[MAXODE], y2[MAXODE], dy[MAXODE];
   double h, t, t1, nrm, sum = 0, span = 0;
-  int rc, i, k, nsteps, istart, ok = 1, out = 0;
+  int rc, i, k, nsteps, istart, fixed, ok = 1, out = 0;
   const char *why = NULL;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
   if (DelayFlag || NKernel > 0) {
@@ -478,6 +490,10 @@ int xppe_lyapunov_integrate(double eps, double *exponent) {
   }
   nsteps = (nsteps + NJMP - 1) / NJMP;
   h *= NJMP;
+  fixed = !(METHOD == METHOD_GEAR || METHOD == METHOD_RKQS ||
+            METHOD == METHOD_STIFF || METHOD == METHOD_CVODE ||
+            METHOD == METHOD_DP5 || METHOD == METHOD_DP83 ||
+            METHOD == METHOD_RB23);
   xppe_begin_call();
   XPPE_GUARD_BEGIN((void)0);
   evaluate_derived();
@@ -491,12 +507,12 @@ int xppe_lyapunov_integrate(double eps, double *exponent) {
     /* Each call starts the method afresh, since the two states take turns
        (gear() takes 0 for a fresh start, as integrate() gives it). */
     istart = METHOD == METHOD_GEAR ? 0 : 1;
-    ok = one_step_int(y, t, t1, &istart);
+    ok = lyap_step(y, t, t1, &istart, fixed);
     istart = METHOD == METHOD_GEAR ? 0 : 1;
 #ifdef CVODE_YES
     if (METHOD == METHOD_CVODE) end_cv(); /* start_cv() would leak it */
 #endif
-    if (ok) ok = one_step_int(y2, t, t1, &istart);
+    if (ok) ok = lyap_step(y2, t, t1, &istart, fixed);
 #ifdef CVODE_YES
     if (METHOD == METHOD_CVODE) end_cv();
 #endif

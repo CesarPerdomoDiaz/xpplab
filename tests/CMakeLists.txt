@@ -85,6 +85,12 @@ if(Python3_FOUND AND TARGET xpplab-batch)
     COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/palette_check.py
             ${XPPS_BATCH} ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode)
   set_tests_properties(palette PROPERTIES TIMEOUT 300)
+  # help: every manual page is in the Help menu and opens with `help NAME`,
+  # and `help` has an entry for every command of the table.
+  add_test(NAME help
+    COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/help_check.py
+            ${XPPS_BATCH} ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode)
+  set_tests_properties(help PROPERTIES TIMEOUT 600)
 endif()
 
 if(Python3_FOUND AND TARGET xpplab)

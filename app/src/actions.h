@@ -43,13 +43,17 @@ typedef struct {
   const char *description;
   const char *shortcut;    /* XPPAUT's keys, or NULL */
   int needs;               /* NEED_* */
+  const char *detail;      /* more lines for `help`, split at '\n', or NULL */
 } CommandInfo;
 
 enum { NEED_NONE, NEED_MODEL, NEED_RUN, NEED_BRANCH };
 
 extern const CommandInfo app_command_table[];
 extern const int app_ncommands;
-const char *app_command_usage(void); /* the text of `help` */
+
+/* The manual pages of the Help menu, in its order. */
+extern const char *const app_help_pages[];
+extern const int app_nhelp_pages;
 
 /* Whether the action's item is shown ticked. */
 bool action_checked(App *a, const Action *x);

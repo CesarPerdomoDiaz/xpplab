@@ -129,7 +129,7 @@ commands. `help` lists them all.
 | `show phase`, `hide help` | Bring a window forward, or close it: `time`, `phase`, `auto`, `editor`, `data`, `analysis`, `3d`, `animator`, `help`, `console`, `workspace`, `models`, `array`; `show` also takes `kinescope` and `figure`. |
 | `layout side`, `layout tabs` | Put the phase plane beside the time series (also in **View**), or all plots back in tabs. |
 | `theme dark`, `theme light` | Dark or light colours (**View > Dark theme**). |
-| `help auto` | Open a manual page: `welcome`, `tutorial`, `neuron-tutorial`, `auto`, `analysis`, `tools`, `figures`, `odefile`, `numerics`, `commands`, `xppaut`, `matlab`, `auto07p`, `codim2`, `about`. `help` alone lists the commands. |
+| `help auto`, `help many` | Open a manual page: `welcome`, `tutorial`, `neuron-tutorial`, `auto`, `analysis`, `tools`, `figures`, `odefile`, `numerics`, `commands`, `xppaut`, `matlab`, `auto07p`, `codim2`, `about`. Or print the entry of a command: `help many`, `help ic` (every `ic` form), `help sweep` (other names work too). A word that is both a page and a command, such as `auto`, does both. `help` alone lists every command. |
 | `quit` | Leave the app (`exit` works too). |
 
 ## MATLAB `.mat` files

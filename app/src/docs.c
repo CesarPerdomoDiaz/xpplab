@@ -31,3 +31,11 @@ int docs_count(void) {
   while (doc_pages[n].name) n++;
   return n;
 }
+
+void docs_names(char *buf, size_t len) {
+  const doc_page *p;
+  size_t n = 0;
+  if (len) buf[0] = 0;
+  for (p = doc_pages; p->name && n < len; p++)
+    n += (size_t)snprintf(buf + n, len - n, "%s%s", n ? ", " : "", p->name);
+}

@@ -8,6 +8,7 @@
 #include <SDL3/SDL.h>
 
 #include "actions.h"
+#include "docs.h"
 
 /* ---- What the actions do -------------------------------------------------- */
 
@@ -73,10 +74,13 @@ static void act_text_size(App *a, int arg) { a->ui_scale = text_sizes[arg]; }
 static bool chk_text_size(App *a, int arg) { return a->ui_scale == text_sizes[arg]; }
 static void act_palette(App *a, int arg) { (void)arg, palette_open(a); }
 
-static const char *help_pages[] = {"welcome", "tutorial", "neuron-tutorial", "auto",
-                                   "odefile", "numerics", "commands", "xppaut",
-                                   "matlab", "auto07p", "codim2", "about"};
-static void act_help(App *a, int arg) { ui_show_help(a, help_pages[arg]); }
+/* The manual's pages in the order of the Help menu; palette check makes
+   sure each is a page of docs/manual and that no page is left out. */
+const char *const app_help_pages[] = {
+    "welcome", "tutorial", "neuron-tutorial", "analysis", "auto", "tools", "figures",
+    "odefile", "numerics", "commands", "xppaut", "matlab", "auto07p", "codim2", "about"};
+const int app_nhelp_pages = (int)(sizeof app_help_pages / sizeof app_help_pages[0]);
+static void act_help(App *a, int arg) { ui_show_help(a, app_help_pages[arg]); }
 
 /* An action that is a command of the command window. */
 static const char *const action_commands[] = {"eq", "eq all", "erase", "bvp", "dirfield"};
@@ -286,24 +290,31 @@ const Action app_actions[] = {
          "Write, run and explore a first model.", 1),
     HELP("help.neuron", false, "Tutorial: why does a neuron fire?", NULL,
          "A neuron model, its equilibria and its bifurcation.", 2),
+    HELP("help.analysis", false, "Data analysis", NULL,
+         "Spectra, histograms, correlations, averaging, phase response and control.", 3),
     HELP("help.auto", false, "Bifurcation analysis with AUTO", NULL,
-         "Follow equilibria and periodic orbits with AUTO.", 3),
+         "Follow equilibria and periodic orbits with AUTO.", 4),
+    HELP("help.tools", false, "Initial values, Range, boundary-value problems, 3D, animations",
+         NULL, "Initial values, Range, boundary-value problems, the 3-D view, animations and the "
+               "Kinescope.", 5),
+    HELP("help.figures", false, "Figures for papers", NULL,
+         "The Figure window: panels, series and export to PDF, SVG, EPS and PNG.", 6),
     HELP("help.odefile", false, "The .ode file format", NULL,
-         "Everything a model file can say.", 4),
+         "Everything a model file can say.", 7),
     HELP("help.numerics", false, "Numerical methods", NULL,
-         "The integrators and how to choose one.", 5),
+         "The integrators and how to choose one.", 8),
     HELP("help.commands", false, "Commands and keyboard shortcuts", NULL,
-         "Every command of the command window and every shortcut.", 6),
+         "Every command of the command window and every shortcut.", 9),
     HELP("help.xppaut", false, "Coming from XPPAUT", NULL,
-         "Where XPPAUT's menus and keys are in XPP Lab.", 7),
+         "Where XPPAUT's menus and keys are in XPP Lab.", 10),
     HELP("help.matlab", false, "Coming from MATLAB", NULL,
-         "XPP Lab for MATLAB users.", 8),
+         "XPP Lab for MATLAB users.", 11),
     HELP("help.auto07p", false, "Coming from AUTO-07p", NULL,
-         "XPP Lab for AUTO-07p users.", 9),
+         "XPP Lab for AUTO-07p users.", 12),
     HELP("help.codim2", false, "Codimension-two bifurcations", NULL,
-         "Fold and Hopf curves, cusps and Bogdanov-Takens points, on a worked example.", 10),
+         "Fold and Hopf curves, cusps and Bogdanov-Takens points, on a worked example.", 13),
     HELP("help.about", true, "About XPP Lab", NULL, "The version, the licence and the credits.",
-         11),
+         14),
 };
 const int app_nactions = (int)(sizeof app_actions / sizeof app_actions[0]);
 
@@ -614,24 +625,12 @@ static int check_fail(App *a, const char *fmt, const char *x, const char *y) {
   return 1;
 }
 
-/* Is there a table command called `word`, or one that starts with it? */
-static bool has_command(const char *word) {
-  size_t n = strlen(word);
-  int i;
-  for (i = 0; i < app_ncommands; i++) {
-    const char *c = app_command_table[i].name;
-    if (!strncmp(c, word, n) && (c[n] == '\0' || c[n] == ' ')) return true;
-  }
-  return false;
-}
-
-/* The table is consistent, every command that `help` lists is in it, and
+/* The table is consistent, the Help menu has every manual page, and
    every entry is found by searching for its own name. */
 static int palette_check(App *a) {
   static int hits[PALETTE_MAX_HITS];
   static const char *const menus[] = {"File", "Run", "View", "Help"};
   int bad = 0, i, j, n;
-  const char *u = app_command_usage();
   char label[256];
 
   for (i = 0; i < app_nactions; i++) {
@@ -666,14 +665,18 @@ static int palette_check(App *a) {
       if (!strcmp(app_command_table[j].name, c->name))
         bad += check_fail(a, "%s: listed twice", c->name, "");
   }
-  /* Each first word of a line of `help` that starts a command. */
-  for (; *u; u = strchr(u, '\n') ? strchr(u, '\n') + 1 : u + strlen(u)) {
-    char word[40];
-    size_t len = 0;
-    if (u[0] != ' ' || u[1] != ' ' || u[2] == ' ' || u[2] == '|') continue;
-    while (u[2 + len] && u[2 + len] != ' ' && u[2 + len] != '\n' && len < sizeof word - 1) len++;
-    snprintf(word, sizeof word, "%.*s", (int)len, u + 2);
-    if (!has_command(word)) bad += check_fail(a, "the command '%s' of help is not in the table", word, "");
+  /* The Help menu opens every page of the manual, once. */
+  for (i = 0; i < app_nhelp_pages; i++) {
+    if (!docs_find(app_help_pages[i]))
+      bad += check_fail(a, "the Help menu opens '%s', which is not a manual page", app_help_pages[i], "");
+    for (j = 0; j < i; j++)
+      if (!strcmp(app_help_pages[j], app_help_pages[i]))
+        bad += check_fail(a, "the Help menu lists '%s' twice", app_help_pages[i], "");
+  }
+  for (i = 0; i < docs_count(); i++) {
+    for (j = 0; j < app_nhelp_pages && strcmp(app_help_pages[j], doc_pages[i].name); j++) {}
+    if (j == app_nhelp_pages)
+      bad += check_fail(a, "the manual page '%s' is not in the Help menu", doc_pages[i].name, "");
   }
   n = palette_entries(a);
   for (i = 0; i < n; i++) {

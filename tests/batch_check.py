@@ -141,6 +141,28 @@ with tempfile.TemporaryDirectory() as t:
           'fig[1].text(0.1, 0.3, "plain")' in script,
           "the plot's notes went to a panel with no notes, with no size added")
 
+    # A full plot (16 annotations): the 17th is refused with one message,
+    # and "figure from phase" copies all 16 with no error and no warning:
+    # it picks a panel with no notes, so the copy always fits.
+    full = tmp / "full"
+    full.mkdir()
+    shutil.copy(examples / "lecar.ode", full)
+    cmds = ["run"] + ["annotate phase text 0.%d 0.1 note%d" % (i % 10, i) for i in range(17)]
+    args = ["lecar.ode", "--keep-going"]
+    for c in cmds + ["figure from phase"]:
+        args += ["-c", c]
+    r = run(args + ["--script", "full.py"], full)
+    lines = (r.stdout + r.stderr).splitlines()
+    refused = [l for l in lines if "annotations already" in l]
+    check(len(refused) == 1 and "phase plot has 16" in refused[0],
+          "the 17th annotation of a plot is refused once: %r" % refused)
+    check(not [l for l in lines if "left out" in l or l.startswith("error: panel")],
+          "copying 16 annotations to a figure reports nothing left out")
+    script = (full / "full.py").read_text() if (full / "full.py").exists() else ""
+    check(len(re.findall(r'^fig\[0\]\.text\(', script, re.M)) == 16 and
+          'note16' not in script,
+          "all 16 annotations reached the figure panel, and the refused one did not")
+
     r = run(["lecar.ode", "--no-such-option"], work)
     check(r.returncode == 2, "an unknown option gives exit status 2")
 

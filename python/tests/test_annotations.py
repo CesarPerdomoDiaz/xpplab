@@ -129,3 +129,35 @@ def test_a_plot_windows_notes_draw_on_the_script_axes():
     assert len(notes["phase"].notes) == 2 and len(notes["time"].notes) == 1
     with pytest.raises(KeyError):
         notes["phase plane"]
+
+
+def test_a_marker_outside_the_data_leaves_the_limits_alone():
+    def limits(with_marker):
+        fig, ax = plt.subplots()
+        ax.plot([0, 1], [0, 1])
+        if with_marker:
+            notes = xs.Annotations()
+            notes["phase"].marker(5, 5, "o")
+            notes["phase"].draw(ax)
+        fig.canvas.draw()
+        out = ax.get_xlim(), ax.get_ylim()
+        plt.close(fig)
+        return out
+
+    assert limits(True) == limits(False)
+    # and the same in a figure panel
+    fig = xs.Figure(86, 65)
+    fig[0].line([0, 1], [0, 1])
+    fig[0].marker(5, 5)
+    mpl = fig.draw()
+    assert mpl.axes[0].get_xlim()[1] < 1.2 and mpl.axes[0].get_ylim()[1] < 1.2
+    plt.close(mpl)
+
+
+def test_an_arrow_whose_head_is_outside_the_axes_is_drawn():
+    fig = figure()
+    fig.arrow(2, 2, 15, 6, color=RED)
+    img, pixel = png_pixels(fig)
+    # the shaft inside the axes: at x = 5 it is at y = 2 + 3 * 4 / 13
+    x, y = pixel(5, 2 + 12 / 13)
+    assert red_mask(img)[y - 2:y + 3, x - 2:x + 3].any()

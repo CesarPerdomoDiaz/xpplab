@@ -313,7 +313,7 @@ SCRIPT_LINES = {
                  r"color=\"#d62728\"\)",
                  r"^notes\[\"phase\"\]\.arrow\(-0\.4, 0\.0, -0\.2, 0\.2\)",
                  r"^notes\[\"phase\"\]\.marker\(0\.0, 0\.1, \"s\"\)",
-                 r"^notes\[\"time\"\]\.text\(12\.0, 0\.1, \"spike\", size=12\.0\)",
+                 r"^notes\[\"time\"\]\.text\(12\.0, 0\.1, \"spike\"\)",
                  r"^fig\[0\]\.text\(-0\.2, 0\.2, \"saddle",
                  r"^fig\[0\]\.arrow\(-0\.4, 0\.0, -0\.2, 0\.2\)",
                  r"^fig\[0\]\.marker\(0\.0, 0\.1, \"s\"\)",

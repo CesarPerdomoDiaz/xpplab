@@ -363,6 +363,7 @@ typedef struct {
   int mode;            /* -1 none, else FIG_NOTE_* */
   int plot;            /* the plot (or APP_NOTE_FIGURE) the tool is for */
   bool have_start;     /* an arrow's tail is placed */
+  int panel0;          /* the Figure panel it is on */
   double x0, y0;
   char text[FIG_TEXT]; /* what the text tool writes */
   float pt;            /* its size */
@@ -638,6 +639,10 @@ void app_notes_reset(App *a);                  /* a new model */
 void app_note_defaults(const App *a, int kind, FigNote *n);
 /* One click of the armed tool at data (x, y) in plot `where`. */
 void app_note_click(App *a, int where, double x, double y);
+/* The armed tool is the one for plot `where`: it takes that plot's clicks. */
+static inline bool app_note_armed(const App *a, int where) {
+  return a->nt.mode >= 0 && a->nt.plot == where;
+}
 /* A formula in x, at n points (the same grammar as xpplab.figure). */
 bool app_eval_expression(const char *expr, const double *x, double *y, int n,
                          char *err, size_t errlen);

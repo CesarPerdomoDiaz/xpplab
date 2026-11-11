@@ -318,7 +318,7 @@ static void diagram_plot(App *a, bool two_param) {
     }
     draw_branches(a, two_param);
     draw_special(a, two_param);
-    if (a->nt.mode < 0 && ImPlot_IsPlotHovered() &&
+    if (!app_note_armed(a, two_param ? FIG_AUTO2 : FIG_AUTO) && ImPlot_IsPlotHovered() &&
         igIsMouseClicked_Bool(ImGuiMouseButton_Left, false))
       pick_point(a, two_param);
     ui_notes_draw(a, two_param ? FIG_AUTO2 : FIG_AUTO);

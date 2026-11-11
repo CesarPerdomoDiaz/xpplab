@@ -61,7 +61,7 @@ const CommandInfo app_command_table[] = {
     {"many", "N VAR LO HI ...", "Many runs from initial values drawn in a box.", NULL, NEED_MODEL, "many N [seed S] VAR LO HI ... [keep COL LO HI]\nRuns from initial values drawn in a box, kept where COL (e.g. an aux) lies in LO HI; each keeps the global flag that stopped it."},
     {"shoot", NULL, "Runs off the equilibrium along its real eigenvectors, both ways.", NULL, NEED_MODEL, "shoot [eps E] [time T] [unstable|stable|both]  (XPPAUT's sHoot)"},
     {"figure", "new W H | panel K | run X Y | ...", "The Figure window: build a figure for papers.", NULL, NEED_MODEL, "figure new W H [ROWS COLS]\nfigure panel K | grid R C | inset\nAdd series to the selected panel:\nfigure run X Y | many X Y [split] | eq\nfigure diagram Y [x X] [min] [stable|unstable]\n       [steady|orbits] [branch B] [between L1 L2]\nfigure range [max|min] | function F LO HI\n       | curve Y X LO HI\n       | from time|phase|auto|auto2\nText, limits and style:\nfigure title|xlabel|ylabel TEXT\nfigure xlim|ylim LO HI|auto\nfigure style K [color #rrggbb] [line --] [width W]\n       [marker o] [scale SX SY] [label TEXT]\nfigure export FILE.pdf|svg|eps|png [DPI]"},
-    {"annotate", "WHERE text|arrow|marker|clear ...", "Add text, an arrow or a marker to a plot, or clear them.", NULL, NEED_NONE, "annotate WHERE text X Y [size PT] [color #rrggbb] TEXT\nannotate WHERE arrow X1 Y1 X2 Y2 | marker X Y [o|s|^|D|x|+|*|.]\nannotate WHERE clear [K]\nWHERE is time, phase, auto, auto2 or figure (the Figure window's panel); positions are in the plot's own units."},
+    {"annotate", "WHERE text|arrow|marker|clear ...", "Add text, an arrow or a marker to a plot, or clear them.", NULL, NEED_NONE, "annotate WHERE text X Y [size PT] [color #rrggbb] TEXT\nannotate WHERE arrow X1 Y1 X2 Y2 | marker X Y [o|s|^|D|x|+|*|.]\nannotate WHERE clear [K]\nsize is in points and color is #rrggbb; arrows and markers take color too. The text is what follows the options, so text that begins with the word size or color needs another word before it.\nWHERE is time, phase, auto, auto2 or figure (the Figure window's panel); positions are in the plot's own units."},
     {"bvp", NULL, "Solve the boundary-value problem (bndry conditions).", NULL, NEED_MODEL},
     {"ani", "FILE.ani", "Open an XPPAUT animation of the run.", NULL, NEED_MODEL, "ani play, ani stop, ani row N; ani grab X Y X2 Y2 presses a grab point at X Y and releases it at X2 Y2; ani nullclines [PAR N LO HI] draws the nullclines of an xnull/ynull file."},
     {"view3d", "X Y Z", "Show three columns in the 3-D view.", NULL, NEED_RUN, "view3d spin [DEG/S | off], view3d angles TH PHI"},
@@ -847,10 +847,19 @@ static void cmd_annotate(App *a, char *rest) {
     o = next_word(&rest);
     if (!strcmp(o, "size")) {
       char *s = next_word(&rest);
-      n.pt = s ? (float)atof(s) : 0;
+      if (!is_number(s) || !(strtod(s, NULL) > 0)) {
+        app_log(a, "error: annotate: size is a positive number of points, not '%s'", s ? s : "");
+        return;
+      }
+      n.pt = (float)atof(s);
     } else {
-      char *c = next_word(&rest);
-      unsigned u = c ? (unsigned)strtoul(c[0] == '#' ? c + 1 : c, NULL, 16) : 0;
+      char *c = next_word(&rest), *h = c && c[0] == '#' ? c + 1 : c;
+      unsigned u;
+      if (!h || strlen(h) != 6 || strspn(h, "0123456789abcdefABCDEF") != 6) {
+        app_log(a, "error: annotate: color is #rrggbb (six hex digits), not '%s'", c ? c : "");
+        return;
+      }
+      u = (unsigned)strtoul(h, NULL, 16);
       n.rgb[0] = ((u >> 16) & 255) / 255.0f;
       n.rgb[1] = ((u >> 8) & 255) / 255.0f;
       n.rgb[2] = (u & 255) / 255.0f;

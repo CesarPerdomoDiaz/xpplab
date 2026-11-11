@@ -91,7 +91,6 @@ bool app_note_add(App *a, int where, const FigNote *in) {
             plot_names[where], FIG_MAX_NOTES);
     return false;
   }
-  if (n.kind == FIG_NOTE_TEXT && n.pt <= 0) n.pt = 12;
   a->nt.note[where][a->nt.n[where]++] = n;
   outer = echo_begin(a);
   if (outer) {

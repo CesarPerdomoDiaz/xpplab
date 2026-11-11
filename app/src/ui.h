@@ -114,6 +114,7 @@ void ui_figure_rect(int figure);   /* call right after EndPlot */
    (menu only). */
 void ui_notes_menu(App *a, int where);
 void ui_notes_draw(App *a, int where);
+void ui_notes_frame(App *a); /* once a frame: Esc cancels an armed tool */
 
 /* A plot that follows its data: its axes fit the data as it changes, until
    the user zooms or pans it (wheel, left drag, right-drag box). Then the

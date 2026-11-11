@@ -142,6 +142,7 @@ class _Annotated:
     def draw(self, ax, fontsize: float = 12.0) -> None:
         """Draw the annotations on a matplotlib Axes, in its data
         coordinates; ``fontsize`` is the size of text given none."""
+        from matplotlib.lines import Line2D
         for n in self.notes:
             if n["kind"] == "text":
                 ax.text(n["x"], n["y"], n["s"], fontsize=n["size"] or fontsize,
@@ -150,11 +151,15 @@ class _Annotated:
                 ax.annotate("", xy=(n["x2"], n["y2"]), xytext=(n["x"], n["y"]),
                             arrowprops=dict(arrowstyle="-|>", color=n["color"],
                                             lw=1.0, shrinkA=0, shrinkB=0,
-                                            mutation_scale=15))
+                                            mutation_scale=15),
+                            annotation_clip=False)
             else:
-                ax.plot([n["x"]], [n["y"]], linestyle="none", marker=n["marker"],
-                        ms=6, color=n["color"], mec=n["color"], mfc=n["color"],
-                        mew=1.0, scalex=False, scaley=False, clip_on=False)
+                # an artist, not a plot: the axes' data limits stay as they were
+                dot = Line2D([n["x"]], [n["y"]], linestyle="none", marker=n["marker"],
+                             ms=6, color=n["color"], mec=n["color"], mfc=n["color"],
+                             mew=1.0)
+                ax.add_artist(dot)
+                dot.set_clip_on(False)
 
 
 class Annotations:

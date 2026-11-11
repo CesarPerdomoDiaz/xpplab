@@ -1394,9 +1394,9 @@ bool app_fig_add_equilibria(App *a, int panel, int xvar, int yvar) {
 static int new_panel_for_plot(App *a) {
   FigUI *g = &a->fg;
   int k;
-  /* the first empty grid panel, else a new figure of one */
+  /* the first grid panel with no curves and no annotations, else a new figure of one */
   for (k = 0; k < g->fig.rows * g->fig.cols; k++)
-    if (g->fig.p[k].nseries == 0) return k;
+    if (g->fig.p[k].nseries == 0 && g->fig.p[k].nnote == 0) return k;
   app_fig_new(a, g->fig.width_mm, g->fig.height_mm, 1, 1);
   return 0;
 }
@@ -1483,8 +1483,12 @@ bool app_fig_from_plot(App *a, int figure) {
   g->dirty = true;
   app_fig_sync_echo(a);
   if (any && figure >= 0 && figure < APP_PLOTS) {
-    int i;
-    for (i = 0; i < a->nt.n[figure]; i++) app_fig_note_add(a, panel, &a->nt.note[figure][i]);
+    int i, room = FIG_MAX_NOTES - p->nnote, left_out = a->nt.n[figure] - room;
+    for (i = 0; i < a->nt.n[figure] && i < room; i++)
+      app_fig_note_add(a, panel, &a->nt.note[figure][i]);
+    if (left_out > 0)
+      app_log(a, "warning: panel %d holds %d annotations; %d of the plot's were left out",
+              panel + 1, FIG_MAX_NOTES, left_out);
   }
   if (any) app_status(a, "Added the plot to the figure's panel %d.", panel + 1);
   return any;

@@ -523,7 +523,7 @@ void ui_phase_plot(App *a) {
     if (p->show_equilibria) draw_equilibria(a);
 
     /* A click without dragging starts a trajectory there. */
-    if (p->click_to_start && a->nt.mode < 0 && ImPlot_IsPlotHovered() &&
+    if (p->click_to_start && !app_note_armed(a, FIG_PHASE) && ImPlot_IsPlotHovered() &&
         igIsMouseReleased_Nil(ImGuiMouseButton_Left)) {
       ImVec2_c drag = igGetMouseDragDelta(ImGuiMouseButton_Left, 0);
       if (fabsf(drag.x) < 3 && fabsf(drag.y) < 3) {

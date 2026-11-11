@@ -103,7 +103,7 @@ commands. `help` lists them all.
 | `many 100 seed 1 V -0.5 0.5 W 0 1 keep tens 0 inf` | N runs from initial values drawn in a box, kept where a column (here the aux `tens`) lies in a range (see *Many runs and shooting* in the Tools page). |
 | `shoot eps 1e-5 time 50 unstable` | Runs off the equilibrium along its real eigenvectors, both ways (`unstable`, `stable` or `both`; XPPAUT's sHoot). |
 | `figure new 86 65 1 2`, `figure run T V`, `figure export fig.pdf` | The Figure window: a figure for papers, made panel by panel. The commands are listed on the Figures page. |
-| `annotate phase text -0.2 0.2 size 12 color #d62728 saddle` | Write text at a point of a plot, in its own units (`time`, `phase`, `auto`, `auto2`, or `figure` for the Figure window's selected panel). `size` is in points, `color` is `#rrggbb`, and the rest of the line is the text (mathtext in the figure). |
+| `annotate phase text -0.2 0.2 size 12 color #d62728 saddle` | Write text at a point of a plot, in its own units (`time`, `phase`, `auto`, `auto2`, or `figure` for the Figure window's selected panel). `size` is a positive number of points and `color` is `#rrggbb`; a bad value is an error and nothing is added. The text is the rest of the line after the options, so text that begins with the word `size` or `color` needs another word before it (mathtext in the figure). |
 | `annotate phase arrow -0.4 0 -0.2 0.2`, `annotate phase marker 0 0.1 s` | An arrow from the first point to the second, or a marker (`o`, `s`, `^`, `D`, `x`, `+`, `*`, `.`). Both take `color`. |
 | `annotate phase clear 2`, `annotate phase clear` | Delete the second annotation of the plot, or all of them. |
 | `bvp` | Solve the boundary-value problem given by the model's `bndry` statements. |

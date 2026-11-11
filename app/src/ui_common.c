@@ -655,6 +655,7 @@ void ui_draw(App *a) {
   if (a->show_browser) ui_browser(a);
   if (a->show_workspace) ui_workspace(a);
   if (a->show_editor) ui_editor(a);
+  ui_notes_frame(a);
   if (a->show_time) ui_time_plot(a);
   if (a->show_phase) ui_phase_plot(a);
   if (a->show_auto) ui_auto(a);

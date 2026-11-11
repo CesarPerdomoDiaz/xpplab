@@ -29,6 +29,14 @@ static void arm(App *a, int where, int kind) {
                                        : "Click where the %s goes.", kind_names[kind]);
 }
 
+void ui_notes_frame(App *a) {
+  if (a->nt.mode >= 0 && igIsKeyPressed_Bool(ImGuiKey_Escape, false)) {
+    a->nt.mode = -1;
+    a->nt.have_start = false;
+    app_status(a, "Annotation cancelled.");
+  }
+}
+
 void ui_notes_menu(App *a, int where) {
   NoteUI *t = &a->nt;
   int n, i, remove = -1;
@@ -40,10 +48,6 @@ void ui_notes_menu(App *a, int where) {
   if (t->mode >= 0 && t->plot == where) {
     igSameLine(0, -1);
     igTextDisabled("Click the plot to place the %s (Esc cancels).", kind_names[t->mode]);
-    if (igIsKeyPressed_Bool(ImGuiKey_Escape, false)) {
-      t->mode = -1;
-      t->have_start = false;
-    }
   }
   if (!igBeginPopup("annotate", 0)) return;
   igSetNextItemWidth(260);

@@ -648,15 +648,19 @@ void ui_figure(App *a) {
         igText("panel %d: x = %.6g, y = %.6g. Drag to zoom, double-click for all.", over + 1, x, y);
         if (a->nt.mode >= 0 && a->nt.plot == APP_NOTE_FIGURE) {
           if (igIsMouseClicked_Bool(ImGuiMouseButton_Left, false)) {
+            /* an arrow is on one panel: a click on another starts it again there */
+            if (a->nt.have_start && a->nt.panel0 != over) a->nt.have_start = false;
             g->panel = over;
             app_note_click(a, APP_NOTE_FIGURE, x, y);
+            if (a->nt.have_start) a->nt.panel0 = over;
           }
         } else if (igIsMouseClicked_Bool(ImGuiMouseButton_Left, false)) {
           g->panel = over;
           dragging = true;
           start = m;
         }
-        if (igIsMouseDoubleClicked_Nil(ImGuiMouseButton_Left)) {
+        if (igIsMouseDoubleClicked_Nil(ImGuiMouseButton_Left) &&
+            !(a->nt.mode >= 0 && a->nt.plot == APP_NOTE_FIGURE)) {
           f->p[over].autox = f->p[over].autoy = true;
           g->dirty = true;
           dragging = false;
@@ -664,6 +668,14 @@ void ui_figure(App *a) {
       } else {
         igTextDisabled("%g x %g mm. Click a panel to select it; drag to zoom.", f->width_mm,
                        f->height_mm);
+      }
+      /* an arrow's tail waits for its head */
+      if (a->nt.mode == FIG_NOTE_ARROW && a->nt.plot == APP_NOTE_FIGURE && a->nt.have_start &&
+          a->nt.panel0 < f->npanels && preview.axes[a->nt.panel0].valid) {
+        float qx, qy;
+        fig_to_page(&preview.axes[a->nt.panel0], a->nt.x0, a->nt.y0, &qx, &qy);
+        ImDrawList_AddCircleFilled(igGetWindowDrawList(), V2(pos.x + qx * sc, pos.y + qy * sc), 4,
+                                   igGetColorU32_Col(ImGuiCol_PlotLinesHovered, 1), 0);
       }
       if (dragging) {
         ImDrawList *dl = igGetWindowDrawList();

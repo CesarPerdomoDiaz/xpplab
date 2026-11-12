@@ -16,6 +16,7 @@ note; the accuracy is XPPAUT's adjoint and make_h, not the integrator's):
   slope 1 at 0, so an error e in H_odd moves the root by e.
 """
 import ctypes
+import os
 from pathlib import Path
 
 import numpy as np
@@ -26,6 +27,15 @@ import xpplab as xs
 ROOT = Path(__file__).resolve().parents[2]
 MODELS = ROOT / "tests" / "models"
 ODE = ROOT / "engine" / "xppaut" / "ode"
+
+# Valgrind (CI) sets LD_PRELOAD for the process it runs. The methods other
+# than the first six, the unstable-cycle adjoint and the formula that does
+# not parse reach engine code that no other test runs; they are skipped
+# there and run in the ordinary test jobs, as do the long simulations of
+# the pair (they only integrate, 50 times slower there).
+UNDER_VALGRIND = "vgpreload" in os.environ.get("LD_PRELOAD", "")
+not_under_valgrind = pytest.mark.skipif(
+    UNDER_VALGRIND, reason="engine paths not run under valgrind elsewhere")
 
 NSTEP = 2000
 W = 1.5
@@ -117,7 +127,9 @@ METHODS = [("rungekutta", 1e-3), ("adams", 1e-3), ("gear", 1e-3),
            ("83dp", 1e-3), ("2rb", 1e-3), ("euler", 5e-2)]
 
 
-@pytest.mark.parametrize("meth, tol", METHODS)
+@pytest.mark.parametrize("meth, tol", [
+    pytest.param(m, t, marks=not_under_valgrind) if i >= 6 else (m, t)
+    for i, (m, t) in enumerate(METHODS)])
 def test_every_method(meth, tol):
     """The closed forms and the locked states under every method that can
     integrate a cycle. The adaptive ones run at TOL = ATOL = 1e-9."""
@@ -190,6 +202,7 @@ def circ(d):
     return min(d, PERIOD - d)
 
 
+@not_under_valgrind
 def test_the_pair_settles_at_synchrony():
     """eps = 0.02: dphi/dt = -2 eps sin(w phi)/w, so near 0 the rate is
     -2 eps = -0.04 and the distance shrinks by e^-16 in 400. A start at
@@ -200,6 +213,7 @@ def test_the_pair_settles_at_synchrony():
         assert circ(d) < 1e-3, (phi0, d)
 
 
+@not_under_valgrind
 def test_the_repulsive_pair_settles_at_antiphase():
     """The same with eps -> -eps (c = -1): antiphase is the stable state."""
     for phi0 in (0.2, 3.7):
@@ -312,6 +326,7 @@ def test_refuses_when_dt_or_nout_changed_since_the_adjoint(change):
         same(before, snapshot(m))
 
 
+@not_under_valgrind
 def test_refuses_an_unstable_cycle():
     """r' = r(r - 1): the circle r = 1 is a cycle, repelling. The adjoint,
     which XPPAUT integrates backward, does not converge, so there is none,
@@ -327,9 +342,16 @@ def test_refuses_an_unstable_cycle():
         same(before, snapshot(m))
 
 
-def test_refuses_a_wrong_number_of_formulas_and_bad_formulas(pair):
+def test_refuses_a_wrong_number_of_formulas(pair):
     before = snapshot(pair)
     assert "one coupling formula per" in refused(pair, ["x'-x"])
+    same(before, snapshot(pair))
+    assert len(phase_model(pair, DIFF)["phase"]) == NSTEP + 1
+
+
+@not_under_valgrind
+def test_refuses_a_formula_that_does_not_parse(pair):
+    before = snapshot(pair)
     assert "coupling" in refused(pair, ["x'-(", "0"])
     same(before, snapshot(pair))
     # a refusal does not spoil the next call
@@ -435,6 +457,7 @@ def test_morris_lecar_has_a_locked_state_that_is_neither_0_nor_half(
         assert abs(ho[i]) < 0.02 * np.abs(ho).max()
 
 
+@not_under_valgrind
 @pytest.mark.parametrize("phi0, which", [
     (3.0, 1), (0.6, 1), (12.0, 3), (-0.6, 3), (6.9, 1), (7.6, 3)])
 def test_morris_lecar_pair_goes_to_the_predicted_state(morris_lecar, phi0,
@@ -450,6 +473,7 @@ def test_morris_lecar_pair_goes_to_the_predicted_state(morris_lecar, phi0,
     assert abs(d - expect) < 0.02, (phi0, d, expect)
 
 
+@not_under_valgrind
 def test_morris_lecar_error_shrinks_with_eps(morris_lecar):
     """The difference from the predicted phase is first order in eps."""
     m, per, orbit = morris_lecar

@@ -1,7 +1,7 @@
 # Design: isochrons and phase reduction
 
-Status: proposal. This note describes the work; piece 1 (`xppe_asymptotic_phase`)
-exists, the others do not yet. The roadmap entry is *Isochrons and phase
+Status: proposal. This note describes the work; pieces 1 (`xppe_asymptotic_phase`)
+and 3 (`xppe_phase_model`) exist, the others do not yet. The roadmap entry is *Isochrons and phase
 reduction* under M7.
 
 
@@ -28,8 +28,10 @@ are XPPAUT's, because Z and H come from `adjoint` and `make_h` in
   and `Heven` only when the model has more than two equations (NEQ > 2:
   `new_h_fun` sets `HODD_EV` only then, and `xppe_hfunction` returns four
   columns instead of two). For these models the phase model takes the
-  columns from `xppe_hfunction`. For a model with two equations, such as
-  the lambda-omega pair and Morris-Lecar, only φ and H come back, and the
+  columns from `xppe_hfunction`. For a model with two equations and no
+  auxiliary variables, such as the lambda-omega pair, only φ and H come back
+  (`lecar.ode` has `aux` lines, so its NEQ is 6 and it does return the
+  columns), and the
   phase model computes H_odd and H_even from H by XPPAUT's own rule in
   `make_h`: on the n stored points, 0.5 (H[k] ∓ H[n−1−k]) (the last stored
   point repeats the first, so index n−1−k is −φ_k). The two paths give the
@@ -192,6 +194,34 @@ few secant steps on a periodic cubic interpolation of it, so the app and
 Python print the same numbers. The interpolation is the only new numerics;
 the integration and the averages are XPPAUT's.
 
+*As built (`xppe_phase_model`).* It calls `xppe_hfunction` for H and keeps
+its columns. The result table has one row for each stored point of the
+cycle, m = NSTEP + 1 rows, the last the first point again, with the columns
+
+    phase, Z_<var> (one for each ODE variable), H, H_odd, H_even, locked, stable
+
+`phase` is θ = k·DT·NOUT in time units, from 0 to T, so T is its last value.
+`Z_<var>` is the adjoint (time per unit of state); `H`, `H_odd` and `H_even`
+are in the unit of Z times the coupling term. `locked` and `stable` list the
+locked states in the first rows and are NaN below: `locked` is φ in [0, T),
+in time units, in increasing order, and `stable` is 1 for a state that is
+stable for ε > 0 (H_odd′(φ) > 0) and 0 for an unstable one.
+
+The roots are found on the m − 1 distinct points of the cycle, with the
+symmetric form 0.5 (H[k] − H[(m − 1 − k) mod (m − 1)]) of H_odd, which is
+exactly zero at 0 (and at T/2 on an even grid), so that the two zeros that
+exist by symmetry are found as nodes and not as rounding noise. An exact
+zero counts when the values on its two sides differ in sign. Between nodes,
+a sign change brackets a root, refined by up to 12 false-position (secant)
+steps on a Catmull-Rom cubic of the periodic grid. The table's columns
+`H_odd` and `H_even` are those of the Conventions (XPPAUT's own for
+NEQ > 2). The accuracy of a locked phase is that of H_odd: an error e in
+H_odd moves a root by e / |H_odd′|. The call refuses delays, Volterra
+integrals, noise, maps, a missing adjoint (an unstable cycle has none: the
+adjoint does not converge), a run that is not the adjoint's, and DT or NOUT
+changed since it, and leaves the run, the parameters and the initial
+conditions as it found them.
+
 *Limits.* H is the first-order average. It is valid for weak coupling (small
 ε compared with the attraction rate to the cycle) and for oscillators with
 close frequencies; with strong coupling, the locked states and their
@@ -328,15 +358,35 @@ integration tolerance and δ.
    with small ε settles at φ = 0. These two locked states are only
    synchrony and antiphase, which exist by symmetry in any model, so they do
    not show that the roots are found in general.
-4. **A pair of Morris-Lecar cells** (`engine/xppaut/ode/lecar.ode`) is the
-   test of a locked state that is neither 0 nor T/2. **It is not specified
-   yet.** The cycle parameters and the coupling formulas (for example
-   `V'-V` for V and `0` for the other variable) are chosen in piece 3, which
-   runs `Model.h_function` on candidate sets until H_odd has an extra zero;
-   this note does not claim that one exists. Piece 3 then writes the
-   parameters and formulas into the test and into this note, and the test
-   compares the predicted locked phase and its stability with a full
-   simulation of the pair for small ε.
+4. **A pair of Morris-Lecar cells** (`engine/xppaut/ode/lecar.ode`), the
+   test of a locked state that is neither 0 nor T/2. The cases were searched
+   for by computing H_odd (with `xppe_phase_model`, which is `xppe_hfunction`
+   plus the roots) on cycles of `lecar.ode` for several `phi`, `iapp`, `v3`,
+   `v4` and `gca`, and on couplings of V of the form
+   (1/(1 + exp(−(V′ − θ)/k))) (E − V), with W uncoupled, or the diffusive
+   V′ − V. On the sets tried first (the default parameters with
+   `phi` = 0.15 to 0.6, the `hopf`-like set, and `iapp` = 0.08 to 0.4), the diffusive coupling and a soft synapse (k = 0.05) gave only the
+   zeros 0 and T/2. A random search of 3 runs of 5 minutes over `phi`, `iapp`,
+   `v3`, `v4`, `gca`, θ, k and E found extra zeros in few cases, all with a
+   steep synapse (k = 0.02) and a low `phi`; the search was not exhaustive.
+   The case used:
+
+   - parameters: `phi=0.15, v3=0.05, v4=0.2, gca=1, iapp=0.25`, the rest as in
+     `lecar.ode`; the period is T = 14.474;
+   - coupling: G_V = (1/(1 + exp(−(V′ − 0.3)/0.02))) (1 − V), G_W = 0, that
+     is, the formulas `(1/(1+exp(-(V'-0.3)/0.02)))*(1-V)` and `0`;
+   - H_odd has four zeros: 0 (unstable), φ\* = 0.884 (stable), T/2 = 7.237
+     (unstable) and T − φ\* (stable). H_odd′(φ\*) = 0.096, so the pair locks
+     slowly (dφ/dt = −2ε H_odd). A pair with a phase difference between 0
+     and T/2 goes to φ\*, and between T/2 and T to T − φ\*.
+
+   The full pair is two copies of the model with ε s(V_j)(1 − V_i) added to
+   the V equation, integrated with Dormand-Prince at TOL = 1e-9; the phase
+   difference is read from the upward crossings of V = 0. Started on both
+   sides of each unstable state, it ends within 0.009 of φ\* at ε = 0.01,
+   0.005 at ε = 0.005 and 0.003 at ε = 0.0025 (first order in ε). With
+   fourth-order Runge-Kutta at DT = 0.05 the same simulation is off by about
+   0.01 more (the upstroke is steep), so the test uses the adaptive method.
 
 ### Consistency with the engine
 

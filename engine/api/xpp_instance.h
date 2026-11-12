@@ -94,6 +94,7 @@ extern "C" {
   X(int, xppe_hfunction, (int, const char *const *))                          \
   X(int, xppe_asymptotic_phase, (const double *, double, double, double *,    \
                                  double *))                                   \
+  X(int, xppe_phase_model, (int, const char *const *))                        \
   X(int, xppe_fit, (const char *, int, int, const char *, const char *,       \
                     const char *, double, double, int))                       \
   X(int, xppe_result_rows, (void))                                            \

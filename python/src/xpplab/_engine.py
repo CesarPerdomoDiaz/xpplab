@@ -19,7 +19,7 @@ from pathlib import Path
 
 __all__ = ["Engine", "EngineError", "find_engine_library"]
 
-API_VERSION = 15
+API_VERSION = 16
 
 OK = 0
 ERR_STATE = -1
@@ -238,6 +238,9 @@ _SIGNATURES = {
     "xppe_asymptotic_phase": ([ctypes.POINTER(ctypes.c_double), ctypes.c_double,
                                ctypes.c_double, ctypes.POINTER(ctypes.c_double),
                                ctypes.POINTER(ctypes.c_double)], ctypes.c_int),
+    "xppe_isochrons": ([ctypes.c_int, ctypes.c_double, ctypes.c_int,
+                        ctypes.c_int, ctypes.c_double, ctypes.c_double,
+                        ctypes.POINTER(ctypes.c_double)], ctypes.c_int),
     "xppe_fit": ([ctypes.c_char_p, ctypes.c_int, ctypes.c_int, ctypes.c_char_p,
                   ctypes.c_char_p, ctypes.c_char_p, ctypes.c_double,
                   ctypes.c_double, ctypes.c_int], ctypes.c_int),

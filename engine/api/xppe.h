@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 15
+#define XPPE_API_VERSION 16
 
 enum {
   XPPE_OK = 0,
@@ -381,6 +381,36 @@ XPPE_API int xppe_hfunction(int n, const char *const *coupling);
    version 14. */
 XPPE_API int xppe_asymptotic_phase(const double *x, double delta, double tmax,
                                    double *phase, double *elapsed);
+
+/* Isochrons of the planar limit cycle of the last run (method B of
+   docs/design/isochrons.md), the curves of constant asymptotic phase, for
+   count phases equally spaced in [0, 1), phase 0 being the first stored
+   point as for xppe_asymptotic_phase(). Works on the cycle and adjoint of
+   the last run, as that function does, and with the same refusals
+   (XPPE_ERR_STATE), and also refuses a model whose ODE variables are not
+   two, and a cycle that is not stable (XPPE_ERR_NUMERIC). The Floquet
+   multiplier of the cycle, from the divergence integral on the stored
+   points, is returned in lambda (may be NULL).
+   Each curve starts on the linear isochron {Z . v = 0} at the cycle point,
+   on both sides, and is continued by integrating start points backward for
+   whole periods with XPPAUT's own method for the current model (DELTA_T
+   negated; the run, the variables, the parameters and DELTA_T are left as
+   they were). It is refined until neighbouring points are at most spacing
+   apart and cut where a variable passes BOUND, where its arc length from
+   the cycle point passes length, after max_periods periods, or at
+   max_points points. offset is the distance of the far end of the linear
+   segment (the start points lie between offset times lambda and offset); a
+   phase error of order offset squared. Zero or negative: max_periods 100,
+   offset 1e-4, spacing length / 100. length > 0 and max_points >= 3 are
+   required, and count >= 1 (XPPE_ERR_RANGE).
+   Only the Runge-Kutta method is supported for now (XPPE_ERR_STATE).
+   Result: columns phase (theta / T in [0, 1)), then the two variables: one
+   polyline per phase, from the outer end of the side with the negative
+   offsets to the cycle point to the outer end of the other, with a row of
+   NaN between polylines. Since API version 16. */
+XPPE_API int xppe_isochrons(int count, double length, int max_points,
+                            int max_periods, double offset, double spacing,
+                            double *lambda);
 
 /* Least-squares fit of parameters and initial conditions to data with
    XPPAUT's Levenberg-Marquardt (stocHastic > fIt data). file holds npts

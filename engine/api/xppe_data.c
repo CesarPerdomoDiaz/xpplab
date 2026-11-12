@@ -44,7 +44,7 @@ int two_d_hist(int col1, int col2, int ndat, int n1, int n2, double xlo,
 /* adj2.c */
 extern float **my_adj, **my_h;
 extern int adj_len, h_len, ADJ_HERE, H_HERE, HODD_EV, ADJ_MAXIT;
-extern double ADJ_ERR;
+extern double ADJ_ERR, ADJ_EPS;
 extern char *coup_string[MAXODE];
 void data_back(void);
 void new_adjoint(void);
@@ -58,6 +58,7 @@ extern int METHOD, NJMP, DelayFlag, NKernel, NMarkov, NWiener;
 extern int NFlags, TORUS; /* global flags, @ fold */
 extern int (*solver)();   /* the fixed-step method */
 extern double *WORK;
+extern int (*rhs)(); /* rhs(t, y, dydt, n): the vector field */
 void get_ic(int it, double *x);
 void evaluate_derived(void);
 void end_cv(void);
@@ -441,6 +442,7 @@ int xppe_lyapunov(double *exponent) {
    is stored. */
 enum {
   METHOD_DISCRETE = 0,
+  METHOD_RK4 = 3,
   METHOD_GEAR = 5,
   METHOD_RKQS = 8,
   METHOD_STIFF = 9,
@@ -653,37 +655,39 @@ static double cycle_nearest(const double *y, double *pos, double *gam,
   return sqrt(best);
 }
 
-/* Method A of docs/design/isochrons.md. The state is stepped with
-   XPPAUT's own routines, one output step at a time (one_step_int() for the
-   adaptive methods, as in xppe_lyapunov_integrate(); the fixed-step solver
-   as integrate() calls it for the others), without restarting between steps, until it lies within delta of the stored cycle. With theta_c the
-   time position of the nearest cycle point, the phase is
-   theta_c/T + Z(theta_c) . (end state - gamma(theta_c))/T - s/T, mod 1. */
-int xppe_asymptotic_phase(const double *x, double delta, double tmax,
-                          double *phase, double *elapsed) {
-  double y[MAXODE], gam[MAXODE], z[MAXODE];
-  double h, t, t1, pos, dist, period, theta, corr = 0, s = 0, ph, q;
-  int rc, i, k, nmax, istart, fixed, ok = 1, out = 0;
+/* The methods integrate() steps with solver() (NJMP steps of DT per output
+   step) as opposed to the adaptive ones, which one_step_int() runs. */
+static int fixed_step_method(void) {
+  return !(METHOD == METHOD_GEAR || METHOD == METHOD_RKQS ||
+           METHOD == METHOD_STIFF || METHOD == METHOD_CVODE ||
+           METHOD == METHOD_DP5 || METHOD == METHOD_DP83 ||
+           METHOD == METHOD_RB23);
+}
+
+/* The refusals that xppe_asymptotic_phase() and xppe_isochrons() share: they
+   work on the cycle and adjoint of the last run, and need the run to be that
+   period on the same grid of output steps. On success *h is the output step
+   and *period the period of the stored cycle. */
+static int require_cycle(const char *what, double *h, double *period) {
+  int rc;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
   if (DelayFlag || NKernel > 0) {
-    xppe_set_error("the asymptotic phase needs a model without delays or "
-                   "integrals", NULL);
+    xppe_set_error("%s needs a model without delays or integrals", what);
     return XPPE_ERR_STATE;
   }
   if (NWiener > 0 || NMarkov > 0) {
-    xppe_set_error("the asymptotic phase needs a model without noise "
-                   "(wiener or Markov variables)", NULL);
+    xppe_set_error("%s needs a model without noise (wiener or Markov "
+                   "variables)", what);
     return XPPE_ERR_STATE;
   }
   if (METHOD == METHOD_DISCRETE) {
-    xppe_set_error("the asymptotic phase needs differential equations, not "
-                   "a map", NULL);
+    xppe_set_error("%s needs differential equations, not a map", what);
     return XPPE_ERR_STATE;
   }
   if (NFlags > 0 || TORUS == 1) {
-    xppe_set_error("the asymptotic phase needs a model without global flags "
-                   "or folded variables (@ fold): the stored cycle is reset "
-                   "or folded there, the free integration is not", NULL);
+    xppe_set_error("%s needs a model without global flags or folded "
+                   "variables (@ fold): the stored cycle is reset or folded "
+                   "there, the free integration is not", what);
     return XPPE_ERR_STATE;
   }
   if (!ADJ_HERE || storind != adj_len || adj_len < 2) {
@@ -691,30 +695,44 @@ int xppe_asymptotic_phase(const double *x, double delta, double tmax,
                    "cycle first (the run must still be that period)", NULL);
     return XPPE_ERR_STATE;
   }
+  *h = DELTA_T * NJMP; /* the spacing of the stored cycle and of Z */
+  if (!(*h > 0)) {
+    xppe_set_error("%s needs a positive output step", what);
+    return XPPE_ERR_STATE;
+  }
+  *period = *h * (adj_len - 1);
+  /* DT or NOUT changed since the run: the stored cycle has another spacing */
+  if (fabs((double)storage[0][adj_len - 1] - (double)storage[0][0] -
+           *period) > 1e-5 * *period + 1e-6 * fabs((double)storage[0][adj_len - 1])) {
+    xppe_set_error("DT or NOUT is not what the stored cycle was made with: "
+                   "run one period again and compute the adjoint again", NULL);
+    return XPPE_ERR_STATE;
+  }
+  return XPPE_OK;
+}
+
+/* Method A of docs/design/isochrons.md. The state is stepped with
+   XPPAUT's own routines, one output step at a time (one_step_int() for the
+   adaptive methods, as in xppe_lyapunov_integrate(); the fixed-step solver
+   as integrate() calls it for the others), without restarting between
+   steps, until it lies within delta of the stored cycle. With theta_c the
+   time position of the nearest cycle point, the phase is
+   theta_c/T + Z(theta_c) . (end state - gamma(theta_c))/T - s/T, mod 1. */
+int xppe_asymptotic_phase(const double *x, double delta, double tmax,
+                          double *phase, double *elapsed) {
+  double y[MAXODE], gam[MAXODE], z[MAXODE];
+  double h, t, t1, pos, dist, period, theta, corr = 0, s = 0, ph, q;
+  int rc, i, k, nmax, istart, fixed, ok = 1, out = 0;
+  if ((rc = require_cycle("the asymptotic phase", &h, &period)) != XPPE_OK)
+    return rc;
   if (!x || !(delta > 0) || !(tmax > 0)) {
     xppe_set_error("give a state, a distance delta > 0 and a time limit "
                    "tmax > 0", NULL);
     return XPPE_ERR_RANGE;
   }
-  h = DELTA_T * NJMP; /* the spacing of the stored cycle and of Z */
-  if (!(h > 0)) {
-    xppe_set_error("the asymptotic phase needs a positive output step", NULL);
-    return XPPE_ERR_STATE;
-  }
-  period = h * (adj_len - 1);
-  /* DT or NOUT changed since the run: the stored cycle has another spacing */
-  if (fabs((double)storage[0][adj_len - 1] - (double)storage[0][0] - period) >
-      1e-5 * period + 1e-6 * fabs((double)storage[0][adj_len - 1])) {
-    xppe_set_error("DT or NOUT is not what the stored cycle was made with: "
-                   "run one period again and compute the adjoint again", NULL);
-    return XPPE_ERR_STATE;
-  }
   q = floor(tmax / h + 1e-9);
   nmax = q >= INT_MAX ? INT_MAX : (int)q;
-  fixed = !(METHOD == METHOD_GEAR || METHOD == METHOD_RKQS ||
-            METHOD == METHOD_STIFF || METHOD == METHOD_CVODE ||
-            METHOD == METHOD_DP5 || METHOD == METHOD_DP83 ||
-            METHOD == METHOD_RB23);
+  fixed = fixed_step_method();
   for (i = 0; i < NODE; i++) y[i] = x[i];
   xppe_begin_call();
   XPPE_GUARD_BEGIN((void)0);
@@ -780,6 +798,416 @@ int xppe_asymptotic_phase(const double *x, double delta, double tmax,
   if (phase) *phase = ph;
   if (elapsed) *elapsed = s;
   return XPPE_OK;
+}
+
+/* ---- Isochrons ----------------------------------------------------------- */
+
+/* The cycle point and Z at the position pos on the stored cycle (in output
+   steps), interpolated linearly between the stored points. */
+static void cycle_at(double pos, double *gam, double *z) {
+  int i, k = (int)floor(pos);
+  double u;
+  if (k > adj_len - 2) k = adj_len - 2;
+  if (k < 0) k = 0;
+  u = pos - k;
+  for (i = 0; i < NODE; i++) {
+    double a = storage[i + 1][k], b = my_adj[i + 1][k];
+    gam[i] = a + u * (storage[i + 1][k + 1] - a);
+    z[i] = b + u * (my_adj[i + 1][k + 1] - b);
+  }
+}
+
+/* The Floquet multiplier of the stored cycle in the plane:
+   exp(integral of div f over one period), with the trapezoid rule on the
+   stored points and the divergence by the forward differences of
+   adjoint(), step ADJ_EPS (adjoint() returns no multipliers). */
+static double cycle_multiplier(double h) {
+  double y[MAXODE], f0[MAXODE], f1[MAXODE], prev = 0, cur, sum = 0;
+  int i, j, k;
+  for (k = 0; k < adj_len; k++) {
+    for (i = 0; i < NODE; i++) y[i] = storage[i + 1][k];
+    rhs(0.0, y, f0, NODE);
+    cur = 0;
+    for (j = 0; j < NODE; j++) {
+      double yj = y[j], del = ADJ_EPS * fabs(yj);
+      if (del < ADJ_EPS) del = ADJ_EPS;
+      y[j] = yj + del;
+      rhs(0.0, y, f1, NODE);
+      y[j] = yj;
+      cur += (f1[j] - f0[j]) / del;
+    }
+    if (k > 0) sum += 0.5 * (prev + cur) * h;
+    prev = cur;
+  }
+  return exp(sum);
+}
+
+/* What the isochron of one phase is built from (see xppe_isochrons()). */
+typedef struct {
+  int K;          /* whole periods backward: the levels are 0..K */
+  int fixed, nit; /* fixed-step method; steps of DT in one period */
+  int nok, nfail; /* periods integrated, integrations that failed */
+  double period, length, spacing, smin;
+  double gam[MAXODE], v[2], eps, lnl; /* lnl = -ln|lambda| */
+} IsoRun;
+
+/* The start points of one side, in the order of their parameter s in
+   [0, 1]: the distance from the cycle is eps exp(lnl s), so that s = 1 is
+   where the images of s = 0 for one period begin. img holds, for each
+   start point, its images for 0, 1, ... periods backward; the first nv of
+   them are within the limits (BOUND, length), and nst are finite. */
+typedef struct {
+  int ns, cap;
+  int *ord, *tmp, *split, *nv, *nst;
+  double *s, *img;
+} IsoSide;
+
+#define ISO_IMG(sd, r, id, k) \
+  ((sd)->img + (((size_t)(id) * ((r)->K + 1) + (k)) * 2))
+
+/* The cycle point of a phase, interpolated between the stored points, is off
+   the cycle by the chord (about 1e-6 for 2000 points) and the single
+   precision of the storage, which can be more than the nearest start point
+   (offset times lambda). The flow for one whole period, forward (DELTA_T
+   positive), brings it back to the cycle, the distance shrinking by lambda,
+   and keeps its phase. Returns 0 if the integration fails. */
+static int iso_relax(IsoRun *r, double *y) {
+  double t = T0;
+  int istart = METHOD == METHOD_GEAR ? 0 : 1, good;
+  if (r->fixed)
+    good = solver(y, &t, DELTA_T, r->nit, NODE, &istart, WORK) >= 0;
+  else
+    good = one_step_int(y, T0, T0 + r->period, &istart);
+#ifdef CVODE_YES
+  if (METHOD == METHOD_CVODE) end_cv();
+#endif
+  if (good)
+    r->nok++;
+  else
+    r->nfail++;
+  return good && isfinite(y[0]) && isfinite(y[1]);
+}
+
+/* The images of the start point of parameter s[id], by the backward flow for
+   whole periods. XPPAUT's own steppers, with DELTA_T negated by the caller:
+   one start for the whole trajectory, one call for each period (the period
+   is NJMP * (adj_len - 1) steps of DT, so the fixed-step solver takes no
+   remainder step, as in integrate()). */
+static void iso_trajectory(IsoRun *r, IsoSide *sd, int id, double sgn) {
+  double y[MAXODE], t = T0, d = sgn * r->eps * exp(r->lnl * sd->s[id]);
+  double step, prev_step = HUGE_VAL;
+  double *out = ISO_IMG(sd, r, id, 0);
+  int i, k, istart = METHOD == METHOD_GEAR ? 0 : 1;
+  for (i = 0; i < 2; i++) y[i] = out[i] = r->gam[i] + d * r->v[i];
+  sd->nv[id] = sd->nst[id] = 1;
+  for (k = 1; k <= r->K; k++) {
+    int good;
+    double *img = ISO_IMG(sd, r, id, k);
+    if (r->fixed)
+      good = solver(y, &t, DELTA_T, r->nit, NODE, &istart, WORK) >= 0;
+    else
+      good = one_step_int(y, T0 - (k - 1) * r->period, T0 - k * r->period,
+                          &istart);
+    if (!good) {
+      r->nfail++;
+      break;
+    }
+    r->nok++;
+    img[0] = y[0];
+    img[1] = y[1];
+    if (!isfinite(y[0]) || !isfinite(y[1])) break;
+    sd->nst[id] = k + 1;
+    if (fabs(y[0]) <= BOUND && fabs(y[1]) <= BOUND &&
+        hypot(y[0] - r->gam[0], y[1] - r->gam[1]) <= r->length)
+      sd->nv[id] = k + 1;
+    else
+      break;
+    /* The images come to rest (the curve runs into an equilibrium): the
+       steps between periods shrink and are far below the spacing. The rest
+       of the levels repeat the point. */
+    step = hypot(y[0] - img[-2], y[1] - img[-1]);
+    if (k >= 2 && step < 1e-3 * r->spacing && step <= prev_step) {
+      for (k++; k <= r->K; k++) {
+        img = ISO_IMG(sd, r, id, k);
+        img[0] = y[0];
+        img[1] = y[1];
+      }
+      sd->nv[id] = sd->nst[id] = r->K + 1;
+      break;
+    }
+    prev_step = step;
+  }
+#ifdef CVODE_YES
+  if (METHOD == METHOD_CVODE) end_cv(); /* start_cv() would leak it */
+#endif
+}
+
+/* Do the neighbours a and b of the side need a start point between them?
+   Yes where an image within the limits is farther than 3/4 of the spacing
+   from the same image of the other (with the thinning of iso_assemble(), the
+   points kept are then at most the spacing apart), or has no partner at
+   all. */
+static int iso_needs_split(const IsoRun *r, const IsoSide *sd, int a, int b) {
+  int k, mx = sd->nv[a] > sd->nv[b] ? sd->nv[a] : sd->nv[b];
+  int mn = sd->nst[a] < sd->nst[b] ? sd->nst[a] : sd->nst[b];
+  if (sd->s[b] - sd->s[a] <= r->smin) return 0;
+  if (mx > mn) return 1;
+  for (k = 0; k < mx; k++) {
+    const double *p = ISO_IMG(sd, r, a, k), *q = ISO_IMG(sd, r, b, k);
+    if (hypot(p[0] - q[0], p[1] - q[1]) > 0.75 * r->spacing) return 1;
+  }
+  return 0;
+}
+
+/* The polyline of one side, from the cycle outwards: level 0 (the linear
+   segment), then the images for one period, two, ... in the order of s,
+   each without its first point (the image of s = 0 continues the previous
+   level at s = 1). A point closer than a quarter of the spacing to the last
+   one kept is left out: the levels near the cycle share the start points that
+   the far ones need. It ends at the first point out of bounds, past the arc
+   length limit, or beyond cap points. px and py may be NULL to count. */
+static int iso_assemble(const IsoRun *r, const IsoSide *sd, int cap,
+                        double *px, double *py) {
+  double cum = 0, prev[2], kept[2], lev, last = HUGE_VAL;
+  int j, k, n = 0, n0;
+  prev[0] = kept[0] = r->gam[0];
+  prev[1] = kept[1] = r->gam[1];
+  for (k = 0; k <= r->K; k++) {
+    n0 = n;
+    lev = 0;
+    for (j = 0; j < sd->ns; j++) {
+      int id = sd->ord[j];
+      const double *p;
+      if (k >= sd->nv[id]) return n;
+      if (k > 0 && j == 0) continue;
+      p = ISO_IMG(sd, r, id, k);
+      lev += hypot(p[0] - prev[0], p[1] - prev[1]);
+      prev[0] = p[0];
+      prev[1] = p[1];
+      if (cum + lev > r->length) return n;
+      if (hypot(p[0] - kept[0], p[1] - kept[1]) < 0.25 * r->spacing) continue;
+      if (n >= cap) return n;
+      if (px) {
+        px[n] = p[0];
+        py[n] = p[1];
+      }
+      kept[0] = p[0];
+      kept[1] = p[1];
+      n++;
+    }
+    /* A level shorter than the spacing and shorter than the one before it:
+       the curve has run into an equilibrium. Its points repeat. */
+    if (k > 0 && lev < r->spacing && lev < last) return n0;
+    cum += lev;
+    last = lev;
+  }
+  return n;
+}
+
+/* One side of the isochron: start points on the linear isochron, then more
+   between them until neighbouring images are within the spacing, as long as
+   the side keeps to cap points. Returns the points (px, py) and their
+   number. */
+static int iso_side(IsoRun *r, IsoSide *sd, double sgn, int cap, double *px,
+                    double *py) {
+  static const double s0[5] = {0, 0.25, 0.5, 0.75, 1};
+  int i, p, q, m, lev, old;
+  sd->ns = 0;
+  for (i = 0; i < 5; i++) {
+    int id = sd->ns++;
+    sd->s[id] = s0[i];
+    sd->ord[i] = id;
+    iso_trajectory(r, sd, id, sgn);
+  }
+  for (;;) {
+    for (m = 0, p = 0; p + 1 < sd->ns; p++)
+      m += sd->split[p] = iso_needs_split(r, sd, sd->ord[p], sd->ord[p + 1]);
+    if (!m || sd->ns + m > sd->cap) break;
+    /* each new start point adds one point to each level of the curve */
+    lev = iso_assemble(r, sd, INT_MAX, NULL, NULL);
+    if (lev + m * (lev / sd->ns + 1) > cap) break;
+    old = sd->ns;
+    for (q = 0, p = 0; p < old; p++) {
+      sd->tmp[q++] = sd->ord[p];
+      if (p + 1 < old && sd->split[p]) {
+        int id = sd->ns++;
+        sd->s[id] = 0.5 * (sd->s[sd->ord[p]] + sd->s[sd->ord[p + 1]]);
+        iso_trajectory(r, sd, id, sgn);
+        sd->tmp[q++] = id;
+      }
+    }
+    memcpy(sd->ord, sd->tmp, (size_t)q * sizeof(int));
+  }
+  return iso_assemble(r, sd, cap, px, py);
+}
+
+/* Method B of docs/design/isochrons.md. */
+int xppe_isochrons(int count, double length, int max_points, int max_periods,
+                   double offset, double spacing, double *lambda) {
+  static const char *names[3];
+  extern char uvar_names[MAXODE][12];
+  IsoRun r;
+  IsoSide sd;
+  double h, period, lam = 0, amp = 0, dt0 = DELTA_T, z[MAXODE];
+  double *dbl = NULL, *x, *y, *ph, *pp, *pm, *tab[3];
+  int *ints = NULL;
+  int rc, i, j, k, n, cap_side, rows = 0, nrows_max, fail = 0;
+  size_t nimg;
+  if ((rc = require_cycle("isochrons", &h, &period)) != XPPE_OK) return rc;
+  if (NODE != 2) {
+    xppe_set_error("isochrons are drawn in the plane: the model needs "
+                   "exactly two ODE variables (for more, the surfaces are "
+                   "not computed yet)", NULL);
+    return XPPE_ERR_STATE;
+  }
+  if (METHOD != METHOD_RK4) {
+    xppe_set_error("isochrons are computed with the Runge-Kutta method only "
+                   "for now: set the method to rungekutta, run one period "
+                   "again and compute the adjoint again", NULL);
+    return XPPE_ERR_STATE;
+  }
+  if (count < 1 || !(length > 0) || max_points < 3) {
+    xppe_set_error("give count >= 1, an arc length limit length > 0 and "
+                   "max_points >= 3", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  if (max_periods <= 0) max_periods = 100;
+  if (!(offset > 0)) offset = 1e-4;
+  if (!(spacing > 0)) spacing = length / 100;
+  cap_side = (max_points - 1) / 2;
+  nimg = (size_t)max_points * ((size_t)max_periods + 1) * 2;
+  nrows_max = count > (INT_MAX / 2) / (max_points + 1)
+                  ? -1
+                  : count * (max_points + 1);
+  if (nrows_max < 0 || nimg > 60000000u) {
+    xppe_set_error("count, max_points and max_periods are too large", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  r.K = max_periods;
+  r.fixed = fixed_step_method();
+  r.nit = NJMP * (adj_len - 1);
+  r.nok = r.nfail = 0;
+  r.period = period;
+  r.length = length;
+  r.spacing = spacing;
+  r.smin = 1e-6;
+  sd.cap = max_points;
+  dbl = malloc((nimg + (size_t)max_points + 4 * (size_t)cap_side +
+                3 * (size_t)nrows_max + 1) * sizeof(double));
+  ints = malloc(5 * ((size_t)max_points + 1) * sizeof(int));
+  if (!dbl || !ints) {
+    free(dbl);
+    free(ints);
+    xppe_set_error("out of memory", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  sd.img = dbl;
+  sd.s = dbl + nimg;
+  pp = sd.s + max_points;
+  pm = pp + 2 * cap_side;
+  x = pm + 2 * cap_side;
+  y = x + nrows_max;
+  ph = y + nrows_max;
+  sd.ord = ints;
+  sd.tmp = ints + (max_points + 1);
+  sd.split = ints + 2 * (max_points + 1);
+  sd.nv = ints + 3 * (max_points + 1);
+  sd.nst = ints + 4 * (max_points + 1);
+  for (k = 0; k < adj_len; k++)
+    for (i = 0; i < NODE; i++)
+      if (fabs(storage[i + 1][k]) > amp) amp = fabs(storage[i + 1][k]);
+  xppe_begin_call();
+  XPPE_GUARD_BEGIN((DELTA_T = dt0, free(dbl), free(ints)));
+  evaluate_derived();
+  lam = cycle_multiplier(h);
+  if (lambda) *lambda = lam;
+  if (!(lam < 1)) {
+    fail = 1;
+  } else if (!(offset * lam > 1e-13 * (1 + amp))) {
+    fail = 2;
+  } else {
+    r.eps = offset * lam;
+    r.lnl = -log(lam);
+    DELTA_T = -fabs(dt0); /* backward, for XPPAUT's steppers */
+    for (j = 0; j < count && !fail; j++) {
+      double nz;
+      int np, nm, good;
+      cycle_at((double)j * (adj_len - 1) / count, r.gam, z);
+      nz = hypot(z[0], z[1]);
+      if (!(nz > 0)) {
+        fail = 3;
+        break;
+      }
+      DELTA_T = fabs(dt0);
+      good = iso_relax(&r, r.gam);
+      DELTA_T = -fabs(dt0);
+      if (!good) {
+        fail = 4;
+        break;
+      }
+      r.v[0] = -z[1] / nz;
+      r.v[1] = z[0] / nz;
+      np = iso_side(&r, &sd, 1, cap_side, pp, pp + cap_side);
+      nm = iso_side(&r, &sd, -1, cap_side, pm, pm + cap_side);
+      if (j > 0) { /* a row of NaN between polylines */
+        x[rows] = y[rows] = ph[rows] = NAN;
+        rows++;
+      }
+      for (n = nm - 1; n >= 0; n--) {
+        x[rows] = pm[n];
+        y[rows] = pm[cap_side + n];
+        ph[rows++] = (double)j / count;
+      }
+      x[rows] = r.gam[0];
+      y[rows] = r.gam[1];
+      ph[rows++] = (double)j / count;
+      for (n = 0; n < np; n++) {
+        x[rows] = pp[n];
+        y[rows] = pp[cap_side + n];
+        ph[rows++] = (double)j / count;
+      }
+    }
+    DELTA_T = dt0;
+  }
+  XPPE_GUARD_END;
+  DELTA_T = dt0;
+#ifdef CVODE_YES
+  if (METHOD == METHOD_CVODE) end_cv(); /* safe to call twice */
+#endif
+  xppe_end_call();
+  if (fail == 0 && r.nok == 0 && r.nfail > 0) fail = 4;
+  if (fail) {
+    free(dbl);
+    free(ints);
+    if (fail == 1)
+      xppe_set_error("the cycle is not stable: its Floquet multiplier is %s "
+                     "(isochrons need a multiplier below 1)",
+                     lam >= 1 ? "1 or more" : "not a number");
+    else if (fail == 2)
+      xppe_set_error("the cycle contracts too strongly for the offset (the "
+                     "start points would be below the rounding of the "
+                     "state): give a larger offset", NULL);
+    else if (fail == 3)
+      xppe_set_error("the adjoint is zero on the cycle: compute it again",
+                     NULL);
+    else
+      xppe_set_error("the integration failed (a stiff model can "
+                     "do that: see the log)", NULL);
+    return fail == 2 ? XPPE_ERR_RANGE : XPPE_ERR_NUMERIC;
+  }
+  names[0] = "phase";
+  names[1] = uvar_names[0];
+  names[2] = uvar_names[1];
+  tab[0] = ph;
+  tab[1] = x;
+  tab[2] = y;
+  rc = result_begin(rows, 3, names);
+  if (rc == XPPE_OK)
+    for (i = 0; i < 3; i++)
+      for (j = 0; j < rows; j++) res[i][j] = tab[i][j];
+  free(dbl);
+  free(ints);
+  return rc;
 }
 
 /* ---- Curve fitting ---------------------------------------------------- */

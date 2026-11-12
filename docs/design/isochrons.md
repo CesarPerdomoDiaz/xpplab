@@ -153,6 +153,16 @@ For each requested phase θ (in time units):
 4. Stop at a maximum arc length, at a bound on the variables, and at a
    maximum number of periods k.
 
+*Table layout (fixed by `xppe_isochrons`).* Columns `phase`, then the two
+ODE variables in their order (n = 2, so there is no choice). `phase` is θ/T
+in [0, 1) for `count` phases equally spaced from the first stored point
+(j/count), as `xppe_asymptotic_phase` returns it. One polyline for each
+phase: the outer end of the side with negative d (d along v = (−Z₂, Z₁)/|Z|),
+in to the cycle point, then out along the side with positive d. A row of NaN
+in all three columns separates polylines. The Floquet multiplier is returned
+apart from the table. Until the other methods are supported, the call
+refuses any method but Runge-Kutta.
+
 Repeat for each θ. The method uses the Floquet multiplier only to choose the
 segment; the phase of a start point on the linear isochron is exact up to
 O(ε²), and that error does not grow in the backward integration. The error
@@ -222,11 +232,12 @@ output arguments:
   θ/T in [0, 1), as users see it. For the correction, Z is evaluated
   between the stored points of the adjoint by linear interpolation in θ,
   which is enough for the O(δ²) error.
-- `xppe_isochrons(int count, double length, int max_points, ...)`: method B;
-  a table with columns `phase` (θ/T in [0, 1), the same unit as above), then
-  the plotted pair of variables, one
-  polyline per phase separated by a row of NaN. Method C as an option
-  (`xppe_phase_grid`) in a later piece.
+- `xppe_isochrons(int count, double length, int max_points, int max_periods,
+  double offset, double spacing, double *lambda)`: method B; a table with
+  columns `phase` (θ/T in [0, 1), the same unit as above), then the plotted
+  pair of variables, one polyline per phase separated by a row of NaN (the
+  layout is fixed under method B). Method C as an option (`xppe_phase_grid`)
+  in a later piece.
 - `xppe_phase_model(int n, const char *const *coupling)`: T, then the
   table of phase (time units), Z for each variable, H, H_odd, H_even (the
   columns of `xppe_hfunction` when it returns them, else computed from H as

@@ -426,19 +426,20 @@ int xppe_lyapunov(double *exponent) {
   return XPPE_OK;
 }
 
-/* hrw_liapunov()'s method carried out during an integration from the
-   initial conditions, in double precision. A copy of the state perturbed
-   by eps goes along with it; after each output step (DT times NOUT) the
-   distance between the two is measured, the logarithm of its growth added
-   up, and the copy put back at the distance eps in the direction it has
-   moved to. Both are stepped with XPPAUT's one_step_int(), as in
-   hrw_liapunov(). There each step starts from the stored run, which is in
-   single precision, times included: once the time or a variable is large
-   the rounding of the stored values and of the step length is comparable
-   to eps, and a folded variable jumps by its period. Steps that start
-   before TRANS carry the perturbation along without counting, and the
-   integration stops, as a run does, when a variable passes BOUND. Nothing
-   is stored. */
+/* hrw_liapunov()'s method carried out during an integration from the initial
+   conditions, in double precision. A copy of the state perturbed by eps goes
+   along with it; after each output step (DT times NOUT) the distance between
+   the two is measured, the logarithm of its growth added up, and the copy
+   put back at the distance eps in the direction it has moved to. Both are
+   stepped as lyap_step() says: the adaptive methods with XPPAUT's
+   one_step_int(), as in hrw_liapunov(), the fixed-step ones as integrate()
+   steps them. In hrw_liapunov() each step starts from the stored run, which
+   is in single precision, times included: once the time or a variable is
+   large the rounding of the stored values and of the step length is
+   comparable to eps, and a folded variable jumps by its period. Steps that
+   start before TRANS carry the perturbation along without counting, and the
+   integration stops, as a run does, when a variable passes BOUND. Nothing is
+   stored. */
 enum {
   METHOD_DISCRETE = 0,
   METHOD_GEAR = 5,
@@ -449,6 +450,16 @@ enum {
   METHOD_DP83 = 12,
   METHOD_RB23 = 13
 };
+
+/* 1 for the methods that integrate() steps with its default: branch, NJMP
+   steps of DT in one solver() call; 0 for the adaptive ones, which go
+   through one_step_int(). */
+static int method_is_fixed_step(void) {
+  return !(METHOD == METHOD_GEAR || METHOD == METHOD_RKQS ||
+           METHOD == METHOD_STIFF || METHOD == METHOD_CVODE ||
+           METHOD == METHOD_DP5 || METHOD == METHOD_DP83 ||
+           METHOD == METHOD_RB23);
+}
 
 /* One output step from t to t1 (1 on success). The fixed-step methods take
    NJMP steps of DT as integrate() does, with one solver() call: a step to
@@ -490,10 +501,7 @@ int xppe_lyapunov_integrate(double eps, double *exponent) {
   }
   nsteps = (nsteps + NJMP - 1) / NJMP;
   h *= NJMP;
-  fixed = !(METHOD == METHOD_GEAR || METHOD == METHOD_RKQS ||
-            METHOD == METHOD_STIFF || METHOD == METHOD_CVODE ||
-            METHOD == METHOD_DP5 || METHOD == METHOD_DP83 ||
-            METHOD == METHOD_RB23);
+  fixed = method_is_fixed_step();
   xppe_begin_call();
   XPPE_GUARD_BEGIN((void)0);
   evaluate_derived();
@@ -727,10 +735,7 @@ int xppe_asymptotic_phase(const double *x, double delta, double tmax,
   }
   q = floor(tmax / h + 1e-9);
   nmax = q >= INT_MAX ? INT_MAX : (int)q;
-  fixed = !(METHOD == METHOD_GEAR || METHOD == METHOD_RKQS ||
-            METHOD == METHOD_STIFF || METHOD == METHOD_CVODE ||
-            METHOD == METHOD_DP5 || METHOD == METHOD_DP83 ||
-            METHOD == METHOD_RB23);
+  fixed = method_is_fixed_step();
   for (i = 0; i < NODE; i++) y[i] = x[i];
   xppe_begin_call();
   XPPE_GUARD_BEGIN((void)0);

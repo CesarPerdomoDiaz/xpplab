@@ -108,6 +108,13 @@ void ui_dialog_poll(App *a);
 void ui_export_button(App *a, int figure);
 void ui_figure_limits(int figure); /* call inside BeginPlot/EndPlot */
 void ui_figure_rect(int figure);   /* call right after EndPlot */
+/* Annotations (ui_notes.c): the button and its menu; and, inside
+   BeginPlot/EndPlot, the plot's annotations and the armed tool's click.
+   where is a FigureKind, or APP_NOTE_FIGURE for the Figure window's panel
+   (menu only). */
+void ui_notes_menu(App *a, int where);
+void ui_notes_draw(App *a, int where);
+void ui_notes_frame(App *a); /* once a frame: Esc cancels an armed tool */
 
 /* A plot that follows its data: its axes fit the data as it changes, until
    the user zooms or pans it (wheel, left drag, right-drag box). Then the

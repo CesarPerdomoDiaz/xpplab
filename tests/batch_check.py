@@ -7,6 +7,7 @@ numbers as unmodified XPPAUT's batch mode, token for token. With commands it
 runs the app's command language: a file of commands with a Range, AUTO and
 exports must succeed; a failing command stops it with exit status 1.
 """
+import re
 import shutil
 import subprocess
 import sys
@@ -94,6 +95,74 @@ with tempfile.TemporaryDirectory() as t:
              "-c", "export y.png time"], work)
     check(r.returncode == 1 and r.stderr.count("error:") == 2 and not r.stdout.strip(),
           "--keep-going goes on; --quiet prints only the errors")
+    # Annotations: bad values are refused with a message and add nothing;
+    # a plot window's SVG has the text, the arrow's line and head, and a
+    # marker that is not a circle; copied to a figure panel, text with no
+    # size takes the figure's size and lands on a panel with no notes.
+    note = tmp / "notes"
+    note.mkdir()
+    shutil.copy(examples / "lecar.ode", note)
+    r = run(["lecar.ode", "--keep-going", "-c", "run",
+             "-c", "annotate phase text 0 0 color red hi",
+             "-c", "annotate phase text 0 0 size abc hi",
+             "-c", "annotate phase text 0 0 size -3 hi",
+             "-c", "annotate phase text 0 0 color #12345 hi",
+             "-c", "annotate phase arrow 0 0 1 1 color #12345678",
+             "-c", "annotate phase text -0.2 0.2 color #1f77b4 size 14 saddle point",
+             "-c", "annotate phase arrow -0.4 0 -0.2 0.2",
+             "-c", "annotate phase marker 0 0.1 s",
+             "-c", "annotate phase marker 0.1 0.1 ^",
+             "-c", "annotate phase text 0.1 0.3 plain",
+             "-c", "figure new 86 65 1 2",
+             "-c", "annotate figure text 0 0 mine",
+             "-c", "figure from phase",
+             "-c", "export phase.svg phase", "--script", "notes.py"], note)
+    errors = [l for l in (r.stdout + r.stderr).splitlines() if l.startswith("error")]
+    for bad in ("'red'", "'abc'", "'-3'", "'#12345'", "'#12345678'"):
+        check(any(bad in l for l in errors), "annotate refuses the value %s and says so" % bad)
+    svg = (note / "phase.svg").read_text() if (note / "phase.svg").exists() else ""
+    clipped = re.findall(r"<(text|line|polygon|rect|circle|path) clip-path='url\(#plot\)'", svg)
+    check(re.search(r"<text clip-path='url\(#plot\)'[^>]*fill='#1f77b4'>saddle point</text>", svg),
+          "the SVG has the text, in its colour")
+    check(re.search(r"<line clip-path='url\(#plot\)'[^>]*stroke-width='1.5'/>", svg)
+          and re.search(r"<polygon clip-path='url\(#plot\)' points='[-\d.]+,[-\d.]+ "
+                        r"[-\d.]+,[-\d.]+ [-\d.]+,[-\d.]+' fill=", svg),
+          "the SVG has the arrow's line and head")
+    check("rect" in clipped and clipped.count("polygon") >= 2,
+          "the SVG draws the square and triangle markers as such, clipped to the plot")
+    check("circle" not in clipped, "no annotation became a circle")
+    script = (note / "notes.py").read_text() if (note / "notes.py").exists() else ""
+    check(script.count('notes["phase"].text(') == 2 and
+          'notes["phase"].text(-0.2, 0.2, "saddle point", size=14.0, color="#1f77b4")' in script,
+          "only the valid texts reached the script")
+    check('notes["phase"].text(0.1, 0.3, "plain")' in script,
+          "text with no size is written without one")
+    check('fig[1].run(' in script and 'fig[0].text(0.0, 0.0, "mine")' in script and
+          'fig[1].text(0.1, 0.3, "plain")' in script,
+          "the plot's notes went to a panel with no notes, with no size added")
+
+    # A full plot (16 annotations): the 17th is refused with one message,
+    # and "figure from phase" copies all 16 with no error and no warning:
+    # it picks a panel with no notes, so the copy always fits.
+    full = tmp / "full"
+    full.mkdir()
+    shutil.copy(examples / "lecar.ode", full)
+    cmds = ["run"] + ["annotate phase text 0.%d 0.1 note%d" % (i % 10, i) for i in range(17)]
+    args = ["lecar.ode", "--keep-going"]
+    for c in cmds + ["figure from phase"]:
+        args += ["-c", c]
+    r = run(args + ["--script", "full.py"], full)
+    lines = (r.stdout + r.stderr).splitlines()
+    refused = [l for l in lines if "annotations already" in l]
+    check(len(refused) == 1 and "phase plot has 16" in refused[0],
+          "the 17th annotation of a plot is refused once: %r" % refused)
+    check(not [l for l in lines if "left out" in l or l.startswith("error: panel")],
+          "copying 16 annotations to a figure reports nothing left out")
+    script = (full / "full.py").read_text() if (full / "full.py").exists() else ""
+    check(len(re.findall(r'^fig\[0\]\.text\(', script, re.M)) == 16 and
+          'note16' not in script,
+          "all 16 annotations reached the figure panel, and the refused one did not")
+
     r = run(["lecar.ode", "--no-such-option"], work)
     check(r.returncode == 2, "an unknown option gives exit status 2")
 

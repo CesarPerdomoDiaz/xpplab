@@ -102,6 +102,7 @@ set(APP_SOURCES
   src/app.c
   src/app_analysis.c
   src/app_kinescope.c
+  src/app_notes.c
   src/echo.c
   src/commands.c
   src/actions.c
@@ -112,6 +113,7 @@ set(APP_SOURCES
   src/ui_workspace.c
   src/ui_editor.c
   src/ui_plots.c
+  src/ui_notes.c
   src/ui_auto.c
   src/ui_console.c
   src/ui_help.c
@@ -178,7 +180,7 @@ target_compile_definitions(xpplab PRIVATE
 # is a console program, so that shells wait for it and show its output, and
 # it shares the app's core: the commands, the echo, the exports.
 add_executable(xpplab-batch
-  src/batch.c src/app.c src/app_analysis.c src/app_kinescope.c src/echo.c
+  src/batch.c src/app.c src/app_analysis.c src/app_kinescope.c src/app_notes.c src/echo.c
   src/commands.c src/actions.c src/export.c src/app_figure.c src/docs.c
   ${GEN}/docs_index.c ${DOC_SOURCES}
   ${PROJECT_SOURCE_DIR}/engine/api/xpp_instance.c)

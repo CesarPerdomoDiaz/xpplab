@@ -91,6 +91,22 @@ FigSeries *fig_add(FigPanel *p, const double *x, const double *y, int n) {
   return s;
 }
 
+bool fig_note_add(FigPanel *p, const FigNote *n) {
+  if (p->nnote >= FIG_MAX_NOTES) return false;
+  p->note[p->nnote++] = *n;
+  return true;
+}
+
+void fig_note_remove(FigPanel *p, int k) {
+  if (k < 0) {
+    p->nnote = 0;
+    return;
+  }
+  if (k >= p->nnote) return;
+  memmove(&p->note[k], &p->note[k + 1], sizeof(FigNote) * (size_t)(p->nnote - k - 1));
+  p->nnote--;
+}
+
 void fig_remove(FigPanel *p, int k) {
   if (k < 0 || k >= p->nseries) return;
   fig_series_free(&p->s[k]);
@@ -659,6 +675,58 @@ static void draw_legend(const Figure *f, const FigPanel *p, const FigAxes *a, Fi
   }
 }
 
+/* ---- Annotations ---------------------------------------------------------------- */
+
+#define ARROW_W 1.0f
+#define ARROW_HEAD 6.0f
+#define ARROW_HALF 3.0f
+#define NOTE_MARKER 6.0f
+
+static void draw_notes(const Figure *f, const FigPanel *p, const FigAxes *a, FigDL *dl) {
+  Sizes z = sizes_of(f, p);
+  int i, op;
+  for (i = 0; i < p->nnote; i++) {
+    const FigNote *n = &p->note[i];
+    float x, y, x2, y2;
+    fig_to_page(a, n->x, n->y, &x, &y);
+    if (n->kind == FIG_NOTE_TEXT) {
+      if (n->text[0] && isfinite(x) && isfinite(y))
+        fig_text(dl, n->text, f->font, n->pt > 0 ? n->pt : z.label, x, y, 0, n->rgb, NULL, NULL);
+    } else if (n->kind == FIG_NOTE_ARROW) {
+      float dx, dy, len, ux, uy, bx, by;
+      fig_to_page(a, n->x2, n->y2, &x2, &y2);
+      if (!isfinite(x) || !isfinite(y) || !isfinite(x2) || !isfinite(y2)) continue;
+      dx = x2 - x;
+      dy = y2 - y;
+      len = sqrtf(dx * dx + dy * dy);
+      if (len < 0.01f) continue;
+      ux = dx / len;
+      uy = dy / len;
+      /* the shaft stops at the head's base so a wide line does not poke out */
+      bx = len > ARROW_HEAD ? x2 - ux * ARROW_HEAD : x;
+      by = len > ARROW_HEAD ? y2 - uy * ARROW_HEAD : y;
+      op = stroke_op(dl, n->rgb, ARROW_W, NULL);
+      move(dl, x, y);
+      line(dl, bx, by);
+      close_op(dl, op);
+      op = fig_dl_op(dl, FIG_OP_FILL, n->rgb);
+      move(dl, x2, y2);
+      line(dl, x2 - ux * ARROW_HEAD - uy * ARROW_HALF, y2 - uy * ARROW_HEAD + ux * ARROW_HALF);
+      line(dl, x2 - ux * ARROW_HEAD + uy * ARROW_HALF, y2 - uy * ARROW_HEAD - ux * ARROW_HALF);
+      closep(dl);
+      close_op(dl, op);
+    } else if (n->kind == FIG_NOTE_MARKER && isfinite(x) && isfinite(y)) {
+      FigSeries s;
+      memset(&s, 0, sizeof s);
+      s.marker = n->marker > 0 && n->marker < FIG_MARK_COUNT ? n->marker : FIG_MARK_CIRCLE;
+      s.mfill = true;
+      memcpy(s.color, n->rgb, sizeof s.color);
+      memcpy(s.mcolor, n->rgb, sizeof s.mcolor);
+      draw_marker(dl, &s, x, y, NOTE_MARKER);
+    }
+  }
+}
+
 /* ---- One panel ------------------------------------------------------------------ */
 
 static void draw_panel(const Figure *f, const FigPanel *p, FigAxes *a, FigDL *dl) {
@@ -754,6 +822,7 @@ static void draw_panel(const Figure *f, const FigPanel *p, FigAxes *a, FigDL *dl
              a->y0 - TITLE_PAD - ds, 0, black, NULL, NULL);
   }
   draw_legend(f, p, a, dl);
+  draw_notes(f, p, a, dl);
 }
 
 static void set_axes(const FigPanel *p, FigAxes *a, float x0, float y0, float x1, float y1) {

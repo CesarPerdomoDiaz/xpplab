@@ -20,6 +20,7 @@
 #define FIG_MAX_PANELS 12
 #define FIG_MAX_SERIES 64
 #define FIG_TEXT 256
+#define FIG_MAX_NOTES 16
 
 enum { FIG_LINE_NONE, FIG_LINE_SOLID, FIG_LINE_DASHED, FIG_LINE_DOTTED,
        FIG_LINE_DASHDOT, FIG_LINE_COUNT };
@@ -50,6 +51,18 @@ typedef struct {
   char *py;
 } FigSeries;
 
+/* A free annotation in data coordinates: text, an arrow or a marker. */
+enum { FIG_NOTE_TEXT, FIG_NOTE_ARROW, FIG_NOTE_MARKER, FIG_NOTE_KINDS };
+typedef struct {
+  int kind;              /* FIG_NOTE_* */
+  double x, y;           /* text (left end of its baseline), arrow tail, marker */
+  double x2, y2;         /* arrow head */
+  char text[FIG_TEXT];   /* mathtext, like the labels */
+  float pt;              /* text size in points; 0: the panel's label size */
+  int marker;            /* FIG_MARK_* of a marker */
+  float rgb[3];
+} FigNote;
+
 typedef struct {
   char title[FIG_TEXT], xlabel[FIG_TEXT], ylabel[FIG_TEXT];
   bool autox, autoy;           /* limits from the data */
@@ -65,6 +78,8 @@ typedef struct {
   float ix, iy, iw, ih;
   int nseries;
   FigSeries s[FIG_MAX_SERIES];
+  int nnote;
+  FigNote note[FIG_MAX_NOTES];
 } FigPanel;
 
 typedef struct {
@@ -87,6 +102,10 @@ void fig_panel_init(FigPanel *p);
 FigSeries *fig_add(FigPanel *p, const double *x, const double *y, int n);
 void fig_remove(FigPanel *p, int k);
 void fig_series_free(FigSeries *s);
+/* Add an annotation (copied); false when the panel has no room. */
+bool fig_note_add(FigPanel *p, const FigNote *n);
+/* Remove annotation k, or all of them with k < 0. */
+void fig_note_remove(FigPanel *p, int k);
 /* The default colours, in order (matplotlib's "tab10"). */
 void fig_color(int k, float rgb[3]);
 /* Change the grid; panels beyond it are kept as insets or dropped. */

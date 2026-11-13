@@ -216,7 +216,8 @@ def test_refusals():
     with xs.load(MODELS / name) as m:
         prepare(m)
         for kw in ({"count": 0}, {"length": 0.0}, {"length": float("nan")},
-                   {"max_points": 2}):
+                   {"length": float("inf")}, {"max_points": 2},
+                   {"max_points": 3}, {"max_points": 4}):
             assert "count >= 1" in refusal(m, **kw), kw
         # DT or NOUT changed since the adjoint
         m.set(DT=2 * 2 * np.pi / NSTEP)
@@ -230,6 +231,28 @@ def test_refusals():
         # the run is no longer the period of the adjoint
         m.run(total=3.0)
         assert "adjoint" in refusal(m)
+
+
+def test_fewest_points():
+    """max_points = 5, the least allowed: each side starts from 5 points on
+    the linear isochron and the buffers must hold them (the valgrind job runs
+    this test). Each polyline keeps to the limit."""
+    with xs.load(MODELS / "radial_clock.ode") as m:
+        prepare(m)
+        tab, _ = isochrons(m, count=2, max_points=5)
+        for ph, _, _ in polylines(tab, 2):
+            assert 1 <= len(ph) <= 5
+
+
+def test_refuses_a_run_that_is_not_one_period():
+    """Each backward period lasts the run's length, so a run 5 % longer than
+    the period (whose ends are about 0.3 apart on the unit circle) is
+    refused, with the gap in the message."""
+    with xs.load(MODELS / "radial_clock.ode") as m:
+        set_cycle(m, 1.05 * 2 * np.pi)
+        m.adjoint()
+        msg = refusal(m)
+        assert "not one period" in msg and "apart" in msg, msg
 
 
 def test_refuses_more_than_two_variables():

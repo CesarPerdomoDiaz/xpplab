@@ -165,6 +165,22 @@ in all three columns separates polylines. The Floquet multiplier is returned
 apart from the table. Until the other methods are supported, the call
 refuses any method but Runge-Kutta.
 
+*Limits of the method as built.*
+
+- **One period:** each backward "whole period" lasts the stored run's
+  length, so a run that is not one period would shift every level of a
+  curve a little further in phase. The call therefore refuses a run whose
+  two ends are more than 1e-3 of the cycle's extent apart.
+- **Reach:** a curve reaches at most about ε·λ^(−k) from the cycle, for an
+  offset ε and k periods. With the defaults (ε = 1e-4, k = 100) that is
+  about 0.017 for λ = 0.95, so a weakly attracting cycle needs a larger
+  offset or more periods.
+- **Autonomous models only:** like XPPAUT's adjoint, the multiplier and
+  the backward flow use the right-hand side as if time started at T0 for
+  every phase.
+- **At least 5 points:** each side starts from 5 points on the linear
+  isochron, so `max_points` must be at least 5.
+
 Repeat for each θ. The method uses the Floquet multiplier only to choose the
 segment; the phase of a start point on the linear isochron is exact up to
 O(ε²), and that error does not grow in the backward integration. The error

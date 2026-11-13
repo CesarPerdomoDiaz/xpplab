@@ -423,8 +423,16 @@ XPPE_API int xppe_phase_model(int n, const char *const *coupling);
    max_points points. offset is the distance of the far end of the linear
    segment (the start points lie between offset times lambda and offset); a
    phase error of order offset squared. Zero or negative: max_periods 100,
-   offset 1e-4, spacing length / 100. length > 0 and max_points >= 3 are
-   required, and count >= 1 (XPPE_ERR_RANGE).
+   offset 1e-4, spacing length / 100. A finite length > 0, max_points >= 5
+   and count >= 1 are required (XPPE_ERR_RANGE).
+   A curve reaches at most about offset * lambda^(-max_periods) from the
+   cycle (about 0.017 with the defaults for lambda = 0.95): for a weakly
+   attracting cycle, raise offset or max_periods.
+   The run must be one period: its two ends must agree to 1e-3 of the
+   cycle's extent (XPPE_ERR_STATE otherwise), since each backward period
+   lasts the run's length. The model must be autonomous: like XPPAUT's
+   adjoint, the multiplier and the backward flow take the right-hand side
+   at t = T0 whatever the phase.
    Only the Runge-Kutta method is supported for now (XPPE_ERR_STATE).
    Result: columns phase (theta / T in [0, 1)), then the two variables: one
    polyline per phase, from the outer end of the side with the negative

@@ -1267,10 +1267,36 @@ int xppe_isochrons(int count, double length, int max_points, int max_periods,
                    "again and compute the adjoint again", NULL);
     return XPPE_ERR_STATE;
   }
-  if (count < 1 || !(length > 0) || max_points < 3) {
-    xppe_set_error("give count >= 1, an arc length limit length > 0 and "
-                   "max_points >= 3", NULL);
+  /* iso_side() always starts from 5 points on the linear isochron, and the
+     buffers below are sized from max_points: fewer would overrun them. */
+  if (count < 1 || !(length > 0) || !isfinite(length) || max_points < 5) {
+    xppe_set_error("give count >= 1, a finite arc length limit length > 0 "
+                   "and max_points >= 5", NULL);
     return XPPE_ERR_RANGE;
+  }
+  {
+    /* Each backward "whole period" lasts the run's length: a run that does
+       not close would shift every level of a curve a little further in
+       phase. Its ends must agree to 1e-3 of the cycle's extent. */
+    double lo[2] = {HUGE_VAL, HUGE_VAL}, hi[2] = {-HUGE_VAL, -HUGE_VAL};
+    double ext, gap;
+    for (k = 0; k < adj_len; k++)
+      for (i = 0; i < 2; i++) {
+        double v = storage[i + 1][k];
+        if (v < lo[i]) lo[i] = v;
+        if (v > hi[i]) hi[i] = v;
+      }
+    ext = fmax(hi[0] - lo[0], hi[1] - lo[1]);
+    gap = hypot((double)storage[1][adj_len - 1] - storage[1][0],
+                (double)storage[2][adj_len - 1] - storage[2][0]);
+    if (!(gap <= 1e-3 * ext)) {
+      char num[32];
+      snprintf(num, sizeof num, "%.3g", gap);
+      xppe_set_error("the run is not one period of the cycle: its ends are "
+                     "%s apart, more than 1e-3 of the cycle's size; run "
+                     "exactly one period and compute the adjoint again", num);
+      return XPPE_ERR_STATE;
+    }
   }
   if (max_periods <= 0) max_periods = 100;
   if (!(offset > 0)) offset = 1e-4;

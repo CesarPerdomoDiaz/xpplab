@@ -94,11 +94,12 @@ in the phase plane and the time series, and the Analysis tools work on it.
 
 Commands: `auto save fold.auto`, `auto load fold.auto`, `auto orbit 6`.
 
-## Boundary value problems and homoclinic orbits (Python)
+## Boundary value problems, homoclinic and heteroclinic orbits (Python)
 
-AUTO's boundary value and homoclinic starts are available from Python as
-`start("bvp", ...)` and `start("homoclinic", ...)`, and tested against known
-answers (`python/tests/test_auto_bvp_homoclinic.py`). The desktop app does
+AUTO's boundary value, homoclinic and heteroclinic starts are available from
+Python as `start("bvp", ...)`, `start("homoclinic", ...)` and
+`start("heteroclinic", ...)`, and tested against known answers
+(`python/tests/test_auto_bvp_homoclinic.py`). The desktop app does
 not offer them yet.
 
 **Boundary value problems.** Rescale the interval to `[0, 1]`, give one `b`
@@ -141,7 +142,32 @@ Limits:
   curve (a couple of per cent in the test); the test allows 1% on the
   settled points.
 - Only 1-dimensional unstable and stable manifolds in the plane have been
-  tested. Heteroclinic starts use the same code but have no test.
+  tested.
+
+**Heteroclinic orbits.** A heteroclinic start continues a connection from the
+saddle `left=` to the saddle `right=`. The last run is the first
+approximation: a trajectory that leaves the first saddle along its unstable
+manifold and arrives near the second; its length becomes the truncation
+interval. The test uses the bistable front, `u'' + c u' + u(1-u)(u-a) = 0`:
+
+```python
+m.run()   # from near (1, 0) along the front to near (0, 0)
+h = m.auto.start("heteroclinic", "c", second="a", left=[1, 0],
+                 right=[0, 0], unstable=1, stable=1)
+```
+
+The connection from (1, 0) to (0, 0) lies exactly on `c = √2 (1/2 − a)`, and
+AUTO's points agree with it to 1e-10 while both ends are saddles
+(0 < a < 1), in either direction along the curve and whichever method made
+the starting run. The orbit's least `v` matches the front's −1/(4√2).
+Two things to watch:
+
+- The starting run must actually leave the first saddle. Started 1e-6 from
+  it, CVODE at its default tolerance stays there, and AUTO then finds
+  nothing; at TOL = ATOL = 1e-10 it follows the front.
+- Past a = 0 the end (0, 0) is no longer a saddle but a node, and the
+  continued points drift away from the formula: a saddle-to-saddle
+  connection no longer describes the front there.
 
 ## When things go wrong
 

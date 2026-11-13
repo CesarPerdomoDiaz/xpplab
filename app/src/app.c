@@ -228,6 +228,7 @@ void app_init(App *a, const char *base_dir, bool ephemeral) {
   a->echo.sweep_mode = -1;
   snprintf(a->help_page, sizeof a->help_page, "welcome");
   app_fig_reset(a);
+  app_note_init(a);
   set_editor_text(a, "");
   a->ephemeral = ephemeral;
   /* Until the user picks a theme, follow the system's light or dark mode. */
@@ -481,6 +482,7 @@ static bool load_engine(App *a) {
   a->sw.transient = 0.5;
   app_analysis_reset(a);
   app_many_reset(a);
+  app_notes_reset(a);
   echo_model_loaded(a);
   return true;
 }

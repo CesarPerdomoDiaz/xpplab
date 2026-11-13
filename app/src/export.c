@@ -202,6 +202,77 @@ static void legend_add(Svg *s, const char *label, const char *color, bool dashed
   s->legend_dashed[s->legend_n++] = dashed;
 }
 
+/* One marker, the shapes of the plot window (ui_notes.c): r is its radius. */
+static void svg_marker(Svg *s, int m, double x, double y, double r, const char *col) {
+  const char *clip = "clip-path='url(#plot)'";
+  switch (m) {
+  case FIG_MARK_SQUARE:
+    fprintf(s->f, "<rect %s x='%.1f' y='%.1f' width='%.1f' height='%.1f' fill='%s'/>\n", clip,
+            x - r, y - r, 2 * r, 2 * r, col);
+    break;
+  case FIG_MARK_TRIANGLE:
+    fprintf(s->f, "<polygon %s points='%.1f,%.1f %.1f,%.1f %.1f,%.1f' fill='%s'/>\n", clip, x,
+            y - r, x + r, y + r, x - r, y + r, col);
+    break;
+  case FIG_MARK_DIAMOND:
+    fprintf(s->f, "<polygon %s points='%.1f,%.1f %.1f,%.1f %.1f,%.1f %.1f,%.1f' fill='%s'/>\n",
+            clip, x, y - r, x + r, y, x, y + r, x - r, y, col);
+    break;
+  case FIG_MARK_X:
+  case FIG_MARK_PLUS:
+  case FIG_MARK_STAR:
+    fprintf(s->f, "<path %s fill='none' stroke='%s' stroke-width='2' d='", clip, col);
+    if (m != FIG_MARK_X)
+      fprintf(s->f, "M%.1f %.1fL%.1f %.1fM%.1f %.1fL%.1f %.1f", x - r, y, x + r, y, x, y - r, x,
+              y + r);
+    if (m != FIG_MARK_PLUS)
+      fprintf(s->f, "M%.1f %.1fL%.1f %.1fM%.1f %.1fL%.1f %.1f", x - r, y - r, x + r, y + r,
+              x - r, y + r, x + r, y - r);
+    fputs("'/>\n", s->f);
+    break;
+  default:
+    fprintf(s->f, "<circle %s cx='%.1f' cy='%.1f' r='%.1f' fill='%s'/>\n", clip, x, y,
+            m == FIG_MARK_POINT ? r * 0.5 : r, col);
+  }
+}
+
+/* The plot's annotations, in its coordinates and clipped to the axes as
+   the plot window clips them. */
+static void svg_notes(const App *a, FigureKind kind, Svg *s) {
+  int i;
+  for (i = 0; kind < APP_PLOTS && i < a->nt.n[kind]; i++) {
+    const FigNote *n = &a->nt.note[kind][i];
+    char col[16];
+    double x = px(s, n->x), y = py(s, n->y);
+    if (n->rgb[0] == 0 && n->rgb[1] == 0 && n->rgb[2] == 0)
+      snprintf(col, sizeof col, "#222222"); /* the default is the plot's text colour */
+    else
+      snprintf(col, sizeof col, "#%02x%02x%02x", (int)(n->rgb[0] * 255 + 0.5f),
+               (int)(n->rgb[1] * 255 + 0.5f), (int)(n->rgb[2] * 255 + 0.5f));
+    if (n->kind == FIG_NOTE_TEXT) {
+      fprintf(s->f, "<text clip-path='url(#plot)' x='%.1f' y='%.1f' font-size='%.1f' fill='%s'>",
+              x, y, (n->pt > 0 ? n->pt : 12) * 96.0 / 72.0, col);
+      esc(s->f, n->text);
+      fputs("</text>\n", s->f);
+    } else if (n->kind == FIG_NOTE_ARROW) {
+      double x2 = px(s, n->x2), y2 = py(s, n->y2), dx = x2 - x, dy = y2 - y;
+      double len = sqrt(dx * dx + dy * dy), ux, uy, bx, by;
+      if (len < 0.5) continue;
+      ux = dx / len;
+      uy = dy / len;
+      bx = len > 9 ? x2 - ux * 9 : x;
+      by = len > 9 ? y2 - uy * 9 : y;
+      fprintf(s->f, "<line clip-path='url(#plot)' x1='%.1f' y1='%.1f' x2='%.1f' y2='%.1f' "
+                    "stroke='%s' stroke-width='1.5'/>\n", x, y, bx, by, col);
+      fprintf(s->f, "<polygon clip-path='url(#plot)' points='%.1f,%.1f %.1f,%.1f %.1f,%.1f' "
+                    "fill='%s'/>\n", x2, y2, x2 - ux * 9 - uy * 4.5, y2 - uy * 9 + ux * 4.5,
+              x2 - ux * 9 + uy * 4.5, y2 - uy * 9 - ux * 4.5, col);
+    } else {
+      svg_marker(s, n->marker, x, y, 4.5, col);
+    }
+  }
+}
+
 static void svg_end(Svg *s) {
   int i;
   if (s->legend_n) {
@@ -493,6 +564,7 @@ bool export_svg(App *a, FigureKind kind, const char *path) {
   if (kind == FIG_PHASE) svg_phase(a, &s);
   if (kind == FIG_AUTO) svg_auto(a, &s, false);
   if (kind == FIG_AUTO2) svg_auto(a, &s, true);
+  svg_notes(a, kind, &s);
   svg_end(&s);
   app_log(a, "Saved %s (vector figure).", path);
   return true;

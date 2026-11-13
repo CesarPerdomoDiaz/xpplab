@@ -25,7 +25,8 @@ import re
 
 import numpy as np
 
-__all__ = ["Figure", "Panel", "Series", "diagram_xy", "evaluate_expression"]
+__all__ = ["Annotations", "Figure", "Panel", "Series", "diagram_xy",
+           "evaluate_expression"]
 
 TAB10 = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
          "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
@@ -89,10 +90,104 @@ class Series:
         return f"<Series {self.label or '(no label)'}: {self.x.size} points>"
 
 
-class Panel:
-    """A set of axes: its series, labels, limits and legend."""
+class _Annotated:
+    """Free text, arrows and markers placed in data coordinates (XPPAUT's
+    Text, etc. menu). They are drawn after the curves and stay with the
+    axes."""
+
+    def _init_notes(self) -> None:
+        self.notes: list[dict] = []
+
+    @staticmethod
+    def _colour(color) -> str:
+        if not isinstance(color, str):
+            raise TypeError("color is a string such as \"#d62728\"")
+        return color
+
+    def text(self, x, y, s: str, *, size: float | None = None,
+             color: str = "#000000") -> "_Annotated":
+        """Write ``s`` (mathtext allowed) with the left end of its baseline
+        at (x, y). ``size`` is in points; None: the labels' size."""
+        if size is not None and not size > 0:
+            raise ValueError("size is a positive number of points")
+        self.notes.append({"kind": "text", "x": float(x), "y": float(y),
+                           "s": str(s), "size": size,
+                           "color": self._colour(color)})
+        return self
+
+    def arrow(self, x1, y1, x2, y2, *, color: str = "#000000") -> "_Annotated":
+        """An arrow from (x1, y1) to (x2, y2), its head at the second."""
+        self.notes.append({"kind": "arrow", "x": float(x1), "y": float(y1),
+                           "x2": float(x2), "y2": float(y2),
+                           "color": self._colour(color)})
+        return self
+
+    def marker(self, x, y, marker: str = "o", *,
+               color: str = "#000000") -> "_Annotated":
+        """A filled marker ("o", "s", "^", "D", "x", "+", "*", ".") at (x, y)."""
+        if marker not in MARKERS or not MARKERS[marker]:
+            raise ValueError(f"marker is one of {', '.join(k for k in MARKERS if k)}")
+        self.notes.append({"kind": "marker", "x": float(x), "y": float(y),
+                           "marker": marker, "color": self._colour(color)})
+        return self
+
+    def clear_annotations(self, k: int | None = None) -> "_Annotated":
+        """Delete annotation ``k`` (counting from 0), or all of them."""
+        if k is None:
+            self.notes.clear()
+        else:
+            del self.notes[k]
+        return self
+
+    def draw(self, ax, fontsize: float = 12.0) -> None:
+        """Draw the annotations on a matplotlib Axes, in its data
+        coordinates; ``fontsize`` is the size of text given none."""
+        from matplotlib.lines import Line2D
+        for n in self.notes:
+            if n["kind"] == "text":
+                ax.text(n["x"], n["y"], n["s"], fontsize=n["size"] or fontsize,
+                        color=n["color"], ha="left", va="baseline", clip_on=False)
+            elif n["kind"] == "arrow":
+                ax.annotate("", xy=(n["x2"], n["y2"]), xytext=(n["x"], n["y"]),
+                            arrowprops=dict(arrowstyle="-|>", color=n["color"],
+                                            lw=1.0, shrinkA=0, shrinkB=0,
+                                            mutation_scale=15),
+                            annotation_clip=False)
+            else:
+                # an artist, not a plot: the axes' data limits stay as they were
+                dot = Line2D([n["x"]], [n["y"]], linestyle="none", marker=n["marker"],
+                             ms=6, color=n["color"], mec=n["color"], mfc=n["color"],
+                             mew=1.0)
+                ax.add_artist(dot)
+                dot.set_clip_on(False)
+
+
+class Annotations:
+    """The annotations of the desktop app's plot windows, one set for each of
+    "time", "phase", "auto" and "auto2": ``notes["phase"].text(0.1, 0.2,
+    "saddle")``. ``notes["phase"].draw(ax)`` draws them on the axes of the
+    plot the script made."""
+
+    PLOTS = ("time", "phase", "auto", "auto2")
+
+    def __init__(self):
+        self._plots: dict[str, _Annotated] = {}
+
+    def __getitem__(self, plot: str) -> _Annotated:
+        if plot not in self.PLOTS:
+            raise KeyError(f"the plots are {', '.join(self.PLOTS)}")
+        if plot not in self._plots:
+            a = _Annotated()
+            a._init_notes()
+            self._plots[plot] = a
+        return self._plots[plot]
+
+
+class Panel(_Annotated):
+    """A set of axes: its series, labels, limits, legend and annotations."""
 
     def __init__(self, inset=None):
+        self._init_notes()
         self.series: list[Series] = []
         self.title = self.xlabel = self.ylabel = ""
         self.xlim = self.ylim = None   # None: from the data, widened by 5%
@@ -217,6 +312,26 @@ class Figure:
             setattr(self, k, v)
         return self
 
+    def text(self, x, y, s: str, *, panel: int = 0, **kw) -> "Figure":
+        """``fig[panel].text(...)``: write ``s`` at (x, y) of that panel."""
+        self.panels[panel].text(x, y, s, **kw)
+        return self
+
+    def arrow(self, x1, y1, x2, y2, *, panel: int = 0, **kw) -> "Figure":
+        """``fig[panel].arrow(...)``: an arrow from (x1, y1) to (x2, y2)."""
+        self.panels[panel].arrow(x1, y1, x2, y2, **kw)
+        return self
+
+    def marker(self, x, y, marker: str = "o", *, panel: int = 0, **kw) -> "Figure":
+        """``fig[panel].marker(...)``: a marker at (x, y)."""
+        self.panels[panel].marker(x, y, marker, **kw)
+        return self
+
+    def clear_annotations(self, k: int | None = None, *, panel: int = 0) -> "Figure":
+        """Delete annotation ``k`` of the panel, or all of them."""
+        self.panels[panel].clear_annotations(k)
+        return self
+
     def grid(self, rows: int, cols: int) -> "Figure":
         """Change the grid of panels; panels beyond it go."""
         n_old, n_new = self.rows * self.cols, int(rows) * int(cols)
@@ -316,6 +431,7 @@ class Figure:
                 ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), **kw)
             else:
                 ax.legend(loc=p.legend, **kw)
+        p.draw(ax, fs)
 
     def save(self, path, *, dpi: int = 300) -> None:
         """Write the figure: .pdf, .svg, .eps, or .png at ``dpi``."""

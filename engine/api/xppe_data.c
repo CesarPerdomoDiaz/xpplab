@@ -70,7 +70,9 @@ float *get_data_col(int c);
 
 /* ---- The result table ------------------------------------------------ */
 
-#define MAX_RESULT_COLS (MAXODE + 1) /* an adjoint has one per variable */
+/* an adjoint has one per variable; a phase model also phase, H, H_odd,
+   H_even, locked and stable */
+#define MAX_RESULT_COLS (MAXODE + 6)
 
 static double *res[MAX_RESULT_COLS];
 static char res_names[MAX_RESULT_COLS][32];
@@ -427,19 +429,20 @@ int xppe_lyapunov(double *exponent) {
   return XPPE_OK;
 }
 
-/* hrw_liapunov()'s method carried out during an integration from the
-   initial conditions, in double precision. A copy of the state perturbed
-   by eps goes along with it; after each output step (DT times NOUT) the
-   distance between the two is measured, the logarithm of its growth added
-   up, and the copy put back at the distance eps in the direction it has
-   moved to. Both are stepped with XPPAUT's one_step_int(), as in
-   hrw_liapunov(). There each step starts from the stored run, which is in
-   single precision, times included: once the time or a variable is large
-   the rounding of the stored values and of the step length is comparable
-   to eps, and a folded variable jumps by its period. Steps that start
-   before TRANS carry the perturbation along without counting, and the
-   integration stops, as a run does, when a variable passes BOUND. Nothing
-   is stored. */
+/* hrw_liapunov()'s method carried out during an integration from the initial
+   conditions, in double precision. A copy of the state perturbed by eps goes
+   along with it; after each output step (DT times NOUT) the distance between
+   the two is measured, the logarithm of its growth added up, and the copy
+   put back at the distance eps in the direction it has moved to. Both are
+   stepped as lyap_step() says: the adaptive methods with XPPAUT's
+   one_step_int(), as in hrw_liapunov(), the fixed-step ones as integrate()
+   steps them. In hrw_liapunov() each step starts from the stored run, which
+   is in single precision, times included: once the time or a variable is
+   large the rounding of the stored values and of the step length is
+   comparable to eps, and a folded variable jumps by its period. Steps that
+   start before TRANS carry the perturbation along without counting, and the
+   integration stops, as a run does, when a variable passes BOUND. Nothing is
+   stored. */
 enum {
   METHOD_DISCRETE = 0,
   METHOD_RK4 = 3,
@@ -452,10 +455,32 @@ enum {
   METHOD_RB23 = 13
 };
 
+/* 1 for the methods that integrate() steps with its default: branch, NJMP
+   steps of DT in one solver() call; 0 for the adaptive ones, which go
+   through one_step_int(). */
+static int method_is_fixed_step(void) {
+  return !(METHOD == METHOD_GEAR || METHOD == METHOD_RKQS ||
+           METHOD == METHOD_STIFF || METHOD == METHOD_CVODE ||
+           METHOD == METHOD_DP5 || METHOD == METHOD_DP83 ||
+           METHOD == METHOD_RB23);
+}
+
+/* One output step from t to t1 (1 on success). The fixed-step methods take
+   NJMP steps of DT as integrate() does, with one solver() call: a step to
+   the rounded end time t1 could be a short one, which adams() cannot take.
+   The adaptive methods go through one_step_int(). The two states take turns
+   on the one solver state (Adams history, Gear and CVODE workspaces), so
+   each call starts the method afresh; a saved copy of that state for each
+   trajectory is not available. */
+static int lyap_step(double *y, double t, double t1, int *istart, int fixed) {
+  if (fixed) return solver(y, &t, DELTA_T, NJMP, NODE, istart, WORK) >= 0;
+  return one_step_int(y, t, t1, istart);
+}
+
 int xppe_lyapunov_integrate(double eps, double *exponent) {
   double y[MAXODE], y2[MAXODE], dy[MAXODE];
   double h, t, t1, nrm, sum = 0, span = 0;
-  int rc, i, k, nsteps, istart, ok = 1, out = 0;
+  int rc, i, k, nsteps, istart, fixed, ok = 1, out = 0;
   const char *why = NULL;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
   if (DelayFlag || NKernel > 0) {
@@ -480,6 +505,7 @@ int xppe_lyapunov_integrate(double eps, double *exponent) {
   }
   nsteps = (nsteps + NJMP - 1) / NJMP;
   h *= NJMP;
+  fixed = method_is_fixed_step();
   xppe_begin_call();
   XPPE_GUARD_BEGIN((void)0);
   evaluate_derived();
@@ -493,12 +519,12 @@ int xppe_lyapunov_integrate(double eps, double *exponent) {
     /* Each call starts the method afresh, since the two states take turns
        (gear() takes 0 for a fresh start, as integrate() gives it). */
     istart = METHOD == METHOD_GEAR ? 0 : 1;
-    ok = one_step_int(y, t, t1, &istart);
+    ok = lyap_step(y, t, t1, &istart, fixed);
     istart = METHOD == METHOD_GEAR ? 0 : 1;
 #ifdef CVODE_YES
     if (METHOD == METHOD_CVODE) end_cv(); /* start_cv() would leak it */
 #endif
-    if (ok) ok = one_step_int(y2, t, t1, &istart);
+    if (ok) ok = lyap_step(y2, t, t1, &istart, fixed);
 #ifdef CVODE_YES
     if (METHOD == METHOD_CVODE) end_cv();
 #endif
@@ -574,7 +600,7 @@ int xppe_adjoint(int max_iterations, double tolerance) {
     return XPPE_ERR_NUMERIC;
   }
   names[0] = "T";
-  for (i = 0; i < NODE && i < MAX_RESULT_COLS - 1; i++)
+  for (i = 0; i < NODE && i < MAXODE; i++)
     names[i + 1] = uvar_names[i];
   copy_table(my_adj, adj_len, i + 1, names);
   data_back();
@@ -619,6 +645,190 @@ int xppe_hfunction(int n, const char *const *coupling) {
   return XPPE_OK;
 }
 
+/* ---- The phase-reduced model --------------------------------------------- */
+
+/* Catmull-Rom cubic through the N values v[0..N-1] of a periodic function on
+   a grid of spacing 1 (index N is index 0): the value at u, and its
+   derivative in *dv. The only numerics of xppe_phase_model that are not
+   XPPAUT's. */
+static double periodic_cubic(const double *v, int N, double u, double *dv) {
+  double fl = floor(u), s = u - fl, s2 = s * s, s3 = s2 * s;
+  int k = (int)fl % N;
+  double p0, p1, p2, p3, m1, m2;
+  if (k < 0) k += N;
+  p0 = v[(k + N - 1) % N];
+  p1 = v[k];
+  p2 = v[(k + 1) % N];
+  p3 = v[(k + 2) % N];
+  m1 = 0.5 * (p2 - p0);
+  m2 = 0.5 * (p3 - p1);
+  if (dv)
+    *dv = (6 * s2 - 6 * s) * p1 + (3 * s2 - 4 * s + 1) * m1 +
+          (-6 * s2 + 6 * s) * p2 + (3 * s2 - 2 * s) * m2;
+  return (2 * s3 - 3 * s2 + 1) * p1 + (s3 - 2 * s2 + s) * m1 +
+         (-2 * s3 + 3 * s2) * p2 + (s3 - s2) * m2;
+}
+
+/* The zeros of the periodic grid function v[0..N-1] where it changes sign:
+   an exact zero at a node counts when its two neighbours differ in sign, an
+   interval whose ends differ in sign holds one zero, found by a few secant
+   steps (false position, so it stays in the interval) on the cubic. root[]
+   gets the position in grid units, slope[] the cubic's derivative there
+   (per grid unit). Returns the number of zeros (at most N). */
+static int sign_change_roots(const double *v, int N, double *root,
+                             double *slope) {
+  int k, i, nr = 0;
+  double vmax = 0;
+  for (k = 0; k < N; k++)
+    if (fabs(v[k]) > vmax) vmax = fabs(v[k]);
+  for (k = 0; k < N; k++) {
+    double x, d;
+    double next = v[(k + 1) % N];
+    if (v[k] == 0) {
+      double prev = v[(k + N - 1) % N];
+      if (!(prev * next < 0)) continue;
+      x = k;
+    } else if (v[k] * next < 0) {
+      double a = k, b = k + 1, fa = v[k], fb = next, f;
+      x = a;
+      for (i = 0; i < 12; i++) {
+        x = b - fb * (b - a) / (fb - fa);
+        f = periodic_cubic(v, N, x, NULL);
+        if (f == 0 || fabs(f) <= 1e-14 * vmax) break;
+        if ((f < 0) == (fa < 0)) {
+          a = x;
+          fa = f;
+        } else {
+          b = x;
+          fb = f;
+        }
+      }
+    } else {
+      continue;
+    }
+    periodic_cubic(v, N, x, &d);
+    root[nr] = x;
+    slope[nr] = d;
+    nr++;
+  }
+  return nr;
+}
+
+/* Method D of docs/design/isochrons.md. H comes from xppe_hfunction (its
+   column, not a second average); Z from the adjoint. H_odd and H_even are
+   its columns when it returns them (NEQ > 2), else 0.5 (H[k] -/+ H[n-1-k]),
+   which is what make_h() does for them. */
+int xppe_phase_model(int n, const char *const *coupling) {
+  static const char *fixed_names[] = {"phase", "H", "H_odd", "H_even",
+                                      "locked", "stable"};
+  const char *names[MAX_RESULT_COLS];
+  extern char uvar_names[MAXODE][12];
+  static char znames[MAXODE][16]; /* kept off the stack */
+  double *h = NULL, *hodd = NULL, *heven = NULL, *v = NULL, *root = NULL,
+         *slope = NULL;
+  double step, period;
+  int rc, i, k, m, nr, ncols, nz;
+  if ((rc = require_run()) != XPPE_OK) return rc;
+  if (DelayFlag || NKernel > 0) {
+    xppe_set_error("the phase model needs a model without delays or "
+                   "integrals", NULL);
+    return XPPE_ERR_STATE;
+  }
+  if (NWiener > 0 || NMarkov > 0) {
+    xppe_set_error("the phase model needs a model without noise (wiener or "
+                   "Markov variables)", NULL);
+    return XPPE_ERR_STATE;
+  }
+  if (METHOD == METHOD_DISCRETE) {
+    xppe_set_error("the phase model needs differential equations, not a map",
+                   NULL);
+    return XPPE_ERR_STATE;
+  }
+  if (!ADJ_HERE || storind != adj_len || adj_len < 5) {
+    xppe_set_error("compute the adjoint of one period of a stable limit "
+                   "cycle first (the run must still be that period; an "
+                   "unstable cycle has no adjoint)", NULL);
+    return XPPE_ERR_STATE;
+  }
+  step = DELTA_T * NJMP; /* the spacing of the stored cycle and of Z */
+  if (!(step > 0)) {
+    xppe_set_error("the phase model needs a positive output step", NULL);
+    return XPPE_ERR_STATE;
+  }
+  m = adj_len;
+  period = step * (m - 1);
+  /* DT or NOUT changed since the run: the stored cycle has another spacing */
+  if (fabs((double)storage[0][m - 1] - (double)storage[0][0] - period) >
+      1e-5 * period + 1e-6 * fabs((double)storage[0][m - 1])) {
+    xppe_set_error("DT or NOUT is not what the stored cycle was made with: "
+                   "run one period again and compute the adjoint again", NULL);
+    return XPPE_ERR_STATE;
+  }
+  nz = NODE;
+  ncols = 1 + nz + 3 + 2;
+  if (ncols > MAX_RESULT_COLS) {
+    xppe_set_error("too many variables for the phase model table", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  if ((rc = xppe_hfunction(n, coupling)) != XPPE_OK) return rc;
+  /* xppe_hfunction's table is in the result: keep its columns, then replace
+     the table. */
+  h = malloc(sizeof(double) * (size_t)m * 4);
+  v = h + m;
+  hodd = v + m;
+  heven = hodd + m;
+  root = malloc(sizeof(double) * (size_t)m * 2);
+  if (!h || !root) {
+    free(h);
+    free(root);
+    xppe_set_error("out of memory", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  slope = root + m;
+  for (k = 0; k < m; k++) h[k] = res[1][k];
+  for (k = 0; k < m; k++) {
+    if (res_ncols >= 4) {
+      hodd[k] = res[2][k];
+      heven[k] = res[3][k];
+    } else {
+      hodd[k] = 0.5 * (h[k] - h[m - 1 - k]);
+      heven[k] = 0.5 * (h[k] + h[m - 1 - k]);
+    }
+  }
+  /* The roots are those of H_odd on the periodic grid of the m-1 distinct
+     points, where H_odd(-phi) = -H_odd(phi) holds exactly, so that 0 (and
+     T/2 on an even grid) are zeros and not rounding noise. */
+  for (k = 0; k < m - 1; k++)
+    v[k] = 0.5 * (h[k] - h[(m - 1 - k) % (m - 1)]);
+  nr = sign_change_roots(v, m - 1, root, slope);
+  names[0] = fixed_names[0];
+  for (i = 0; i < nz; i++) {
+    snprintf(znames[i], sizeof znames[i], "Z_%s", uvar_names[i]);
+    names[1 + i] = znames[i];
+  }
+  for (i = 1; i < 6; i++) names[nz + i] = fixed_names[i];
+  if ((rc = result_begin(m, ncols, names)) != XPPE_OK) {
+    free(h);
+    free(root);
+    return rc;
+  }
+  for (k = 0; k < m; k++) {
+    res[0][k] = k * step;
+    for (i = 0; i < nz; i++) res[1 + i][k] = (double)my_adj[i + 1][k];
+    res[nz + 1][k] = h[k];
+    res[nz + 2][k] = hodd[k];
+    res[nz + 3][k] = heven[k];
+    res[nz + 4][k] = res[nz + 5][k] = NAN;
+  }
+  for (k = 0; k < nr; k++) {
+    res[nz + 4][k] = root[k] * step;
+    res[nz + 5][k] = slope[k] > 0 ? 1 : 0;
+  }
+  free(h);
+  free(root);
+  return XPPE_OK;
+}
+
 /* ---- Asymptotic phase ---------------------------------------------------- */
 
 /* The point of the stored cycle (a polyline through the stored points, which
@@ -653,15 +863,6 @@ static double cycle_nearest(const double *y, double *pos, double *gam,
     }
   }
   return sqrt(best);
-}
-
-/* The methods integrate() steps with solver() (NJMP steps of DT per output
-   step) as opposed to the adaptive ones, which one_step_int() runs. */
-static int fixed_step_method(void) {
-  return !(METHOD == METHOD_GEAR || METHOD == METHOD_RKQS ||
-           METHOD == METHOD_STIFF || METHOD == METHOD_CVODE ||
-           METHOD == METHOD_DP5 || METHOD == METHOD_DP83 ||
-           METHOD == METHOD_RB23);
 }
 
 /* The refusals that xppe_asymptotic_phase() and xppe_isochrons() share: they
@@ -732,7 +933,7 @@ int xppe_asymptotic_phase(const double *x, double delta, double tmax,
   }
   q = floor(tmax / h + 1e-9);
   nmax = q >= INT_MAX ? INT_MAX : (int)q;
-  fixed = fixed_step_method();
+  fixed = method_is_fixed_step();
   for (i = 0; i < NODE; i++) y[i] = x[i];
   xppe_begin_call();
   XPPE_GUARD_BEGIN((void)0);
@@ -1084,7 +1285,7 @@ int xppe_isochrons(int count, double length, int max_points, int max_periods,
     return XPPE_ERR_RANGE;
   }
   r.K = max_periods;
-  r.fixed = fixed_step_method();
+  r.fixed = method_is_fixed_step();
   r.nit = NJMP * (adj_len - 1);
   r.nok = r.nfail = 0;
   r.period = period;

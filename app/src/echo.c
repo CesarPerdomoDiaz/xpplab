@@ -348,6 +348,7 @@ void echo_figure(App *a, int figure, const char *path) {
   bool outer;
   size_t k = 0;
   int j;
+  bool notes = figure >= 0 && figure < APP_PLOTS && a->nt.n[figure] > 0 && a->echo.notes;
   if (!a->model_ok || !a->echo.loaded) return;
   outer = echo_begin(a);
   echo_abs_path(path, p, sizeof p);
@@ -360,7 +361,13 @@ void echo_figure(App *a, int figure, const char *path) {
         if (a->plot_col[j])
           k += (size_t)snprintf(cols + k, sizeof cols - k, "%s%s", k ? ", " : "",
                                 echo_str(a->cols[j], x, sizeof x));
-      echo_line(a, "sol.plot(%s).figure.savefig(%s)", cols, q);
+      if (notes) {
+        echo_line(a, "ax = sol.plot(%s)", cols);
+        echo_line(a, "notes[\"time\"].draw(ax)");
+        echo_line(a, "ax.figure.savefig(%s)", q);
+      } else {
+        echo_line(a, "sol.plot(%s).figure.savefig(%s)", cols, q);
+      }
     } else if (figure == FIG_PHASE && a->nvars > 1) {
       const FigureState *g = &g_figures[FIG_PHASE];
       double lim[4] = {a->pp.xlo, a->pp.xhi, a->pp.ylo, a->pp.yhi};
@@ -382,13 +389,26 @@ void echo_figure(App *a, int figure, const char *path) {
         echo_line(a, "ax = m.phase_plane(%s, %s, trajectory=False, "
                      "equilibrium=False%s)", x, y, fr);
       echo_line(a, "ax.plot(sol[%s], sol[%s])", x, y);
+      if (notes) echo_line(a, "notes[\"phase\"].draw(ax)");
       echo_line(a, "ax.figure.savefig(%s)", q);
     } else if (figure == FIG_AUTO) {
       int v = a->au.yvar;
-      echo_line(a, "m.auto.diagram.plot(%s).figure.savefig(%s)",
-                v >= 0 && v < a->nvars ? echo_str(a->vars[v], x, sizeof x) : "\"norm\"", q);
+      const char *yname = v >= 0 && v < a->nvars ? echo_str(a->vars[v], x, sizeof x) : "\"norm\"";
+      if (notes) {
+        echo_line(a, "ax = m.auto.diagram.plot(%s)", yname);
+        echo_line(a, "notes[\"auto\"].draw(ax)");
+        echo_line(a, "ax.figure.savefig(%s)", q);
+      } else {
+        echo_line(a, "m.auto.diagram.plot(%s).figure.savefig(%s)", yname, q);
+      }
     } else if (figure == FIG_AUTO2) {
-      echo_line(a, "m.auto.diagram.plot().figure.savefig(%s)", q);
+      if (notes) {
+        echo_line(a, "ax = m.auto.diagram.plot()");
+        echo_line(a, "notes[\"auto2\"].draw(ax)");
+        echo_line(a, "ax.figure.savefig(%s)", q);
+      } else {
+        echo_line(a, "m.auto.diagram.plot().figure.savefig(%s)", q);
+      }
     }
   }
   echo_end(a);

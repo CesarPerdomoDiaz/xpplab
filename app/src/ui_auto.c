@@ -253,6 +253,8 @@ static void diagram_plot(App *a, bool two_param) {
   const char *xname = u->main_par >= 0 ? a->pars[u->main_par] : "parameter";
   ui_export_button(a, two_param ? FIG_AUTO2 : FIG_AUTO);
   igSameLine(0, -1);
+  ui_notes_menu(a, two_param ? FIG_AUTO2 : FIG_AUTO);
+  igSameLine(0, -1);
   if (Button("Fit")) v->zoomed = false;
   Tooltip("Fit the axes to the diagram and keep them fitted as it grows. "
           "Double-click the plot does the same.");
@@ -316,8 +318,10 @@ static void diagram_plot(App *a, bool two_param) {
     }
     draw_branches(a, two_param);
     draw_special(a, two_param);
-    if (ImPlot_IsPlotHovered() && igIsMouseClicked_Bool(ImGuiMouseButton_Left, false))
+    if (!app_note_armed(a, two_param ? FIG_AUTO2 : FIG_AUTO) && ImPlot_IsPlotHovered() &&
+        igIsMouseClicked_Bool(ImGuiMouseButton_Left, false))
       pick_point(a, two_param);
+    ui_notes_draw(a, two_param ? FIG_AUTO2 : FIG_AUTO);
     ui_figure_limits(two_param ? FIG_AUTO2 : FIG_AUTO);
     ui_view_end(v, false);
     ImPlot_EndPlot();

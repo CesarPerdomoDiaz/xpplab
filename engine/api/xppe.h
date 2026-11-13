@@ -27,7 +27,7 @@ extern "C" {
 #define XPPE_API
 #endif
 
-#define XPPE_API_VERSION 16
+#define XPPE_API_VERSION 17
 
 enum {
   XPPE_OK = 0,
@@ -381,6 +381,28 @@ XPPE_API int xppe_hfunction(int n, const char *const *coupling);
    version 14. */
 XPPE_API int xppe_asymptotic_phase(const double *x, double delta, double tmax,
                                    double *phase, double *elapsed);
+/* The phase-reduced model of two weakly coupled copies of the model
+   (docs/design/isochrons.md, method D), for the coupling formulas as in
+   xppe_hfunction() (n of them, one per ODE variable). Works on the cycle and
+   adjoint of the last run, which must still be the one-period run that
+   xppe_adjoint() used. H is xppe_hfunction()'s column; H_odd and H_even are
+   its columns when it returns them (more than two equations), else
+   0.5 (H[k] -/+ H[m-1-k]) on the m stored points. Result table, m rows (the
+   last is phase T, the period, the first point repeated): phase (time units,
+   0 to T), Z_<var> for each ODE variable (the adjoint), H, H_odd, H_even,
+   then locked and stable. The first rows of locked and stable list the locked
+   states, the rest are NaN: locked is the phase difference phi = theta_2 -
+   theta_1 in [0, T), where d phi/dt = -2 eps H_odd(phi), and stable is 1 if
+   the state is stable for eps > 0 (H_odd'(phi) > 0) and 0 if it is unstable.
+   They are the sign changes of H_odd, in increasing phi, each refined by
+   secant steps on a periodic cubic through the grid values; 0 and T/2 are
+   always among them (by symmetry), other zeros need an H_odd with more
+   structure. Refuses, with an error and no table (XPPE_ERR_STATE): no
+   adjoint (an unstable cycle has none), a run that is not that period, or DT
+   or NOUT changed since it; delays, Volterra integrals, noise and maps; and
+   what xppe_hfunction() refuses. The run is left as it was. Since API
+   version 16. */
+XPPE_API int xppe_phase_model(int n, const char *const *coupling);
 
 /* Isochrons of the planar limit cycle of the last run (method B of
    docs/design/isochrons.md), the curves of constant asymptotic phase, for
@@ -407,7 +429,7 @@ XPPE_API int xppe_asymptotic_phase(const double *x, double delta, double tmax,
    Result: columns phase (theta / T in [0, 1)), then the two variables: one
    polyline per phase, from the outer end of the side with the negative
    offsets to the cycle point to the outer end of the other, with a row of
-   NaN between polylines. Since API version 16. */
+   NaN between polylines. Since API version 17. */
 XPPE_API int xppe_isochrons(int count, double length, int max_points,
                             int max_periods, double offset, double spacing,
                             double *lambda);

@@ -160,6 +160,109 @@ int main(int argc, char **argv) {
   }
   snprintf(path, sizeof path, "%s/fig_check.doc", dir);
   CHECK(!fig_write(&f, path, err, sizeof err), "unknown extension accepted");
+  {
+    /* Annotations in data coordinates: a red text, an arrow and a marker.
+       They add paths in their colour, the arrow's head lies where its tip
+       is on the page, they show in the raster and in every file, and
+       removing them gives back the figure without. */
+    Figure g;
+    FigDL d0, d1, d2;
+    FigNote n;
+    double gx[2] = {0, 10}, gy[2] = {0, 10};
+    float tx, ty, px, py;
+    int k, tip = 0, red0 = 0, red1 = 0, w = 0, h = 0;
+    long plain[4], marked[4];
+    unsigned char *img0, *img1;
+    static const char *ext[4] = {"pdf", "svg", "eps", "png"};
+    fig_init(&g);
+    g.p[0].autox = g.p[0].autoy = false;
+    g.p[0].xmax = g.p[0].ymax = 10;
+    fig_add(&g.p[0], gx, gy, 2);
+    for (k = 0; k < 4; k++) {
+      snprintf(path, sizeof path, "%s/fig_note_plain.%s", dir, ext[k]);
+      CHECK(fig_write(&g, path, err, sizeof err), "plain %s: %s", ext[k], err);
+      plain[k] = file_size(path, NULL, 0, NULL, 0);
+    }
+    memset(&d0, 0, sizeof d0);
+    fig_build(&g, &d0);
+    memset(&n, 0, sizeof n);
+    n.rgb[0] = 0.84f;
+    n.rgb[1] = 0.15f;
+    n.rgb[2] = 0.16f;
+    n.kind = FIG_NOTE_TEXT;
+    n.x = 1;
+    n.y = 8;
+    n.pt = 14;
+    snprintf(n.text, FIG_TEXT, "$\\Gamma$ peak");
+    CHECK(fig_note_add(&g.p[0], &n), "text added");
+    n.kind = FIG_NOTE_ARROW;
+    n.x = 2;
+    n.y = 2;
+    n.x2 = 7;
+    n.y2 = 6;
+    CHECK(fig_note_add(&g.p[0], &n), "arrow added");
+    n.kind = FIG_NOTE_MARKER;
+    n.x = 5;
+    n.y = 9;
+    n.marker = FIG_MARK_SQUARE;
+    CHECK(fig_note_add(&g.p[0], &n), "marker added");
+    CHECK(g.p[0].nnote == 3, "three annotations: %d", g.p[0].nnote);
+    memset(&d1, 0, sizeof d1);
+    fig_build(&g, &d1);
+    CHECK(d1.nop > d0.nop, "annotations add paths: %d %d", d1.nop, d0.nop);
+    fig_to_page(&d1.axes[0], 7, 6, &tx, &ty);
+    for (k = 0; k < d1.nop; k++) {
+      const FigOp *o = &d1.op[k];
+      const FigCmd *c = &d1.cmd[o->first];
+      if (o->op == FIG_OP_FILL && o->rgb[0] == n.rgb[0] && o->rgb[1] == n.rgb[1] &&
+          c->type == FIG_MOVE && fabsf(c->p[0] - tx) < 0.01f && fabsf(c->p[1] - ty) < 0.01f)
+        tip++;
+    }
+    CHECK(tip == 1, "the arrow's head has its tip at the data point: %d", tip);
+    w = (int)(d1.width * 4);
+    h = (int)(d1.height * 4);
+    img0 = fig_raster(&d0, w, h);
+    img1 = fig_raster(&d1, w, h);
+    CHECK(img0 && img1, "rasters");
+    for (k = 0; img0 && img1 && k < w * h; k++) {
+      if (img0[4 * k] > 180 && img0[4 * k + 1] < 90 && img0[4 * k + 2] < 90) red0++;
+      if (img1[4 * k] > 180 && img1[4 * k + 1] < 90 && img1[4 * k + 2] < 90) red1++;
+    }
+    CHECK(red0 == 0 && red1 > 150, "red pixels without and with: %d %d", red0, red1);
+    if (img1) {
+      /* the shaft passes the middle of the arrow, (4.5, 4) in data */
+      int found = 0, dx, dy;
+      fig_to_page(&d1.axes[0], 4.5, 4, &px, &py);
+      for (dy = -2; dy <= 2; dy++)
+        for (dx = -2; dx <= 2; dx++) {
+          int ix = (int)(px * 4) + dx, iy = (int)(py * 4) + dy;
+          const unsigned char *q = img1 + 4 * (iy * w + ix);
+          if (q[0] > 180 && q[1] < 90 && q[2] < 90) found = 1;
+        }
+      CHECK(found, "the arrow's shaft is red at its middle");
+    }
+    free(img0);
+    free(img1);
+    for (k = 0; k < 4; k++) {
+      snprintf(path, sizeof path, "%s/fig_note_marked.%s", dir, ext[k]);
+      CHECK(fig_write(&g, path, err, sizeof err), "marked %s: %s", ext[k], err);
+      marked[k] = file_size(path, NULL, 0, NULL, 0);
+      CHECK(marked[k] > plain[k], "%s grows with annotations: %ld %ld", ext[k], plain[k],
+            marked[k]);
+    }
+    fig_note_remove(&g.p[0], 1);
+    CHECK(g.p[0].nnote == 2 && g.p[0].note[1].kind == FIG_NOTE_MARKER, "one removed");
+    fig_note_remove(&g.p[0], -1);
+    CHECK(g.p[0].nnote == 0, "all removed");
+    memset(&d2, 0, sizeof d2);
+    fig_build(&g, &d2);
+    CHECK(d2.nop == d0.nop && d2.ncmd == d0.ncmd, "the figure is as before: %d %d", d2.nop,
+          d0.nop);
+    fig_dl_free(&d0);
+    fig_dl_free(&d1);
+    fig_dl_free(&d2);
+    fig_free(&g);
+  }
   fig_free(&f);
   if (failures) fprintf(stderr, "%d failures\n", failures);
   else printf("fig_check: all good\n");

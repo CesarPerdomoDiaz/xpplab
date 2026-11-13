@@ -228,6 +228,24 @@ def test_lyapunov_matches_the_tangent_equations(a0, exponent):
         assert tangent == pytest.approx(exponent, abs=2e-4)
 
 
+@pytest.mark.parametrize("meth", ["rungekutta", "adams", "gear", "stiff",
+                                  "cvode"])
+def test_lyapunov_with_every_method(meth):
+    """The stable cycle of the forced pendulum (a0 = 0.5) has exponent -gam =
+    -0.25 whichever method steps it. DT = T/500 is not exact in binary, so
+    some steps T0 + k*h to T0 + (k+1)*h round to a short one, which adams()
+    cannot take. The adaptive methods restart at every output step (the two
+    trajectories take turns on one solver state). Gear then gives -0.2564
+    at TOL = 1e-6, so it runs at 1e-8."""
+    with xs.Model.from_text(PENDULUM) as m:
+        m.set(dt=PERIOD / 500, total=20 * PERIOD, a0=0.5, meth=meth)
+        if meth in ("gear", "stiff", "cvode"):
+            tol = 1e-8 if meth == "gear" else 1e-6
+            m.set(TOL=tol, ATOL=tol)
+        m.set(jac_eps=1e-6)
+        assert m.lyapunov() == pytest.approx(-0.25, abs=2e-3), meth
+
+
 def test_lyapunov_leaves_the_run_alone():
     with xs.Model.from_text(PENDULUM) as m:
         sol = m.run(total=20 * PERIOD, dt=PERIOD / 500)

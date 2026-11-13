@@ -53,6 +53,25 @@ p.set(title="", xlabel=r"$V_W$ [m/s]", ylabel=r"$\Gamma$ [deg]",
 Labels take mathtext, matplotlib's subset of TeX: use raw strings
 (`r"..."`) so that the backslashes stay.
 
+## Annotations
+
+Text, arrows and markers in the panel's data coordinates, drawn after the
+curves (the desktop app's Annotate menu and `annotate` command):
+
+```python
+p.text(2.2, 0.4, r"saddle $V_W$", size=10, color="#d62728")   # left end of its baseline
+p.arrow(2.1, 0.2, 2.2, 0.35)            # from the first point to the second
+p.marker(2.2, 0.35, "o")                # o s ^ D x + * .
+p.clear_annotations(1)                  # delete the second; no argument: all
+fig.text(2.2, 0.4, "label", panel=1)    # the same on fig[1]
+```
+
+`size` is in points; without it the text has the panel's label size.
+`xs.Annotations()` holds the annotations of the app's plot windows, which
+its session script uses: `notes["phase"].text(...)` adds one, and
+`notes["phase"].draw(ax)` draws them on the axes of a phase plane that the
+script made (`"time"`, `"phase"`, `"auto"` and `"auto2"`).
+
 ## Series
 
 ```python

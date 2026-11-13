@@ -142,7 +142,7 @@ Done:
 To do:
 - [x] Nullclines and grab points in animations
 - [x] Several plots in one figure, with insets (the Figure window, `figure`)
-- [ ] Text, Make window, Graphic stuff (free labels and arrows)
+- [x] Text, Make window, Graphic stuff (free labels and arrows: text, arrows and markers on plots, `annotate`)
 - [x] PDF, SVG and EPS figures at any size and resolution (the Figure window)
 - [x] Command palette (Ctrl+Shift+P: every menu action and command, by name)
 - [x] MATLAB `.mat` export (runs, diagrams and tables: `to_mat` and `export FILE.mat`)

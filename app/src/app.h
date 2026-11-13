@@ -352,6 +352,28 @@ typedef struct {
   char error[256];
 } FigUI;
 
+/* Annotations on the plot windows (time, phase, auto, auto2: FigureKind), in
+   data coordinates. They belong to the plot, not to a run, so a run leaves
+   them alone; a new model clears them. */
+#define APP_PLOTS 4
+typedef struct {
+  FigNote note[APP_PLOTS][FIG_MAX_NOTES];
+  int n[APP_PLOTS];
+  /* The tool armed from a plot's Annotate menu, used by the next click. */
+  int mode;            /* -1 none, else FIG_NOTE_* */
+  int plot;            /* the plot (or APP_NOTE_FIGURE) the tool is for */
+  bool have_start;     /* an arrow's tail is placed */
+  int panel0;          /* the Figure panel it is on */
+  double x0, y0;
+  char text[FIG_TEXT]; /* what the text tool writes */
+  float pt;            /* its size */
+  int marker;          /* FIG_MARK_* the marker tool draws */
+  float rgb[3];
+} NoteUI;
+/* Where an annotation goes besides a plot window: the Figure window's
+   selected panel. */
+#define APP_NOTE_FIGURE APP_PLOTS
+
 /* The session as Python (echo.c): each action that changes the model or
    computes a result, written as the line of Python, with the xpplab
    package, that does the same. */
@@ -369,6 +391,7 @@ typedef struct {
   bool nc_written;    /* the nullclines of this view are written */
   bool frozen_list;   /* "frozen = []" is written */
   bool plt;           /* the lines draw figures */
+  bool notes;         /* "notes = xs.Annotations()" is written */
   /* What the script's model holds after the lines so far. */
   double *par, *ic, opt[ECHO_NOPTS];
   int npar, nic;
@@ -448,6 +471,7 @@ typedef struct App {
   RunSet many;
   ManyUI mu;
   FigUI fg;
+  NoteUI nt;
   Echo echo;
   CmdPalette pal;
 
@@ -598,6 +622,27 @@ bool app_fig_from_plot(App *a, int figure);
 /* Write the settings changed since the last call to the session. */
 void app_fig_sync_echo(App *a);
 bool app_fig_export(App *a, const char *path);
+/* Annotations of the selected panel (the echo is fig[K].text(...), ...). */
+bool app_fig_note_add(App *a, int panel, const FigNote *n);
+void app_fig_note_clear(App *a, int panel, int k); /* k < 0: all */
+
+/* Annotations (app_notes.c): where is a FigureKind or APP_NOTE_FIGURE.
+   Each is written to the session as a call of xpplab.Annotations or of the
+   figure's panel. */
+void app_note_init(App *a);
+/* The Python call ("text(1.0, 2.0, \"hi\")") that makes the annotation. */
+void app_note_call(const FigNote *n, char *out, size_t len);
+bool app_note_add(App *a, int where, const FigNote *n);
+void app_note_clear(App *a, int where, int k); /* k < 0: all */
+void app_notes_reset(App *a);                  /* a new model */
+/* Fill n with the defaults of kind (the tool's text, size and colour). */
+void app_note_defaults(const App *a, int kind, FigNote *n);
+/* One click of the armed tool at data (x, y) in plot `where`. */
+void app_note_click(App *a, int where, double x, double y);
+/* The armed tool is the one for plot `where`: it takes that plot's clicks. */
+static inline bool app_note_armed(const App *a, int where) {
+  return a->nt.mode >= 0 && a->nt.plot == where;
+}
 /* A formula in x, at n points (the same grammar as xpplab.figure). */
 bool app_eval_expression(const char *expr, const double *x, double *y, int n,
                          char *err, size_t errlen);

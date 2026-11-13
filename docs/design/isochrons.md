@@ -1,8 +1,8 @@
 # Design: isochrons and phase reduction
 
-Status: proposal. This note describes the work; pieces 1 (`xppe_asymptotic_phase`)
-and 3 (`xppe_phase_model`) exist, the others do not yet. The roadmap entry is *Isochrons and phase
-reduction* under M7.
+Status: proposal. This note describes the work; pieces 1
+(`xppe_asymptotic_phase`) and 3 (`xppe_phase_model`) exist, the others do not
+yet. The roadmap entry is *Isochrons and phase reduction* under M7.
 
 
 ## Conventions
@@ -100,18 +100,19 @@ which can be far from it:
 
 Z is the adjoint with the normalisation above, so Z · δx is a time shift.
 
-*As built (`xppe_asymptotic_phase`).* The state is stepped one output step
-(DT times NOUT) at a time, so the elapsed time s is a multiple of that step;
-the correction removes the effect of stopping between steps. The distance to
-the cycle is measured to the polyline through the stored points, and the
-nearest point on it gives θ_c and γ(θ_c); Z is interpolated linearly along the
-same segment. Phase 0 is the first stored point of the run (after TRANS, if
-set). Fixed-step methods take NJMP steps of DT per output step, as
-`integrate()` does, and the adaptive ones run without a restart between output
-steps. A model with global flags or `@ fold` is refused. θ_c is counted in output steps, with T = (stored points − 1)
-times the step, so the run must be the period on that grid. The call refuses
-a run whose length is not the adjoint's, but it cannot tell a different run
-of the same length from the original.
+*As built (`xppe_asymptotic_phase`).* The state is stepped one output step (DT
+times NOUT) at a time, so the elapsed time s is a multiple of that step; the
+correction removes the effect of stopping between steps. The distance to the
+cycle is measured to the polyline through the stored points, and the nearest
+point on it gives θ_c and γ(θ_c); Z is interpolated linearly along the same
+segment. Phase 0 is the first stored point of the run. XPPAUT stores a point
+once |t| ≥ TRANS, so that is the first output time with |t| ≥ TRANS.
+Fixed-step methods take NJMP steps of DT per output step, as `integrate()`
+does, and the adaptive ones run without a restart between output steps. A
+model with global flags or `@ fold` is refused. θ_c is counted in output
+steps, with T = (stored points − 1) times the step, so the run must be the
+period on that grid. The call refuses a run whose length is not the adjoint's,
+but it cannot tell a different run of the same length from the original.
 
 *Limits.* It is the most robust method, because it only integrates forward
 and uses whatever method and tolerances the model has, stiff solvers
@@ -325,10 +326,11 @@ that the saved script writes the same CSV bit for bit.
 
 ### Documentation
 
-A section in `docs/manual/analysis.md` and `docs/python/analysis.md`, an
-entry in the API reference, and a notebook after the existing three
-(examples: the Morris-Lecar cycle in `engine/xppaut/ode/lecar.ode` and a neural pair, with H).
-The ROADMAP line links to this note and is ticked when the last piece lands.
+A section in `docs/manual/analysis.md` and `docs/python/analysis.md`, an entry
+in the API reference, and a notebook after the existing three (examples: the
+Morris-Lecar cycle in `engine/xppaut/ode/lecar.ode` and a neural pair, with
+H). The ROADMAP line links to this note and is ticked when the last piece
+lands.
 
 ## How it will be tested
 
@@ -338,11 +340,11 @@ no existing numerics, and no file in `engine/xppaut/` needs an edit.
 
 ### Models with a closed-form answer
 
-All in `tests/models/`, with tolerances written in the test. The accuracy of Z and H is set by
-XPPAUT's adjoint and `make_h`, not by the integrator's tolerance: by the
-time step and the number of stored points of the cycle, and by the `float`
-storage in `adj2.c`. Tests of Z, H, H_odd and the locked states use
-tolerances for that error (found by running, and written down in the
+All in `tests/models/`, with tolerances written in the test. The accuracy of Z
+and H is set by XPPAUT's adjoint and `make_h`, not by the integrator's
+tolerance: by the time step and the number of stored points of the cycle, and
+by the `float` storage in `adj2.c`. Tests of Z, H, H_odd and the locked states
+use tolerances for that error (found by running, and written down in the
 test); tests of the asymptotic phase and the isochron curves use the
 integration tolerance and δ.
 
@@ -385,18 +387,18 @@ integration tolerance and δ.
    with small ε settles at φ = 0. These two locked states are only
    synchrony and antiphase, which exist by symmetry in any model, so they do
    not show that the roots are found in general.
-4. **A pair of Morris-Lecar cells** (`engine/xppaut/ode/lecar.ode`), the
-   test of a locked state that is neither 0 nor T/2. The cases were searched
-   for by computing H_odd (with `xppe_phase_model`, which is `xppe_hfunction`
-   plus the roots) on cycles of `lecar.ode` for several `phi`, `iapp`, `v3`,
-   `v4` and `gca`, and on couplings of V of the form
-   (1/(1 + exp(−(V′ − θ)/k))) (E − V), with W uncoupled, or the diffusive
-   V′ − V. On the sets tried first (the default parameters with
-   `phi` = 0.15 to 0.6, the `hopf`-like set, and `iapp` = 0.08 to 0.4), the diffusive coupling and a soft synapse (k = 0.05) gave only the
-   zeros 0 and T/2. A random search of 3 runs of 5 minutes over `phi`, `iapp`,
-   `v3`, `v4`, `gca`, θ, k and E found extra zeros in few cases, all with a
-   steep synapse (k = 0.02) and a low `phi`; the search was not exhaustive.
-   The case used:
+4. **A pair of Morris-Lecar cells** (`engine/xppaut/ode/lecar.ode`), the test
+   of a locked state that is neither 0 nor T/2. The cases were searched for by
+   computing H_odd (with `xppe_phase_model`, which is `xppe_hfunction` plus
+   the roots) on cycles of `lecar.ode` for several `phi`, `iapp`, `v3`, `v4`
+   and `gca`, and on couplings of V of the form (1/(1 + exp(−(V′ − θ)/k))) (E
+   − V), with W uncoupled, or the diffusive V′ − V. On the sets tried first
+   (the default parameters with `phi` = 0.15 to 0.6, the `hopf`-like set, and
+   `iapp` = 0.08 to 0.4), the diffusive coupling and a soft synapse (k = 0.05)
+   gave only the zeros 0 and T/2. A random search of 3 runs of 5 minutes over
+   `phi`, `iapp`, `v3`, `v4`, `gca`, θ, k and E found extra zeros in few
+   cases, all with a steep synapse (k = 0.02) and a low `phi`; the search was
+   not exhaustive. The case used:
 
    - parameters: `phi=0.15, v3=0.05, v4=0.2, gca=1, iapp=0.25`, the rest as in
      `lecar.ode`; the period is T = 14.474;

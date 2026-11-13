@@ -137,7 +137,7 @@ the mathematics. XPP Lab removes that first wall:
 ```python
 import xpplab as xs
 
-m = xs.load("lecar.ode")              # any XPPAUT model file
+m = xs.load(xs.example("lecar.ode"))  # or the path of any .ode file
 m.parameters["iapp"] = 0.1           # parameters are a live dictionary
 sol = m.run(total=200)               # NumPy arrays: sol.t, sol["V"]
 m.phase_plane("V", "W")              # nullclines, flow, equilibria

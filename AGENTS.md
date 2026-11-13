@@ -57,7 +57,7 @@ Without MCP, use the package directly (`docs/python/`):
 
 ```python
 import xpplab as xs
-m = xs.load("engine/xppaut/ode/lecar.ode")
+m = xs.load(xs.example("lecar.ode"))
 m.apply_set("hopf")
 d = m.auto.equilibria("iapp")
 orbits = m.auto.continue_from(d.first("HB"), "periodic")

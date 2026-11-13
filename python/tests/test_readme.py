@@ -33,7 +33,15 @@ def test_readme_example_runs_from_an_empty_folder(readme, after, tmp_path):
     code = first_python_block(ROOT / readme, after)
     script = tmp_path / "example.py"
     script.write_text(code, encoding="utf-8")
+    # The script runs in an empty folder: relative paths in the environment
+    # (PYTHONPATH=python/src, as in the build instructions) would no longer
+    # point anywhere, so the package and the engine are given absolutely.
     env = dict(os.environ, MPLBACKEND="Agg")
+    paths = [str(ROOT / "python" / "src")]
+    paths += [os.path.abspath(p) for p in env.get("PYTHONPATH", "").split(os.pathsep) if p]
+    env["PYTHONPATH"] = os.pathsep.join(paths)
+    if env.get("XPPLAB_ENGINE"):
+        env["XPPLAB_ENGINE"] = os.path.abspath(env["XPPLAB_ENGINE"])
     out = subprocess.run([sys.executable, str(script)], cwd=tmp_path, env=env,
                          capture_output=True, text=True, timeout=600)
     assert out.returncode == 0, out.stderr[-3000:]

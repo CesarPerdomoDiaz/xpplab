@@ -10,7 +10,7 @@ download as a user gets it, the first run, Retina drawing, the trackpad,
 Mac shortcuts and Finder. **Report what you find; do not change code.**
 The fixes are made elsewhere, from your report.
 
-Read `CLAUDE.md` and `docs/development/macos.md` first. Ask the tester whenever
+Read `AGENTS.md` and `docs/development/macos.md` first. Ask the tester whenever
 a step needs a person: a click in a macOS dialog, a password, a sign-in, or
 a judgement about how something looks or feels. Never type a password
 yourself.
@@ -35,7 +35,7 @@ brew install cmake ninja pkg-config sdl3 libx11 gh python
    `gh release download --repo CesarPerdomoDiaz/xpplab --pattern 'XPPLab-macOS.dmg' --dir ~/xpps-test`.
 2. Ask the tester to double-click the `.dmg`, drag the app to *Applications*, and
    open it by double-clicking, as a user would. Note exactly what macOS
-   shows and what they had to do (`TESTING.md` describes *Open Anyway* and
+   shows and what they had to do (`docs/install.md` describes *Open Anyway* and
    Control-click > *Open*). Did those instructions match? Take a screenshot
    of any dialog: `screencapture -x ~/xpps-test/first-run.png`.
 3. With the app installed, run it from the terminal with screenshots. Each

@@ -237,7 +237,7 @@ added after the pieces below, on the same API.
 
 ## Where each part goes
 
-CLAUDE.md requires that numbers the app and Python share are computed in the
+AGENTS.md requires that numbers the app and Python share are computed in the
 C API; the app commands and the Python they echo call the same functions.
 
 ### C API (`engine/api/xppe_data.c`, declared in `xppe.h` and `xpp_instance.h`)

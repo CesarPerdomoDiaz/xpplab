@@ -79,7 +79,10 @@ static int res_ncols, res_nrows;
 
 static void result_clear(void) {
   int i;
-  for (i = 0; i < res_ncols; i++) free(res[i]);
+  for (i = 0; i < res_ncols; i++) {
+    free(res[i]);
+    res[i] = NULL;
+  }
   res_ncols = res_nrows = 0;
 }
 
@@ -570,11 +573,57 @@ int xppe_lyapunov_integrate(double eps, double *exponent) {
 
 /* ---- Averaging: adjoint and H function ----------------------------------- */
 
-static void copy_table(float **data, int len, int ncols,
-                       const char *const *names) {
-  int i;
-  if (result_begin(len, ncols, names) != XPPE_OK) return;
+static int copy_table(float **data, int len, int ncols,
+                      const char *const *names) {
+  int i, rc;
+  if ((rc = result_begin(len, ncols, names)) != XPPE_OK) return rc;
   for (i = 0; i < ncols; i++) result_fill(i, data[i]);
+  return XPPE_OK;
+}
+
+/* XPPAUT keeps ADJ_HERE set after later runs, so a run of the same length
+   (after a parameter change, or from another start on the cycle) passed
+   every check and was combined with the adjoint of the old one. The stored
+   run is fingerprinted when the adjoint is computed (FNV-1a over its length
+   and the bits of time and the ODE variables), and the functions that use
+   the adjoint compare. */
+static unsigned long long adj_run_fp;
+static int adj_run_fp_set;
+
+static unsigned long long run_fingerprint(void) {
+  unsigned long long h = 14695981039346656037ULL;
+  int i, k;
+  size_t b;
+  const unsigned char *p;
+  int head[2];
+  head[0] = storind;
+  head[1] = NODE;
+  for (p = (const unsigned char *)head, b = 0; b < sizeof head; b++)
+    h = (h ^ p[b]) * 1099511628211ULL;
+  for (i = 0; i <= NODE; i++)
+    for (k = 0; k < storind; k++)
+      for (p = (const unsigned char *)&storage[i][k], b = 0; b < sizeof(float);
+           b++)
+        h = (h ^ p[b]) * 1099511628211ULL;
+  return h;
+}
+
+/* The adjoint is there and belongs to the stored run (XPPE_OK), or an error
+   saying which is not so. */
+static int require_current_adjoint(const char *what) {
+  if (!ADJ_HERE || !adj_run_fp_set) {
+    xppe_set_error("%s needs the adjoint of one period of a stable limit "
+                   "cycle: run exactly one period and compute the adjoint "
+                   "(an unstable cycle has none)", what);
+    return XPPE_ERR_STATE;
+  }
+  if (storind != adj_len || run_fingerprint() != adj_run_fp) {
+    xppe_set_error("%s: the run is not the one the adjoint was computed "
+                   "from (it was run again since): compute the adjoint again",
+                   what);
+    return XPPE_ERR_STATE;
+  }
+  return XPPE_OK;
 }
 
 /* new_adjoint(): the adjoint of the linearisation along the current run,
@@ -600,10 +649,12 @@ int xppe_adjoint(int max_iterations, double tolerance) {
   names[0] = "T";
   for (i = 0; i < NODE && i < MAXODE; i++)
     names[i + 1] = uvar_names[i];
-  copy_table(my_adj, adj_len, i + 1, names);
+  rc = copy_table(my_adj, adj_len, i + 1, names);
   data_back();
+  adj_run_fp = run_fingerprint();
+  adj_run_fp_set = 1;
   xppe_end_call();
-  return XPPE_OK;
+  return rc;
 }
 
 /* new_h_fun(): H(phi) for the coupling formulas given (one per ODE, in
@@ -613,10 +664,7 @@ int xppe_hfunction(int n, const char *const *coupling) {
   static const char *names[] = {"phi", "H", "Hodd", "Heven"};
   int rc, i;
   if ((rc = require_run()) != XPPE_OK) return rc;
-  if (!ADJ_HERE || storind != adj_len) {
-    xppe_set_error("compute the adjoint of this run first", NULL);
-    return XPPE_ERR_STATE;
-  }
+  if ((rc = require_current_adjoint("the H function")) != XPPE_OK) return rc;
   if (n != NODE) {
     xppe_set_error("give one coupling formula per ODE variable", NULL);
     return XPPE_ERR_RANGE;
@@ -637,10 +685,10 @@ int xppe_hfunction(int n, const char *const *coupling) {
                    "coupling formulas", NULL);
     return XPPE_ERR_NUMERIC;
   }
-  copy_table(my_h, h_len, HODD_EV ? 4 : 2, names);
+  rc = copy_table(my_h, h_len, HODD_EV ? 4 : 2, names);
   data_back();
   xppe_end_call();
-  return XPPE_OK;
+  return rc;
 }
 
 /* ---- The phase-reduced model --------------------------------------------- */
@@ -671,8 +719,11 @@ static double periodic_cubic(const double *v, int N, double u, double *dv) {
    an exact zero at a node counts when its two neighbours differ in sign, an
    interval whose ends differ in sign holds one zero, found by a few secant
    steps (false position, so it stays in the interval) on the cubic. root[]
-   gets the position in grid units, slope[] the cubic's derivative there
-   (per grid unit). Returns the number of zeros (at most N). */
+   gets the position in grid units, slope[] the slope there (per grid unit):
+   for an interval, the rise of v across it, since the cubic can overshoot
+   and hold three zeros in one bracket, and false position may settle on the
+   middle one, whose derivative has the other sign; at a node, the cubic's
+   derivative. Returns the number of zeros (at most N). */
 static int sign_change_roots(const double *v, int N, double *root,
                              double *slope) {
   int k, i, nr = 0;
@@ -704,7 +755,10 @@ static int sign_change_roots(const double *v, int N, double *root,
     } else {
       continue;
     }
-    periodic_cubic(v, N, x, &d);
+    if (v[k] == 0)
+      periodic_cubic(v, N, x, &d);
+    else
+      d = next - v[k];
     root[nr] = x;
     slope[nr] = d;
     nr++;
@@ -742,10 +796,10 @@ int xppe_phase_model(int n, const char *const *coupling) {
                    NULL);
     return XPPE_ERR_STATE;
   }
-  if (!ADJ_HERE || storind != adj_len || adj_len < 5) {
-    xppe_set_error("compute the adjoint of one period of a stable limit "
-                   "cycle first (the run must still be that period; an "
-                   "unstable cycle has no adjoint)", NULL);
+  if ((rc = require_current_adjoint("the phase model")) != XPPE_OK) return rc;
+  if (adj_len < 5) {
+    xppe_set_error("the phase model needs a cycle of at least 5 stored "
+                   "points", NULL);
     return XPPE_ERR_STATE;
   }
   step = DELTA_T * NJMP; /* the spacing of the stored cycle and of Z */
@@ -769,6 +823,17 @@ int xppe_phase_model(int n, const char *const *coupling) {
     return XPPE_ERR_RANGE;
   }
   if ((rc = xppe_hfunction(n, coupling)) != XPPE_OK) return rc;
+  if (res_ncols < 2 || res_nrows != m) {
+    xppe_set_error("the H function's table is not one value per stored "
+                   "point of the cycle", NULL);
+    return XPPE_ERR_NUMERIC;
+  }
+  for (k = 0; k < m; k++)
+    if (!isfinite(res[1][k])) {
+      xppe_set_error("H is not a number at some phases: check the coupling "
+                     "formulas", NULL);
+      return XPPE_ERR_NUMERIC;
+    }
   /* xppe_hfunction's table is in the result: keep its columns, then replace
      the table. */
   h = malloc(sizeof(double) * (size_t)m * 4);
@@ -896,9 +961,11 @@ int xppe_asymptotic_phase(const double *x, double delta, double tmax,
                    "or folded there, the free integration is not", NULL);
     return XPPE_ERR_STATE;
   }
-  if (!ADJ_HERE || storind != adj_len || adj_len < 2) {
-    xppe_set_error("compute the adjoint of one period of a stable limit "
-                   "cycle first (the run must still be that period)", NULL);
+  if ((rc = require_current_adjoint("the asymptotic phase")) != XPPE_OK)
+    return rc;
+  if (adj_len < 2) {
+    xppe_set_error("the asymptotic phase needs a cycle of at least 2 stored "
+                   "points", NULL);
     return XPPE_ERR_STATE;
   }
   if (!x || !(delta > 0) || !(tmax > 0)) {

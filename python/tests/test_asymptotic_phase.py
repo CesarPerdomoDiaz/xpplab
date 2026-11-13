@@ -123,8 +123,15 @@ def test_lambda_omega_has_curved_isochrons(lamom):
     assert circ(ph, (2.0 - lamom.theta0) / (2 * np.pi)) > 0.2
 
 
+# The bound for each method: 3e-4 is the method's own error (offset, adjoint,
+# stored cycle); Euler, first order at DT = T/2000, adds its own.
+BOUNDS = {"euler": 1e-2}
+ADAPTIVE = ("gear", "stiff", "cvode", "qualrk", "5dp", "83dp", "2rb")
+
+
 @pytest.mark.parametrize("meth", ["rungekutta", "adams", "gear", "stiff",
-                                  "cvode"])
+                                  "cvode", "euler", "modeuler", "backeul",
+                                  "qualrk", "5dp", "83dp", "2rb"])
 def test_every_method_gives_the_closed_form(meth):
     """The lambda-omega phases of test_lambda_omega_has_curved_isochrons
     with the same bound, whichever method steps the flow. The adaptive
@@ -134,7 +141,7 @@ def test_every_method_gives_the_closed_form(meth):
     to a rounded end time breaks: DT = T/2000 is not exact in binary."""
     with xs.load(MODELS / "lambda_omega.ode") as m:
         m.set(w=1.5, q=1.5, meth=meth)
-        if meth in ("gear", "stiff", "cvode"):
+        if meth in ADAPTIVE:
             m.set(TOL=1e-9, ATOL=1e-9)
         set_cycle(m, 2 * np.pi / 1.5)
         m.adjoint()
@@ -145,7 +152,7 @@ def test_every_method_gives_the_closed_form(meth):
             ph, _ = phase(m, [r * np.cos(a), r * np.sin(a)], 0.02)
             expect = (a - 1.5 * np.log(r) - theta0) / (2 * np.pi)
             worst = max(worst, circ(ph, expect))
-        assert worst < 3e-4, (meth, worst)
+        assert worst < BOUNDS.get(meth, 3e-4), (meth, worst)
 
 
 @pytest.mark.parametrize("change", [{"DT": 2 * 2 * np.pi / NSTEP},
@@ -246,6 +253,10 @@ def test_elapsed_time(lamom):
     # tmax only limits the search: it does not change the answer
     assert phase(lamom, [2.0, 0.0], 0.05, tmax=50.0) == phase(
         lamom, [2.0, 0.0], 0.05, tmax=5.0)
+    # a huge or infinite tmax means no limit (the step count is capped)
+    for big in (1e12, float("inf")):
+        assert phase(lamom, [2.0, 0.0], 0.05, tmax=big) == phase(
+            lamom, [2.0, 0.0], 0.05), big
 
 
 def test_gradient_of_the_phase_is_the_adjoint():

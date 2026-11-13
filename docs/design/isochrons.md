@@ -163,8 +163,23 @@ in [0, 1) for `count` phases equally spaced from the first stored point
 phase: the outer end of the side with negative d (d along v = (−Z₂, Z₁)/|Z|),
 in to the cycle point, then out along the side with positive d. A row of NaN
 in all three columns separates polylines. The Floquet multiplier is returned
-apart from the table. Until the other methods are supported, the call
-refuses any method but Runge-Kutta.
+apart from the table.
+
+*As built (method B).* `xppe_isochrons` steps the backward flow with the
+model's own method: the fixed-step ones as `integrate()` does, NJMP·(stored
+points − 1) steps of DT per period in one `solver()` call, and the adaptive
+ones with `one_step_int()`, one start per trajectory and no restart between
+periods. Gear and Rosenbrock (2rb) are refused: XPPAUT's Gear stepper returns
+at once when asked to go backward, and its Rosenbrock one does not finish.
+Checked against the closed forms (`python/tests/test_isochrons.py`):
+
+- the radial clock's rays, within 1e-6 rad;
+- the lambda-omega spirals (w = q = 1.5, 400 stored points), within 4.2e-5
+  rad for Runge-Kutta, Adams, CVODE, stiff, qualrk, 5dp and 83dp (the
+  adaptive ones at TOL = 1e-9), 2.1e-4 for backward Euler and 5.6e-4 for
+  modified Euler;
+- the asymptotic phase (method A) of points on each curve, which equals the
+  curve's phase within 1e-3.
 
 *Limits of the method as built.*
 

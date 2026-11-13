@@ -433,7 +433,8 @@ XPPE_API int xppe_phase_model(int n, const char *const *coupling);
    lasts the run's length. The model must be autonomous: like XPPAUT's
    adjoint, the multiplier and the backward flow take the right-hand side
    at t = T0 whatever the phase.
-   Only the Runge-Kutta method is supported for now (XPPE_ERR_STATE).
+   Any method but Gear and Rosenbrock (2rb), whose XPPAUT steppers do not
+   integrate backward in time (XPPE_ERR_STATE).
    Result: columns phase (theta / T in [0, 1)), then the two variables: one
    polyline per phase, from the outer end of the side with the negative
    offsets to the cycle point to the outer end of the other, with a row of

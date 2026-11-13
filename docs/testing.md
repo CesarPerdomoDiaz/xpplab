@@ -1,4 +1,4 @@
-# Testing XPP Lab
+# Trying XPP Lab
 
 Thank you for trying XPP Lab! It is young, and the most useful thing you
 can do is use it the way you normally use XPPAUT, then tell us what worked,
@@ -18,7 +18,7 @@ Download the file for your system from the
 
 The apps are not yet signed with a paid certificate, so the first time
 Windows or macOS asks you to confirm that you want to open them. The
-[install guide](docs/install.md) shows how on each system. Mac-specific
+[install guide](install.md) shows how on each system. Mac-specific
 things worth checking are at the end of the list below.
 
 ## Fifteen minutes of things to try
@@ -62,10 +62,10 @@ into the report helps a lot.
 
 ## Known gaps
 
-These parts of XPPAUT are not in the new interface yet: two-parameter
-ranges, the Kinescope (saving frames), labels and arrows on plots, and
-several plots in one window. AUTO's homoclinic and boundary-value
-continuations are reachable but untested. See [ROADMAP.md](ROADMAP.md).
+AUTO's homoclinic and heteroclinic continuations are reachable but not
+yet tested against known answers. The
+[roadmap](https://github.com/CesarPerdomoDiaz/xpplab/blob/main/ROADMAP.md)
+lists what is still missing.
 
 Worth a try: the **Analysis** window
 (spectra, histograms, phase response curves, fitting), **Range** in the

@@ -2,7 +2,8 @@
 
 Notes for coding agents (Codex and others) working in this repository,
 either to use XPP Lab for a dynamical-systems question or to change it.
-Claude Code reads the same rules from `CLAUDE.md`.
+`CLAUDE.md` imports this file, so Claude Code reads the same rules.
+README.md has the overview and ROADMAP.md what is planned.
 
 XPP Lab is XPPAUT 8.0, Bard Ermentrout's ODE and AUTO bifurcation tool,
 rebuilt around its unchanged numerical code: a C engine with an API
@@ -57,7 +58,7 @@ Without MCP, use the package directly (`docs/python/`):
 
 ```python
 import xpplab as xs
-m = xs.load("engine/xppaut/ode/lecar.ode")
+m = xs.load(xs.example("lecar.ode"))
 m.apply_set("hopf")
 d = m.auto.equilibria("iapp")
 orbits = m.auto.continue_from(d.first("HB"), "periodic")
@@ -71,12 +72,15 @@ The example models are in `engine/xppaut/ode/`.
 
 - `engine/xppaut/` XPPAUT 8.0's C sources; the first commit is pristine.
 - `engine/platform/` null Xlib, Windows compatibility, the embedding layer.
-- `engine/api/` the C API, one file per area.
+- `engine/api/` the C API (`xppe.h`), one file per area (`xppe_data.c`
+  analysis, `xppe_bvp.c`, `xppe_ani.c`, `xppe_auto.c`, ...).
 - `python/src/xpplab/` the package (ctypes); `mcp/` is the MCP server.
-- `app/` the desktop app (SDL3 + Dear ImGui through cimgui, in C).
+- `app/` the desktop app (SDL3 + Dear ImGui + ImPlot through cimgui, in C).
 - `docs/` the MkDocs site; `docs/manual/*.md` is also the app's help.
-- `tests/` golden tests and API checks; `python/tests/` the package's.
-- `skills/`, `.claude-plugin/`, `.mcp.json` the Claude Code plugin.
+- `tests/` golden tests (`golden.py`), API and AUTO checks, sanitizer
+  tools; `python/tests/` the package's.
+- `skills/`, `.claude-plugin/`, `.mcp.json` the Claude Code plugin (skill
+  plus MCP server).
 
 ### Build and test
 
@@ -86,12 +90,22 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 PYTHONPATH=python/src python -m pytest -q python/tests
 python tests/golden.py check --exe build/cli/xppaut-headless
+python tests/replay.py --app build/app/xpplab
 ```
 
 On Windows use MSYS2 UCRT64 (`/c/msys64/ucrt64/bin` first on `PATH`) and
 add `.exe`. On Linux and macOS the golden check compares with unmodified
 XPPAUT built locally (`tests/build_reference.sh`, `golden.py compare`).
 The MCP tests need `pip install mcp`; without it they are skipped.
+
+`tests/replay.py` runs app sessions, saves each as a Python script (the
+app's echo, `app/src/echo.c`) and checks that the script, run with the
+package, writes the same CSV files bit for bit. An action added to the app
+needs its line in the echo: call `echo_begin()`/`echo_end()` around it and
+write the line when it succeeds.
+
+CI runs on every push: Windows, Linux, macOS, AddressSanitizer and
+valgrind. Pushes that only touch `docs/` or `*.md` skip it.
 
 ### Rules
 
@@ -101,12 +115,25 @@ The MCP tests need `pip install mcp`; without it they are skipped.
   a genuine XPPAUT bug, argued in the commit.
 - **Never reimplement XPPAUT's numerics.** New features call XPPAUT's own
   routines and are tested against XPPAUT or known answers.
-- **Upstream edits are minimal and marked** with an `XPP Lab fix:`
-  comment, and each fix gets a row in `docs/upstream-issues.md`.
+- **Upstream edits are minimal and marked.** Every change in
+  `engine/xppaut/` carries an `XPP Lab fix:` comment (or `XPP Lab:` for
+  embedding guards), and each fix gets a row in `docs/upstream-issues.md`.
+- **Numbers the app and Python share are computed in the C API**, so that
+  both give them bit for bit: not in a C copy of Python code or a Python
+  copy of C code.
 - **Keep the C API backwards compatible.** When adding functions, bump
   `XPPE_API_VERSION` and `API_VERSION` in `python/src/xpplab/_engine.py`,
   and add them to `engine/api/xpp_instance.h` and the Python signatures.
 - Never commit build directories, test output (`xpplab-out/`) or secrets.
 - Never start the desktop app from a script without `--screenshot` or
-  `--record`: it opens a window and waits.
+  `--record`: it opens a window and waits. For example
+  `build/app/xpplab examples/lecar.ode --cmd run --screenshot s.png`;
+  `--record DIR --frames N --script FILE` saves N frames while timed
+  commands run, and `python tools/make_demo.py` re-records the README's
+  GIFs.
+- On a Mac over SSH, start the app through LaunchServices so it can open a
+  window (someone must be logged in at the Mac):
+  `open -W -n --stderr ~/err.txt build/app/xpplab.app --args "$PWD/engine/xppaut/ode/lecar.ode" --screenshot "$HOME/shot.png"`.
+  Paths must be absolute; stderr has the line with the window size and
+  scales.
 - Docs: plain, direct sentences; no marketing language.

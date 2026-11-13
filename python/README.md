@@ -7,7 +7,7 @@ pip; there is nothing to compile and no X11 server is needed. Until version
 ```python
 import xpplab as xs
 
-m = xs.load("lecar.ode")              # any XPPAUT .ode file
+m = xs.load(xs.example("lecar.ode"))  # or the path of any .ode file
 sol = m.run(total=200, iapp=0.1)     # NumPy arrays: sol.t, sol["V"]
 eq = m.equilibrium()                 # eigenvalues and stability
 

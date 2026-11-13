@@ -137,7 +137,7 @@ the mathematics. XPP Lab removes that first wall:
 ```python
 import xpplab as xs
 
-m = xs.load("lecar.ode")              # any XPPAUT model file
+m = xs.load(xs.example("lecar.ode"))  # or the path of any .ode file
 m.parameters["iapp"] = 0.1           # parameters are a live dictionary
 sol = m.run(total=200)               # NumPy arrays: sol.t, sol["V"]
 m.phase_plane("V", "W")              # nullclines, flow, equilibria
@@ -249,7 +249,7 @@ XPPAUT's C code needs GCC or Clang, so put MinGW-w64 on `PATH` and set
 
 Found a problem, or a model that works in XPPAUT but not here? Please
 [open an issue](https://github.com/CesarPerdomoDiaz/xpplab/issues/new/choose).
-[TESTING.md](TESTING.md) has a short list of things to try.
+[Trying XPP Lab](docs/testing.md) has a short list of things to try.
 
 ## Credits and licence
 

@@ -956,11 +956,9 @@ static int require_cycle(const char *what, double *h, double *period) {
                    "there, the free integration is not", what);
     return XPPE_ERR_STATE;
   }
-  if ((rc = require_current_adjoint("the asymptotic phase")) != XPPE_OK)
-    return rc;
+  if ((rc = require_current_adjoint(what)) != XPPE_OK) return rc;
   if (adj_len < 2) {
-    xppe_set_error("the asymptotic phase needs a cycle of at least 2 stored "
-                   "points", NULL);
+    xppe_set_error("%s needs a cycle of at least 2 stored points", what);
     return XPPE_ERR_STATE;
   }
   *h = DELTA_T * NJMP; /* the spacing of the stored cycle and of Z */

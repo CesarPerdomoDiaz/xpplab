@@ -1,5 +1,5 @@
 """The functions that work on the adjoint of the last run (the H function,
-the asymptotic phase and the phase model) refuse an adjoint that belongs to
+the asymptotic phase, the phase model and the isochrons) refuse an adjoint that belongs to
 an earlier run. XPPAUT keeps its adjoint after later runs, so a run of the
 same length, after a parameter change or from another point of the cycle,
 used to pass every check and be combined with the old adjoint, with no
@@ -16,13 +16,14 @@ ROOT = Path(__file__).resolve().parents[2]
 MODEL = ROOT / "tests" / "models" / "lambda_omega.ode"
 NSTEP = 400
 W = 1.5
-PERIOD = 2 * np.pi / W
 DIFF = ["x'-x", "y'-y"]
 
 
-def one_period(m, start=(1.0, 0.0)):
-    """One period of the cycle r = 1, from the point start, in NSTEP steps."""
-    m.set(DT=PERIOD / NSTEP, TOTAL=PERIOD, x=start[0], y=start[1])
+def one_period(m, start=(1.0, 0.0), w=W):
+    """One period of the cycle r = 1 (2 pi / w), from the point start, in
+    NSTEP steps."""
+    period = 2 * np.pi / w
+    m.set(DT=period / NSTEP, TOTAL=period, x=start[0], y=start[1])
     m.run()
 
 
@@ -42,7 +43,13 @@ def phase_model(m, coupling=DIFF):
     m._engine.call("xppe_phase_model", len(coupling), arr)
 
 
-USERS = [h_function, asymptotic_phase, phase_model]
+def isochrons(m):
+    lam = ctypes.c_double()
+    m._engine.call("xppe_isochrons", 2, 0.5, 200, 0, 0.0, 0.05,
+                   ctypes.byref(lam))
+
+
+USERS = [h_function, asymptotic_phase, phase_model, isochrons]
 
 
 def prepared():
@@ -65,10 +72,11 @@ def test_the_adjoint_of_this_run_is_used(use):
 
 @pytest.mark.parametrize("use", USERS, ids=lambda f: f.__name__)
 def test_a_run_after_a_parameter_change_is_refused(use):
-    """Same TOTAL and DT, so the same number of points, but another orbit."""
+    """One period of the new cycle in the same number of points: only the
+    values tell the runs apart."""
     with prepared() as m:
         m.set(w=1.6)
-        one_period(m)
+        one_period(m, w=1.6)
         with pytest.raises(xs.EngineError, match="compute the adjoint again"):
             use(m)
         m.adjoint()  # and once it is computed again, the call works

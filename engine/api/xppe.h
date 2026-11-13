@@ -247,17 +247,17 @@ XPPE_API int xppe_place_poles(int n, int m, const double *A, const double *B,
                               const double *re, const double *im, double *K);
 /* The closed-loop model: the .ode text source with each of the m inputs
    taken off its parameter line (p, par, param or parameters) and defined
-   instead as the fixed variable u = u0 - K (x - x*), where x are the n
-   states (their names in states) and x* the point. The laws use only the
-   states, so they stand first, after the comments that open the file, and
-   every fixed variable that uses an input sees them; a law longer than
-   XPPAUT reads on one line is written as partial sums (fixed variables
-   named kf1a1, kf1a2, ..., with x's added to kf if the model has such
-   names). The rest of the text is kept. Writes at most size bytes of the text, ending
-   with a NUL, to out (size 0 writes nothing) and returns the text's full
-   length, like snprintf; or an error: XPPE_ERR_NAME for an input not on a
-   parameter line, XPPE_ERR_RANGE for one on a line continued with a
-   backslash. Since API version 10. */
+   instead as the fixed variable u = u0 - K (x - x*), where x are the n states
+   (their names in states) and x* the point. The laws use only the states, so
+   they stand first, after the comments that open the file, and every fixed
+   variable that uses an input sees them; a law longer than XPPAUT reads on
+   one line is written as partial sums (fixed variables named kf1a1, kf1a2,
+   ..., with x's added to kf if the model has such names). The rest of the
+   text is kept. Writes at most size bytes of the text, ending with a NUL, to
+   out (size 0 writes nothing) and returns the text's full length, like
+   snprintf; or an error: XPPE_ERR_NAME for an input not on a parameter line,
+   XPPE_ERR_RANGE for one on a line continued with a backslash. Since API
+   version 10. */
 XPPE_API int xppe_closed_loop(const char *source, int m,
                               const char *const *inputs, const double *u0,
                               int n, const char *const *states,
@@ -280,8 +280,9 @@ XPPE_API int xppe_gain_locus(int n, int m, const double *A, const double *B,
    doubling algorithm (discrete). Refuses, with XPPE_ERR_NUMERIC, a problem
    whose solution does not stabilise A - B K (an unstable mode the inputs
    cannot move, or that Q does not see). Since API version 12. */
-XPPE_API int xppe_lqr(int n, int m, const double *A, const double *B, const double *Q,
-                      const double *R, int discrete, double *K, double *P);
+XPPE_API int xppe_lqr(int n, int m, const double *A, const double *B,
+                      const double *Q, const double *R, int discrete,
+                      double *K, double *P);
 
 /* ---- Data analysis --------------------------------------------------------
  *
@@ -358,27 +359,26 @@ XPPE_API int xppe_hfunction(int n, const char *const *coupling);
 /* The asymptotic phase of the state x (one value per ODE variable), by
    forward integration (docs/design/isochrons.md, method A). Works on the
    cycle and adjoint of the last run, as xppe_hfunction() does: the run must
-   still be the one-period run that xppe_adjoint() used. The state is
-   stepped with the current method, one output step (DT times NOUT) at a
-   time, until it is within delta of the stored cycle (a polyline through
-   the stored points); the time taken is elapsed (a multiple of the output
-   step). phase is theta/T in [0, 1), the point of the cycle the state ends
-   up synchronised with, where phase 0 is the first stored point of the run
-   (the run starts at T0 + TRANS, if TRANS is set), with the correction Z(theta_c) . (end state -
-   gamma(theta_c)) / T for the end state's distance from the cycle: its
-   error is of order delta squared (plus the integration error and the
-   spacing of the stored cycle), where without it is of order delta. phase or
-   elapsed may be NULL. Refuses, with an error and no number
-   (XPPE_ERR_STATE): no adjoint, a run that is not that period, or DT or
-   NOUT changed since it; delays, Volterra integrals, noise and maps; global
-   flags and folded variables (@ fold), which reset or fold the stored cycle
-   but not the free integration. Also: delta <= 0 or tmax <= 0
-   (XPPE_ERR_RANGE); and a state that has not come within delta of the cycle
-   by tmax or leaves BOUND, where the phase is undefined, near the boundary
-   of the basin (XPPE_ERR_NUMERIC). A huge or infinite tmax means no limit in
-   practice (the count of steps is capped at INT_MAX). The run is left as it
-   was. Since API
-   version 14. */
+   still be the one-period run that xppe_adjoint() used. The state is stepped
+   with the current method, one output step (DT times NOUT) at a time, until
+   it is within delta of the stored cycle (a polyline through the stored
+   points); the time taken is elapsed (a multiple of the output step). phase
+   is theta/T in [0, 1), the point of the cycle the state ends up synchronised
+   with, where phase 0 is the first stored point of the run (XPPAUT stores a
+   point once |t| >= TRANS, so that is the first output time with |t| >=
+   TRANS), with the correction Z(theta_c) . (end state - gamma(theta_c)) / T
+   for the end state's distance from the cycle: its error is of order delta
+   squared (plus the integration error and the spacing of the stored cycle),
+   where without it is of order delta. phase or elapsed may be NULL. Refuses,
+   with an error and no number (XPPE_ERR_STATE): no adjoint, a run that is not
+   that period, or DT or NOUT changed since it; delays, Volterra integrals,
+   noise and maps; global flags and folded variables (@ fold), which reset or
+   fold the stored cycle but not the free integration. Also: delta <= 0 or
+   tmax <= 0 (XPPE_ERR_RANGE); and a state that has not come within delta of
+   the cycle by tmax or leaves BOUND, where the phase is undefined, near the
+   boundary of the basin (XPPE_ERR_NUMERIC). A huge or infinite tmax means no
+   limit in practice (the count of steps is capped at INT_MAX). The run is
+   left as it was. Since API version 14. */
 XPPE_API int xppe_asymptotic_phase(const double *x, double delta, double tmax,
                                    double *phase, double *elapsed);
 /* The phase-reduced model of two weakly coupled copies of the model
@@ -454,10 +454,10 @@ enum {
 
 typedef struct {
   int shape;     /* XPPE_ANI_* */
-  int command;   /* index of the command in the file; comets keep trails by it */
+  int command;   /* index of the command in the file (comets' trails) */
   int filled;
   double x1, y1, x2, y2;
-  int color;     /* XPPAUT colour: 0 black, 20-29 red ... purple; -1: see level */
+  int color;     /* XPPAUT colour: 0 black, 20-29 red .. purple; -1: level */
   double level;  /* for computed colours: 0..1 along XPPAUT's colour scale */
   int thickness; /* line width; for comets below 0, dots of that radius */
   int trail;
@@ -616,9 +616,11 @@ XPPE_API int xppe_auto_point_data(int index, int what, double *out, int n);
    values per column, named after names[] (made valid MATLAB names: every
    character that is not a letter, digit or underscore becomes "_"; "x" goes
    in front if the name does not start with a letter; names are cut to 63
-   characters; a MATLAB keyword such as end gets "_" added; repeated names get _2, _3, ...), and, when nparams > 0, a
-   1-by-1 struct "params" with a field per pnames[] holding pvalues[]. */
-XPPE_API int xppe_write_mat(const char *path, int ncols, const char *const *names,
+   characters; a MATLAB keyword such as end gets "_" added; repeated names get
+   _2, _3, ...), and, when nparams > 0, a 1-by-1 struct "params" with a field
+   per pnames[] holding pvalues[]. */
+XPPE_API int xppe_write_mat(const char *path, int ncols,
+                            const char *const *names,
                             const double *const *cols, int nrows, int nparams,
                             const char *const *pnames, const double *pvalues);
 

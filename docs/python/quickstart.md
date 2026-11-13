@@ -102,8 +102,8 @@ works after a plain `pip install xpplab`. A name with no match raises
 Each `Model` holds its own copy of the engine, so models are independent:
 
 ```python
-a = xs.load("lecar.ode")
-b = xs.load("lecar.ode")
+a = xs.load(xs.example("lecar.ode"))
+b = xs.load(xs.example("lecar.ode"))
 a.parameters["iapp"] = 0.3     # b is unaffected
 ```
 

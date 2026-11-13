@@ -28,7 +28,7 @@ and notebooks:
 ```python
 import xpplab as xs
 
-m = xs.load("lecar.ode")
+m = xs.load(xs.example("lecar.ode"))  # or the path of any .ode file
 sol = m.run(total=200)
 d = m.auto.equilibria("iapp")
 m.auto.continue_from(d.first("HB"), "periodic")

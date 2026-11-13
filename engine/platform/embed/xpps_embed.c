@@ -97,6 +97,37 @@ void xpps_capture_reset(void) {
   }
 }
 
+/* Each model loads its own copy of the engine library, and every copy
+   shares the process's C runtime. The capture stream belongs to that
+   runtime, not to the copy, so a copy unloaded with its stream open left
+   one stream slot taken (and, on Windows, a temporary file in %TEMP%) for
+   every model ever loaded. About 500 loads in one process used up the
+   runtime's 512 streams; the next fopen() failed and the process died.
+   Close the stream when the copy is unloaded. At process exit the runtime
+   closes every stream itself, and closing this one again would crash, so
+   on Windows only an unload by FreeLibrary() closes it (reserved is NULL
+   then). Elsewhere the C library runs destructors before it closes the
+   streams at exit. */
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved) {
+  (void)inst;
+  if (reason == DLL_PROCESS_DETACH && reserved == NULL && capture) {
+    fclose(capture);
+    capture = NULL;
+  }
+  return TRUE;
+}
+#elif defined(__GNUC__) || defined(__clang__)
+__attribute__((destructor)) static void xpps_capture_unload(void) {
+  if (capture) {
+    fclose(capture);
+    capture = NULL;
+  }
+}
+#endif
+
 char *xpps_capture_take(void) {
   FILE *f = xpps_log_stream();
   long n;

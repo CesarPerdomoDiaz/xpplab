@@ -152,7 +152,7 @@ Fix the bundle at the same time: name it `XPP Lab.app` rather than
 `xpplab.app`, and ship SDL once (it is in both `Contents/MacOS` and
 `Contents/Frameworks`, 3 MB of a 10 MB download).
 
-- Until then, TESTING.md's instructions stay.
+- Until then, the install guide's instructions (docs/install.md) stay.
 
 ### 3. Fit a 13-inch laptop
 

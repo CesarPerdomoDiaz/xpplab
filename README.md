@@ -249,7 +249,7 @@ XPPAUT's C code needs GCC or Clang, so put MinGW-w64 on `PATH` and set
 
 Found a problem, or a model that works in XPPAUT but not here? Please
 [open an issue](https://github.com/CesarPerdomoDiaz/xpplab/issues/new/choose).
-[TESTING.md](TESTING.md) has a short list of things to try.
+[Trying XPP Lab](docs/testing.md) has a short list of things to try.
 
 ## Credits and licence
 

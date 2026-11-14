@@ -5,6 +5,7 @@ import math
 import re
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 import xpplab as xs
@@ -97,3 +98,74 @@ def test_doc_opens_the_page_of_a_command_or_a_method():
     pages = {p.stem.replace("-", " ") for p in REFERENCE.glob("*.md")} - {"reference"}
     assert set(docs.PAGES) == pages
     assert set(docs.METHODS.values()) <= pages
+
+
+def test_auto_from_page():
+    text, blocks = python_blocks("auto-from.md")
+    assert len(blocks) == 3
+    ns = {}
+    # 1. periodic orbits from the first Hopf point, in 50 steps
+    exec(compile(blocks[0], "auto-from.md example 1", "exec"), ns)
+    d, orbits = ns["d"], ns["orbits"]
+    assert [(p.label, round(p.value, 4)) for p in d.special("HB")] == [(2, 0.2625),
+                                                                       (3, 0.4569)]
+    table = [r for r in rows(text, "Periodic orbits from a Hopf point") if r[0] != "Label"]
+    folds = orbits.special()
+    assert [(str(p.label), p.type) for p in folds] == [(r[0], r[1]) for r in table]
+    for p, r in zip(folds, table):
+        assert p.value == pytest.approx(number(r[2]), abs=5e-5)
+        assert p.period == pytest.approx(number(r[3]), abs=5e-3)
+    assert len(orbits) == 50
+    lo, hi = folds[0].value, folds[1].value
+    stable = [p for p in orbits if p.periodic and p.stable]
+    unstable = [p for p in orbits if p.periodic and not p.stable and not p.label]
+    # stable between the folds; the unstable ones lie outside the Hopf points
+    assert min(p.value for p in stable) == pytest.approx(lo, abs=2e-3)
+    assert max(p.value for p in stable) == pytest.approx(hi, abs=2e-3)
+    assert all(p.value < 0.2625 + 1e-3 or p.value > 0.4569 - 1e-3 for p in unstable)
+    periods = [p.period for p in stable]
+    assert min(periods) == pytest.approx(14.1, abs=0.05) and "14.1 to 24.3" in text
+    assert max(periods) == pytest.approx(24.3, abs=0.05)
+    # a longer run only retraces the loop: the same two folds, again
+    again = ns["m"].auto.continue_from(d.first("HB"), "periodic", nmax=150)
+    values = {round(p.value, 2) for p in again.special("LP")}
+    assert {0.25, 0.47} <= values <= {0.25, 0.26, 0.47}
+    assert len(again.special("LP")) > 4
+
+    # 2. the curve of Hopf points in iapp and phi
+    exec(compile(blocks[1], "auto-from.md example 2", "exec"), ns)
+    curve = ns["curve"]
+    a = np.array([[p.value, p.value2] for p in curve])
+    assert a[0] == pytest.approx([0.2625, 0.2], abs=5e-4)
+    top = a[a[:, 1].argmax()]
+    assert top == pytest.approx([0.3435, 1.85], abs=5e-3)
+    crossings = [a[j - 1, 0] + (0.2 - a[j - 1, 1]) / (a[j, 1] - a[j - 1, 1])
+                 * (a[j, 0] - a[j - 1, 0])
+                 for j in range(1, len(a)) if (a[j - 1, 1] - 0.2) * (a[j, 1] - 0.2) < 0]
+    assert crossings and crossings[0] == pytest.approx(0.4568, abs=5e-4)
+    ns["m"].close()
+
+    # 3. the pitchfork: one run draws both branches, and switch adds nothing
+    exec(compile("import xpplab as xs\n" + blocks[2], "auto-from.md example 3",
+                 "exec"), ns)
+    d = ns["d"]
+    bp = d.special("BP")
+    assert [(p.label, round(p.value, 6) + 0.0) for p in bp] == [(2, 0.0)]
+    trivial = [p for p in d if p.branch == 1]
+    other = [p for p in d if p.branch == 2]
+    assert all(abs(p.u0["X"]) < 1e-9 for p in trivial)
+    assert min(p.value for p in trivial) == pytest.approx(-1) and \
+        max(p.value for p in trivial) == pytest.approx(2, abs=0.1)
+    x = np.array([p.u0["X"] for p in other])
+    r = np.array([p.value for p in other])
+    assert np.allclose(x ** 2, r, atol=1e-5)          # the parabola x = +-sqrt(r)
+    assert x.max() == pytest.approx(1.42, abs=5e-3) and x.min() == pytest.approx(-1.42, abs=5e-3)
+    assert r.max() == pytest.approx(2.02, abs=5e-3)
+    # (the first points of each arm, at the branch point itself, are not judged)
+    assert all(p.stable for p in other if not p.label and p.value > 0.01)
+    for p in trivial[1:]:
+        if not p.label:
+            assert p.stable == (p.value < 0)
+    switched = ns["m"].auto.continue_from(bp[0], "switch")
+    assert all(abs(p.u0["X"]) < 1e-9 for p in switched)   # x = 0 again
+    ns["m"].close()

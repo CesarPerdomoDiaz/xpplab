@@ -24,7 +24,6 @@ fit
 freeze
 use
 sets
-auto from
 auto set
 auto reset
 auto save

@@ -16,6 +16,7 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | Page | What it does |
 |---|---|
 | [auto steady](auto-steady.md) | Follow steady states as a parameter varies, and find where they fold or lose stability. |
+| [auto from](auto-from.md) | Continue from a labelled point: periodic orbits from a Hopf point, a curve of bifurcations in two parameters, the rest of a branch. |
 
 ## The other reference pages
 

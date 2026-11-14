@@ -106,6 +106,7 @@ nav:
       - Every command and action: reference/reference.md
       - auto steady: reference/auto-steady.md
       - auto from: reference/auto-from.md
+      - auto set: reference/auto-set.md
       - Commands and shortcuts: manual/commands.md
       - The .ode file format: manual/odefile.md
       - Numerical methods: manual/numerics.md

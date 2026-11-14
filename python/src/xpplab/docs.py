@@ -7,7 +7,7 @@ import webbrowser
 SITE = "https://cesarperdomodiaz.github.io/xpplab/"
 
 #: The reference pages (docs/reference), by the command's name.
-PAGES = ("auto steady", "auto from")
+PAGES = ("auto steady", "auto from", "auto set")
 
 #: The method of the package that does what a command does.
 METHODS = {"equilibria": "auto steady", "continue_from": "auto from"}

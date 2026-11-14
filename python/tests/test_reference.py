@@ -169,3 +169,24 @@ def test_auto_from_page():
     switched = ns["m"].auto.continue_from(bp[0], "switch")
     assert all(abs(p.u0["X"]) < 1e-9 for p in switched)   # x = 0 again
     ns["m"].close()
+
+
+def test_auto_set_page():
+    text, blocks = python_blocks("auto-set.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "auto-set.md example 1", "exec"), ns)
+    short = ns["short"]
+    assert len(short) == 24 and "computes 24 points" in text
+    assert [(p.type, round(p.value, 4)) for p in short.special()] == [("HB", 0.2625)]
+    last = short[len(short) - 1]
+    assert last.type == "EP" and 0.3 < last.value < 0.33
+    exec(compile(blocks[1], "auto-set.md example 2", "exec"), ns)
+    coarse = ns["coarse"]
+    assert len(coarse) == 14 and "computes 14 points" in text
+    hb = coarse.special("HB")
+    assert [round(p.value, 4) for p in hb] == pytest.approx([0.2625, 0.4568], abs=1e-4)
+    assert hb[1].stable          # the wrong verdict the page describes
+    careful = ns["m"].auto.equilibria("iapp", dsmax=0.02)
+    assert len(careful) == 49 and not careful.special("HB")[1].stable
+    ns["m"].close()

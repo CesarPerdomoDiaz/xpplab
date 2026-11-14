@@ -284,3 +284,42 @@ def test_auto_save_load_and_reset_pages(tmp_path, monkeypatch):
     orbits = m.auto.continue_from(second.first("HB"), "periodic", nmax=50)
     assert [p.label for p in orbits if p.label][:2] == [5, 6]
     m.close()
+
+
+def crossings(sol, name="V", level=0.0):
+    """The times at which a column crosses a level going up."""
+    v, t = sol[name], sol.t
+    return np.array([t[i - 1] + (level - v[i - 1]) / (v[i] - v[i - 1]) * (t[i] - t[i - 1])
+                     for i in range(1, len(v)) if v[i - 1] < level <= v[i]])
+
+
+def test_run_page():
+    text, blocks = python_blocks("run.md")
+    assert len(blocks) == 3
+    ns = {}
+    exec(compile(blocks[0], "run.md example 1", "exec"), ns)
+    m, sol = ns["m"], ns["sol"]
+    assert len(sol.t) == 601 and sol.t[-1] == pytest.approx(30)
+    assert sol["V"][0] == pytest.approx(-0.144)
+    assert sol["V"].max() == pytest.approx(0.2283, abs=1e-4)
+    assert sol.t[sol["V"].argmax()] == pytest.approx(4.7, abs=0.051)
+    assert sol["V"][-1] == pytest.approx(-0.3825, abs=1e-4)
+    assert len(crossings(sol)) == 1                      # one spike
+    exec(compile(blocks[1], "run.md example 2", "exec"), ns)
+    sol = ns["sol"]
+    spikes = crossings(sol)
+    assert len(sol.t) == 4001 and len(spikes) == 13
+    assert np.diff(spikes)[-3:].mean() == pytest.approx(16.47, abs=5e-3)
+    assert m.get("iapp") == pytest.approx(0.1)           # values given to run() stay set
+    exec(compile(blocks[2], "run.md example 3", "exec"), ns)
+    rough, broken = ns["rough"], ns["broken"]
+    period = np.diff(crossings(rough))[-3:].mean()
+    assert period == pytest.approx(15.83, abs=5e-3)
+    assert 1 - period / 16.47 == pytest.approx(0.04, abs=5e-3)   # "4 % too fast"
+    assert broken.t[-1] < 200                             # it stopped early
+    assert np.diff(crossings(m.run(dt=0.05)))[-3:].mean() == pytest.approx(16.43, abs=5e-3)
+    # every setting of the table is a name the model takes
+    m.set(meth="rungekutta", total=30, dt=0.05, t0=0, trans=0, nout=1, bound=100,
+          tol=1e-6, atol=1e-6, maxstor=5000)
+    assert len(m.run().t) == 601
+    m.close()

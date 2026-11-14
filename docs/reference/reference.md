@@ -11,6 +11,12 @@ The reference is being written page by page. A command without a page yet
 is described in [Commands and shortcuts](../manual/commands.md), and
 `doc NAME` then prints its summary.
 
+## Simulation
+
+| Page | What it does |
+|---|---|
+| [run](run.md) | Integrate the model from its initial values and show the result. |
+
 ## Bifurcation analysis
 
 | Page | What it does |

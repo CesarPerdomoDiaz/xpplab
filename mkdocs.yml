@@ -104,6 +104,7 @@ nav:
       - Examples gallery: gallery/index.md
   - Reference:
       - Every command and action: reference/reference.md
+      - run: reference/run.md
       - auto steady: reference/auto-steady.md
       - auto from: reference/auto-from.md
       - auto set: reference/auto-set.md

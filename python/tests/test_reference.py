@@ -116,6 +116,8 @@ def test_auto_from_page():
         assert p.value == pytest.approx(number(r[2]), abs=5e-5)
         assert p.period == pytest.approx(number(r[3]), abs=5e-3)
     assert len(orbits) == 50
+    # the model is left at the point continued from, as the page says
+    assert ns["m"].get("iapp") == pytest.approx(0.2625, abs=5e-5)
     lo, hi = folds[0].value, folds[1].value
     stable = [p for p in orbits if p.periodic and p.stable]
     unstable = [p for p in orbits if p.periodic and not p.stable and not p.label]
@@ -190,3 +192,50 @@ def test_auto_set_page():
     careful = ns["m"].auto.equilibria("iapp", dsmax=0.02)
     assert len(careful) == 49 and not careful.special("HB")[1].stable
     ns["m"].close()
+
+
+def test_auto_orbit_page():
+    text, blocks = python_blocks("auto-orbit.md")
+    assert len(blocks) == 3
+    ns = {}
+    exec(compile(blocks[0], "auto-orbit.md example 1", "exec"), ns)
+    m, point, sol = ns["m"], ns["point"], ns["sol"]
+    assert point.stable and point.periodic
+    assert point.value == pytest.approx(0.352, abs=5e-4)
+    assert len(sol.t) == 61 and sol.t[0] == 0
+    assert sol.t[-1] == pytest.approx(14.375, abs=1e-3)
+    assert sol.t[-1] == pytest.approx(point.period, rel=1e-6)
+    assert sol["V"].min() == pytest.approx(-0.3434, abs=1e-4)
+    assert sol["V"].max() == pytest.approx(0.2760, abs=1e-4)
+    steps = np.diff(sol.t)
+    assert steps.max() > 2 * steps.min()             # the mesh is not even
+    exec(compile(blocks[1], "auto-orbit.md the simulation", "exec"), ns)
+    run = ns["run"]
+    v, t = run["V"], run.t
+    up = np.array([t[i - 1] + (0 - v[i - 1]) / (v[i] - v[i - 1]) * (t[i] - t[i - 1])
+                   for i in range(1, len(v)) if v[i - 1] < 0 <= v[i] and t[i] > 300])
+    assert np.diff(up).mean() == pytest.approx(14.3745, abs=5e-4)
+    assert v[t > 300].min() == pytest.approx(-0.3434, abs=1e-4)
+    assert v[t > 300].max() == pytest.approx(0.2761, abs=1e-4)
+
+    # the unstable orbit, and what it separates
+    exec(compile(blocks[2], "auto-orbit.md example 2", "exec"), ns)
+    unstable = ns["unstable"]
+    p5 = ns["orbits"].label(5)
+    assert not p5.stable and p5.value == pytest.approx(0.2489, abs=5e-4)
+    assert unstable.t[-1] == pytest.approx(29.03, abs=5e-3)
+    assert 1.9 < unstable.t[-1] / 14.375 < 2.1
+    m.set(iapp=p5.value)
+    eq = m.equilibrium()
+    centre = np.array([eq["V"], eq["W"]])
+    k = int(np.argmax(unstable["V"]))
+    on = np.array([unstable["V"][k], unstable["W"][k]])
+    ends = {}
+    for name, scale in (("inside", 0.9), ("outside", 1.1)):
+        start = centre + scale * (on - centre)
+        far = m.run(v=float(start[0]), w=float(start[1]), total=600, dt=0.05)
+        tail = far["V"][far.t > 400]
+        ends[name] = tail.max() - tail.min()
+    assert ends["inside"] < 1e-3          # to rest
+    assert ends["outside"] > 0.3          # to firing
+    m.close()

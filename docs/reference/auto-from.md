@@ -182,6 +182,8 @@ Two matter more here:
   start of a further `auto from`.
 - **A periodic orbit** at a labelled point can be shown as a run with
   `auto orbit LABEL`: the time series and the phase plane then show it.
+- **The model's parameter** is left at the value of the point continued
+  from, not where it was before.
 - **In Python** the call returns the new branch as a `Diagram`; a periodic
   `Point` has `period`, `umax` and `umin`, and a point of a two-parameter
   curve has `value` and `value2`. `m.auto.diagram` holds everything computed
@@ -238,8 +240,12 @@ orbits are computed by orthogonal collocation, with `NTST` mesh intervals
 and 4 collocation points in each, and an adaptive mesh; their stability
 comes from the Floquet multipliers of the linearised problem. A
 two-parameter curve is the continuation of the extended system that defines
-the bifurcation. After the run the model's parameters are put back to what
-they were.
+the bifurcation.
+
+Starting from a label first sets the model's parameters and variables to
+those of that point, as XPPAUT's *Grab* does, and they stay there after the
+run: after `auto from 2 periodic` in the first example, `iapp` is 0.2625,
+the value at the Hopf point.
 
 ## When it fails
 
@@ -275,5 +281,4 @@ they were.
 
 ## Version history
 
-Introduced in 0.1.0. Since 0.1.1 the model's parameters are restored after
-the run.
+Introduced in 0.1.0.

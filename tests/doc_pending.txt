@@ -27,7 +27,6 @@ sets
 auto reset
 auto save
 auto load
-auto orbit
 range
 kinescope capture
 kinescope play

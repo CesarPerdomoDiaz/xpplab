@@ -1,41 +1,122 @@
-# XPP Lab
+---
+hide:
+  - navigation
+  - toc
+title: Home
+---
 
-**XPPAUT's engine, with a modern interface and a Python package.**
+<div class="xl-hero" markdown>
 
-Simulate differential equations, maps, delay and stochastic equations.
-Explore phase planes with nullclines and flow. Compute bifurcation
-diagrams with AUTO. XPP Lab runs XPPAUT 8.0's own numerical code,
-natively on Windows, macOS and Linux, with no X11 server and no Fortran
-compiler.
+![XPP Lab](images/logo.png){ .xl-logo }
 
-![The Morris-Lecar model in the desktop app: as the current iapp rises and falls, the slider, the nullclines, the trajectory and the time series all follow at once](images/demo.gif)
+<h1>XPP Lab</h1>
 
-**[Download and install it](install.md)**: a zip for Windows, a disk image
-for macOS, a tarball for Linux, and a wheel for Python. Nothing else is
-needed.
+<p class="xl-tagline">
+Simulate differential equations, explore phase planes and compute
+bifurcation diagrams. XPPAUT's own numerical code and AUTO, in an app for
+Windows, macOS and Linux, and in Python.
+</p>
 
-## Two ways to use it
+[Download](install.md){ .md-button .md-button--primary }
+[Get started in 5 minutes](manual/welcome.md){ .md-button }
+[Python](python/quickstart.md){ .md-button }
 
-**The desktop app** is a workbench in the spirit of MATLAB. It has
-dockable windows, an editor that points at errors, a slider for every
-parameter with live re-simulation, interactive plots, a bifurcation
-window, a command window and this manual built in.
-[Get started with the app](manual/welcome.md).
+![The Morris-Lecar model in the desktop app: as the current iapp rises and falls, the slider, the nullclines, the trajectory and the time series all follow at once](images/demo.gif){ .xl-demo }
 
-**The Python package** runs the same engine, AUTO included, from scripts
-and notebooks:
+</div>
 
-```python
-import xpplab as xs
+## What do you want to do?
 
-m = xs.load(xs.example("lecar.ode"))  # or the path of any .ode file
-sol = m.run(total=200)
-d = m.auto.equilibria("iapp")
-m.auto.continue_from(d.first("HB"), "periodic")
-m.auto.diagram.plot("V")
-```
+<div class="grid cards" markdown>
 
-[Get started with Python](python/quickstart.md).
+-   **Simulate a model**
+
+    ---
+
+    Write the equations, press Run, and drag a parameter's slider while the
+    solution follows.
+
+    [Tutorial: your first model](manual/tutorial.md)
+
+-   **Understand a phase plane**
+
+    ---
+
+    Nullclines, the flow, equilibria and their manifolds, on a model of a
+    neuron.
+
+    [Tutorial: why does a neuron fire?](manual/neuron-tutorial.md)
+
+-   **Compute a bifurcation diagram**
+
+    ---
+
+    Follow steady states and periodic orbits with AUTO, and read the
+    special points.
+
+    [Bifurcation analysis with AUTO](manual/auto.md)
+
+-   **Use it from Python**
+
+    ---
+
+    The same engine, AUTO included, in scripts and notebooks:
+    `pip install xpplab`.
+
+    [Python quick start](python/quickstart.md)
+
+-   **Learn from worked examples**
+
+    ---
+
+    Neuroscience, ecology, chemistry, mechanics, control and a kite on a
+    tether, each with its model and its figures.
+
+    [Learn by example](learn/index.md)
+
+-   **Look something up**
+
+    ---
+
+    A page for each command and action, with worked examples: `doc NAME`
+    in the app. Also the `.ode` file format, the numerical methods and the
+    Python API.
+
+    [Reference](reference/reference.md)
+
+</div>
+
+## Coming from another tool?
+
+<div class="grid cards" markdown>
+
+-   **XPPAUT**
+
+    ---
+
+    Your `.ode` files load unchanged, the numbers are the same bit for bit,
+    and the two-key commands still work.
+
+    [Coming from XPPAUT](manual/xppaut.md)
+
+-   **MATLAB**
+
+    ---
+
+    A workbench with a command window, a workspace and figures, and `.mat`
+    files to take your results back.
+
+    [Coming from MATLAB](manual/matlab.md)
+
+-   **AUTO-07p**
+
+    ---
+
+    The same continuation code, without Fortran or constants files.
+
+    [Coming from AUTO-07p](manual/auto07p.md)
+
+</div>
 
 ## Why XPP Lab
 
@@ -46,5 +127,15 @@ m.auto.diagram.plot("V")
   the app and from Python.
 - **Made to be learned.** Tutorials, a full reference, and more than a
   hundred example models in the [gallery](gallery/index.md).
+
+```python
+import xpplab as xs
+
+m = xs.load(xs.example("lecar.ode"))  # or the path of any .ode file
+sol = m.run(total=200)
+d = m.auto.equilibria("iapp")
+m.auto.continue_from(d.first("HB"), "periodic")
+m.auto.diagram.plot("V")
+```
 
 ![AUTO in the desktop app: the steady states of the Morris-Lecar model with their Hopf points, then the branch of periodic orbits](images/bifurcation.gif)

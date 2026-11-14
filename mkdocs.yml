@@ -8,7 +8,11 @@ site_dir: build/site
 
 theme:
   name: material
+  logo: images/logo.png
+  favicon: images/logo.png
   features:
+    - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
     - navigation.top
     - navigation.footer
@@ -18,16 +22,21 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-night
         name: Dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: Light mode
+
+extra_css:
+  - stylesheets/xpplab.css
 
 hooks:
   - tools/mkdocs_hooks.py
@@ -52,24 +61,28 @@ markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
   - pymdownx.details
+  - attr_list
+  - md_in_html
+  - pymdownx.tabbed:
+      alternate_style: true
 
 nav:
   - Home: index.md
-  - Install: install.md
-  - Trying XPP Lab: testing.md
-  - Desktop app:
-      - Getting started: manual/welcome.md
+  - Get started:
+      - Install: install.md
+      - Getting started with the app: manual/welcome.md
       - "Tutorial: your first model": manual/tutorial.md
-      - "Tutorial: why does a neuron fire?": manual/neuron-tutorial.md
-      - Bifurcation analysis with AUTO: manual/auto.md
-      - Data analysis: manual/analysis.md
-      - Figures for papers: manual/figures.md
-      - Initial values, Range, BVPs, 3D, Kinescope: manual/tools.md
-      - Commands and shortcuts: manual/commands.md
+      - Trying XPP Lab: testing.md
       - Coming from XPPAUT: manual/xppaut.md
       - Coming from MATLAB: manual/matlab.md
       - Coming from AUTO-07p: manual/auto07p.md
+  - Desktop app:
+      - "Tutorial: why does a neuron fire?": manual/neuron-tutorial.md
+      - Bifurcation analysis with AUTO: manual/auto.md
       - Codimension-two bifurcations: manual/codim2.md
+      - Data analysis: manual/analysis.md
+      - Figures for papers: manual/figures.md
+      - Initial values, Range, BVPs, 3D, Kinescope: manual/tools.md
   - Python:
       - Quick start: python/quickstart.md
       - Simulation: python/simulation.md
@@ -79,7 +92,7 @@ nav:
       - Control design: python/control.md
       - Figures for papers: python/figures.md
       - Driving the desktop app: python/app.md
-      - API reference: python/reference.md
+      - Coding agents: agents.md
   - Learn by example:
       - Overview: learn/index.md
       - Neuroscience: learn/neuroscience.md
@@ -88,18 +101,19 @@ nav:
       - Mechanics: learn/mechanics.md
       - Control: learn/control.md
       - "Aerospace: a kite on a tether": learn/kite.md
-  - Coding agents: agents.md
+      - Examples gallery: gallery/index.md
   - Reference:
       - Every command and action: reference/reference.md
       - auto steady: reference/auto-steady.md
+      - Commands and shortcuts: manual/commands.md
       - The .ode file format: manual/odefile.md
       - Numerical methods: manual/numerics.md
-  - Examples gallery: gallery/index.md
-  - Development:
+      - Python API: python/reference.md
+  - Develop:
       - Vision: vision.md
-      - Working with the maintainer agent: development/maintainer-agent.md
       - Architecture: development/architecture.md
       - Writing a reference page: development/reference-pages.md
+      - Working with the maintainer agent: development/maintainer-agent.md
       - macOS plan: development/macos.md
       - ModelDB models: development/modeldb.md
       - "Design: isochrons and phase reduction": design/isochrons.md

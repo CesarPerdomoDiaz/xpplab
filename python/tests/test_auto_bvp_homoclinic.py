@@ -135,3 +135,56 @@ def test_homoclinic_form_too_long_for_the_engine_is_refused(tmp_path):
             m.auto.start("heteroclinic", "a", second="b",
                          left=[big, big], right=[big] * 2,
                          unstable=10**400)
+
+
+# The bistable front: u'' + c u' + u(1-u)(u-a) = 0 has a heteroclinic orbit
+# from the saddle (1, 0) to the saddle (0, 0) exactly on c = sqrt(2) (1/2 - a),
+# the front u = 1/(1 + exp(z/sqrt(2))), whose shape does not depend on a:
+# v = u' = -u(1-u)/sqrt(2), with its minimum -1/(4 sqrt(2)) at u = 1/2.
+# Both ends are saddles for 0 < a < 1; for a < 0 the end (0, 0) is a node,
+# where a saddle-to-saddle connection no longer describes the front.
+A0 = 0.25
+Z = 20.0  # the start runs from z = -Z to z = Z along the exact front
+U0 = 1 / (1 + math.exp(-Z / math.sqrt(2)))
+FRONT = f"""\
+u'=v
+v'=-c*v-u*(1-u)*(u-a)
+par a={A0},c={math.sqrt(2) * (0.5 - A0)!r}
+init u={U0!r},v={-U0 * (1 - U0) / math.sqrt(2)!r}
+@ total={2 * Z},dt=0.01,tol=1e-10,atol=1e-10
+@ parmin=-1,parmax=2,dsmin=1e-6,dsmax=0.05,ntst=60,npr=10,nmax=60
+done
+"""
+
+
+# Found by running: the continued points stay within 9e-11 of the curve, the
+# starting run under each method; the orbit's minimum of v is within 8e-5 of
+# the closed form (the mesh of 60 intervals).
+@pytest.mark.parametrize("meth, ds", [("rungekutta", -0.01),
+                                      ("rungekutta", 0.01),
+                                      ("adams", -0.01), ("stiff", -0.01),
+                                      ("cvode", -0.01)])
+def test_heteroclinic_start_follows_the_front(tmp_path, meth, ds):
+    with _load(tmp_path, FRONT) as m:
+        m.set(meth=meth)
+        sol = m.run()
+        # the start must leave the saddle (1, 0) and reach (0, 0): CVODE
+        # does so only at a tight tolerance, which the model sets
+        assert sol["U"][-1] < 1e-5
+        h = m.auto.start("heteroclinic", "c", second="a", left=[1, 0],
+                         right=[0, 0], unstable=1, stable=1, ds=ds)
+        assert len(h) >= 20
+        c = np.array([p.value for p in h])
+        a = np.array([p.value2 for p in h])
+        assert a[0] == pytest.approx(A0)
+        saddles = (a > 0.02) & (a < 0.48)
+        assert saddles.sum() >= 8
+        exact = np.sqrt(2) * (0.5 - a)
+        assert np.abs(c - exact)[saddles].max() < 1e-8
+        for p in [p for p, s in zip(h, saddles) if s]:
+            assert p.period == pytest.approx(2 * Z)
+            assert p.umin["V"] == pytest.approx(-1 / (4 * math.sqrt(2)),
+                                                abs=2e-4)
+            assert p.u0["U"] == pytest.approx(1, abs=1e-5)
+        # it runs on along the curve in the direction of ds
+        assert (a.max() > 0.45) if ds < 0 else (a.min() < 0.05)

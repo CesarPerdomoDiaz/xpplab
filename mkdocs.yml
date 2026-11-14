@@ -90,6 +90,8 @@ nav:
       - "Aerospace: a kite on a tether": learn/kite.md
   - Coding agents: agents.md
   - Reference:
+      - Every command and action: reference/reference.md
+      - auto steady: reference/auto-steady.md
       - The .ode file format: manual/odefile.md
       - Numerical methods: manual/numerics.md
   - Examples gallery: gallery/index.md
@@ -97,6 +99,7 @@ nav:
       - Vision: vision.md
       - Working with the maintainer agent: development/maintainer-agent.md
       - Architecture: development/architecture.md
+      - Writing a reference page: development/reference-pages.md
       - macOS plan: development/macos.md
       - ModelDB models: development/modeldb.md
       - "Design: isochrons and phase reduction": design/isochrons.md

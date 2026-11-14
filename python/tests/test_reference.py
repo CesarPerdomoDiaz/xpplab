@@ -82,3 +82,18 @@ def test_auto_steady_page():
         assert p.stable == (seen != 1), (p.value, seen)
     assert d[len(d) - 1].value < -2
     ns["m"].close()
+
+
+def test_doc_opens_the_page_of_a_command_or_a_method():
+    site = "https://cesarperdomodiaz.github.io/xpplab/reference/"
+    assert xs.doc("auto steady", open=False) == site + "auto-steady/"
+    assert xs.doc("AUTO  Steady", open=False) == site + "auto-steady/"
+    with xs.load(xs.example("lecar.ode")) as m:
+        assert xs.doc(m.auto.equilibria, open=False) == site + "auto-steady/"
+    assert xs.doc(open=False) == site + "reference/"
+    assert xs.doc("no such thing", open=False) == site + "reference/"
+    # the package knows exactly the pages that exist
+    from xpplab import docs
+    pages = {p.stem.replace("-", " ") for p in REFERENCE.glob("*.md")} - {"reference"}
+    assert set(docs.PAGES) == pages
+    assert set(docs.METHODS.values()) <= pages

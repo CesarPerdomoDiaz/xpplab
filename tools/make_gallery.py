@@ -199,6 +199,82 @@ FIGURES = {
     "fisher_wave": (space_time("U", 100, 50.0), "The front advances at a steady speed, close to 2."),
 }
 
+#: file stem -> the model's equations as LaTeX, for the website
+EQUATIONS = {
+    "lorenz": r"""\begin{aligned}
+\dot x &= \sigma\,(y - x)\\
+\dot y &= x\,(r - z) - y\\
+\dot z &= x y - b z
+\end{aligned}
+\qquad \sigma = 10,\; r = 28,\; b = \tfrac{8}{3}""",
+    "rossler": r"""\begin{aligned}
+\dot x &= -y - z\\
+\dot y &= x + a y\\
+\dot z &= b + z\,(x - c)
+\end{aligned}
+\qquad a = 0.2,\; b = 0.2,\; c = 5.7""",
+    "chua": r"""\begin{aligned}
+\dot x &= \alpha\,\bigl(y - x - f(x)\bigr)\\
+\dot y &= x - y + z\\
+\dot z &= -\beta y
+\end{aligned}
+\qquad f(x) = m_1 x + \tfrac12 (m_0 - m_1)\bigl(|x + 1| - |x - 1|\bigr)""",
+    "vanderpol": r"""\ddot x - \mu\,(1 - x^2)\,\dot x + x = 0, \qquad \mu = 1""",
+    "duffing": r"""\ddot x + \delta\,\dot x - x + x^3 = \gamma \cos \omega t,
+\qquad \delta = 0.3,\; \gamma = 0.5,\; \omega = 1.2""",
+    "pendulum": r"""\ddot\theta + c\,\dot\theta + \sin\theta = 0, \qquad c = 0.1""",
+    "oscillator": r"""m\,\ddot x + c\,\dot x + k\,x = 0, \qquad m = 1,\; k = 1,\; c = 0.2""",
+    "lotka_volterra": r"""\begin{aligned}
+\dot x &= a x - b x y\\
+\dot y &= -c y + d x y
+\end{aligned}
+\qquad a = b = c = d = 1""",
+    "sir": r"""\begin{aligned}
+\dot s &= -\beta s i\\
+\dot i &= \beta s i - \gamma i\\
+\dot r &= \gamma i
+\end{aligned}
+\qquad \beta = 0.5,\; \gamma = 0.2""",
+    "logistic_map": r"""x_{n+1} = r\,x_n\,(1 - x_n)""",
+    "henon": r"""\begin{aligned}
+x_{n+1} &= 1 - a x_n^2 + y_n\\
+y_{n+1} &= b x_n
+\end{aligned}
+\qquad a = 1.4,\; b = 0.3""",
+    "fitzhugh_nagumo": r"""\begin{aligned}
+\dot v &= v - \tfrac{1}{3} v^3 - w + I\\
+\dot w &= \varepsilon\,(v + a - b w)
+\end{aligned}
+\qquad I = 0.5,\; a = 0.7,\; b = 0.8,\; \varepsilon = 0.08""",
+    "hodgkin_huxley": r"""\begin{aligned}
+C\,\dot v &= I - g_{\mathrm{Na}}\, m^3 h\,(v - E_{\mathrm{Na}})
+             - g_{\mathrm{K}}\, n^4 (v - E_{\mathrm{K}}) - g_{L}\,(v - E_{L})\\
+\dot m &= \alpha_m(v)\,(1 - m) - \beta_m(v)\,m\\
+\dot h &= \alpha_h(v)\,(1 - h) - \beta_h(v)\,h\\
+\dot n &= \alpha_n(v)\,(1 - n) - \beta_n(v)\,n
+\end{aligned}""",
+    "brusselator": r"""\begin{aligned}
+\dot x &= a - (b + 1)\,x + x^2 y\\
+\dot y &= b x - x^2 y
+\end{aligned}
+\qquad a = 1,\; b = 3""",
+    "heat": r"""\frac{\partial u}{\partial t} = D\,\frac{\partial^2 u}{\partial x^2},
+\qquad u(0, t) = u(1, t) = 0""",
+    "kuramoto": r"""\dot\theta_j = \omega_j + \frac{K}{N} \sum_{k=1}^{N} \sin(\theta_k - \theta_j),
+\qquad r\,e^{i\psi} = \frac{1}{N} \sum_{k=1}^{N} e^{i\theta_k}, \qquad N = 10""",
+    "mackey_glass": r"""\dot x(t) = \beta\,\frac{x(t - \tau)}{1 + x(t - \tau)^{n}} - \gamma\,x(t),
+\qquad \beta = 0.2,\; \gamma = 0.1,\; n = 10,\; \tau = 17""",
+    "kepler": r"""\ddot{\mathbf r} = -\frac{\mathbf r}{|\mathbf r|^{3}},
+\qquad E = \tfrac12 |\dot{\mathbf r}|^2 - \frac{1}{|\mathbf r|},
+\qquad L = x\,\dot y - y\,\dot x""",
+    "bouncing_ball": r"""\ddot h = -g, \qquad \dot h \to -e\,\dot h \ \text{ when } h = 0,
+\qquad g = 9.81,\; e = 0.8""",
+    "fisher_wave": r"""\frac{\partial u}{\partial t} = \frac{\partial^2 u}{\partial x^2} + u\,(1 - u)""",
+}
+
+#: titles as they are written, where the model file keeps to plain letters
+TITLES = {"rossler": "The Rössler attractor", "henon": "The Hénon map"}
+
 #: the order of the gallery, by subject
 SECTIONS = [
     ("Chaos", ["lorenz", "rossler", "chua", "duffing", "logistic_map", "henon", "mackey_glass"]),
@@ -214,7 +290,8 @@ def classics_page():
              "under **Models > Classics**; in Python, "
              "`xs.load(xs.example(\"classics/lorenz\"))`. Every figure on this "
              "page is made by running the model file shown, with its own "
-             "settings.", "",
+             "settings. Under each set of equations is the model file that "
+             "says the same thing in the app's language.", "",
              "The example models that came with XPPAUT are on "
              "[their own page](xppaut.md).", ""]
     done = 0
@@ -224,6 +301,7 @@ def classics_page():
             path = CLASSICS / f"{name}.ode"
             draw, caption = FIGURES[name]
             title, about = describe(path, limit=0)
+            title = TITLES.get(name, title)
             with xs.load(path) as m:
                 fig = draw(m)
             fig.tight_layout(pad=0.4)
@@ -232,12 +310,17 @@ def classics_page():
             lines += [f"### {title}", "",
                       f"![{title}](img/classic-{name}.png)", "",
                       f"*{caption}*", "", about, "",
-                      "```ode", equations(path), "```", "",
+                      "$$", EQUATIONS[name], "$$", "",
+                      f'??? note "The model file: {name}.ode"', "",
+                      "    ```ode",
+                      *("    " + line for line in equations(path).splitlines()),
+                      "    ```", "",
                       f"`xs.example(\"classics/{name}\")` · "
                       f"[{name}.ode]({REPO}examples/classics/{name}.ode)", ""]
             done += 1
     missing = sorted(p.stem for p in CLASSICS.glob("*.ode")
-                     if p.stem not in {n for _, ns in SECTIONS for n in ns})
+                     if p.stem not in {n for _, ns in SECTIONS for n in ns}
+                     or p.stem not in EQUATIONS)
     if missing:
         raise SystemExit(f"classics not in the gallery: {missing}")
     (OUT / "index.md").write_text("\n".join(lines), encoding="utf-8")

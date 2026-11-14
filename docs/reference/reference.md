@@ -16,6 +16,9 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | Page | What it does |
 |---|---|
 | [auto steady](auto-steady.md) | Follow steady states as a parameter varies, and find where they fold or lose stability. |
+| [auto save](auto-save.md) | Save the diagram to a file, with what AUTO needs to continue from it later. |
+| [auto load](auto-load.md) | Bring a saved diagram back, ready to be continued. |
+| [auto reset](auto-reset.md) | Clear the diagram. |
 | [auto orbit](auto-orbit.md) | Show the periodic orbit at a labelled point as the run. |
 | [auto set](auto-set.md) | Set AUTO's numerical settings: the parameter's range, the step along a branch, how far a branch may go. |
 | [auto from](auto-from.md) | Continue from a labelled point: periodic orbits from a Hopf point, a curve of bifurcations in two parameters, the rest of a branch. |

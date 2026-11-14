@@ -24,9 +24,6 @@ fit
 freeze
 use
 sets
-auto reset
-auto save
-auto load
 range
 kinescope capture
 kinescope play

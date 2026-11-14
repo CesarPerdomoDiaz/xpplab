@@ -239,3 +239,48 @@ def test_auto_orbit_page():
     assert ends["inside"] < 1e-3          # to rest
     assert ends["outside"] > 0.3          # to firing
     m.close()
+
+
+def test_auto_save_load_and_reset_pages(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)      # the examples write hopf.auto here
+    text, blocks = python_blocks("auto-save.md")
+    ns = {}
+    exec(compile(blocks[0], "auto-save.md example", "exec"), ns)
+    saved = tmp_path / "hopf.auto"
+    assert saved.exists() and 20000 < saved.stat().st_size < 30000   # "about 25 kB"
+    assert len(ns["d"]) == 49 and "(49 points)" in text
+    ns["m"].close()
+    with xs.load(xs.example("lecar.ode")) as m:
+        with pytest.raises(xs.EngineError, match="the diagram is empty"):
+            m.auto.save(tmp_path / "none.auto")
+
+    text, blocks = python_blocks("auto-load.md")
+    ns = {}
+    exec(compile(blocks[0], "auto-load.md example", "exec"), ns)
+    d, orbits = ns["d"], ns["orbits"]
+    assert len(d) == 49 and "49 points" in text
+    assert [(p.label, round(p.value, 4)) for p in d.special("HB")] == [(2, 0.2625),
+                                                                       (3, 0.4569)]
+    assert [(p.label, round(p.value, 4)) for p in orbits.special("LP")] == [(5, 0.2484),
+                                                                            (6, 0.4657)]
+    with pytest.raises(xs.EngineError, match="cannot read"):
+        ns["m"].auto.load(tmp_path / "missing.auto")
+    ns["m"].close()
+
+    text, blocks = python_blocks("auto-reset.md")
+    ns = {}
+    exec(compile(blocks[0], "auto-reset.md example", "exec"), ns)
+    m, d = ns["m"], ns["d"]
+    assert len(m.auto.diagram) == 49 and len(d) == 49
+    assert [p.label for p in d.special("HB")] == [2, 3]
+    # without the reset: both runs, and two points labelled 2
+    m.auto.reset()
+    first = m.auto.equilibria("iapp", parmax=0.3)
+    second = m.auto.equilibria("iapp", parmax=0.5)
+    assert len(first) == 24 and len(m.auto.diagram) == 73 and "73" in text
+    assert [p.label for p in second if p.label] == [1, 2, 3, 4]
+    assert [p.type for p in m.auto.diagram if p.label == 2] == ["HB", "HB"]
+    # a continuation from a label carries on from the highest label
+    orbits = m.auto.continue_from(second.first("HB"), "periodic", nmax=50)
+    assert [p.label for p in orbits if p.label][:2] == [5, 6]
+    m.close()

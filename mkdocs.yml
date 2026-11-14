@@ -108,6 +108,9 @@ nav:
       - auto from: reference/auto-from.md
       - auto set: reference/auto-set.md
       - auto orbit: reference/auto-orbit.md
+      - auto save: reference/auto-save.md
+      - auto load: reference/auto-load.md
+      - auto reset: reference/auto-reset.md
       - Commands and shortcuts: manual/commands.md
       - The .ode file format: manual/odefile.md
       - Numerical methods: manual/numerics.md

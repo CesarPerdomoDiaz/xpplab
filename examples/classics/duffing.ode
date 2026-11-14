@@ -1,0 +1,10 @@
+# The forced Duffing oscillator
+# A mass in a double well, damped and shaken. For this forcing it hops
+# between the two wells chaotically (Duffing, 1918).
+x'=y
+y'=x-x^3-delta*y+gamma*cos(omega*t)
+par delta=0.3,gamma=0.5,omega=1.2
+init x=1,y=0
+@ total=400,dt=0.01,meth=rungekutta,maxstor=200000
+@ xp=x,yp=y,xlo=-2,xhi=2,ylo=-1.5,yhi=1.5
+done

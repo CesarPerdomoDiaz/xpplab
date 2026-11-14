@@ -1,0 +1,11 @@
+# The FitzHugh-Nagumo model
+# A nerve cell in two variables: a fast voltage v and a slow recovery w.
+# Below a threshold of the current I it rests; above it, it fires again and
+# again (FitzHugh, 1961; Nagumo, Arimoto and Yoshizawa, 1962).
+v'=v-v^3/3-w+I
+w'=eps*(v+a-b*w)
+par I=0.5,a=0.7,b=0.8,eps=0.08
+init v=-1,w=1
+@ total=200,dt=0.05,meth=rungekutta
+@ xp=v,yp=w,xlo=-2.5,xhi=2.5,ylo=-1,yhi=2
+done

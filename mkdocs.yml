@@ -101,7 +101,8 @@ nav:
       - Mechanics: learn/mechanics.md
       - Control: learn/control.md
       - "Aerospace: a kite on a tether": learn/kite.md
-      - Examples gallery: gallery/index.md
+      - Gallery of classic models: gallery/index.md
+      - XPPAUT's example models: gallery/xppaut.md
   - Reference:
       - Commands and shortcuts: manual/commands.md
       - The .ode file format: manual/odefile.md

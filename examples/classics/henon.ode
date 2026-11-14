@@ -1,0 +1,10 @@
+# The Henon map
+# A map of the plane with a strange attractor: stretch, fold, and repeat
+# (Henon, 1976).
+x(t+1)=1-a*x^2+y
+y(t+1)=b*x
+par a=1.4,b=0.3
+init x=0,y=0
+@ meth=discrete,total=20000,maxstor=30000
+@ xp=x,yp=y,xlo=-1.5,xhi=1.5,ylo=-0.45,yhi=0.45
+done

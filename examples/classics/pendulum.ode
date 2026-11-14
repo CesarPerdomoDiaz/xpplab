@@ -1,0 +1,11 @@
+# The pendulum
+# The angle th of a rigid pendulum with friction. Small swings are those of
+# the harmonic oscillator; large ones are slower, and a strong enough push
+# takes it over the top.
+th'=w
+w'=-sin(th)-c*w
+par c=0.1
+init th=3,w=0
+@ total=80,dt=0.01,meth=rungekutta
+@ xp=th,yp=w,xlo=-4,xhi=4,ylo=-3,yhi=3
+done

@@ -214,6 +214,9 @@ if(SKBUILD)
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/
     DESTINATION xpplab/examples COMPONENT python
     FILES_MATCHING PATTERN "*.ode" PATTERN "*.ani" PATTERN "*.tab" PATTERN "*.dat")
+  # The classic models: xs.example("classics/lorenz")
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/classics/
+    DESTINATION xpplab/examples/classics COMPONENT python)
   install(FILES ${PROJECT_SOURCE_DIR}/docs/manual/odefile.md
                 ${PROJECT_SOURCE_DIR}/docs/manual/auto.md
     DESTINATION xpplab/_docs COMPONENT python)

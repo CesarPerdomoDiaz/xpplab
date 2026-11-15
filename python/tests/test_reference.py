@@ -1032,3 +1032,26 @@ def test_power_page():
     assert [round(a5[k], 3) for k in (1, 3, 5, 7)] == [2.106, 0.584, 0.307, 0.192]
     m.close()
     m5.close()
+
+
+def test_script_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("script.md")
+    ns = {}
+    exec(compile(blocks[0], "script.md example", "exec"), ns)
+    eq = ns["eq"]
+    assert eq.kind == "unstable focus"
+    assert (round(eq["V"], 7), round(eq["W"], 5)) == (0.0442523, 0.31671)
+    ev = sorted(eq.eigenvalues, key=lambda z: -z.imag)[0]
+    assert (round(ev.real, 5), round(ev.imag, 4)) == (0.32827, 1.0303)
+    assert (tmp_path / "run.csv").exists()
+    ns["m"].close()
+
+
+def test_echo_page():
+    text, blocks = python_blocks("echo.md")
+    ns = {}
+    exec(compile(blocks[0], "echo.md example", "exec"), ns)
+    eq = ns["eq"]
+    assert eq.kind == "unstable focus" and round(eq["V"], 7) == 0.0442523
+    ns["m"].close()

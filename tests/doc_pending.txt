@@ -24,8 +24,6 @@ locus
 open
 new
 save
-script
-echo
 show
 hide
 layout

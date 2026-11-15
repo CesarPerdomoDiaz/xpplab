@@ -121,6 +121,8 @@ nav:
       - ic last: reference/ic-last.md
       - ic shift: reference/ic-shift.md
       - export: reference/export.md
+      - script: reference/script.md
+      - echo: reference/echo.md
       - ic read: reference/ic-read.md
       - ic write: reference/ic-write.md
       - whos: reference/whos.md

@@ -18,9 +18,6 @@ poles
 lqr
 closedloop
 locus
-open
-new
-save
 show
 hide
 layout

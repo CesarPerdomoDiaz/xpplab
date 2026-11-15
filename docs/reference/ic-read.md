@@ -90,7 +90,7 @@ and `W` to 0.01.
 
 | Setting | Where | Meaning | Advice |
 |---|---|---|---|
-| `FILE` | the command; the path in Python | The file to read. | A relative name is relative to the folder the app or the script runs in. |
+| `FILE` | the command; the path in Python | The file to read. | In the app a relative name is relative to the model's folder; in Python, to the working folder. |
 
 ## Results
 

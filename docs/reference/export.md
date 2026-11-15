@@ -98,7 +98,7 @@ unstable focus: two unstable directions, eigenvalues 0.5204 ± 0.7811 i.
 
 | Setting | Where | Meaning | Advice |
 |---|---|---|---|
-| `FILE` | the command; the path in Python | The file to write; it is replaced if it exists. | The ending chooses the format: `.mat` for MATLAB, `.svg` or `.png` for a figure, anything else for CSV. |
+| `FILE` | the command; the path in Python | The file to write; it is replaced if it exists. | The ending chooses the format: `.mat` for MATLAB, `.svg` or `.png` for a figure, anything else for CSV. In the app a relative name is relative to the model's folder; in Python, to the working folder. |
 | `WHAT` | the command | Which table, for data. | Leave it out for the run. |
 | `FIGURE` | the command | Which figure, for `.svg` and `.png`. | `time`, `phase`, `auto` or `auto2`. |
 

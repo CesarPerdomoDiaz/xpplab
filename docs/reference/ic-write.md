@@ -68,7 +68,7 @@ precision; see [ic last](ic-last.md).
 
 | Setting | Where | Meaning | Advice |
 |---|---|---|---|
-| `FILE` | the command; the path in Python | The file to write. It is replaced if it exists. | A relative name is relative to the folder the app or the script runs in. |
+| `FILE` | the command; the path in Python | The file to write. It is replaced if it exists. | In the app a relative name is relative to the model's folder; in Python, to the working folder. |
 
 ## Results
 

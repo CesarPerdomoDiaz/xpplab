@@ -1097,3 +1097,39 @@ def test_get_page():
     assert "%.10g" % float(np.float32(n.get("V"))) == "-0.2384222746"
     m.close()
     n.close()
+
+
+def test_open_page():
+    text, blocks = python_blocks("open.md")
+    ns = {}
+    exec(compile(blocks[0], "open.md example", "exec"), ns)
+    m = ns["m"]
+    assert m.variables == ["X", "Y", "Z"]
+    assert dict(m.parameters) == pytest.approx({"r": 27, "s": 10, "b": 2.66666})
+    assert (m.get("X"), m.get("Z"), m.get("TOTAL"), m.get("DT")) == pytest.approx((-7.5, 30, 40, 0.025))
+    m.close()
+
+
+def test_new_page():
+    text, blocks = python_blocks("new.md")
+    ns = {}
+    exec(compile(blocks[0], "new.md example", "exec"), ns)
+    m = ns["m"]
+    assert m.variables == ["V", "W"] and len(m.parameters) == 4
+    assert (m.get("V"), m.get("W"), m.get("TOTAL")) == pytest.approx((-1, 1, 200))
+    # the same model as the app's template (app_new_model in app/src/app.c)
+    source = (ROOT / "app" / "src" / "app.c").read_text(encoding="utf-8")
+    for line in ("v' = v - v^3/3 - w + I", "w' = eps*(v + a - b*w)",
+                 "par I=0.5, a=0.7, b=0.8, eps=0.08", "init v=-1, w=1",
+                 "@ total=200, dt=0.05, xp=v, yp=w"):
+        assert line in source and line in blocks[0]
+    m.close()
+
+
+def test_save_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("save.md")
+    ns = {}
+    exec(compile(blocks[0], "save.md example", "exec"), ns)
+    assert ns["m"].variables == ["V", "W"]
+    ns["m"].close()

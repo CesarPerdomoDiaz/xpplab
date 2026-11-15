@@ -20,6 +20,9 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [ic shift](ic-shift.md) | Start the next run where the last one ended, and let the time go on. |
 | [script](script.md) | Save the session as a Python script that repeats it. |
 | [echo](echo.md) | Show each action as the Python that repeats it. |
+| [open](open.md) | Open a model file. |
+| [new](new.md) | Start a new model from a template. |
+| [save](save.md) | Save the model in the editor and open it again. |
 | [export](export.md) | Save the last run, a result or a figure: CSV, MATLAB, SVG or PNG. |
 | [ic read](ic-read.md) | Read the initial values from a text file. |
 | [ic write](ic-write.md) | Write the initial values to a text file, one per line. |

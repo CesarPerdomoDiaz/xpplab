@@ -121,6 +121,9 @@ nav:
       - erase: reference/erase.md
       - ic last: reference/ic-last.md
       - ic shift: reference/ic-shift.md
+      - open: reference/open.md
+      - new: reference/new.md
+      - save: reference/save.md
       - export: reference/export.md
       - script: reference/script.md
       - echo: reference/echo.md

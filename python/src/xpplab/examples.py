@@ -19,22 +19,40 @@ def example_dirs() -> list[Path]:
     return [c for c in cands if c.is_dir() and any(c.glob("*.ode"))]
 
 
+def classics() -> list[Path]:
+    """The classic models, sorted by name: familiar systems, each with a
+    description in its first lines (the documentation's gallery shows
+    them)."""
+    for d in example_dirs() + [_PACKAGE.parents[2] / "examples"]:
+        found = sorted((d / "classics").glob("*.ode"))
+        if found:
+            return found
+    return []
+
+
 def example(name: str) -> Path:
     """The path of a shipped example model, to pass to :func:`xpplab.load`::
 
         m = xs.load(xs.example("lecar.ode"))
 
-    ``name`` is the file name; the ``.ode`` ending may be left out. Raises
-    ``FileNotFoundError`` when there is no such model, naming the closest
-    ones."""
+    ``name`` is the file name; the ``.ode`` ending may be left out. The
+    classic models (the Lorenz attractor, the van der Pol oscillator, ...)
+    are in the folder ``classics``::
+
+        m = xs.load(xs.example("classics/lorenz"))
+
+    Raises ``FileNotFoundError`` when there is no such model, naming the
+    closest ones."""
     name = str(name)
     dirs = example_dirs()
-    for d in dirs:
+    # in a source checkout the classics are in examples/classics
+    for d in dirs + [_PACKAGE.parents[2] / "examples"]:
         for cand in (name, name + ".ode"):
             p = d / cand
             if p.is_file():
                 return p
-    known = sorted({p.name for d in dirs for p in d.glob("*.ode")})
+    known = sorted({p.name for d in dirs for p in d.glob("*.ode")}
+                   | {"classics/" + p.name for p in classics()})
     stems = {k[:-4]: k for k in known}
     key = name[:-4] if name.endswith(".ode") else name
     close = [stems[s] for s in difflib.get_close_matches(key, list(stems), n=5, cutoff=0.5)]

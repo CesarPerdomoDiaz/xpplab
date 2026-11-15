@@ -1,0 +1,12 @@
+# The SIR model of an epidemic
+# Susceptible people s catch the disease from infected ones i, who then
+# recover (r). The outbreak grows while each case infects more than one
+# other, that is while s > gamma/beta (Kermack and McKendrick, 1927).
+s'=-beta*s*i
+i'=beta*s*i-gamma*i
+r'=gamma*i
+par beta=0.5,gamma=0.2
+init s=0.999,i=0.001,r=0
+@ total=100,dt=0.05,meth=rungekutta
+@ xp=t,yp=i,xlo=0,xhi=100,ylo=0,yhi=1
+done

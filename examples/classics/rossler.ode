@@ -1,0 +1,11 @@
+# The Rossler attractor
+# The simplest chaotic flow, with a single nonlinear term. The trajectory
+# spirals out in the x-y plane and is folded back through z (Rossler, 1976).
+x'=-y-z
+y'=x+a*y
+z'=b+z*(x-c)
+par a=0.2,b=0.2,c=5.7
+init x=1,y=1,z=0
+@ total=300,dt=0.01,meth=rungekutta,maxstor=200000,bound=1000
+@ xp=x,yp=y,xlo=-12,xhi=14,ylo=-12,yhi=10
+done

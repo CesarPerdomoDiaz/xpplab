@@ -64,6 +64,10 @@ def main(exe, model):
     out = batch(exe, model, "doc qqqqzzzz")
     check("error: no reference page 'qqqqzzzz'" in out and "Closest" not in out,
           "a name that is nothing: " + out)
+    # help stays the short text: it names the page, and does not open it
+    out = batch(exe, model, "help auto steady")
+    check("doc auto steady opens its reference page" in out and SITE not in out,
+          "help auto steady points to doc: " + out)
     out = batch(exe, model, "help doc")
     check("reference page" in out, "help doc: " + out)
 

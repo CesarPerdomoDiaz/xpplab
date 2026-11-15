@@ -693,7 +693,8 @@ bool app_export_locus_csv(App *a, const char *path);
 const char *app_analysis_name(int tool);
 /* Boundary-value problem (XPPAUT's Bndryval), the 3D view's setup from the
    model, and the animator. */
-bool app_bvp(App *a);
+/* maxit, tol, eps: XPPAUT's Bndryval settings; 0 keeps each as it is. */
+bool app_bvp(App *a, int maxit, double tol, double eps);
 void app_view3d_reset(App *a);
 bool app_ani_load(App *a, const char *path);
 bool app_ani_nullclines(App *a, const char *par, int steps, double lo, double hi);

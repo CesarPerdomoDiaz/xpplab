@@ -57,6 +57,7 @@ with tempfile.TemporaryDirectory() as t:
     work = tmp / "commands"
     work.mkdir()
     shutil.copy(examples / "lecar.ode", work)
+    shutil.copy(examples / "cable.ode", work)
     (work / "cmds.txt").write_text(
         "# a brute-force diagram, then AUTO\n"
         "use hopf\n"
@@ -86,6 +87,16 @@ with tempfile.TemporaryDirectory() as t:
     s = work / "session.py"
     check(s.exists() and "m.auto" in s.read_text() and "sol.save(" in s.read_text(),
           "the session is saved as Python")
+
+    # bvp tol=...: the shooting's tolerance, which only Python could set.
+    # The sealed cable on [0, 1] has v'(0) = -tanh(1) = -0.761594156;
+    # XPPAUT's tolerance of 1e-5 stops at -0.7615917.
+    r = run(["cable.ode", "--keep-going", "-c", "set total=1 dt=0.01 a=0 b=1",
+             "-c", "bvp", "-c", "get vx", "-c", "bvp tol=1e-8", "-c", "get vx",
+             "-c", "bvp tol=abc"], work)
+    check("vx = -0.761591676" in r.stdout and "vx = -0.761594155" in r.stdout,
+          "bvp tol= tightens the shooting: " + r.stdout[-500:])
+    check("error: write bvp [tol=T]" in r.stdout, "bvp refuses a bad setting: " + r.stdout[-300:])
 
     # Errors: the first one stops, with exit status 1
     r = run(["lecar.ode", "-c", "export x.png phase", "-c", "run"], work)

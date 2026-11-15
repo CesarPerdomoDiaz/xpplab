@@ -22,7 +22,7 @@ def upward(t, x, level=0.0, after=0.0):
 
 
 def test_the_classics_are_found():
-    assert len(NAMES) == 20 and "lorenz" in NAMES and "heat" in NAMES
+    assert len(NAMES) == 21 and "lorenz" in NAMES and "heat" in NAMES
     assert xs.example("classics/lorenz.ode").name == "lorenz.ode"
     assert xs.example("classics/lorenz") != xs.example("lorenz.ode")  # XPPAUT's own
     with pytest.raises(FileNotFoundError, match="classics/lorenz.ode"):
@@ -202,3 +202,17 @@ def test_the_chaotic_ones_visit_both_sides():
         x = m.run()["X"][4000:]
         assert x.max() - x.min() > 0.6
         assert m.run(tau=2)["X"][-1] == pytest.approx(1.0, abs=1e-3)   # short delay: steady
+
+
+def test_ornstein_uhlenbeck():
+    # dx = -theta x dt + sigma dW from x0 = 2: mean x0 exp(-theta t), variance
+    # sigma^2 (1 - exp(-2 theta t)) / (2 theta), here tending to 0.125.
+    with load("ornstein_uhlenbeck") as m:
+        ens = m.ensemble(1000)
+        t, mean, var = ens.mean.t, ens.mean["X"], ens.variance["X"]
+        assert np.abs(mean - 2 * np.exp(-t)).max() < 0.04          # 1000 runs: sd 0.011
+        exact = 0.125 * (1 - np.exp(-2 * t))
+        assert np.abs(var - exact)[t > 1].max() < 0.2 * 0.125
+        assert np.mean(var[t > 3]) == pytest.approx(0.125, rel=0.05)
+        assert var[0] == 0 and mean[0] == pytest.approx(2)
+

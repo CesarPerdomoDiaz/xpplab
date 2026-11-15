@@ -233,6 +233,8 @@ static void help_say(App *a, const char *text) {
 
 /* `help`: every command; `help COMMAND`: its entry; `help PAGE`: a manual
    page. A word that is both opens the page and prints the entries. */
+static const doc_page *doc_page_of(const char *name);
+
 static void cmd_help(App *a, char *rest) {
   char pages[512], line[1024], *topic = skip_space(rest), *end;
   const doc_page *p;
@@ -247,9 +249,15 @@ static void cmd_help(App *a, char *rest) {
     help_say(a, line);
     return;
   }
+  /* help opens a chapter of the manual; a command's reference page is doc's */
   p = strchr(topic, ' ') ? NULL : docs_find(topic);
+  if (p && strcmp(p->dir, "manual")) p = NULL;
   if (p) ui_show_help(a, p->name);
   found = help_commands(a, topic);
+  if (found && doc_page_of(topic)) {
+    snprintf(line, sizeof line, "doc %s opens its reference page, with worked examples.", topic);
+    help_say(a, line);
+  }
   if (!found && !p) {
     for (i = 0; i < (int)(sizeof help_aliases / sizeof help_aliases[0]); i++)
       if (SDL_strcasecmp(help_aliases[i].alias, topic) == 0) {

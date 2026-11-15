@@ -1,0 +1,11 @@
+# The damped harmonic oscillator
+# A mass on a spring with a damper: m x'' + c x' + k x = 0. With weak
+# damping it rings just below the frequency sqrt(k/m) while its amplitude
+# decays as exp(-c t / 2m).
+x'=v
+v'=-(k*x+c*v)/m
+par m=1,k=1,c=0.2
+init x=1,v=0
+@ total=50,dt=0.01,meth=rungekutta
+@ xp=t,yp=x,xlo=0,xhi=50,ylo=-1,yhi=1
+done

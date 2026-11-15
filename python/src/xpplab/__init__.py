@@ -16,6 +16,7 @@ from .animation import Animation
 from .auto import Diagram, Point
 from .control import LQR, Linearization, RootLocus
 from .sensitivity import Sensitivity
+from .docs import doc
 from .examples import example
 from .figure import Annotations, Figure
 from .model import (METHODS, Ensemble, Equilibrium, EquilibriumList, Model, RunList,
@@ -25,7 +26,7 @@ from . import app  # xs.app.connect(): drive the running desktop app
 __all__ = ["Model", "Trajectory", "RunList", "Values", "Ensemble", "Equilibrium", "EquilibriumList", "Linearization",
            "LQR", "RootLocus",
            "Diagram", "Point", "Table", "Figure", "Annotations", "Animation",
-           "EngineError", "METHODS", "load", "example", "find_engine_library", "app",
+           "EngineError", "METHODS", "load", "example", "doc", "find_engine_library", "app",
            "__version__"]
 
 __version__ = "0.1.3"

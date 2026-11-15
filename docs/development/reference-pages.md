@@ -26,9 +26,10 @@ does. Then these sections, with these headings, in this order.
    or menu that does the same, and the Python call.
 2. **Description.** One paragraph for each form: what it does and when to
    use it. Say where it starts from, what it draws and when it stops.
-3. **Examples.** At least two, each under a `###` heading that says what it
-   shows. The first is the plain use, another shows a setting or a
-   difficulty. Each example has:
+3. **Examples.** Each under a `###` heading that says what it shows. A
+   command with settings or with more than one use has at least two: the
+   plain use, and one that shows a setting or a difficulty. A command that
+   does one thing (`auto reset`) may have one. Each example has:
    - a shipped model, or a model short enough to type;
    - links that run it in the app: `[Open the model](example:lecar.ode)` and
      `[Follow the steady states](cmd:auto steady iapp)`;

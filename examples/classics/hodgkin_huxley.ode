@@ -1,0 +1,19 @@
+# The Hodgkin-Huxley model
+# The squid giant axon: the membrane voltage v and the gates m, h and n of
+# its sodium and potassium channels. A steady current makes it fire a train
+# of action potentials (Hodgkin and Huxley, 1952).
+am(v)=0.1*(v+40)/(1-exp(-(v+40)/10))
+bm(v)=4*exp(-(v+65)/18)
+ah(v)=0.07*exp(-(v+65)/20)
+bh(v)=1/(1+exp(-(v+35)/10))
+an(v)=0.01*(v+55)/(1-exp(-(v+55)/10))
+bn(v)=0.125*exp(-(v+65)/80)
+v'=(I-gna*m^3*h*(v-ena)-gk*n^4*(v-ek)-gl*(v-el))/c
+m'=am(v)*(1-m)-bm(v)*m
+h'=ah(v)*(1-h)-bh(v)*h
+n'=an(v)*(1-n)-bn(v)*n
+par I=10,gna=120,gk=36,gl=0.3,ena=50,ek=-77,el=-54.4,c=1
+init v=-65,m=0.053,h=0.596,n=0.318
+@ total=100,dt=0.01,meth=rungekutta,maxstor=20000
+@ xp=t,yp=v,xlo=0,xhi=100,ylo=-80,yhi=50
+done

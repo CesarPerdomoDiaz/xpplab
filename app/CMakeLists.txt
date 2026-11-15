@@ -227,6 +227,9 @@ add_custom_command(TARGET xpplab POST_BUILD
           $<TARGET_FILE_DIR:xpplab>
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${PROJECT_SOURCE_DIR}/engine/xppaut/ode ${APP_DATA_DIR}/examples
+  # The classic models (Lorenz, van der Pol, ...), shown first in Models
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${PROJECT_SOURCE_DIR}/examples/classics ${APP_DATA_DIR}/examples/classics
   # The xpplab package, for the console's Python (pyconsole.c)
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${PROJECT_SOURCE_DIR}/python/src/xpplab ${APP_DATA_DIR}/python/xpplab)
@@ -290,6 +293,8 @@ else()
           COMPONENT app
           PATTERN "*~" EXCLUDE PATTERN "*.o" EXCLUDE PATTERN "*.so" EXCLUDE
           PATTERN "*.bak" EXCLUDE PATTERN "a.out" EXCLUDE)
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/classics/
+          DESTINATION examples/classics COMPONENT app)
   # The xpplab package beside the app, for the console's Python.
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/python/src/xpplab DESTINATION python
           COMPONENT app PATTERN "__pycache__" EXCLUDE)

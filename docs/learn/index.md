@@ -92,7 +92,7 @@ start](../python/quickstart.md#notebooks).
 - [Bifurcation analysis with AUTO](../manual/auto.md): the point types and
   what each continuation does.
 - [Python API reference](../python/reference.md).
-- [Gallery](../gallery/index.md): twenty classic models, from the Lorenz
+- [Gallery](../gallery/index.md): twenty-one classic models, from the Lorenz
   attractor to the heat equation, each with its figure and its equations.
   The example models that come with XPPAUT have
   [their own page](../gallery/xppaut.md).

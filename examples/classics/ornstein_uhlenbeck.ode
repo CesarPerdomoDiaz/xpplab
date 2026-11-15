@@ -1,0 +1,12 @@
+# The Ornstein-Uhlenbeck process
+# A quantity pulled back to zero while noise pushes it about, such as the
+# velocity of a particle in a fluid (Uhlenbeck and Ornstein, 1930). Its mean
+# decays exponentially from the start, at the rate theta, while its variance
+# grows to sigma squared over twice theta. Run many times to see both.
+wiener w
+x'=-theta*x+sigma*w
+par theta=1,sigma=0.5
+init x=2
+@ total=5,dt=0.01,meth=euler
+@ xp=t,yp=x,xlo=0,xhi=5,ylo=-1,yhi=3
+done

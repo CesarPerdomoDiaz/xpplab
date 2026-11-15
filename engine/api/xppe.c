@@ -535,6 +535,13 @@ static int variable_index(const char *name) {
   return -1;
 }
 
+/* The evaluator's slot of variable i (0 is t): the ODE variables, then,
+   after the fixed quantities, the Markov ones, as xppe_analysis.c sets them. */
+static int ic_slot(int i) {
+  extern int FIX_VAR;
+  return i < NODE ? i + 1 : i + 1 + FIX_VAR;
+}
+
 /* XPPAUT's subsk() exits on an unclosed bracket: check first. */
 static int brackets_close(const char *s) {
   int depth = 0;
@@ -547,12 +554,17 @@ static int brackets_close(const char *s) {
 
 /* Initial conds > formUla, evaluated as XPPAUT's evaluate_ar_ic() does:
    each variable of target gets the value of formula, with [j] in an array
-   target's formula standing for the index. */
+   target's formula standing for the index. A variable named in the formula
+   is its initial value: XPPAUT's evaluator holds whatever the last run or
+   equilibrium left there, which the app and a Python script do not share,
+   so it is given the initial values for the call and its own back after. */
 int xppe_ic_formula(const char *target, const char *formula) {
   void subsk(char *big, char *new, int k, int flag);
   double calculate(char *expr, int *ok);
+  double get_ivar(int i);
+  void set_ivar(int i, double value);
   char name[256], pat[300], var[300], src[1000], expr[4096];
-  double v[MAXODE];
+  double v[MAXODE], held[MAXODE];
   int idx[MAXODE];
   int rc, j, j1 = 0, j2 = 0, n = 0, k = 0, ok, i;
   const char *lb = NULL, *dots = NULL, *rb = NULL;
@@ -598,6 +610,8 @@ int xppe_ic_formula(const char *target, const char *formula) {
     xppe_set_error("%s names no variable", name);
     return XPPE_ERR_RANGE;
   }
+  for (i = 0; i < NODE + NMarkov; i++) held[i] = get_ivar(ic_slot(i));
+  for (i = 0; i < NODE + NMarkov; i++) set_ivar(ic_slot(i), last_ic[i]);
   xppe_begin_call();
   XPPE_GUARD_BEGIN((void)0);
   for (k = 0, ok = 1; k < n && ok; k++) {
@@ -609,6 +623,7 @@ int xppe_ic_formula(const char *target, const char *formula) {
   }
   XPPE_GUARD_END;
   xppe_end_call();
+  for (i = 0; i < NODE + NMarkov; i++) set_ivar(ic_slot(i), held[i]);
   if (!ok) {
     xppe_set_error("cannot evaluate %s", expr);
     return XPPE_ERR_NUMERIC;

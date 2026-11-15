@@ -26,6 +26,7 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [click](click.md) | Start a run at a point of the Phase Plane, as a click on it does. |
 | [freeze](freeze.md) | Keep the current run on the plots, so that the next one is drawn beside it. |
 | [erase](erase.md) | Remove the kept curves and the marked equilibria from the plots. |
+| [bvp](bvp.md) | Solve the boundary-value problem: the run that meets conditions at both ends. |
 | [continue](continue.md) | Integrate further from the end of the last run and add the new part to it. |
 | [mean](mean.md) | The mean and standard deviation of a column, and the largest Liapunov exponent of the run. |
 | [hist](hist.md) | A histogram of a column of the last run: how much of the run is spent at each value. |

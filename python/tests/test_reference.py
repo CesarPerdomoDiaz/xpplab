@@ -766,3 +766,25 @@ def test_hist2d_page():
     assert round(c.sum(), 4) == 0.9995 == round(1 - on_edge / len(run), 4)
     assert len(m.histogram2d("V", "W")) == 400                 # 20 by 20
     m.close()
+
+
+def test_bvp_page():
+    text, blocks = python_blocks("bvp.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "bvp.md example 1", "exec"), ns)
+    m, sol = ns["m"], ns["sol"]
+    assert round(m.get("V"), 12) == 1 and round(m.get("VX"), 11) == -1.31303528556
+    assert abs(m.get("VX") + 1 / np.tanh(1)) < 1e-10
+    assert np.abs(sol["V"] - ns["exact"]).max() < 4e-8 and sol.t[-1] == pytest.approx(1)
+    guess = m.get("VX")
+    exec(compile(blocks[1], "bvp.md example 2", "exec"), ns)
+    loose = ns["loose"]
+    assert round(loose, 7) == -0.7615917 and abs(loose + np.tanh(1)) == pytest.approx(2.5e-6, abs=1e-7)
+    assert round(m.get("VX"), 11) == -0.76159415592 and abs(m.get("VX") + np.tanh(1)) < 4e-11
+    other = xs.load(xs.example("cable.ode"))            # from the first solution
+    other.set(total=1, dt=0.01, VX=guess, a=0, b=1)
+    other.bvp()
+    assert round(other.get("VX"), 11) == -0.76159415594
+    m.close()
+    other.close()

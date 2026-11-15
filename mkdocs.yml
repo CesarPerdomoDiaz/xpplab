@@ -107,6 +107,7 @@ nav:
       - run: reference/run.md
       - eq: reference/eq.md
       - eq all: reference/eq-all.md
+      - nullclines: reference/nullclines.md
       - auto steady: reference/auto-steady.md
       - auto from: reference/auto-from.md
       - auto set: reference/auto-set.md

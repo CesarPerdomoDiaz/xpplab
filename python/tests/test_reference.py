@@ -361,3 +361,35 @@ def test_eq_pages():
     assert len(one) == 1 and one[0].kind == "unstable focus"
     assert one[0]["V"] == pytest.approx(-0.152093, abs=1e-6)
     ns["m"].close()
+
+
+def test_nullclines_page():
+    text, blocks = python_blocks("nullclines.md")
+    assert len(blocks) == 2
+    box = {"V": (-0.6, 1.2), "W": (-0.25, 1.2)}
+
+    def distance(segments, point):
+        a, b = segments[:, :2], segments[:, 2:]
+        ab = b - a
+        t = np.clip(((point - a) * ab).sum(1) / np.maximum((ab ** 2).sum(1), 1e-30), 0, 1)
+        return np.hypot(*(a + t[:, None] * ab - point).T).min()
+
+    ns = {}
+    exec(compile(blocks[0], "nullclines.md example 1", "exec"), ns)
+    m, vn, wn = ns["m"], ns["vn"], ns["wn"]
+    found = m.find_equilibria(box=box)
+    assert sorted(round(e["V"], 4) for e in found) == [-0.3825, -0.1425, 0.0276]
+    for e in found:          # every equilibrium lies on both nullclines
+        p = np.array([e["V"], e["W"]])
+        assert distance(vn, p) < 1e-3 and distance(wn, p) < 1e-3, e.kind
+    # above the V nullcline V decreases, below it increases
+    v0 = -0.3
+    w_on = vn[np.argmin(abs((vn[:, 0] + vn[:, 2]) / 2 - v0)), 1]
+    assert m.rhs({"V": v0, "W": w_on + 0.05})[0] < 0 < m.rhs({"V": v0, "W": w_on - 0.05})[0]
+    exec(compile(blocks[1], "nullclines.md example 2", "exec"), ns)
+    one = m.find_equilibria(box=box)
+    assert len(one) == 1 and one[0].kind == "unstable focus"
+    assert one[0]["V"] == pytest.approx(0.0443, abs=5e-5)
+    m.set(iapp=0.08)
+    assert len(m.find_equilibria(box=box)) == 3
+    m.close()

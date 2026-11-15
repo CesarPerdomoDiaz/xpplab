@@ -28,6 +28,7 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [erase](erase.md) | Remove the kept curves and the marked equilibria from the plots. |
 | [continue](continue.md) | Integrate further from the end of the last run and add the new part to it. |
 | [mean](mean.md) | The mean and standard deviation of a column, and the largest Liapunov exponent of the run. |
+| [hist](hist.md) | A histogram of a column of the last run: how much of the run is spent at each value. |
 | [range](range.md) | Run once for each value of a parameter or initial value: a brute-force diagram, hysteresis, Liapunov exponents. |
 
 ## Equilibria

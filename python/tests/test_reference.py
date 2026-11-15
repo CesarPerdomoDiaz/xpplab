@@ -677,3 +677,25 @@ def test_mean_page():
         assert round(lorenz.lyapunov(), 4) == value
     m.close()
     lorenz.close()
+
+
+def test_hist_page():
+    text, blocks = python_blocks("hist.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "hist.md example 1", "exec"), ns)
+    m, h = ns["m"], ns["h"]
+    assert len(h) == 11 and h.columns == ["bin", "count"]
+    assert h["count"].tolist() == [1020, 858, 750, 349, 173, 138, 144, 142, 151, 275, 1]
+    assert round(h["bin"][0], 4) == -0.3804 and round(h["bin"][-1], 4) == 0.2615
+    assert round(h["bin"][1] - h["bin"][0], 4) == 0.0642
+    run = m.last_run()
+    assert len(run) == 4001
+    assert np.histogram(run["V"], bins=10)[0][-1] == 276
+    exec(compile(blocks[1], "hist.md example 2", "exec"), ns)
+    assert ns["w"]["count"].sum() == 857 == (run["W"] > 0.2).sum()
+    # a point less than a width below LO counts in the first bin (truncation)
+    lo = run["V"].min() + 0.5 * 0.0642
+    g = m.histogram("V", bins=10, range=(lo, lo + 0.642))
+    assert g["count"][0] == ((run["V"] >= lo - 0.0642) & (run["V"] < lo + 0.0642)).sum()
+    m.close()

@@ -24,7 +24,6 @@ view3d
 spectrum
 fourier
 power
-hist
 hist2d
 xcorr
 ensemble

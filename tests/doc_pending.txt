@@ -3,9 +3,6 @@
 # delete the line.
 set
 get
-whos
-ic last
-ic shift
 ic read
 ic write
 ic

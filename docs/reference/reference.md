@@ -16,6 +16,9 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | Page | What it does |
 |---|---|
 | [run](run.md) | Integrate the model from its initial values and show the result. |
+| [ic last](ic-last.md) | Start the next run where the last one ended. |
+| [ic shift](ic-shift.md) | Start the next run where the last one ended, and let the time go on. |
+| [whos](whos.md) | List the variables, parameters and main options, with their values. |
 | [continue](continue.md) | Integrate further from the end of the last run and add the new part to it. |
 | [range](range.md) | Run once for each value of a parameter or initial value: a brute-force diagram, hysteresis, Liapunov exponents. |
 

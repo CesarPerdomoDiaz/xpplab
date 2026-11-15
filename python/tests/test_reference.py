@@ -439,3 +439,73 @@ def test_continue_page():
         m.set(iapp=0.1)
         assert np.abs(s["V"] - m.run(total=200)["V"]).max() < bound
     m.close()
+
+
+def peaks(run):
+    v = run["V"]
+    i = np.where((v[1:-1] > v[:-2]) & (v[1:-1] > v[2:]) & (v[1:-1] > 0.1))[0] + 1
+    return run.t[i], v[i]
+
+
+def test_ic_last_page():
+    text, blocks = python_blocks("ic-last.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "ic-last.md example", "exec"), ns)
+    m, first, second = ns["m"], ns["first"], ns["second"]
+    assert first["V"][0] == pytest.approx(-0.144)
+    assert first["V"][-1] == pytest.approx(-0.2384, abs=1e-4)
+    assert first["W"][-1] == pytest.approx(0.00706, abs=1e-5)
+    assert second["V"][0] == first["V"][-1] and second.t[0] == 0
+    assert m.get("V") == pytest.approx(-0.23842227676, abs=1e-11)   # full precision
+    assert float(np.float32(m.get("V"))) == pytest.approx(-0.2384222746, abs=1e-10)
+    t1, v1 = peaks(first)
+    t2, v2 = peaks(second)
+    assert list(np.round(t1, 2)) == [2.05, 18.5] and list(np.round(t2, 2)) == [4.95, 21.45]
+    assert round(v1[0], 4) == 0.2553 and round(v1[1], 4) == 0.2615
+    assert round(v2[0], 4) == 0.2613 and round(v2[1], 4) == 0.2615
+    m.close()
+
+
+def test_ic_shift_page():
+    text, blocks = python_blocks("ic-shift.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "ic-shift.md example", "exec"), ns)
+    m, first, second = ns["m"], ns["first"], ns["second"]
+    assert first.t[-1] == pytest.approx(9.9852, abs=1e-4)
+    assert m.get("T0") == pytest.approx(9.9852, abs=1e-4)
+    assert second.t[0] == pytest.approx(9.9852, abs=1e-4)
+    assert second.t[-1] == pytest.approx(19.9704, abs=1e-4)
+    assert second["x"][-1] == pytest.approx(-0.8317, abs=1e-4)
+    one = xs.load(xs.example("forcpend.ode"))
+    one.set(total=20, trans=0)
+    whole = one.run()
+    assert np.array_equal(second["x"], whole["x"][len(first) - 1:])   # to the last digit
+    other = xs.load(xs.example("forcpend.ode"))
+    other.set(total=10, trans=0)
+    a = other.run()
+    other.ic_last()
+    b = other.run()
+    assert b.t[0] == 0 and b["x"][-1] == pytest.approx(-7.546, abs=1e-3)
+    gap = np.abs(b["x"] - whole["x"][len(a) - 1:]).max()
+    assert gap == pytest.approx(6.7, abs=0.05) and gap > 2 * np.pi
+    for x in (m, one, other):
+        x.close()
+
+
+def test_whos_page():
+    text, blocks = python_blocks("whos.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "whos.md example 1", "exec"), ns)
+    m = ns["m"]
+    assert m.variables == ["V", "W"] and len(m.parameters) == 12
+    assert dict(m.initial_conditions) == pytest.approx({"V": -0.144, "W": 0.03})
+    assert m.options["METH"] == "rungekutta" and m.options["TOTAL"] == 30
+    assert "Output columns: 7" in text and "cur`, `ica`, `ik`, `rate`" in text
+    exec(compile(blocks[1], "whos.md example 2", "exec"), ns)
+    p = dict(m.parameters)
+    assert p["iapp"] == pytest.approx(0.1)
+    assert (p["phi"], p["v3"], p["v4"], p["gca"]) == pytest.approx((0.2, 0, 0.3, 1.1))
+    m.close()

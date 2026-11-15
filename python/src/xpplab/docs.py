@@ -9,7 +9,7 @@ SITE = "https://cesarperdomodiaz.github.io/xpplab/"
 #: The reference pages (docs/reference), by the command's name.
 PAGES = ("auto steady", "auto from", "auto set", "auto orbit", "auto save",
          "auto load", "auto reset", "run", "eq", "eq all", "nullclines", "range",
-         "continue")
+         "continue", "ic last", "ic shift", "whos")
 
 #: The method of the package that does what a command does.
 METHODS = {"equilibria": "auto steady", "continue_from": "auto from",
@@ -18,7 +18,7 @@ METHODS = {"equilibria": "auto steady", "continue_from": "auto from",
            "equilibrium": "eq", "find_equilibria": "eq all",
            "nullclines": "nullclines",
            "sweep": "range", "sweep_grid": "range",
-           "continue_run": "continue"}
+           "continue_run": "continue", "ic_last": "ic last"}
 
 
 def doc(name=None, *, open: bool = True) -> str:

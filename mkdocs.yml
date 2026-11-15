@@ -106,6 +106,9 @@ nav:
       - Every command and action: reference/reference.md
       - run: reference/run.md
       - continue: reference/continue.md
+      - ic last: reference/ic-last.md
+      - ic shift: reference/ic-shift.md
+      - whos: reference/whos.md
       - range: reference/range.md
       - eq: reference/eq.md
       - eq all: reference/eq-all.md

@@ -3,8 +3,6 @@
 # delete the line.
 set
 get
-ic read
-ic write
 ic
 click
 nullclines freeze

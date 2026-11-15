@@ -108,6 +108,8 @@ nav:
       - continue: reference/continue.md
       - ic last: reference/ic-last.md
       - ic shift: reference/ic-shift.md
+      - ic read: reference/ic-read.md
+      - ic write: reference/ic-write.md
       - whos: reference/whos.md
       - range: reference/range.md
       - eq: reference/eq.md

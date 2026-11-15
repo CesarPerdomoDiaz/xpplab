@@ -509,3 +509,48 @@ def test_whos_page():
     assert p["iapp"] == pytest.approx(0.1)
     assert (p["phi"], p["v3"], p["v4"], p["gca"]) == pytest.approx((0.2, 0, 0.3, 1.1))
     m.close()
+
+
+def test_ic_write_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("ic-write.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "ic-write.md example", "exec"), ns)
+    m, path = ns["m"], ns["path"]
+    lines = path.read_text().split()
+    assert len(lines) == 2 and float(lines[0]) == m.get("V") and float(lines[1]) == m.get("W")
+    assert lines[0].startswith("-0.23842227676")           # Python: full precision
+    # The app's file, from the stored run: the numbers the page shows.
+    stored = [float(np.float32(m.get(v))) for v in ("V", "W")]
+    assert repr(stored[0]) == "-0.23842227458953857"
+    assert repr(stored[1]) == "0.007057134062051773"
+    m.close()
+
+
+def test_ic_read_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("ic-read.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "ic-read.md example 1", "exec"), ns)
+    m = ns["m"]
+    saved = [float(x) for x in (tmp_path / "firing.txt").read_text().split()]
+    assert [m.get("V"), m.get("W")] == saved                 # to the last digit
+    assert m.get("V") == pytest.approx(-0.23842227676, abs=1e-11)
+    assert float(np.float32(m.get("V"))) == pytest.approx(-0.2384222746, abs=1e-10)  # the app's
+    assert float(np.float32(m.get("W"))) == pytest.approx(0.007057134062, abs=1e-12)
+    exec(compile(blocks[1], "ic-read.md example 2", "exec"), ns)
+    assert dict(m.ics) == {"V": -0.3, "W": 0.01}
+    (tmp_path / "short.txt").write_text("0.5\n")
+    with pytest.raises(xs.EngineError, match="holds 1 number; the model has 2 variables"):
+        m.read_ics("short.txt")
+    with pytest.raises(xs.EngineError, match="cannot open"):
+        m.read_ics("none.txt")
+    (tmp_path / "head.txt").write_text("V W\n1 2\n")
+    with pytest.raises(xs.EngineError, match="holds 0 numbers"):
+        m.read_ics("head.txt")
+    (tmp_path / "more.txt").write_text("1;2;3\n")
+    m.read_ics("more.txt")
+    assert dict(m.ics) == {"V": 1, "W": 2}                   # the rest ignored
+    m.close()

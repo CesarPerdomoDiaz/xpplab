@@ -134,6 +134,10 @@ CASES = [
     ("hfun", "lecar.ode", [
         "set iapp=0.1", "hfun V'-V; 0", "export {out}/h.csv analysis"]),
     ("bvp", "dumbbvp.ode", ["bvp", "export {out}/bvp.csv"]),
+    ("fit_csv", "lecar.ode", [
+        "set iapp=0.1", "run", "export {out}/data.csv", "set gca=1.2 gk=1.8",
+        "fitdata {out}/data.csv V 2 gca,gk", "run", "export {out}/fitted.csv"]),
+
     ("bvp_tol", "cable.ode", [
         "set total=1 dt=0.01 a=0 b=1", "bvp tol=1e-8 maxit=40",
         "export {out}/bvp.csv"]),

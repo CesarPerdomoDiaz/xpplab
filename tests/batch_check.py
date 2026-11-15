@@ -88,6 +88,13 @@ with tempfile.TemporaryDirectory() as t:
     check(s.exists() and "m.auto" in s.read_text() and "sol.save(" in s.read_text(),
           "the session is saved as Python")
 
+    # fitdata reads the CSV that export writes (a header, commas)
+    r = run(["lecar.ode", "--keep-going", "-c", "set iapp=0.1", "-c", "run",
+             "-c", "export data.csv", "-c", "set gca=1.2 gk=1.8",
+             "-c", "fitdata data.csv V 2 gca,gk", "-c", "get gca", "-c", "get gk"], work)
+    check("Fitted: gca = 1 gk = 2" in r.stdout and "gca = 0.9999999999" in r.stdout,
+          "fitdata on an exported CSV: " + r.stdout[-500:])
+
     # bvp tol=...: the shooting's tolerance, which only Python could set.
     # The sealed cable on [0, 1] has v'(0) = -tanh(1) = -0.761594156;
     # XPPAUT's tolerance of 1e-5 stops at -0.7615917.

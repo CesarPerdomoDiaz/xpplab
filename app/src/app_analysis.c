@@ -496,28 +496,6 @@ done:
   return rc;
 }
 
-/* Rows and numbers per row of a data file. */
-static bool file_shape(const char *path, int *rows, int *cols) {
-  FILE *f = app_fopen_utf8(path, "r");
-  char line[4096];
-  *rows = *cols = 0;
-  if (!f) return false;
-  while (fgets(line, sizeof line, f)) {
-    char *p = line, *end;
-    int k = 0;
-    for (;;) {
-      strtod(p, &end);
-      if (end == p) break;
-      k++;
-      p = end;
-    }
-    if (k == 0) continue;
-    if (*cols == 0) *cols = k;
-    (*rows)++;
-  }
-  fclose(f);
-  return *rows > 0;
-}
 
 /* ---- Running a tool ------------------------------------------------------ */
 
@@ -1776,13 +1754,10 @@ static bool analysis_run(App *a, bool outer) {
     break;
   }
   case AN_FIT: {
-    int rows, cols;
-    if (!file_shape(n->fit_file, &rows, &cols)) {
-      app_log(a, "error: cannot read the data file '%s'", n->fit_file);
-      return false;
-    }
-    rc = x->xppe_fit(n->fit_file, rows, cols, n->fit_vars, n->fit_cols,
-                     n->fit_pars, 0, 0, 0);
+    /* The engine counts the rows and reads a header and commas too, as
+       for a file that export wrote. */
+    rc = x->xppe_fit(n->fit_file, 0, 0, n->fit_vars, n->fit_cols, n->fit_pars,
+                     0, 0, 0);
     if (rc == XPPE_OK) {
       char *p, list[256];
       size_t len = 0;

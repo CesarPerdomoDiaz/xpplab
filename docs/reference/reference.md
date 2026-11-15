@@ -32,6 +32,7 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [ani](ani.md) | Play an XPPAUT animation of the run, frame by frame. |
 | [view3d](view3d.md) | Show three columns of the run as a curve in three dimensions. |
 | [prc](prc.md) | The phase response curves of a stable limit cycle. |
+| [hfun](hfun.md) | The interaction function of two weakly coupled copies of an oscillator. |
 | [mean](mean.md) | The mean and standard deviation of a column, and the largest Liapunov exponent of the run. |
 | [hist](hist.md) | A histogram of a column of the last run: how much of the run is spent at each value. |
 | [xcorr](xcorr.md) | The autocorrelation of a column, or the cross-correlation of two. |

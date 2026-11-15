@@ -17,7 +17,6 @@ annotate
 fourier
 power
 ensemble
-hfun
 fitdata
 linearize
 poles

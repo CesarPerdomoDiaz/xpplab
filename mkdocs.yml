@@ -127,6 +127,7 @@ nav:
       - xcorr: reference/xcorr.md
       - spectrum: reference/spectrum.md
       - prc: reference/prc.md
+      - hfun: reference/hfun.md
       - eq: reference/eq.md
       - eq all: reference/eq-all.md
       - shoot: reference/shoot.md

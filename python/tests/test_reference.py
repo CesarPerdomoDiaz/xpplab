@@ -967,3 +967,28 @@ def test_prc_page():
     assert round(t0 - next_peak({"V": x0["V"] - 1e-3, "W": x0["W"]}), 4) == -0.0587
     m.close()
     h.close()
+
+
+def test_hfun_page():
+    text, blocks = python_blocks("hfun.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "hfun.md example 1", "exec"), ns)
+    h = ns["h"]
+    assert h.columns == ["phi", "H", "Hodd", "Heven"] and len(h) == 330
+    H, odd, even = h["H"], h["Hodd"], h["Heven"]
+    n = len(H)
+    mirror = np.array([H[n - 1 - k] for k in range(n)])                # XPPAUT's pairing
+    assert np.allclose(odd, 0.5 * (H - mirror)) and np.allclose(even, 0.5 * (H + mirror))
+    phi = h["phi"]
+    assert abs(odd[0]) < 1e-4 and round((odd[1] - odd[0]) / (phi[1] - phi[0]), 3) == 0.699
+    falls = [k for k in np.where(np.diff(np.sign(odd)) != 0)[0] if odd[k + 1] < odd[k]]
+    assert [round(phi[k], 1) for k in falls] == [8.2]
+    exec(compile(blocks[1], "hfun.md example 2", "exec"), ns)
+    hh = ns["hh"]
+    o2, p2 = hh["Hodd"], hh["phi"]
+    assert round((o2[1] - o2[0]) / (p2[1] - p2[0]), 3) == 0.378
+    falls = [k for k in np.where(np.diff(np.sign(o2)) != 0)[0] if o2[k + 1] < o2[k]]
+    assert all(abs(p2[k] - 7.8) < 0.1 for k in falls) and falls
+    ns["m"].close()
+    ns["n"].close()

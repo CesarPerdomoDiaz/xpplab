@@ -78,6 +78,27 @@ def test_pendulum_small_swings():
                                                                          abs=5e-3)
 
 
+def test_pendulum_held_upside_down(tmp_path):
+    # Linearised at the top, th = pi, with the torque u as input:
+    # A = [[0, 1], [1, -c]], B = [0, 1]; eigenvalues (-c +- sqrt(c^2 + 4))/2.
+    with load("pendulum") as m:
+        lin = m.linearize(at={"th": math.pi, "w": 0}, inputs=["u"])
+        np.testing.assert_allclose(lin.A, [[0, 1], [1, -0.1]], atol=1e-8)
+        np.testing.assert_allclose(lin.B, [[0], [1]], atol=1e-8)
+        root = math.sqrt(0.01 + 4)
+        np.testing.assert_allclose(sorted(lin.eigenvalues.real),
+                                   [(-0.1 - root) / 2, (-0.1 + root) / 2], atol=1e-8)
+        assert lin.controllable
+        # poles -1, -2: lambda^2 + (c + k2) lambda + (k1 - 1) = lambda^2 + 3 lambda + 2
+        K = lin.place_poles([-1, -2])
+        np.testing.assert_allclose(K, [[3, 2.9]], atol=1e-8)
+        assert lin.lqr().K[0, 0] == pytest.approx(1 + math.sqrt(2), abs=1e-8)
+        held = lin.closed_loop(K, tmp_path / "held.ode")
+        assert held.run(th=math.pi + 0.5, w=0, total=20)["TH"][-1] == pytest.approx(math.pi, abs=1e-5)
+        held.close()
+        assert abs(m.run(th=math.pi + 0.01, w=0, total=20)["TH"][-1] - math.pi) > 1   # falls
+
+
 def test_lotka_volterra_conserves_its_invariant():
     with load("lotka_volterra") as m:
         sol = m.run()

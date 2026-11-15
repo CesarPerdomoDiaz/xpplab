@@ -88,6 +88,18 @@ with tempfile.TemporaryDirectory() as t:
     check(s.exists() and "m.auto" in s.read_text() and "sol.save(" in s.read_text(),
           "the session is saved as Python")
 
+    # Window and file commands that did nothing, or the opposite, with a
+    # wrong word; and quit, which a script went past
+    r = run(["lecar.ode", "--keep-going", "-c", "show zz", "-c", "layout x",
+             "-c", "theme x", "-c", "open", "-c", "show phase", "-c", "quit",
+             "-c", "whos"], work)
+    check("error: no window called zz; the windows are time, phase" in r.stdout,
+          "show names its windows: " + r.stdout[-500:])
+    check("error: write layout side or layout tabs" in r.stdout
+          and "error: write theme dark or theme light" in r.stdout
+          and "Write: open FILE.ode" in r.stdout, "layout, theme, open: " + r.stdout[-500:])
+    check(">> whos" not in r.stdout, "quit ends the commands: " + r.stdout[-300:])
+
     # fitdata reads the CSV that export writes (a header, commas)
     r = run(["lecar.ode", "--keep-going", "-c", "set iapp=0.1", "-c", "run",
              "-c", "export data.csv", "-c", "set gca=1.2 gk=1.8",

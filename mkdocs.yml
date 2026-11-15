@@ -126,6 +126,7 @@ nav:
       - hist2d: reference/hist2d.md
       - xcorr: reference/xcorr.md
       - spectrum: reference/spectrum.md
+      - prc: reference/prc.md
       - eq: reference/eq.md
       - eq all: reference/eq-all.md
       - shoot: reference/shoot.md

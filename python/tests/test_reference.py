@@ -921,3 +921,49 @@ def test_ani_page():
     assert (round(last.x1, 4), round(last.y1, 4)) == (0.4193, 0.1082)
     assert round(m.last_run()["X"][-1], 3) == -0.203 and round(np.sin(2), 3) == 0.909
     m.close()
+
+
+def from_spike(model, prc):
+    """The PRC in V with the phase measured from the spike."""
+    run = model.last_run()
+    spike = (run.t[np.argmax(run["V"])] - run.t[0]) / prc.period
+    phase = (prc["phase"] - spike) % 1.0
+    order = np.argsort(phase)
+    return phase[order], prc["V"][order]
+
+
+def test_prc_page():
+    text, blocks = python_blocks("prc.md")
+    ns = {}
+    exec(compile(blocks[0], "prc.md example", "exec"), ns)
+    m, h, snic, hopf = ns["m"], ns["h"], ns["snic"], ns["hopf"]
+    assert len(snic) == 330 and round(snic.period, 4) == 16.4745
+    assert round(hopf.period, 2) == 15.64
+    for model, prc, top, at, low, at_low, neg in (
+            (m, snic, 58.7, 0.66, -7.2, 0.10, 0.16), (h, hopf, 25.3, 0.79, -12.3, 0.21, 0.50)):
+        phase, z = from_spike(model, prc)
+        assert round(z.max(), 1) == top and round(phase[np.argmax(z)], 2) == at
+        assert round(z.min(), 1) == low and round(phase[np.argmin(z)], 2) == at_low
+        assert round(np.mean(z < 0), 2) == neg
+    # the normalisation, and a kick of 0.001 at the largest value
+    m.set(iapp=0.1)
+    p = m.phase_response()
+    run = m.last_run()
+    dots = [np.dot(m.rhs({"V": run["V"][i], "W": run["W"][i]}), [p["V"][i], p["W"][i]])
+            for i in range(len(run))]
+    assert round(min(dots), 4) == 0.9986 and round(max(dots), 4) == 1.0022
+    i = int(np.argmax(p["V"]))
+    assert round(p["V"][i], 2) == 58.69
+
+    def next_peak(state):
+        s = m.run(total=2 * p.period, **state)
+        v = s["V"]
+        k = np.where((v[1:-1] > v[:-2]) & (v[1:-1] >= v[2:]) & (v[1:-1] > 0.1))[0][0] + 1
+        a, b, c = v[k - 1], v[k], v[k + 1]
+        return s.t[k] + 0.5 * (a - c) / (a - 2 * b + c) * (s.t[1] - s.t[0])
+    x0 = {"V": float(run["V"][i]), "W": float(run["W"][i])}
+    t0 = next_peak(x0)
+    assert round(t0 - next_peak({"V": x0["V"] + 1e-3, "W": x0["W"]}), 4) == 0.0584
+    assert round(t0 - next_peak({"V": x0["V"] - 1e-3, "W": x0["W"]}), 4) == -0.0587
+    m.close()
+    h.close()

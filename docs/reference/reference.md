@@ -41,6 +41,7 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | Page | What it does |
 |---|---|
 | [eq](eq.md) | Find an equilibrium near the initial values, with its eigenvalues and its stability. |
+| [shoot](shoot.md) | Run away from an equilibrium along its eigenvectors: the start of its manifolds. |
 | [eq all](eq-all.md) | Find every equilibrium in a region, from many starting points. |
 | [nullclines freeze](nullclines-freeze.md) | Keep the present nullclines, or keep them for several values of a parameter. |
 | [nullclines play](nullclines-play.md) | Show the frozen nullclines one at a time, as a film. |

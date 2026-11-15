@@ -12,7 +12,6 @@ py
 python
 serve
 many
-shoot
 figure
 annotate
 ani

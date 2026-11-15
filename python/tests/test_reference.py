@@ -859,3 +859,29 @@ def test_export_page(tmp_path, monkeypatch):
     ev = sorted(focus.eigenvalues, key=lambda z: -z.imag)
     assert round(ev[0].real, 4) == 0.5204 and round(ev[0].imag, 4) == 0.7811
     m.close()
+
+
+def test_shoot_page():
+    text, blocks = python_blocks("shoot.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "shoot.md example 1", "exec"), ns)
+    m, eq, runs = ns["m"], ns["eq"], ns["runs"]
+    assert eq.kind == "saddle" and round(eq["V"], 4) == -0.1425 and round(eq["W"], 4) == 0.0340
+    assert len(runs) == 2 and round(runs.directions[0][0], 4) == 1.0289
+    up, down = sorted(runs, key=lambda r: -r["V"].max())
+    assert round(up["V"].max(), 4) == 0.2273 and abs(up["V"][-1] + 0.3825) < 5e-4
+    assert down["V"].max() < -0.142 and abs(down["V"][-1] + 0.3825) < 5e-4
+    exec(compile(blocks[1], "shoot.md example 2", "exec"), ns)
+    crossings = []
+    for r in ns["stable"]:
+        w, v = r["W"], r["V"]
+        for k in np.where(np.diff(np.sign(w - 0.0013)) != 0)[0]:
+            f = (0.0013 - w[k]) / (w[k + 1] - w[k])
+            crossings.append(v[k] + f * (v[k + 1] - v[k]))
+    assert [round(c, 6) for c in crossings] == [-0.168228]
+    assert round(eq.eigenvalues[0].real, 5) == 1.02997                 # jac_eps 0.001
+    assert round(m.linearize(at=eq.values).eigenvalues[0].real, 7) == 1.0289065
+    m.set(jac_eps=1e-6)
+    assert round(m.equilibrium({"V": -0.14, "W": 0.035}).eigenvalues[0].real, 6) == 1.028907
+    m.close()

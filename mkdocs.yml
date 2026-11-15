@@ -126,6 +126,7 @@ nav:
       - spectrum: reference/spectrum.md
       - eq: reference/eq.md
       - eq all: reference/eq-all.md
+      - shoot: reference/shoot.md
       - nullclines: reference/nullclines.md
       - nullclines freeze: reference/nullclines-freeze.md
       - nullclines play: reference/nullclines-play.md

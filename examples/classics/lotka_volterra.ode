@@ -1,0 +1,11 @@
+# The Lotka-Volterra predator-prey model
+# Rabbits x breed and are eaten; foxes y starve without them. The two
+# populations chase each other round closed curves for ever
+# (Lotka, 1925; Volterra, 1926).
+x'=a*x-b*x*y
+y'=-c*y+d*x*y
+par a=1,b=1,c=1,d=1
+init x=2,y=1
+@ total=30,dt=0.005,meth=rungekutta
+@ xp=x,yp=y,xlo=0,xhi=3,ylo=0,yhi=3
+done

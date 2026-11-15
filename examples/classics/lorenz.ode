@@ -1,0 +1,12 @@
+# The Lorenz attractor
+# Three equations from a model of convection, and the first strange
+# attractor: trajectories never repeat and never settle, and two that start
+# close together soon part (Lorenz, 1963).
+x'=s*(y-x)
+y'=x*(r-z)-y
+z'=x*y-b*z
+par s=10,r=28,b=2.6666666666666665
+init x=1,y=1,z=1
+@ total=60,dt=0.005,meth=rungekutta,maxstor=200000,bound=1000
+@ xp=x,yp=z,xlo=-25,xhi=25,ylo=0,yhi=50
+done

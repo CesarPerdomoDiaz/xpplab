@@ -386,11 +386,20 @@ static void controls(App *a) {
   igPushStyleColor_Vec4(ImGuiCol_Button, HEX(0x1565c0));
   igPushStyleColor_Vec4(ImGuiCol_ButtonHovered, HEX(0x1976d2));
   igPushStyleColor_Vec4(ImGuiCol_Text, HEX(0xffffff));
-  if (ButtonW("Follow steady states", -1)) app_auto_equilibria(a);
-  igPopStyleColor(3);
-  Tooltip("Find the equilibrium near the current initial values, then follow "
-          "it as the parameter changes, detecting folds, Hopf and branch "
-          "points.");
+  {
+    /* the action, and beside it a "?" that opens its reference page */
+    float q = igGetFrameHeight();
+    if (ButtonW("Follow steady states", igGetContentRegionAvail().x - q - igGetStyle()->ItemSpacing.x))
+      app_auto_equilibria(a);
+    igPopStyleColor(3);
+    Tooltip("Find the equilibrium near the current initial values, then follow "
+            "it as the parameter changes, detecting folds, Hopf and branch "
+            "points.");
+    igSameLine(0, -1);
+    if (ButtonW("?##doc_auto_steady", q)) app_command(a, "doc auto steady");
+    Tooltip("Open the reference page: what this does, worked examples, each "
+            "setting, and what to do when it fails (doc auto steady).");
+  }
   if (ButtonW("Clear diagram", -1)) app_auto_reset(a);
   {
     float w = (igGetContentRegionAvail().x - igGetStyle()->ItemSpacing.x) / 2;

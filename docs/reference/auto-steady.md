@@ -241,8 +241,10 @@ the model's parameters are put back to what they were.
   and Hopf points found here in two parameters.
 - [Tutorial: why does a neuron fire?](../manual/neuron-tutorial.md), which
   uses this on the Morris-Lecar model.
-- [Commands and shortcuts](../manual/commands.md): `auto from`, `auto set`,
-  `auto save`, `eq`, `range`.
+- [auto from](auto-from.md): periodic orbits from the Hopf points found
+  here, and curves in two parameters.
+- [Commands and shortcuts](../manual/commands.md): `auto set`, `auto save`,
+  `eq`, `range`.
 
 ## Version history
 

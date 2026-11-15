@@ -1,0 +1,12 @@
+# A bouncing ball
+# A ball falls under gravity and loses part of its speed at each bounce.
+# The bounces come faster and faster: each lasts e times as long as the one
+# before, and they pile up at a finite time (4.06 here), where this run stops.
+h'=v
+v'=-g
+global 1 -h {v=-e*v;h=0}
+par g=9.81,e=0.8
+init h=1,v=0
+@ total=3.9,dt=0.001,meth=rungekutta,maxstor=10000
+@ xp=t,yp=h,xlo=0,xhi=3.9,ylo=0,yhi=1
+done

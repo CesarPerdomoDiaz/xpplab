@@ -1,0 +1,10 @@
+# The van der Pol oscillator
+# An oscillator whose damping feeds small motions and brakes large ones, so
+# every start ends on the same limit cycle (van der Pol, 1926).
+x'=y
+y'=mu*(1-x^2)*y-x
+par mu=1
+init x=0.1,y=0
+@ total=60,dt=0.01,meth=rungekutta
+@ xp=x,yp=y,xlo=-3,xhi=3,ylo=-3,yhi=3
+done

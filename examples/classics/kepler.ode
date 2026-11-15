@@ -1,0 +1,15 @@
+# A planet round the sun
+# Newton's law of gravity for one planet: x'' = -x/r^3. The orbit is an
+# ellipse with the sun at one focus, and the energy and the angular
+# momentum stay constant (Kepler, 1609; Newton, 1687).
+r3=(x^2+y^2)^1.5
+x'=vx
+y'=vy
+vx'=-x/r3
+vy'=-y/r3
+aux energy=0.5*(vx^2+vy^2)-1/sqrt(x^2+y^2)
+aux angmom=x*vy-y*vx
+init x=1,y=0,vx=0,vy=0.8
+@ total=20,dt=0.001,meth=rungekutta,maxstor=30000
+@ xp=x,yp=y,xlo=-1,xhi=1.2,ylo=-0.8,yhi=0.8
+done

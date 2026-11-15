@@ -1,7 +1,6 @@
 # Commands whose reference page (docs/reference) is still to be written.
 # tests/doc_check.py: this list may only shrink. Write the page, then
 # delete the line.
-run
 continue
 set
 get
@@ -24,12 +23,6 @@ fit
 freeze
 use
 sets
-auto from
-auto set
-auto reset
-auto save
-auto load
-auto orbit
 range
 kinescope capture
 kinescope play

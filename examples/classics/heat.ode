@@ -1,0 +1,12 @@
+# The heat equation
+# u_t = D u_xx on a rod of length 1 whose ends are kept at zero, solved on
+# 49 inner points (the method of lines). A hot spot spreads and fades; the
+# smoothest shape, sin(pi x), decays as exp(-pi^2 D t).
+par D=1,n=50
+u0=0
+u50=0
+u[1..49]'=D*n^2*(u[j+1]-2*u[j]+u[j-1])
+init u[20..30]=1
+@ total=0.2,dt=0.00005,meth=rungekutta,nout=40
+@ xp=t,yp=u25,xlo=0,xhi=0.2,ylo=0,yhi=1
+done

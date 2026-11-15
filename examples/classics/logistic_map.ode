@@ -1,0 +1,10 @@
+# The logistic map
+# The simplest model of a population with a limit: next year's population
+# from this year's. As r grows the steady population gives way to cycles of
+# 2, 4, 8, ... years, and then to chaos (May, 1976).
+x(t+1)=r*x*(1-x)
+par r=3.9
+init x=0.2
+@ meth=discrete,total=200
+@ xp=t,yp=x,xlo=0,xhi=200,ylo=0,yhi=1
+done

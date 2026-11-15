@@ -20,7 +20,6 @@ fit
 freeze
 use
 sets
-range
 kinescope capture
 kinescope play
 kinescope clear

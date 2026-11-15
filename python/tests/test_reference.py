@@ -393,3 +393,25 @@ def test_nullclines_page():
     m.set(iapp=0.08)
     assert len(m.find_equilibria(box=box)) == 3
     m.close()
+
+
+def test_range_page():
+    text, blocks = python_blocks("range.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "range.md example 1", "exec"), ns)
+    m, values, up = ns["m"], ns["values"], ns["up"]
+    swing = dict(zip(np.round(values, 2), np.round(up, 3)))
+    assert swing[0.24] == 0 and swing[0.47] == 0
+    assert swing[0.25] == pytest.approx(0.638, abs=1e-3)
+    assert swing[0.27] == pytest.approx(0.652, abs=1e-3) and max(up) == pytest.approx(0.652, abs=1e-3)
+    assert swing[0.46] == pytest.approx(0.529, abs=1e-3)
+    firing = [v for v, s in swing.items() if s > 0.1]
+    assert min(firing) == 0.25 and max(firing) == 0.46      # bracket 0.2484 and 0.4657
+    exec(compile(blocks[1], "range.md example 2", "exec"), ns)
+    climb = dict(zip(np.round(values, 2), ns["climb"]))
+    fall = dict(zip(np.round(values, 2), ns["fall"]))
+    assert climb[0.25] < 0.05 and climb[0.26] < 0.05 and climb[0.27] > 0.6   # rests until past HB
+    assert fall[0.46] < 0.05 and swing[0.46] > 0.5                            # rests where the other fired
+    assert m.get("iapp") == pytest.approx(0.5)        # sweep puts the parameter back
+    m.close()

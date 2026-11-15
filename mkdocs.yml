@@ -114,6 +114,7 @@ nav:
       - Every command and action: reference/reference.md
       - run: reference/run.md
       - continue: reference/continue.md
+      - many: reference/many.md
       - bvp: reference/bvp.md
       - click: reference/click.md
       - freeze: reference/freeze.md

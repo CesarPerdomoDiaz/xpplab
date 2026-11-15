@@ -1055,3 +1055,16 @@ def test_echo_page():
     eq = ns["eq"]
     assert eq.kind == "unstable focus" and round(eq["V"], 7) == 0.0442523
     ns["m"].close()
+
+
+def test_many_page():
+    text, blocks = python_blocks("many.md")
+    ns = {}
+    exec(compile(blocks[0], "many.md example", "exec"), ns)
+    m, runs, swing = ns["m"], ns["runs"], ns["swing"]
+    assert len(runs) == 50 and runs.counts() == {0: 50}
+    assert (swing > 0.3).sum() == 16 and (swing < 0.05).sum() == 34
+    assert round(swing[swing > 0.3].min(), 3) == 0.648 and swing[swing < 0.05].max() < 0.005
+    rest = m.equilibrium({"V": -0.2, "W": 0.1})
+    assert rest.stable and (round(rest["V"], 4), round(rest["W"], 4)) == (-0.2072, 0.2008)
+    m.close()

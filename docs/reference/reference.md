@@ -42,6 +42,7 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [power](power.md) | The Fourier series as amplitudes and phases. |
 | [spectrum](spectrum.md) | The power spectral density of a column, or the cross spectrum or coherence of two. |
 | [hist2d](hist2d.md) | A two-dimensional histogram of two columns: the fraction of the run in each cell. |
+| [many](many.md) | Run from many initial values drawn at random in a box. |
 | [range](range.md) | Run once for each value of a parameter or initial value: a brute-force diagram, hysteresis, Liapunov exponents. |
 
 ## Equilibria

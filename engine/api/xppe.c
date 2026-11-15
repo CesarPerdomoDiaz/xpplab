@@ -333,9 +333,23 @@ int xppe_get(const char *name, double *value) {
   return XPPE_ERR_NAME;
 }
 
+/* The numerical options whose value is a number: XPPAUT reads them with
+   atof(), so a word set them to 0 ("total=abc") without a word. */
+static int numeric_option(const char *n) {
+  static const char *const names[] = {
+      "TOTAL", "DT", "T0", "TRANS", "BOUND", "TOL", "ATOL", "DTMIN", "DTMAX",
+      "NOUT", "MAXSTOR", "DELAY", "NEWT_TOL", "NEWT_ITER", "JAC_EPS",
+      "POISGN", "POISTOP", "NMESH"};
+  size_t i;
+  for (i = 0; i < sizeof names / sizeof names[0]; i++)
+    if (xppe_same_name(n, names[i])) return 1;
+  return 0;
+}
+
 int xppe_set(const char *name, const char *value) {
-  char n[256], v[256];
-  int rc;
+  extern int METHOD;
+  char n[256], v[256], *end;
+  int rc, method = METHOD, is_meth;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
   if (strlen(name) >= sizeof n || strlen(value) >= sizeof v) {
     xppe_set_error("name or value too long", NULL);
@@ -343,8 +357,22 @@ int xppe_set(const char *name, const char *value) {
   }
   strcpy(n, name);
   strcpy(v, value);
+  if (numeric_option(n)) {
+    double x = strtod(v, &end);
+    while (*end && isspace((unsigned char)*end)) end++;
+    if (end == v || *end || !isfinite(x)) {
+      char msg[600];
+      snprintf(msg, sizeof msg, "%s=%s: the value must be a number", n, v);
+      xppe_set_error("%s", msg);
+      return XPPE_ERR_RANGE;
+    }
+  }
+  /* XPPAUT takes a method by the first letter of its name and ignores any
+     other, leaving the method as it was: say so instead. */
+  is_meth = xppe_same_name(n, "METH") || xppe_same_name(n, "METHOD");
+  if (is_meth) METHOD = -1;
   xppe_begin_call();
-  XPPE_GUARD_BEGIN((void)0);
+  XPPE_GUARD_BEGIN(if (METHOD < 0) METHOD = method);
   /* XPPAUT's POIMAP option knows only section/max/period; let 0, "off" or
      "none" switch Poincare maps off again. */
   if (xppe_same_name(n, "POIMAP") &&
@@ -362,9 +390,22 @@ int xppe_set(const char *name, const char *value) {
       MAXSTOR = rows; /* within what is allocated: safe */
   } else
     do_intern_set(n, v);
+  if (is_meth && METHOD < 0)
+    METHOD = method; /* no method has that first letter */
+  else
+    is_meth = 0;
   redo_stuff();
   XPPE_GUARD_END;
   xppe_end_call();
+  if (is_meth) {
+    char msg[700];
+    snprintf(msg, sizeof msg,
+             "no method called %s; the methods are discrete, euler, modeuler, "
+             "rungekutta, adams, gear, volterra, backeuler, qualrk, stiff, "
+             "cvode, 5dp, 83dp, 2rb and ymp", v);
+    xppe_set_error("%s", msg);
+    return XPPE_ERR_NAME;
+  }
   return XPPE_OK;
 }
 

@@ -77,6 +77,18 @@ def test_sets(lecar):
     assert lecar.get("v4") == pytest.approx(0.3)
 
 
+def test_an_option_needs_a_number(lecar):
+    # XPPAUT reads numerical options with atof(): "abc" was 0, silently.
+    total = lecar.get("TOTAL")
+    with pytest.raises(xs.EngineError, match="the value must be a number"):
+        lecar.set(total="abc")
+    with pytest.raises(xs.EngineError, match="the value must be a number"):
+        lecar.set(dt="1e-3x")
+    assert lecar.get("TOTAL") == total
+    lecar.set(total="50")                  # a number written as text is fine
+    assert lecar.get("TOTAL") == 50
+
+
 def test_equilibrium(lecar):
     eq = lecar.equilibrium()
     assert set(eq.values) == {"V", "W"}

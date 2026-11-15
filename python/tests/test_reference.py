@@ -838,3 +838,24 @@ def test_nullclines_unfreeze_page():
     exec(compile(blocks[0], "nullclines-unfreeze.md example", "exec"), ns)
     assert ns["frozen"] == [] and ns["m"].get("iapp") == pytest.approx(0.05)
     ns["m"].close()
+
+
+def test_export_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("export.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "export.md example", "exec"), ns)
+    m, sol = ns["m"], ns["sol"]
+    lines = (tmp_path / "run.csv").read_text().splitlines()
+    assert lines[0] == "T,V,W,CUR,ICA,IK,RATE" and len(lines) == 602
+    first = lines[1].split(",")
+    assert first[1:4] == ["-0.14399999380111694", "0.029999999329447746", "0.05000000074505806"]
+    back = np.genfromtxt(tmp_path / "run.csv", delimiter=",", names=True)
+    assert np.array_equal(back["V"], sol["V"])                          # exact
+    assert (tmp_path / "run.mat").stat().st_size > 0 and sol.params["iapp"] == pytest.approx(0.05)
+    found = m.find_equilibria(box=LECAR_BOX)
+    focus = [e for e in found if e.kind == "unstable focus"][0]
+    ev = sorted(focus.eigenvalues, key=lambda z: -z.imag)
+    assert round(ev[0].real, 4) == 0.5204 and round(ev[0].imag, 4) == 0.7811
+    m.close()

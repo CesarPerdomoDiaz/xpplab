@@ -18,6 +18,7 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [run](run.md) | Integrate the model from its initial values and show the result. |
 | [ic last](ic-last.md) | Start the next run where the last one ended. |
 | [ic shift](ic-shift.md) | Start the next run where the last one ended, and let the time go on. |
+| [export](export.md) | Save the last run, a result or a figure: CSV, MATLAB, SVG or PNG. |
 | [ic read](ic-read.md) | Read the initial values from a text file. |
 | [ic write](ic-write.md) | Write the initial values to a text file, one per line. |
 | [use](use.md) | Apply one of the model's named parameter sets. |

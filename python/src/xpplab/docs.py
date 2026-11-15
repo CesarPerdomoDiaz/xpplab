@@ -13,7 +13,8 @@ PAGES = ("auto steady", "auto from", "auto set", "auto orbit", "auto save",
          "ic read", "ic write", "use", "sets",
          "dirfield", "click", "freeze", "erase",
          "mean", "hist", "xcorr", "spectrum", "hist2d", "bvp",
-         "nullclines freeze", "nullclines play", "nullclines unfreeze")
+         "nullclines freeze", "nullclines play", "nullclines unfreeze",
+         "export")
 
 #: The method of the package that does what a command does.
 METHODS = {"equilibria": "auto steady", "continue_from": "auto from",
@@ -32,7 +33,8 @@ METHODS = {"equilibria": "auto steady", "continue_from": "auto from",
            "spectrum": "spectrum",
            "histogram2d": "hist2d",
            "bvp": "bvp",
-           "nullcline_sweep": "nullclines freeze"}
+           "nullcline_sweep": "nullclines freeze",
+           "to_csv": "export", "to_mat": "export"}
 
 
 def doc(name=None, *, open: bool = True) -> str:

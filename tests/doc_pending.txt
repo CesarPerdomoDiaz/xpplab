@@ -31,7 +31,6 @@ locus
 open
 new
 save
-export
 script
 echo
 show

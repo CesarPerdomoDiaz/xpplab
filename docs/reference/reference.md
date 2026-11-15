@@ -25,6 +25,8 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [ic write](ic-write.md) | Write the initial values to a text file, one per line. |
 | [use](use.md) | Apply one of the model's named parameter sets. |
 | [sets](sets.md) | List the model's named parameter sets. |
+| [set](set.md) | Give parameters, initial values or numerical options new values. |
+| [get](get.md) | Show the value of a parameter, an initial value or an option. |
 | [whos](whos.md) | List the variables, parameters and main options, with their values. |
 | [click](click.md) | Start a run at a point of the Phase Plane, as a click on it does. |
 | [freeze](freeze.md) | Keep the current run on the plots, so that the next one is drawn beside it. |

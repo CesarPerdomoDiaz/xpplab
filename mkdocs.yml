@@ -126,6 +126,8 @@ nav:
       - echo: reference/echo.md
       - ic read: reference/ic-read.md
       - ic write: reference/ic-write.md
+      - set: reference/set.md
+      - get: reference/get.md
       - whos: reference/whos.md
       - use: reference/use.md
       - sets: reference/sets.md

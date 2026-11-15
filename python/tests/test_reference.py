@@ -1068,3 +1068,32 @@ def test_many_page():
     rest = m.equilibrium({"V": -0.2, "W": 0.1})
     assert rest.stable and (round(rest["V"], 4), round(rest["W"], 4)) == (-0.2072, 0.2008)
     m.close()
+
+
+def test_set_page():
+    text, blocks = python_blocks("set.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "set.md example 1", "exec"), ns)
+    m, sol = ns["m"], ns["sol"]
+    assert len(sol) == 2001 and sol.t[-1] == pytest.approx(100) and m.get("METH") == "stiff"
+    assert m.get("DT") == pytest.approx(0.05)
+    exec(compile(blocks[1], "set.md example 2", "exec"), ns)
+    sol = ns["sol"]
+    assert sol["V"][0] == pytest.approx(-0.2) and repr(float(sol["W"][0]))[:12] == "0.0099999997"
+    m.close()
+
+
+def test_get_page():
+    text, blocks = python_blocks("get.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "get.md example 1", "exec"), ns)
+    m = ns["m"]
+    assert (m.get("iapp"), m.get("total"), m.get("meth")) == (pytest.approx(0.1), 100.0, "stiff")
+    exec(compile(blocks[1], "get.md example 2", "exec"), ns)
+    n = ns["n"]
+    assert round(n.get("V"), 11) == -0.23842227676
+    assert "%.10g" % float(np.float32(n.get("V"))) == "-0.2384222746"
+    m.close()
+    n.close()

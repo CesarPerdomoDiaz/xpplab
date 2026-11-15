@@ -1326,10 +1326,16 @@ int xppe_isochrons(int count, double length, int max_points, int max_periods,
                    "not computed yet)", NULL);
     return XPPE_ERR_STATE;
   }
-  if (METHOD != METHOD_RK4) {
-    xppe_set_error("isochrons are computed with the Runge-Kutta method only "
-                   "for now: set the method to rungekutta, run one period "
-                   "again and compute the adjoint again", NULL);
+  /* The curves come from integrating backward in time. XPPAUT's Gear stepper
+     returns at once there (the curves stop at the linear segment), and its
+     Rosenbrock one (2rb) does not finish. Every other method was checked
+     against the lambda-omega spirals. */
+  if (METHOD == METHOD_GEAR || METHOD == METHOD_RB23) {
+    xppe_set_error("isochrons need a method that integrates backward in "
+                   "time, and XPPAUT's %s stepper does not: choose another "
+                   "(stiff for a stiff model), run one period again and "
+                   "compute the adjoint again",
+                   METHOD == METHOD_GEAR ? "Gear" : "Rosenbrock (2rb)");
     return XPPE_ERR_STATE;
   }
   /* iso_side() always starts from 5 points on the linear isochron, and the

@@ -194,17 +194,84 @@ def test_refused_call_leaves_the_model_too():
         assert abs(lam / np.exp(-2 * np.pi) - 1) < 1e-4
 
 
-@pytest.mark.parametrize("meth", ["euler", "modeuler", "adams", "gear",
-                                  "cvode", "5dp"])
-def test_refuses_the_other_methods_for_now(meth):
-    """Only Runge-Kutta so far: any other method is an error that says so,
-    and the model is left as it was."""
+@pytest.mark.parametrize("meth", ["gear", "2rb"])
+def test_refuses_methods_that_cannot_run_backward(meth):
+    """XPPAUT's Gear stepper returns at once when asked to integrate backward
+    and its Rosenbrock one does not finish: both are refused, saying so, and
+    the model is left as it was."""
     with xs.load(MODELS / "radial_clock.ode") as m:
         prepare(m)
         m.set(meth=meth)
         opts = dict(m.options)
-        assert "Runge-Kutta" in refusal(m)
+        assert "backward" in refusal(m)
         assert dict(m.options) == opts
+
+
+# Lambda-omega with w = q = 1.5: the isochron of phase p is the spiral
+# theta - q ln r = theta0 + 2 pi p, and lambda = exp(-4 pi / w) (the note's
+# test 2). Unlike the radial clock, Z is not tangent to the cycle here, so a
+# segment that ignored Z, or a wrong chaining of the periods, would miss the
+# spiral. The worst deviation found by running (NSTEP = 400, offset 1e-4):
+# 4.2e-5 rad for Runge-Kutta, Adams and the adaptive methods at TOL = 1e-9,
+# 2.1e-4 for backward Euler and 5.6e-4 for modified Euler, whose multiplier
+# is 2e-3 off; the bounds leave about a factor two.
+W, Q = 1.5, 1.5
+SPIRAL = {"rungekutta": 1e-4, "adams": 1e-4, "cvode": 1e-4, "stiff": 1e-4,
+          "qualrk": 1e-4, "5dp": 1e-4, "83dp": 1e-4, "backeul": 5e-4,
+          "modeuler": 1.2e-3}
+ADAPTIVE = ("cvode", "stiff", "qualrk", "5dp", "83dp")
+
+
+def lambda_omega(m, meth):
+    """Lambda-omega on its cycle with the adjoint, under meth; returns the
+    angle of the first stored point."""
+    m.set(w=W, q=Q, meth=meth)
+    if meth in ADAPTIVE:
+        m.set(TOL=1e-9, ATOL=1e-9)
+    set_cycle(m, 2 * np.pi / W)
+    m.adjoint()
+    orbit = m._collect()
+    return float(np.arctan2(orbit["Y"][0], orbit["X"][0]))
+
+
+@pytest.mark.parametrize("meth", sorted(SPIRAL))
+def test_lambda_omega_spirals_with_every_method(meth):
+    with xs.load(MODELS / "lambda_omega.ode") as m:
+        theta0 = lambda_omega(m, meth)
+        tab, lam = isochrons(m, length=1.0)
+        lam_bound = 5e-3 if meth == "modeuler" else 1e-5
+        assert abs(lam / np.exp(-4 * np.pi / W) - 1) < lam_bound, (meth, lam)
+        for j, (ph, x, y) in enumerate(polylines(tab)):
+            assert (ph == j / COUNT).all()
+            r = np.hypot(x, y)
+            far = r > 0.05
+            err = circ(np.arctan2(y, x) - Q * np.log(r),
+                       theta0 + 2 * np.pi * ph)[far]
+            assert far.sum() > 30 and err.max() < SPIRAL[meth], (meth, j,
+                                                                 err.max())
+            assert r.min() < 0.9 and r.max() > 1.1, (meth, j)
+
+
+def test_points_on_a_curve_have_its_asymptotic_phase():
+    """The two methods of the note agree: xppe_asymptotic_phase (method A,
+    forward integration) of points on the isochron of phase p (method B)
+    gives p, within its own error (of order delta squared, 3e-4 for
+    delta = 0.02 in test_asymptotic_phase.py) plus the curve's."""
+    with xs.load(MODELS / "lambda_omega.ode") as m:
+        lambda_omega(m, "rungekutta")
+        tab, _ = isochrons(m, length=1.0)
+        for ph, x, y in polylines(tab):
+            r = np.hypot(x, y)
+            picks = np.flatnonzero((np.abs(r - 1) > 0.1) & (r > 0.6)
+                                   & (r < 1.6))
+            assert len(picks) >= 4
+            for i in picks[:: max(1, len(picks) // 6)]:
+                arr = (ctypes.c_double * 2)(x[i], y[i])
+                got, el = ctypes.c_double(), ctypes.c_double()
+                m._engine.call("xppe_asymptotic_phase", arr, 0.02, 50.0,
+                               ctypes.byref(got), ctypes.byref(el))
+                d = abs(got.value - ph[i]) % 1.0
+                assert min(d, 1 - d) < 1e-3, (ph[i], got.value, r[i])
 
 
 def test_refusals():

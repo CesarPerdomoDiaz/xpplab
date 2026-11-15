@@ -121,6 +121,7 @@ nav:
       - erase: reference/erase.md
       - ic last: reference/ic-last.md
       - ic shift: reference/ic-shift.md
+      - annotate: reference/annotate.md
       - show: reference/show.md
       - hide: reference/hide.md
       - layout: reference/layout.md

@@ -1151,3 +1151,17 @@ def test_help_page(capsys):
     exec(compile(blocks[0], "help.md example", "exec"), ns)
     assert capsys.readouterr().out.strip()
     ns["m"].close()
+
+
+def test_annotate_page():
+    text, blocks = python_blocks("annotate.md")
+    ns = {}
+    exec(compile(blocks[0], "annotate.md example", "exec"), ns)
+    notes = ns["notes"]["phase"].notes
+    assert [n["kind"] for n in notes] == ["text", "arrow", "marker"]
+    assert notes[0]["size"] == 14 and notes[1]["color"] == "#d62728"
+    focus = [e for e in ns["m"].find_equilibria(box=LECAR_BOX) if e.kind == "unstable focus"][0]
+    assert (round(focus["V"], 2), round(focus["W"], 2)) == (0.03, 0.27)
+    import matplotlib.pyplot as plt
+    plt.close("all")
+    ns["m"].close()

@@ -10,7 +10,6 @@ py
 python
 serve
 figure
-annotate
 ensemble
 fitdata
 linearize

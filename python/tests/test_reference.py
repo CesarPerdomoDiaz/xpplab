@@ -611,3 +611,39 @@ def test_dirfield_page():
     assert X[np.unravel_index(np.abs(V).argmax(), V.shape)] == pytest.approx(1.2)
     assert m.vector_field("V", "W", (0, 1), (0, 1))[0].shape == (20, 20)   # n's default
     m.close()
+
+
+def test_click_page():
+    text, blocks = python_blocks("click.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "click.md example", "exec"), ns)
+    m, below, above = ns["m"], ns["below"], ns["above"]
+    assert round(below["V"].max(), 4) == -0.1644 and round(above["V"].max(), 4) == 0.2371
+    assert round(below["V"][-1], 4) == round(above["V"][-1], 4) == -0.3825   # both rest
+    assert (m.get("V"), m.get("W")) == pytest.approx((-0.16, 0.0013))       # the values stay
+    lo, hi = -0.2, -0.15                                                     # the threshold
+    for _ in range(20):
+        mid = (lo + hi) / 2
+        lo, hi = (lo, mid) if m.run(V=mid, W=0.0013)["V"].max() > 0 else (mid, hi)
+    assert round(lo, 4) == -0.1682
+    m.close()
+
+
+def test_erase_page():
+    text, blocks = python_blocks("erase.md")
+    ns = {}
+    exec(compile(blocks[0], "erase.md example", "exec"), ns)
+    assert len(ns["runs"]) == 2 and len(ns["found"]) == 3
+    ns["m"].close()
+
+
+def test_freeze_page():
+    text, blocks = python_blocks("freeze.md")
+    ns = {}
+    exec(compile(blocks[0], "freeze.md example", "exec"), ns)
+    rest, firing = ns["runs"]
+    assert (round(rest["V"].min(), 4), round(rest["V"].max(), 4)) == (-0.4306, 0.2283)
+    assert round(rest["V"][-1], 4) == -0.3825 and len(peaks(rest)[0]) == 1
+    assert round(firing["V"].max(), 4) == 0.2615 and len(peaks(firing)[0]) == 2
+    ns["m"].close()

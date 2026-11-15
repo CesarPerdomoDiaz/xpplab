@@ -4,13 +4,10 @@
 set
 get
 ic
-click
 nullclines freeze
 nullclines unfreeze
 nullclines play
-erase
 fit
-freeze
 kinescope capture
 kinescope play
 kinescope clear

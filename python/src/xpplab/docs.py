@@ -11,7 +11,7 @@ PAGES = ("auto steady", "auto from", "auto set", "auto orbit", "auto save",
          "auto load", "auto reset", "run", "eq", "eq all", "nullclines", "range",
          "continue", "ic last", "ic shift", "whos",
          "ic read", "ic write", "use", "sets",
-         "dirfield")
+         "dirfield", "click", "freeze", "erase")
 
 #: The method of the package that does what a command does.
 METHODS = {"equilibria": "auto steady", "continue_from": "auto from",

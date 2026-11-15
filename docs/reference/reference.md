@@ -23,6 +23,9 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [use](use.md) | Apply one of the model's named parameter sets. |
 | [sets](sets.md) | List the model's named parameter sets. |
 | [whos](whos.md) | List the variables, parameters and main options, with their values. |
+| [click](click.md) | Start a run at a point of the Phase Plane, as a click on it does. |
+| [freeze](freeze.md) | Keep the current run on the plots, so that the next one is drawn beside it. |
+| [erase](erase.md) | Remove the kept curves and the marked equilibria from the plots. |
 | [continue](continue.md) | Integrate further from the end of the last run and add the new part to it. |
 | [range](range.md) | Run once for each value of a parameter or initial value: a brute-force diagram, hysteresis, Liapunov exponents. |
 

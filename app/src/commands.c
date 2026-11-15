@@ -1374,7 +1374,7 @@ void app_command(App *a, const char *line_in) {
     app_clear_equilibria(a);
     app_status(a, "Erased kept curves and equilibria.");
   } else if (!strcmp(cmd, "freeze")) {
-    app_freeze(a);
+    app_freeze_copy(a);
   } else if (!strcmp(cmd, "fit") || !strcmp(cmd, "wf")) {
     app_status(a, "Double-click a plot to fit it to the data.");
   } else if (!strcmp(cmd, "use")) {

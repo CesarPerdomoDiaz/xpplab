@@ -559,6 +559,7 @@ bool app_ic_read(App *a, const char *path);  /* Initial conds > File */
 bool app_ic_write(App *a, const char *path);
 bool app_ic_formula(App *a, const char *target, const char *formula);
 void app_freeze(App *a);
+bool app_freeze_copy(App *a); /* the freeze command: keep a copy, run stays */
 void app_clear_curves(App *a);
 bool app_equilibrium(App *a, const double *guess);
 void app_clear_equilibria(App *a);

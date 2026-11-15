@@ -1825,6 +1825,11 @@ static bool analysis_run(App *a, bool outer) {
   if (n->tool == AN_PRC || n->tool == AN_HFUNCTION)
     app_log(a, "%s: %d points over one period (%.6g).",
             app_analysis_name(n->tool), n->res.nrows, n->period);
+  else if ((n->tool == AN_CORRELATION && n->col2 != n->col) ||
+           n->tool == AN_HISTOGRAM2D ||
+           (n->tool == AN_SPECTRUM && n->spec_kind > 0 && n->spec_kind <= 2))
+    app_log(a, "%s of %s and %s: %d rows.", app_analysis_name(n->tool), c1, c2,
+            n->res.nrows); /* two columns: say both */
   else
     app_log(a, "%s of %s: %d rows.", app_analysis_name(n->tool), c1,
             n->res.nrows);

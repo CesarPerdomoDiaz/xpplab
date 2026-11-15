@@ -20,7 +20,7 @@ references to Sanz Recio and Sánchez Arriaga's *Mecánica analítica*
 
 This page has four examples:
 
-1. **consecutive reactions** `A -> B -> C`, which have an exact solution to
+1. **consecutive reactions** $A \to B \to C$, which have an exact solution to
    check the numerics against;
 2. an **enzyme reaction** (Michaelis-Menten), where a fast and a slow time
    scale give a reduced model;
@@ -36,8 +36,8 @@ script.
 
 **Mass action.** An elementary step proceeds at a rate proportional to the
 product of the concentrations of the molecules that must meet for it. For
-`A + B -> C` with rate constant `k` the rate is `k [A][B]`, and a step in
-which two molecules of `A` meet, `2A -> ...`, has the rate `k [A]^2`. The
+$A + B \to C$ with rate constant $k$ the rate is $k\,[A][B]$, and a step in
+which two molecules of $A$ meet, $2A \to \dots$, has the rate $k\,[A]^2$. The
 concentrations of the reactants fall at that rate and those of the
 products rise at it. Writing every step this way gives the rate equations
 [A, Focus 17; KS ch. 1].
@@ -76,7 +76,7 @@ system into an oscillator, typically through a Hopf bifurcation
 
 ## Example 1: consecutive reactions, A to B to C
 
-An intermediate `B` is made from `A` and consumed to `C`, both by first
+An intermediate $B$ is made from $A$ and consumed to $C$, both by first
 order steps, the textbook case of consecutive reactions [A, Focus 17]:
 
 ```ode
@@ -91,16 +91,21 @@ init a=1, b=0, c=0
 done
 ```
 
-The first equation decouples: `a(t) = exp(-k1 t)`. Then
-`b(t) = k1/(k2 - k1) (exp(-k1 t) - exp(-k2 t))`, and `c = 1 - a - b`. The
+The first equation decouples: $a(t) = e^{-k_1 t}$. Then
+
+$$
+b(t) = \frac{k_1}{k_2 - k_1} \left( e^{-k_1 t} - e^{-k_2 t} \right)
+$$
+
+and $c = 1 - a - b$. The
 intermediate rises, reaches a maximum and falls, at the time
 
-```
-t_max = ln(k1/k2) / (k1 - k2)
-```
+$$
+t_{\max} = \frac{\ln(k_1/k_2)}{k_1 - k_2}
+$$
 
-which is 1.72 for `k1 = 1`, `k2 = 0.3`, where `b` reaches 0.5969. The
-`aux total` line adds `a + b + c` to the output so you can check that it
+which is 1.72 for $k_1 = 1$, $k_2 = 0.3$, where $b$ reaches 0.5969. The
+`aux total` line adds $a + b + c$ to the output so you can check that it
 stays at 1.
 
 ```python
@@ -118,37 +123,38 @@ abs(sol["b"] - exact_b).max()          # below 1e-6
 ```
 
 !!! note "Exercises"
-    1. Check the formula for `t_max` by setting `b' = 0`. What happens when
-       `k1` and `k2` are equal? Find `t_max` for `k1 = k2 = 1` from the run.
-    2. Make the second step much faster than the first (`k2 = 30`). The
-       intermediate never accumulates. What is `b` compared with
-       `(k1/k2) a`? This is the **steady-state approximation** for `B`.
-    3. Reverse the roles (`k1 = 30`, `k2 = 1`). How long before `a` is
-       gone? What limits the rate of formation of `c`?
+    1. Check the formula for $t_{\max}$ by setting $\dot{b} = 0$. What happens when
+       $k_1$ and $k_2$ are equal? Find $t_{\max}$ for $k_1 = k_2 = 1$ from the run.
+    2. Make the second step much faster than the first ($k_2 = 30$). The
+       intermediate never accumulates. What is $b$ compared with
+       $(k_1/k_2)\, a$? This is the **steady-state approximation** for $B$.
+    3. Reverse the roles ($k_1 = 30$, $k_2 = 1$). How long before $a$ is
+       gone? What limits the rate of formation of $c$?
 
 ??? success "Solutions"
-    1. At the maximum `b' = 0`, so `k1 a = k2 b`. Solving with the exact
-       `a` and `b` gives `t_max = ln(k1/k2)/(k1 - k2)`. For `k1 = k2 = k`
-       the formula is 0/0, but then `b = k t exp(-k t)`, whose maximum is
-       at `t = 1/k`: `t_max = 1` for `k1 = k2 = 1`.
-    2. `b` stays near `(k1/k2) a`: with `k2 = 30`, `b` is about `a/30`.
-       After a very short transient, `b' ~ 0` and `b` is "slaved" to `a`.
-       The conversion to `c` then happens at the rate of the first step.
-    3. `a` is down to 1% in `ln(100)/30 = 0.15` time units. The formation
-       of `c` is then limited by the second, slow step: `c` approaches 1 as
-       `1 - exp(-k2 t)`, with only a short delay.
+    1. At the maximum $\dot{b} = 0$, so $k_1 a = k_2 b$. Solving with the exact
+       $a$ and $b$ gives $t_{\max} = \ln(k_1/k_2)/(k_1 - k_2)$. For $k_1 = k_2 = k$
+       the formula is 0/0, but then $b = k t e^{-k t}$, whose maximum is
+       at $t = 1/k$: $t_{\max} = 1$ for $k_1 = k_2 = 1$.
+    2. $b$ stays near $(k_1/k_2)\, a$: with $k_2 = 30$, $b$ is about $a/30$.
+       After a very short transient, $\dot{b} \approx 0$ and $b$ is "slaved" to $a$.
+       The conversion to $c$ then happens at the rate of the first step.
+    3. $a$ is down to 1% in $\ln(100)/30 = 0.15$ time units. The formation
+       of $c$ is then limited by the second, slow step: $c$ approaches 1 as
+       $1 - e^{-k_2 t}$, with only a short delay.
 
 ## Example 2: an enzyme, and two time scales
 
-An enzyme `E` binds a substrate `S` reversibly to form a complex `C`, and
-the complex releases the product `P` and the enzyme. This is the basic
+An enzyme $E$ binds a substrate $S$ reversibly to form a complex $C$, and
+the complex releases the product $P$ and the enzyme. This is the basic
 enzyme reaction of [MB ch. 6] and [KS ch. 1]:
 
-```
-E + S <-> C -> E + P         rate constants  k1 (forward), km1 (back), k2
-```
+$$
+E + S \rightleftharpoons C \to E + P
+\qquad \text{rate constants } k_1 \text{ (forward), } k_{-1} \text{ (back), } k_2
+$$
 
-With the free enzyme eliminated by the conservation law `e = e0 - c`:
+With the free enzyme eliminated by the conservation law $e = e_0 - c$:
 
 ```ode
 # mm.ode
@@ -165,20 +171,20 @@ done
 ```
 
 The substrate is converted to product, one molecule at a time, so
-`s + c + p = 1` all the time. With little enzyme compared with substrate,
-`c` is small and changes slowly once it has built up. Setting `c' = 0` gives
+$s + c + p = 1$ all the time. With little enzyme compared with substrate,
+$c$ is small and changes slowly once it has built up. Setting $\dot{c} = 0$ gives
 the **quasi-steady-state approximation**
 
-```
-c = e0 s / (Km + s),    Km = (km1 + k2)/k1
-```
+$$
+c = \frac{e_0 s}{K_m + s}, \qquad K_m = \frac{k_{-1} + k_2}{k_1}
+$$
 
-and the product forms at the rate `p' = k2 c = Vmax s/(Km + s)`, with
-`Vmax = k2 e0`. This is the Michaelis-Menten law: linear in `s` when
-`s << Km`, constant at `Vmax` when `s >> Km`. In this model `Km = 0.2`.
+and the product forms at the rate $\dot{p} = k_2 c = V_{\max}\, s/(K_m + s)$, with
+$V_{\max} = k_2 e_0$. This is the Michaelis-Menten law: linear in $s$ when
+$s \ll K_m$, constant at $V_{\max}$ when $s \gg K_m$. In this model $K_m = 0.2$.
 
 The reduced model has one equation. The approximation is good when the
-enzyme is a small fraction of the substrate and `Km`, `e0/(Km + s0) << 1`.
+enzyme is a small fraction of the substrate and $K_m$, $e_0/(K_m + s_0) \ll 1$.
 When and why the quasi-steady-state assumption holds is a classic case
 study in perturbation theory (Segel and Slemrod 1989).
 
@@ -212,8 +218,8 @@ for e0 in (0.01, 0.05, 0.1, 0.5):
 ```
 
 The error of the reduced model, as a fraction of the 1 unit of substrate,
-grows with `e0`, in step with the small parameter `e0/(Km + s0)`: the
-approximation is excellent for `e0 = 0.01` and poor at `e0 = 0.5`, where the
+grows with $e_0$, in step with the small parameter $e_0/(K_m + s_0)$: the
+approximation is excellent for $e_0 = 0.01$ and poor at $e_0 = 0.5$, where the
 enzyme is a large fraction of the substrate and binding the substrate takes
 a visible part of it.
 
@@ -221,45 +227,45 @@ a visible part of it.
     1. Run `mm.ode` with `k1 = 1000, km1 = 100, k2 = 100`, first with
        `meth=stiff` and then with `meth=rungekutta`, both with `dt=0.01`.
        What does each do? Is the same true for `k1 = 10`?
-    2. In the reduced model, `red.rhs({"s": s0})` gives `s'` at the
-       substrate `s0`. Tabulate it for `s0` from 0.05 to 5. What is `Vmax`?
-       At what `s0` is the rate half of it, and at what `s0` is it 90%?
-    3. Add a competitive inhibitor: write `E + I <-> EI` as an extra pair of
+    2. In the reduced model, `red.rhs({"s": s0})` gives $\dot{s}$ at the
+       substrate $s_0$. Tabulate it for $s_0$ from 0.05 to 5. What is $V_{\max}$?
+       At what $s_0$ is the rate half of it, and at what $s_0$ is it 90%?
+    3. Add a competitive inhibitor: write $E + I \rightleftharpoons EI$ as an extra pair of
        equations and conservation law, and show that it raises the apparent
-       `Km` but not `Vmax`.
+       $K_m$ but not $V_{\max}$.
 
 ??? success "Solutions"
     1. The stiff run finishes (6001 points, product 1.0 at the end). The
-       Runge-Kutta run fails at once: with `k1 = 1000` the fastest rate is
-       about `k1 s = 1000`, and a step of 0.01 is ten times too long for
+       Runge-Kutta run fails at once: with $k_1 = 1000$ the fastest rate is
+       about $k_1 s = 1000$, and a step of 0.01 is ten times too long for
        the method to be stable. With `k1 = 10`, `meth=rungekutta` is fine.
-    2. The rate is `-Vmax s0/(Km + s0)` with `Vmax = k2 e0 = 0.1`: 0.0833
-       at `s0 = 1` and 0.0962 at `s0 = 5`. Half of `Vmax` is at `s0 = Km`
-       = 0.2; 90% is at `s0 = 9 Km = 1.8`.
-    3. With the inhibitor binding at rate `ki` and releasing at `kmi`, and
-       the conservation law `e = e0 - c - ci`, the quasi-steady state gives
-       the same `Vmax`, and `Km` multiplied by `(1 + i/Ki)`, with
-       `Ki = kmi/ki`. At high enough `s` the inhibitor is outcompeted.
+    2. The rate is $-V_{\max}\, s_0/(K_m + s_0)$ with $V_{\max} = k_2 e_0 = 0.1$: 0.0833
+       at $s_0 = 1$ and 0.0962 at $s_0 = 5$. Half of $V_{\max}$ is at $s_0 = K_m$
+       = 0.2; 90% is at $s_0 = 9 K_m = 1.8$.
+    3. With the inhibitor binding at rate $k_i$ and releasing at $k_{-i}$, and
+       the conservation law $e = e_0 - c - c_i$, the quasi-steady state gives
+       the same $V_{\max}$, and $K_m$ multiplied by $(1 + i/K_i)$, with
+       $K_i = k_{-i}/k_i$. At high enough $s$ the inhibitor is outcompeted.
 
 ## Example 3: a chemical switch (Schlögl's model)
 
-Schlögl (1972) studied the scheme `A + 2X <-> 3X`, `B <-> X`, in which `X`
-catalyses its own formation, with `A` and `B` held fixed by reservoirs.
+Schlögl (1972) studied the scheme $A + 2X \rightleftharpoons 3X$, $B \rightleftharpoons X$, in which $X$
+catalyses its own formation, with $A$ and $B$ held fixed by reservoirs.
 Mass action gives a cubic rate law,
 
-```
-x' = k1 a x^2 - k2 x^3 - k3 x + k4 b
-```
+$$
+\dot{x} = k_1 a x^2 - k_2 x^3 - k_3 x + k_4 b
+$$
 
-and scaling `x` and the time brings it to the form
+and scaling $x$ and the time brings it to the form
 
-```
-x' = mu - f(x),     f(x) = x^3 - 3 x^2 + c x
-```
+$$
+\dot{x} = \mu - f(x), \qquad f(x) = x^3 - 3 x^2 + c x
+$$
 
-where `mu` is the scaled feed of `X` from the reservoir `B`, and `c` the
-scaled rate of the reverse step `X -> B`. Both are positive, and so is the
-concentration `x`. The model below uses `c = 2.5`.
+where $\mu$ is the scaled feed of $X$ from the reservoir $B$, and $c$ the
+scaled rate of the reverse step $X \to B$. Both are positive, and so is the
+concentration $x$. The model below uses $c = 2.5$.
 
 ```ode
 # schlogl.ode
@@ -270,12 +276,12 @@ init x=0.2
 done
 ```
 
-The equilibria solve `f(x) = mu`. The cubic `f` rises, falls and rises
-again; for `c = 2.5` it has a local maximum at `x = 1 - 1/sqrt(6) = 0.5918`
-and a local minimum at `x = 1 + 1/sqrt(6) = 1.4082`, where its values are
-0.6361 and 0.3639. So for a feed `mu` between 0.3639 and 0.6361 there are
+The equilibria solve $f(x) = \mu$. The cubic $f$ rises, falls and rises
+again; for $c = 2.5$ it has a local maximum at $x = 1 - 1/\sqrt{6} = 0.5918$
+and a local minimum at $x = 1 + 1/\sqrt{6} = 1.4082$, where its values are
+0.6361 and 0.3639. So for a feed $\mu$ between 0.3639 and 0.6361 there are
 three equilibria: the outer two are stable and the middle one is unstable.
-Outside that range there is one. The two values of `mu` where an
+Outside that range there is one. The two values of $\mu$ where an
 equilibrium appears or disappears are saddle-node (fold) bifurcations
 [MA §9.1.1; DSN §3.3.4].
 
@@ -303,8 +309,8 @@ down = sch.sweep("mu", mus[::-1], measure=lambda s: s["x"][-1],
                  continue_runs=True)[::-1]
 ```
 
-Going up, `x` follows the low branch until the feed passes 0.6361 and then
-jumps to the high branch (`up` is 0.430 at `mu = 0.6` and 1.826 at 0.65).
+Going up, $x$ follows the low branch until the feed passes 0.6361 and then
+jumps to the high branch (`up` is 0.430 at $\mu = 0.6$ and 1.826 at 0.65).
 Coming down, it stays on the high branch until the feed is below 0.3639
 (`down` is 1.570 at 0.4 and 0.174 at 0.35). Between the two folds the
 state depends on the history: the system is a **memory**, a one-bit
@@ -313,32 +319,32 @@ flow reactors, and they are the starting point of the systematic design of
 chemical oscillators [EP ch. 4].
 
 !!! note "Exercises"
-    1. Check the fold values: solve `f'(x) = 0` and evaluate `f`. Then
-       change `c` to 3. How many equilibria are there for `mu = 0.5`, and
+    1. Check the fold values: solve $f'(x) = 0$ and evaluate $f$. Then
+       change $c$ to 3. How many equilibria are there for $\mu = 0.5$, and
        what happens to the folds?
-    2. With `mu = 0.45`, where does the trajectory go from `x = 0.5`? From
-       `x = 1.2`? Find the unstable equilibrium that separates them.
-    3. For a general `c` the folds are at `x = 1 ± sqrt(1 - c/3)`. Find the
-       value of `c` at which they merge, and the `mu` there. Show that both
-       folds lie at a positive feed only if `c > 9/4`.
+    2. With $\mu = 0.45$, where does the trajectory go from $x = 0.5$? From
+       $x = 1.2$? Find the unstable equilibrium that separates them.
+    3. For a general $c$ the folds are at $x = 1 \pm \sqrt{1 - c/3}$. Find the
+       value of $c$ at which they merge, and the $\mu$ there. Show that both
+       folds lie at a positive feed only if $c > 9/4$.
 
 ??? success "Solutions"
-    1. `f'(x) = 3x^2 - 6x + 2.5 = 0` gives `x = 1 ± 1/sqrt(6)`, and `f`
-       there is 0.6361 and 0.3639. With `c = 3`, `f(x) = (x - 1)^3 + 1` and
-       `f'(x) = 3(x - 1)^2 >= 0`: `f` is monotonic, so there is exactly one
-       equilibrium for every `mu` (for `mu = 0.5`, `x = 1 - 0.5^(1/3)`
+    1. $f'(x) = 3x^2 - 6x + 2.5 = 0$ gives $x = 1 \pm 1/\sqrt{6}$, and $f$
+       there is 0.6361 and 0.3639. With $c = 3$, $f(x) = (x - 1)^3 + 1$ and
+       $f'(x) = 3(x - 1)^2 \ge 0$: $f$ is monotonic, so there is exactly one
+       equilibrium for every $\mu$ (for $\mu = 0.5$, $x = 1 - 0.5^{1/3}$
        = 0.2063), and the two folds have merged into one point.
-    2. With `mu = 0.45` there are three equilibria, at 0.2474 and 1.6505
-       (both stable) and 1.1021 (unstable). From `x = 0.5` the trajectory
+    2. With $\mu = 0.45$ there are three equilibria, at 0.2474 and 1.6505
+       (both stable) and 1.1021 (unstable). From $x = 0.5$ the trajectory
        goes down to 0.2474; from 1.2 it goes up to 1.6505. The starting
        point 0.9 also goes to 0.2474, because it is below 1.1021.
-    3. The folds coincide when the square root vanishes: `c = 3`, at
-       `x = 1`, where `mu = f(1) = 1 - 3 + 3 = 1`. The point
-       `(c, mu) = (3, 1)` is a **cusp**: for `c < 3` there is a range of
-       `mu` with bistability, for `c > 3` there is none [DSN §6.3.2,
-       pp. 192–193]. With `s = sqrt(1 - c/3)`, the lower fold is at
-       `mu = f(1 + s) = 1 - 3 s^2 - 2 s^3`, which is positive for
-       `s < 1/2`, that is `c > 9/4`. For a smaller `c` the lower fold needs
+    3. The folds coincide when the square root vanishes: $c = 3$, at
+       $x = 1$, where $\mu = f(1) = 1 - 3 + 3 = 1$. The point
+       $(c, \mu) = (3, 1)$ is a **cusp**: for $c < 3$ there is a range of
+       $\mu$ with bistability, for $c > 3$ there is none [DSN §6.3.2,
+       pp. 192–193]. With $s = \sqrt{1 - c/3}$, the lower fold is at
+       $\mu = f(1 + s) = 1 - 3 s^2 - 2 s^3$, which is positive for
+       $s < 1/2$, that is $c > 9/4$. For a smaller $c$ the lower fold needs
        a negative feed, which no reservoir can supply: switched on, the
        high state could then never be switched off by lowering the feed.
 
@@ -346,9 +352,9 @@ chemical oscillators [EP ch. 4].
 
 The Brusselator, proposed by Prigogine and Lefever (1968), is not the
 mechanism of any real reaction but a minimal mass-action scheme that
-oscillates. One of its steps, `2X + Y -> 3X`, needs three molecules to meet
+oscillates. One of its steps, $2X + Y \to 3X$, needs three molecules to meet
 at once, which real elementary steps rarely do. In dimensionless form, with
-the reservoirs `A` and `B` held constant:
+the reservoirs $A$ and $B$ held constant:
 
 ```ode
 # bruss.ode
@@ -360,19 +366,18 @@ init x=1, y=1.5
 done
 ```
 
-The step `2X + Y -> 3X` is the autocatalytic one. The only equilibrium is
-`(x, y) = (A, B/A)`. The Jacobian there is
+The step $2X + Y \to 3X$ is the autocatalytic one. The only equilibrium is
+$(x, y) = (A, B/A)$. The Jacobian there is
 
-```
-[ B - 1    A^2  ]
-[  -B     -A^2  ]
-```
+$$
+\begin{pmatrix} B - 1 & A^2 \\ -B & -A^2 \end{pmatrix}
+$$
 
-with trace `B - 1 - A^2` and determinant `A^2 > 0`. So the equilibrium is
-stable for `B < 1 + A^2` and unstable above it. At `B = 1 + A^2` the trace
-is zero and the eigenvalues are `± i A`: a **Hopf bifurcation**, with an
-oscillation of period `2 pi/A` at its birth [MA §9.1.1; S ch. 8]. For `A = 1` the Hopf point is
-at `B = 2` and the period is 6.283.
+with trace $B - 1 - A^2$ and determinant $A^2 > 0$. So the equilibrium is
+stable for $B < 1 + A^2$ and unstable above it. At $B = 1 + A^2$ the trace
+is zero and the eigenvalues are $\pm i A$: a **Hopf bifurcation**, with an
+oscillation of period $2\pi/A$ at its birth [MA §9.1.1; S ch. 8]. For $A = 1$ the Hopf point is
+at $B = 2$ and the period is 6.283.
 
 ```python
 br = xs.load("bruss.ode")
@@ -403,11 +408,11 @@ t[["B", "period", "X_max", "X_min"]].iloc[::4].head(5)
 # 3.397  7.8030   4.774   0.313
 ```
 
-The branch leaves the Hopf point to the right (`B` increases): the Hopf
+The branch leaves the Hopf point to the right ($B$ increases): the Hopf
 bifurcation is **supercritical**, and the amplitude grows like the square
-root of the distance from `B = 2`, as in the normal form
-`r' = r (a - r^2)` of [MA §9.1.1, Example 4, p. 225], whose cycle has the
-radius `sqrt(a)`. Simulation agrees:
+root of the distance from $B = 2$, as in the normal form
+$\dot{r} = r (a - r^2)$ of [MA §9.1.1, Example 4, p. 225], whose cycle has the
+radius $\sqrt{a}$. Simulation agrees:
 
 ```python
 br.set(total=300)
@@ -421,36 +426,36 @@ for B in (1.8, 2.2, 3.0):
 # 3.0: (0.371, 3.752)
 ```
 
-The concentration of `X` oscillates with a relaxation-like shape when `B` is
-larger: a slow rise and a quick spike, the period longer, 7.15 at `B = 3`.
-Matter flows in as `A` and `B` and out as products, and the oscillation
+The concentration of $X$ oscillates with a relaxation-like shape when $B$ is
+larger: a slow rise and a quick spike, the period longer, 7.15 at $B = 3$.
+Matter flows in as $A$ and $B$ and out as products, and the oscillation
 feeds on the flow. [EP ch. 1] tells the history of real chemical clocks,
 from the Belousov-Zhabotinsky reaction on, and [EP ch. 5] how their
 mechanisms are worked out.
 
 !!! note "Exercises"
     1. Derive the equilibrium and the Jacobian, and check that the Hopf
-       condition is `B = 1 + A^2`. Verify with `A = 2` that the Hopf point
-       is at `B = 5` and the period at onset is `2 pi/2 = 3.14`.
+       condition is $B = 1 + A^2$. Verify with $A = 2$ that the Hopf point
+       is at $B = 5$ and the period at onset is $2\pi/2 = 3.14$.
     2. Follow the Hopf point in two parameters,
        `br.auto.continue_from(hb, "two-parameter", second="A")`, and compare
-       the `B` of the curve with `1 + A^2`.
-    3. Set `B = 3` and use `br.limit_cycle(variable="x")` to get the period
-       and one turn of the orbit. Is the equilibrium `(1, 3)` inside the
+       the $B$ of the curve with $1 + A^2$.
+    3. Set $B = 3$ and use `br.limit_cycle(variable="x")` to get the period
+       and one turn of the orbit. Is the equilibrium $(1, 3)$ inside the
        orbit?
 
 ??? success "Solutions"
-    1. `x' = 0` and `y' = 0`: adding the two equations gives `x = A`, and
-       then `y = B/A`. The Jacobian is the matrix above, whose trace is
-       `B - 1 - A^2` and whose determinant is `A^2`. Hopf at trace 0,
-       `B = 1 + A^2`, frequency `sqrt(det) = A`. With `A = 2`: `B = 5`, period
+    1. $\dot{x} = 0$ and $\dot{y} = 0$: adding the two equations gives $x = A$, and
+       then $y = B/A$. The Jacobian is the matrix above, whose trace is
+       $B - 1 - A^2$ and whose determinant is $A^2$. Hopf at trace 0,
+       $B = 1 + A^2$, frequency $\sqrt{\det} = A$. With $A = 2$: $B = 5$, period
        3.14.
-    2. The curve is the parabola `B = 1 + A^2`; the computed points agree
+    2. The curve is the parabola $B = 1 + A^2$; the computed points agree
        with it to better than 1e-3. In the desktop app this is the
        **Two-parameter** button of the Bifurcation window with the HB point
        selected.
-    3. The period is 7.157. `x` runs from 0.371 to 3.751 and `y` from
-       0.853 to 4.722, so the orbit surrounds `(1, 3)`: the equilibrium is
+    3. The period is 7.157. $x$ runs from 0.371 to 3.751 and $y$ from
+       0.853 to 4.722, so the orbit surrounds $(1, 3)$: the equilibrium is
        inside the cycle, and it is unstable, a source from which
        trajectories spiral out to the cycle.
 

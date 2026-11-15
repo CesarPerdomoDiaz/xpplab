@@ -106,11 +106,29 @@ def test_pages_are_in_the_nav():
         assert (LEARN / f"{page}.md").is_file()
 
 
-def test_no_display_math():
-    # The site has no math renderer: formulas are plain text.
+def test_the_mathematics_is_well_formed():
+    """The pages write formulas in LaTeX ($...$ and $$...$$), which the site
+    typesets with MathJax (mkdocs.yml: pymdownx.arithmatex). Outside code,
+    the dollars must pair up and each formula's braces must balance, or the
+    reader sees the source."""
+    assert "pymdownx.arithmatex" in (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
     for page in ["index"] + PAGES:
         text = (LEARN / f"{page}.md").read_text(encoding="utf-8")
-        assert "$$" not in text, page
+        prose = re.sub(r"^( *)```.*?^\1```", "", text, flags=re.S | re.M)   # fenced code
+        prose = re.sub(r"`[^`\n]*`", "", prose)                            # inline code
+        prose = prose.replace(r"\$", "")
+        display = re.findall(r"\$\$(.*?)\$\$", prose, flags=re.S)
+        rest = re.sub(r"\$\$.*?\$\$", "", prose, flags=re.S)
+        assert "$$" not in rest, f"{page}: an unclosed $$"
+        for para in rest.split("\n\n"):
+            assert para.count("$") % 2 == 0, f"{page}: unpaired $ in: {para[:80]!r}"
+        inline = re.findall(r"\$([^$]+)\$", rest)
+        for formula in display + inline:
+            plain = formula.replace(r"\{", "").replace(r"\}", "")
+            assert plain.count("{") == plain.count("}"), f"{page}: braces in {formula[:60]!r}"
+            assert formula.count(r"\begin") == formula.count(r"\end"), (page, formula[:60])
+        if page != "index":
+            assert len(inline) > 20, f"{page} has almost no mathematics"
 
 
 def test_links_inside_learn_exist():

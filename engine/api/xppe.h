@@ -103,9 +103,11 @@ XPPE_API int xppe_ic_file(const char *path);
    XPPAUT's array form ("u[1..20]") the value of a formula in the model's
    parameters and functions. In the array form, [j] in the formula stands
    for the index ([j+1] and [j-1] work too), so "u[1..20]" with
-   "sin(2*pi*[j]/20)" sets u1 ... u20. Returns the number of values set; a
-   name that is not a variable, or a formula XPPAUT cannot evaluate,
-   changes nothing. Since API version 5. */
+   "sin(2*pi*[j]/20)" sets u1 ... u20. A variable named in the formula is
+   its initial value as it was before the call ("W" with "V/10"), not what
+   the last run left. Returns the number of values set; a name that is not
+   a variable, or a formula XPPAUT cannot evaluate, changes nothing. Since
+   API version 5. */
 XPPE_API int xppe_ic_formula(const char *target, const char *formula);
 
 /* Numerics > stocHastic > Compute: run the model `trials` times (at least

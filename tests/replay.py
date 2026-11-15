@@ -137,6 +137,10 @@ CASES = [
     ("fit_csv", "lecar.ode", [
         "set iapp=0.1", "run", "export {out}/data.csv", "set gca=1.2 gk=1.8",
         "fitdata {out}/data.csv V 2 gca,gk", "run", "export {out}/fitted.csv"]),
+
+    ("bvp_tol", "cable.ode", [
+        "set total=1 dt=0.01 a=0 b=1", "bvp tol=1e-8 maxit=40",
+        "export {out}/bvp.csv"]),
     ("equilibria", "lecar.ode", [
         "range iapp 0 0.3 31 eq V", "export {out}/sweep.csv range",
         "eq all", "export {out}/all.csv equilibria",

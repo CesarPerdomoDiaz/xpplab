@@ -248,6 +248,20 @@ def test_initial_values_from_a_formula(lecar):
         assert [m.ics["u%d" % j] for j in (3, 4, 5)] == [2, 2.5, 3]
 
 
+def test_a_formula_reads_the_initial_values(lecar):
+    # Not what XPPAUT's evaluator was left holding by the last run or
+    # equilibrium, which the app and a script of its session do not share.
+    lecar.set(V=-0.144, W=0.03)
+    lecar.run()
+    lecar.equilibrium()
+    lecar.ic_formula("W", "V/10")
+    assert lecar.ics["W"] == pytest.approx(-0.0144, rel=1e-15)
+    lecar.ic_formula("V", "2*V + W")
+    assert lecar.ics["V"] == pytest.approx(2 * -0.144 - 0.0144, rel=1e-15)
+    after = lecar.run()          # and the run is as from those values
+    assert after["V"][0] == pytest.approx(-0.3024, abs=1e-7)
+
+
 def test_a_grid_as_a_table():
     t = xs.Table.from_grid("a", [1, 2], "b", [10, 20, 30], {"z": [[1, 2], [3, 4], [5, 6]]})
     assert list(t["a"]) == [1, 2, 1, 2, 1, 2]

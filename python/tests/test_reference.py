@@ -323,3 +323,41 @@ def test_run_page():
           tol=1e-6, atol=1e-6, maxstor=5000)
     assert len(m.run().t) == 601
     m.close()
+
+
+def test_eq_pages():
+    text, blocks = python_blocks("eq.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "eq.md example 1", "exec"), ns)
+    e = ns["e"]
+    assert e.kind == "saddle"
+    assert (e["V"], e["W"]) == pytest.approx((-0.142535, 0.034049), abs=1e-6)
+    assert sorted(e.eigenvalues.real) == pytest.approx([-0.30101, 1.02997], abs=1e-5)
+    exec(compile(blocks[1], "eq.md example 2", "exec"), ns)
+    low, high = ns["low"], ns["high"]
+    assert low.kind == "stable node"
+    assert (low["V"], low["W"]) == pytest.approx((-0.382505, 0.001286), abs=1e-6)
+    assert sorted(low.eigenvalues.real) == pytest.approx([-0.89036, -0.40276], abs=1e-5)
+    assert high.kind == "unstable focus"
+    assert (high["V"], high["W"]) == pytest.approx((0.02761, 0.26924), abs=1e-5)
+    assert high.eigenvalues.real == pytest.approx([0.52042, 0.52042], abs=1e-5)
+    assert sorted(abs(high.eigenvalues.imag)) == pytest.approx([0.7811, 0.7811], abs=1e-4)
+    # a run from the initial values ends at the stable node, not the saddle
+    m = ns["m"]
+    m.set(v=-0.144, w=0.03)
+    assert m.run()["V"][-1] == pytest.approx(low["V"], abs=1e-3)
+    m.close()
+
+    text, blocks = python_blocks("eq-all.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "eq-all.md example 1", "exec"), ns)
+    found = ns["found"]
+    assert len(found) == 3
+    assert sorted(e.kind for e in found) == ["saddle", "stable node", "unstable focus"]
+    exec(compile(blocks[1], "eq-all.md example 2", "exec"), ns)
+    one = ns["one"]
+    assert len(one) == 1 and one[0].kind == "unstable focus"
+    assert one[0]["V"] == pytest.approx(-0.152093, abs=1e-6)
+    ns["m"].close()

@@ -17,6 +17,13 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 |---|---|
 | [run](run.md) | Integrate the model from its initial values and show the result. |
 
+## Equilibria
+
+| Page | What it does |
+|---|---|
+| [eq](eq.md) | Find an equilibrium near the initial values, with its eigenvalues and its stability. |
+| [eq all](eq-all.md) | Find every equilibrium in a region, from many starting points. |
+
 ## Bifurcation analysis
 
 | Page | What it does |

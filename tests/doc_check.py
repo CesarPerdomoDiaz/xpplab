@@ -91,7 +91,12 @@ def main(exe, model):
     for page in sorted(REFERENCE.glob("*.md")):
         if page.stem in ("reference", "template"):
             continue
-        heads = re.findall(r"^## (.+)$", page.read_text(encoding="utf-8"), re.M)
+        text = page.read_text(encoding="utf-8")
+        heads = re.findall(r"^## (.+)$", text, re.M)
+        # the app's Help window shows these pages and cannot typeset LaTeX yet
+        prose = re.sub(r"```.*?```", "", text, flags=re.S)
+        if "$" in prose.replace("\$", ""):
+            bad.append(f"{page.name}: LaTeX ($...$) in a page the app's Help window shows")
         if heads != SECTIONS:
             bad.append(f"{page.name}: sections {heads}, expected {SECTIONS}")
         check((page.stem.replace("-", " ")) in names,

@@ -11,8 +11,6 @@ ic read
 ic write
 ic
 click
-eq
-eq all
 nullclines
 nullclines freeze
 nullclines unfreeze

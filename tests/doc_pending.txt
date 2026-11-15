@@ -25,7 +25,6 @@ spectrum
 fourier
 power
 hist2d
-xcorr
 ensemble
 prc
 hfun

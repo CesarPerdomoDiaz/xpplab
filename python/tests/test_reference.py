@@ -699,3 +699,31 @@ def test_hist_page():
     g = m.histogram("V", bins=10, range=(lo, lo + 0.642))
     assert g["count"][0] == ((run["V"] >= lo - 0.0642) & (run["V"] < lo + 0.0642)).sum()
     m.close()
+
+
+def test_xcorr_page():
+    text, blocks = python_blocks("xcorr.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "xcorr.md example 1", "exec"), ns)
+    m, run, c = ns["m"], ns["run"], ns["c"]
+    lag, cor = c["lag"], c["correlation"]
+    assert len(c) == 802 and lag[0] == -20 and lag[-1] == 20
+    assert round(lag[1] - lag[0], 5) == 0.04994 and round(lag[400], 3) == -0.025
+    assert round(cor[400], 5) == 0.03308 == round(run["V"].var(), 5)
+    later = lag > 5
+    j = np.argmax(cor[later])
+    assert abs(lag[later][j] - 16.45) < 0.05 and round(cor[later][j], 4) == 0.0311
+    assert round(cor[later][j] / cor[400], 2) == 0.94
+    k = np.where((lag > 0) & (lag < 16))[0]
+    assert round(lag[k[np.argmin(cor[k])]], 2) == 8.51 and round(cor[k].min(), 4) == -0.0142
+    assert len(m.correlation("V")) == 102 and m.correlation("V")["lag"][-1] == 2.5
+    exec(compile(blocks[1], "xcorr.md example 2", "exec"), ns)
+    vw = ns["vw"]
+    near = np.abs(vw["lag"]) < 8
+    assert round(vw["lag"][near][np.argmax(vw["correlation"][near])], 2) == 1.32
+    v, w = run["V"] - run["V"].mean(), run["W"] - run["W"].mean()
+    assert (v[:-26] * w[26:]).mean() > 10 * abs((v[26:] * w[:-26]).mean())   # W follows V
+    fft = m.correlation("V", lags=800, fft=True)["correlation"]
+    assert np.abs(fft - cor)[:-2].max() < 1e-7
+    m.close()

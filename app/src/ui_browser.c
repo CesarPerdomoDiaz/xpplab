@@ -16,11 +16,13 @@
 typedef struct {
   char name[128];
   char about[400]; /* the leading comment of the file */
+  bool classic;    /* from the folder classics */
 } Example;
 
 static Example *examples;
 static int nexamples = -1;
 static char filter[64];
+static bool scanning_classics;
 
 static int by_name(const void *x, const void *y) {
   return SDL_strcasecmp(((const Example *)x)->name, ((const Example *)y)->name);
@@ -108,14 +110,42 @@ static SDL_EnumerationResult SDLCALL add_example(void *ud, const char *dir,
   snprintf(examples[nexamples].name, sizeof examples->name, "%s", name);
   snprintf(path, sizeof path, "%s%s", dir, name);
   read_about(path, examples[nexamples].about, sizeof examples->about);
+  examples[nexamples].classic = scanning_classics;
   nexamples++;
   return SDL_ENUM_CONTINUE;
 }
 
 static void scan(App *a) {
+  char classics[1100];
   nexamples = 0;
+  scanning_classics = false;
   if (!list_folder(a->examples_dir)) nexamples = 0;
+  /* the classic models, in their own folder and their own section */
+  snprintf(classics, sizeof classics, "%s/classics", a->examples_dir);
+  scanning_classics = true;
+  list_folder(classics);
+  scanning_classics = false;
   if (nexamples > 0) qsort(examples, (size_t)nexamples, sizeof *examples, by_name);
+}
+
+/* One section of the list: the classics, or XPPAUT's examples. */
+static void example_rows(App *a, bool classic) {
+  int i;
+  for (i = 0; i < nexamples; i++) {
+    Example *e = &examples[i];
+    if (e->classic != classic) continue;
+    if (filter[0] && !SDL_strcasestr(e->name, filter) && !SDL_strcasestr(e->about, filter))
+      continue;
+    igPushID_Int(i);
+    if (igSelectable_Bool(e->name, strcmp(e->name, a->model_name) == 0, 0, V2(0, 0))) {
+      char path[1300];
+      snprintf(path, sizeof path, "%s/%s%s", a->examples_dir, classic ? "classics/" : "",
+               e->name);
+      app_open(a, path);
+    }
+    if (e->about[0]) Tooltip(e->about);
+    igPopID();
+  }
 }
 
 void ui_browser(App *a) {
@@ -147,24 +177,15 @@ void ui_browser(App *a) {
       igPopID();
     }
   }
-  if (igCollapsingHeader_TreeNodeFlags("Examples", ImGuiTreeNodeFlags_DefaultOpen)) {
+  if (igCollapsingHeader_TreeNodeFlags("Classics", ImGuiTreeNodeFlags_DefaultOpen)) {
+    example_rows(a, true);
+    Tooltip("Familiar systems: the Lorenz attractor, the van der Pol oscillator, "
+            "predator and prey, the heat equation, ...");
+  }
+  if (igCollapsingHeader_TreeNodeFlags("XPPAUT's examples", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (nexamples == 0)
       igTextDisabled("No examples found in %s", a->examples_dir);
-    for (i = 0; i < nexamples; i++) {
-      Example *e = &examples[i];
-      if (filter[0] && !SDL_strcasestr(e->name, filter) &&
-          !SDL_strcasestr(e->about, filter))
-        continue;
-      igPushID_Int(i);
-      if (igSelectable_Bool(e->name, strcmp(e->name, a->model_name) == 0, 0,
-                            V2(0, 0))) {
-        char path[1300];
-        snprintf(path, sizeof path, "%s/%s", a->examples_dir, e->name);
-        app_open(a, path);
-      }
-      if (e->about[0]) Tooltip(e->about);
-      igPopID();
-    }
+    example_rows(a, false);
   }
   igEnd();
 }

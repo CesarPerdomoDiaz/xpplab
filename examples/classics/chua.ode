@@ -1,0 +1,12 @@
+# Chua's circuit
+# An electronic circuit with one nonlinear resistor, built to be chaotic:
+# the double scroll attractor (Chua, Komuro and Matsumoto, 1986).
+f(x)=m1*x+0.5*(m0-m1)*(abs(x+1)-abs(x-1))
+x'=alpha*(y-x-f(x))
+y'=x-y+z
+z'=-beta*y
+par alpha=15.6,beta=28,m0=-1.143,m1=-0.714
+init x=0.7,y=0,z=0
+@ total=200,dt=0.005,meth=rungekutta,maxstor=200000,bound=1000
+@ xp=x,yp=y,xlo=-3,xhi=3,ylo=-0.5,yhi=0.5
+done

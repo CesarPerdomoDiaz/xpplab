@@ -87,6 +87,11 @@ with tempfile.TemporaryDirectory() as t:
     check(s.exists() and "m.auto" in s.read_text() and "sol.save(" in s.read_text(),
           "the session is saved as Python")
 
+    # ic NAME = FORMULA: a variable in the formula is its initial value, not
+    # the state the first run or the equilibrium left in XPPAUT's evaluator
+    r = run(["lecar.ode", "-c", "eq", "-c", "ic w = v/10", "-c", "get w"], work)
+    check("w = -0.0144" in r.stdout, "ic w = v/10 uses v's initial value: " + r.stdout[-300:])
+
     # set: a parameter's or a variable's value must be a number; a typo or a
     # formula is refused, not read as 0 or as its first number
     r = run(["lecar.ode", "--keep-going", "-c", "set iapp=abc", "-c", "get iapp",

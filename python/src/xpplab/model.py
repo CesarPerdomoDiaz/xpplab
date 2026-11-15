@@ -716,7 +716,8 @@ class Model(AnalysisMixin):
     def ic_formula(self, target: str, formula: str) -> "Model":
         """Set initial conditions from a formula (XPPAUT's Initial conds >
         formUla, I U), evaluated by XPPAUT with the model's parameters and
-        functions.
+        functions. A variable named in the formula stands for its initial
+        value before the call: ``m.ic_formula("W", "V/10")``.
 
         ``target`` is a variable, ``m.ic_formula("V", "vk + 0.1")``, or a
         range of numbered variables in XPPAUT's array form, where ``[j]`` in

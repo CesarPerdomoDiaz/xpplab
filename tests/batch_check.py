@@ -87,6 +87,22 @@ with tempfile.TemporaryDirectory() as t:
     check(s.exists() and "m.auto" in s.read_text() and "sol.save(" in s.read_text(),
           "the session is saved as Python")
 
+    # freeze keeps a copy and leaves the run: ic last, continue and export
+    # still have it (they said there was no run, or started a new one)
+    r = run(["lecar.ode", "-c", "freeze", "-c", "ic last", "-c", "continue 10",
+             "-c", "export frozen.csv"], work)
+    check(r.returncode == 0 and "There is no run yet" not in r.stdout,
+          "freeze leaves the run: " + r.stdout[-400:])
+    check("Initial values set to the end of the last run." in r.stdout
+          and "Continued to t = 40" in r.stdout and (work / "frozen.csv").exists(),
+          "ic last, continue and export after freeze: " + r.stdout[-400:])
+
+    # An analysis of two columns names both
+    r = run(["lecar.ode", "-c", "xcorr V W 200", "-c", "xcorr V 200"], work)
+    check("Correlation of V and W: 202 rows." in r.stdout
+          and "Correlation of V: 202 rows." in r.stdout,
+          "xcorr names its columns: " + r.stdout[-400:])
+
     # ic NAME = FORMULA: a variable in the formula is its initial value, not
     # the state the first run or the equilibrium left in XPPAUT's evaluator
     r = run(["lecar.ode", "-c", "eq", "-c", "ic w = v/10", "-c", "get w"], work)

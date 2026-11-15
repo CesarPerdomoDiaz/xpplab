@@ -159,6 +159,19 @@ def mackey_glass(m):
     return fig
 
 
+def ornstein_uhlenbeck(m):
+    fig, ax = axes("t", "x")
+    for k in range(4):
+        sol = m.run()
+        ax.plot(sol.t, sol["X"], lw=0.6, color="0.65")
+    ens = m.ensemble(400)
+    t, mean = ens.mean.t, ens.mean["X"]
+    sd = ens.std["X"]
+    ax.fill_between(t, mean - sd, mean + sd, color=BLUE, alpha=0.2, lw=0)
+    ax.plot(t, mean, lw=1.4, color=BLUE)
+    return fig
+
+
 def kepler(m):
     fig, ax = axes("x", "y", square=True)
     sol = m.run()
@@ -195,6 +208,9 @@ FIGURES = {
     "kuramoto": (kuramoto, "Weak coupling leaves them apart; strong coupling locks them."),
     "mackey_glass": (mackey_glass, "The count now against the count 17 time units ago."),
     "kepler": (kepler, "The orbit, with the sun at one focus."),
+    "ornstein_uhlenbeck": (ornstein_uhlenbeck,
+                           "Four runs (grey), and the mean of 400 with one standard "
+                           "deviation either side."),
     "bouncing_ball": (series(["H"], ["height"]), "Each bounce lasts 0.8 of the one before."),
     "fisher_wave": (space_time("U", 100, 50.0), "The front advances at a steady speed, close to 2."),
 }
@@ -270,6 +286,7 @@ C\,\dot v &= I - g_{\mathrm{Na}}\, m^3 h\,(v - E_{\mathrm{Na}})
     "bouncing_ball": r"""\ddot h = -g, \qquad \dot h \to -e\,\dot h \ \text{ when } h = 0,
 \qquad g = 9.81,\; e = 0.8""",
     "fisher_wave": r"""\frac{\partial u}{\partial t} = \frac{\partial^2 u}{\partial x^2} + u\,(1 - u)""",
+    "ornstein_uhlenbeck": r"""dx = -\theta\,x\,dt + \sigma\,dW, \qquad \theta = 1,\; \sigma = 0.5""",
 }
 
 #: titles as they are written, where the model file keeps to plain letters
@@ -281,6 +298,7 @@ SECTIONS = [
     ("Oscillators", ["oscillator", "pendulum", "vanderpol", "brusselator", "kuramoto"]),
     ("Life", ["lotka_volterra", "sir", "fitzhugh_nagumo", "hodgkin_huxley"]),
     ("Mechanics and waves", ["kepler", "bouncing_ball", "heat", "fisher_wave"]),
+    ("Noise", ["ornstein_uhlenbeck"]),
 ]
 
 

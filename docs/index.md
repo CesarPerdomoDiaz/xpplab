@@ -70,7 +70,7 @@ Windows, macOS and Linux, and in Python.
     ---
 
     The Lorenz attractor, Chua's circuit, the van der Pol oscillator,
-    predator and prey, the heat equation: twenty familiar systems, ready to
+    predator and prey, the heat equation: twenty-one familiar systems, ready to
     run. Then worked examples by field, from neurons to a kite.
 
     [Gallery](gallery/index.md) · [Learn by example](learn/index.md)

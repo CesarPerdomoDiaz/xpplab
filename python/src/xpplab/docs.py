@@ -15,7 +15,8 @@ PAGES = ("auto steady", "auto from", "auto set", "auto orbit", "auto save",
          "mean", "hist", "xcorr", "spectrum", "hist2d", "bvp",
          "nullclines freeze", "nullclines play", "nullclines unfreeze",
          "export", "shoot", "view3d", "ani", "prc", "hfun", "fourier", "power", "script", "echo", "many", "set", "get", "open", "new", "save", "doc", "help",
-         "show", "hide", "layout", "theme", "palette", "clear", "quit", "annotate")
+         "show", "hide", "layout", "theme", "palette", "clear", "quit", "annotate",
+         "ensemble", "linearize", "poles", "lqr", "locus", "closedloop")
 
 #: The method of the package that does what a command does.
 METHODS = {"equilibria": "auto steady", "continue_from": "auto from",
@@ -43,7 +44,9 @@ METHODS = {"equilibria": "auto steady", "continue_from": "auto from",
            "fourier": "fourier", "power": "power",
            "run_many": "many", "sample_initial": "many",
            "set": "set", "get": "get",
-           "load": "open", "from_text": "new"}
+           "load": "open", "from_text": "new",
+           "ensemble": "ensemble", "linearize": "linearize", "place_poles": "poles",
+           "lqr": "lqr", "root_locus": "locus", "closed_loop": "closedloop"}
 
 
 def doc(name=None, *, open: bool = True) -> str:

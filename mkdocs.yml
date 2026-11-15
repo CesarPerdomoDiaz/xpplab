@@ -148,6 +148,12 @@ nav:
       - view3d: reference/view3d.md
       - ani: reference/ani.md
       - mean: reference/mean.md
+      - ensemble: reference/ensemble.md
+      - linearize: reference/linearize.md
+      - poles: reference/poles.md
+      - lqr: reference/lqr.md
+      - locus: reference/locus.md
+      - closedloop: reference/closedloop.md
       - hist: reference/hist.md
       - hist2d: reference/hist2d.md
       - xcorr: reference/xcorr.md

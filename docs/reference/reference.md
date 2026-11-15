@@ -50,6 +50,12 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [view3d](view3d.md) | Show three columns of the run as a curve in three dimensions. |
 | [prc](prc.md) | The phase response curves of a stable limit cycle. |
 | [hfun](hfun.md) | The interaction function of two weakly coupled copies of an oscillator. |
+| [ensemble](ensemble.md) | Run a noisy model many times and keep the mean and variance. |
+| [linearize](linearize.md) | Linearise at a point: A, B, the eigenvalues and controllability. |
+| [poles](poles.md) | The feedback gain that places the closed loop's poles. |
+| [lqr](lqr.md) | The optimal feedback gain for weights on states and inputs. |
+| [locus](locus.md) | How the eigenvalues move with a gain, a feedback or a parameter. |
+| [closedloop](closedloop.md) | Write the model with the feedback built in, and open it. |
 | [mean](mean.md) | The mean and standard deviation of a column, and the largest Liapunov exponent of the run. |
 | [hist](hist.md) | A histogram of a column of the last run: how much of the run is spent at each value. |
 | [xcorr](xcorr.md) | The autocorrelation of a column, or the cross-correlation of two. |

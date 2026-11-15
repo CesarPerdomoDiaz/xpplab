@@ -1165,3 +1165,81 @@ def test_annotate_page():
     import matplotlib.pyplot as plt
     plt.close("all")
     ns["m"].close()
+
+
+def test_ensemble_page():
+    text, blocks = python_blocks("ensemble.md")
+    ns = {}
+    exec(compile(blocks[0], "ensemble.md example", "exec"), ns)
+    t, mean, var = ns["t"], ns["mean"], ns["var"]
+    assert len(t) == 501 and ns["ens"].trials == 400
+    table = {1: (0.753, 0.1204), 2: (0.288, 0.1224), 5: (0.026, 0.1387)}
+    for when, (mu, v) in table.items():
+        k = int(np.argmin(abs(t - when)))
+        assert (round(mean[k], 3), round(var[k], 4)) == (mu, v)
+    assert round(np.abs(mean - 2 * np.exp(-t)).max(), 3) == 0.045
+    assert round(var[t > 3].mean(), 3) == 0.131
+    ns["m"].close()
+
+
+def inverted_pendulum():
+    m = xs.load(xs.example("classics/pendulum"))
+    return m, m.linearize(at={"th": np.pi, "w": 0}, inputs=["u"])
+
+
+def test_linearize_page():
+    text, blocks = python_blocks("linearize.md")
+    ns = {}
+    exec(compile(blocks[0], "linearize.md example", "exec"), ns)
+    lin = ns["lin"]
+    np.testing.assert_allclose(lin.A, [[0, 1], [1, -0.1]], atol=1e-8)
+    np.testing.assert_allclose(lin.B, [[0], [1]], atol=1e-8)
+    assert [round(e, 5) for e in sorted(lin.eigenvalues.real)] == [-1.05125, 0.95125]
+    assert lin.controllable and lin.rank == 2
+    ns["m"].close()
+
+
+def test_poles_page():
+    text, blocks = python_blocks("poles.md")
+    ns = {}
+    exec(compile(blocks[0], "poles.md example", "exec"), ns)
+    np.testing.assert_allclose(ns["K"], [[3, 2.9]], atol=1e-8)
+    ns["m"].close()
+
+
+def test_lqr_page():
+    text, blocks = python_blocks("lqr.md")
+    ns = {}
+    exec(compile(blocks[0], "lqr.md example", "exec"), ns)
+    equal, angle = ns["equal"], ns["angle"]
+    assert np.round(equal.K, 5).tolist() == [[2.41421, 2.31628]]
+    assert equal.K[0, 0] == pytest.approx(1 + np.sqrt(2), abs=1e-9)
+    assert sorted(np.round(equal.poles.real, 5)) == [-1.4212, -0.99509]
+    assert np.round(angle.K, 5).tolist() == [[4.31662, 3.00536]]
+    assert round(angle.poles[0].real, 4) == -1.5527 and round(abs(angle.poles[0].imag), 5) == 0.95174
+    ns["m"].close()
+
+
+def test_locus_page():
+    text, blocks = python_blocks("locus.md")
+    ns = {}
+    exec(compile(blocks[0], "locus.md example", "exec"), ns)
+    [(gain, pole)] = ns["rl"].crossings()
+    assert gain == pytest.approx(1 / 3, abs=1e-9) and pole == 0
+    exec(compile(blocks[1], "locus.md example 2", "exec"), ns)
+    crossings = ns["loc"].crossings()
+    assert [round(c, 9) for c, _ in crossings] == [0, 0]
+    assert sorted(round(p.imag, 9) for _, p in crossings) == [-1, 1]
+    ns["m"].close()
+
+
+def test_closedloop_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("closedloop.md")
+    ns = {}
+    exec(compile(blocks[0], "closedloop.md example", "exec"), ns)
+    assert ns["sol"]["TH"][-1] == pytest.approx(np.pi, abs=1e-5)
+    assert round(ns["free"]["TH"][-1], 2) == 5.24
+    assert ns["held"].parameters.keys() == {"c"}
+    ns["held"].close()
+    ns["m"].close()

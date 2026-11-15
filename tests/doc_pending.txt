@@ -10,10 +10,4 @@ py
 python
 serve
 figure
-ensemble
 fitdata
-linearize
-poles
-lqr
-closedloop
-locus

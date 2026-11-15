@@ -21,31 +21,31 @@ was written; the test suite computes them again.
 
 ## Theory for state feedback
 
-**The linear model.** Near an equilibrium `x*` of `x' = f(x, u)`, with the
-input `u` at its nominal value `u0`, write `x = x* + dx` and `u = u0 + du`.
-Then `dx' = A dx + B du`, with `A` the Jacobian of `f` with respect to the
-states and `B` its derivative with respect to the inputs. In XPP Lab the
+**The linear model.** Near an equilibrium $x^*$ of $\dot{x} = f(x, u)$, with the
+input $u$ at its nominal value $u_0$, write $x = x^* + \delta x$ and $u = u_0 + \delta u$.
+Then $\delta\dot{x} = A\, \delta x + B\, \delta u$, with $A$ the Jacobian of $f$ with respect to the
+states and $B$ its derivative with respect to the inputs. In XPP Lab the
 inputs are parameters of the model, chosen by name.
 
 **Controllability.** The inputs can steer every state when the matrix
-`[B, AB, ..., A^(n-1) B]` has rank `n`, the number of states [AM ch. 7].
-If it does not, some poles (eigenvalues of `A`) cannot be moved by any
+$[B, AB, \dots, A^{n-1} B]$ has rank $n$, the number of states [AM ch. 7].
+If it does not, some poles (eigenvalues of $A$) cannot be moved by any
 feedback.
 
-**Pole placement.** With the feedback `du = -K dx` the closed loop is
-`dx' = (A - B K) dx`. When the pair `(A, B)` is controllable, `K` can be
-chosen so that `A - B K` has any eigenvalues you ask for, complex ones in
+**Pole placement.** With the feedback $\delta u = -K\, \delta x$ the closed loop is
+$\delta\dot{x} = (A - B K)\, \delta x$. When the pair $(A, B)$ is controllable, $K$ can be
+chosen so that $A - B K$ has any eigenvalues you ask for, complex ones in
 conjugate pairs. The loop is stable when all of them have a negative real
 part [AM ch. 7].
 
 **LQR.** Instead of choosing poles, choose what the motion costs: the
-feedback that minimises the integral of `dx' Q dx + du' R du` is
-`du = -K dx`, with `K` from the algebraic Riccati equation
-[AM ch. 7; FPE ch. 7]. A large `Q` asks for a small error, a large `R`
+feedback that minimises the integral of $\delta x^T Q\, \delta x + \delta u^T R\, \delta u$ is
+$\delta u = -K\, \delta x$, with $K$ from the algebraic Riccati equation
+[AM ch. 7; FPE ch. 7]. A large $Q$ asks for a small error, a large $R$
 asks for a gentle input.
 
 **Where the linear model is valid.** The feedback is designed on the linear
-model but applied to the real one. It is sure to work only close to `x*`,
+model but applied to the real one. It is sure to work only close to $x^*$,
 and `valid_radius` estimates how close that is. Farther away, the
 simulation of the full model decides.
 
@@ -88,12 +88,12 @@ lin.eigenvalues                        # 0.9050 and -1.1050: a saddle
 ```
 
 The positive eigenvalue is the rate at which a small tilt grows: about
-`exp(0.905 t)`. In the app, open `pend.ode`, set the initial values to the
+$e^{0.905 t}$. In the app, open `pend.ode`, set the initial values to the
 upright position and run `linearize at ic inputs u` in the command line. It
-shows `A`, `B`, the eigenvalues in the complex plane and the controllability
+shows $A$, $B$, the eigenvalues in the complex plane and the controllability
 result.
 
-**Controllability.** The matrix `[B, AB]` and its rank:
+**Controllability.** The matrix $[B, AB]$ and its rank:
 
 ```python
 lin.controllability                    # [[0, 1], [1, -0.2]]
@@ -102,8 +102,8 @@ lin.rank, lin.controllable             # 2, True
 
 The torque can steer both states, so the poles can be placed anywhere.
 
-**Place the poles.** Ask for the pair `-2 + i` and `-2 - i`: a decay of
-`exp(-2 t)` with a little oscillation.
+**Place the poles.** Ask for the pair $-2 + i$ and $-2 - i$: a decay of
+$e^{-2t}$ with a little oscillation.
 
 ```python
 K = lin.place_poles([-2 + 1j, -2 - 1j])
@@ -111,10 +111,10 @@ K                                      # [[6.0, 3.8]]
 np.linalg.eigvals(lin.A - lin.B @ K)   # -2 + 1i and -2 - 1i
 ```
 
-This gain can be checked by hand. With `du = -(k1 dx1 + k2 dx2)` the
-characteristic polynomial of `A - B K` is `s^2 + (c + k2) s + (k1 - 1)`.
-The requested poles give `s^2 + 4 s + 5`, so `k2 = 4 - c = 3.8` and
-`k1 = 6`. In the app: `poles -2+1i -2-1i`.
+This gain can be checked by hand. With $\delta u = -(k_1\, \delta x_1 + k_2\, \delta x_2)$ the
+characteristic polynomial of $A - B K$ is $s^2 + (c + k_2)\, s + (k_1 - 1)$.
+The requested poles give $s^2 + 4 s + 5$, so $k_2 = 4 - c = 3.8$ and
+$k_1 = 6$. In the app: `poles -2+1i -2-1i`.
 
 **LQR.** Now weigh the angle ten times more than the angular velocity, and
 the torque by one:
@@ -129,7 +129,7 @@ In the app: `lqr Q 10 1 R 1`. LQR gives a gentler gain than the poles
 above, and finds poles by itself.
 
 **Close the loop.** `closed_loop` writes the model with the torque replaced
-by the feedback law `u = u0 - K (x - x*)`, loads it, and keeps the initial
+by the feedback law $u = u_0 - K (x - x^*)$, loads it, and keeps the initial
 values and settings. It is the full nonlinear model:
 
 ```python
@@ -139,7 +139,7 @@ sol["th"][-1]                          # 0, to 1e-12: it is held upright
 ```
 
 In the app, `closedloop` uses the last gain computed, here the LQR one
-(the Python above closes the loop with the pole-placement `K`). It writes
+(the Python above closes the loop with the pole-placement $K$). It writes
 the closed loop and runs it: the angle, drawn as a
 solid line, decays to zero. The simulation checks what the linear model
 only promises. The feedback built for small tilts also holds a pendulum
@@ -153,30 +153,30 @@ peak = abs(K[0, 0] * far["th"] + K[0, 1] * far["w"]).max()
 peak                                   # 18.0: the largest torque used
 ```
 
-That torque is `k1 * 3` at the start. A real motor has a limit, and the
+That torque is $k_1 \cdot 3$ at the start. A real motor has a limit, and the
 linear design does not know it. The exercises compare gains.
 
 !!! note "Exercises"
-    1. Place the poles at `-1`, `-1.5` (real) and then at `-4 + 4i`,
-       `-4 - 4i`. How do the gains and the peak torque for `th = 0.5`
+    1. Place the poles at $-1$, $-1.5$ (real) and then at $-4 + 4i$,
+       $-4 - 4i$. How do the gains and the peak torque for `th = 0.5`
        change? What does faster mean for the motor?
     2. Compute the LQR gain for `R = 0.01`, `1` and `100` with
        `Q = [10, 1]`. Which is the gentle one?
     3. Set `u = 0`, `th = 0.001`, `w = 0` and run the open loop. How many
        time units does the angle take to grow from 0.01 to 0.1? Compare with
-       `ln(10)` over the positive eigenvalue.
+       $\ln(10)$ over the positive eigenvalue.
 
 ??? success "Solutions"
-    1. The real pair needs `k1 = 1 + 1.5 = 2.5` and
-       `k2 = 2.5 - c = 2.3` (the polynomial is `s^2 + 2.5 s + 1.5`). The
-       faster pair needs `k1 = 33` and `k2 = 7.8`. The peak torque from
+    1. The real pair needs $k_1 = 1 + 1.5 = 2.5$ and
+       $k_2 = 2.5 - c = 2.3$ (the polynomial is $s^2 + 2.5 s + 1.5$). The
+       faster pair needs $k_1 = 33$ and $k_2 = 7.8$. The peak torque from
        `th = 0.5` is 1.25 for the first pair, 3.0 for the pole pair of the
        text and 16.5 for the fast one: the faster the poles, the larger the
        gain and the torque.
     2. `R = 0.01` gives `K = [32.64, 12.66]`, `R = 1` gives
        `[4.317, 2.910]`, `R = 100` gives `[2.049, 1.837]`. A large `R` is
        the gentle controller. Its poles are slower.
-    3. 2.55 time units, against `ln(10)/0.905 = 2.54`.
+    3. 2.55 time units, against $\ln(10)/0.905 = 2.54$.
 
 ## Example 2: an unstable reactor
 
@@ -251,7 +251,7 @@ conversion, so both are reachable. The linear model is valid in a small
 region around the point (a radius of about 0.06), much smaller than the
 distance to the other steady states.
 
-Place the poles at `-1` and `-1.5`, and compute an LQR gain with the same
+Place the poles at $-1$ and $-1.5$, and compute an LQR gain with the same
 weights as before. Then run the closed loop from a start away from the
 steady state:
 
@@ -268,7 +268,7 @@ sol = closed.run()
 sol["x1"][-1], sol["x2"][-1]           # 0.4472, 2.7517
 ```
 
-The open loop from `(0.5, 3.0)` went to the hot state. The same start with
+The open loop from $(0.5, 3.0)$ went to the hot state. The same start with
 feedback goes to the middle one and stays. In the app, load `cstr.ode`,
 run `eq` after setting the initial values to 0.45 and 2.7, then
 `linearize at eq inputs uc`, `lqr Q 10 1 R 1` and `closedloop`.
@@ -282,14 +282,14 @@ law                                    # shortened: uc=0-(-10.56)*(X1-(0.4472))-
 ```
 
 The file has the numbers at full precision; the comment shows them to four
-digits. This is `uc = 0 - K (x - x*)`, written out.
+digits. This is $\mathrm{uc} = 0 - K (x - x^*)$, written out.
 
 Read the gain sign: when the reactor is too hot, `uc` falls, the coolant
 is colder, and the temperature is pulled back.
 
 !!! note "Exercises"
-    1. Change the start to `(0.2, 1.0)`, in the basin of the cold state,
-       and then to `(0.9, 8.0)`, in the basin of the hot state. Does the
+    1. Change the start to $(0.2, 1.0)$, in the basin of the cold state,
+       and then to $(0.9, 8.0)$, in the basin of the hot state. Does the
        closed loop still reach the middle state?
     2. Make the weights `Q = [1000, 1]`. What happens to the gain, and
        to the poles?
@@ -302,7 +302,7 @@ is colder, and the temperature is pulled back.
        here. Only the simulation of the full model tells.
     2. The gain on the conversion changes from -10.56 to -6.22: its size
        falls. The gain on the temperature grows from 4.17 to 8.12. The poles
-       become `-1.39 +- 1.19i`: faster and more oscillatory than with
+       become $-1.39 \pm 1.19i$: faster and more oscillatory than with
        `Q = [10, 1]`. So more of the correction comes from the measured
        temperature, which is what the coolant moves; the temperature then
        moves the conversion through `A[0, 1] = 0.346`.

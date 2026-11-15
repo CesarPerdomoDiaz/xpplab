@@ -31,19 +31,19 @@ prepares for it and goes in other directions.
 
 **The membrane as a dynamical system.** A patch of membrane is a capacitor
 in parallel with ionic conductances. Kirchhoff's law makes the capacitive
-current, `C V'`, equal to the injected current minus the ionic currents, and
+current, $C \dot{V}$, equal to the injected current minus the ionic currents, and
 that is a differential equation for the voltage [DSN §2.1.3, eq. (2.3)].
 When conductances depend on the voltage and on gating variables, the model
-gains more equations, and the state becomes a vector `x` with `x' = f(x)`.
-An *equilibrium* `f(x*) = 0` is a state that does not change; for a neuron
+gains more equations, and the state becomes a vector $x$ with $\dot{x} = f(x)$.
+An *equilibrium* $f(x^*) = 0$ is a state that does not change; for a neuron
 it is the resting potential, where inward and outward currents balance
 [DSN §2.1.4].
 
 **Stability and phase portraits.** Near an equilibrium a small
-perturbation `u = x − x*` obeys `u' = J u`, with `J` the Jacobian matrix of
-`f` at `x*`. If every eigenvalue of `J` has negative real part the
+perturbation $u = x - x^*$ obeys $\dot{u} = J u$, with $J$ the Jacobian matrix of
+$f$ at $x^*$. If every eigenvalue of $J$ has negative real part the
 equilibrium is stable, and if one has positive real part it is unstable. In
-the plane, the trace and determinant of `J` sort equilibria into nodes,
+the plane, the trace and determinant of $J$ sort equilibria into nodes,
 foci and saddles [DSN §4.2.2–4.2.5]. The *nullclines*, the curves where one
 of the two derivatives vanishes, cross at the equilibria and organise the
 whole phase portrait [DSN §4.1.1].
@@ -83,11 +83,11 @@ unstable middle branch of the cubic nullcline [DSN §7.2.5, p. 241].
 A membrane without voltage-gated channels has one conductance, the leak,
 and with the voltage measured from rest its equation is
 
-```
-tau dv/dt = -v + R I
-```
+$$
+\tau \frac{dv}{dt} = -v + R I
+$$
 
-where `R` is the input resistance and `tau = C R` the **membrane time
+where $R$ is the input resistance and $\tau = C R$ the **membrane time
 constant** [DSN §2.1.4].
 
 ```ode
@@ -99,9 +99,9 @@ init v=0
 done
 ```
 
-This is linear and has the exact solution `v(t) = R I (1 - exp(-t/tau))`
-for `v(0) = 0`. The only equilibrium is `v* = R I`, with eigenvalue
-`-1/tau`: stable for every parameter. The voltage relaxes to `R I`, a larger
+This is linear and has the exact solution $v(t) = R I \,(1 - e^{-t/\tau})$
+for $v(0) = 0$. The only equilibrium is $v^* = R I$, with eigenvalue
+$-1/\tau$: stable for every parameter. The voltage relaxes to $R I$, a larger
 input resistance gives a larger response to the same current, and after one
 time constant the voltage has covered 63% of the way. A passive membrane
 cannot fire, whatever the current; it only filters its input. It has no
@@ -123,45 +123,45 @@ eq.kind, eq.eigenvalues                # 'stable node', [-0.1]
 ```
 
 Run it in the desktop app too: open the file, press **Run**, and drag the
-`tau` slider. A larger `tau` slows the approach; the final value does not
+`tau` slider. A larger $\tau$ slows the approach; the final value does not
 change.
 
 !!! note "Exercises"
     1. Show from the equation that after a step of current the voltage
-       reaches 95% of its final value at `t = tau ln 20`, about 3 time
+       reaches 95% of its final value at $t = \tau \ln 20$, about 3 time
        constants. Check it on the run.
     2. Replace the constant current by `I*sin(2*pi*f*t)` (write
-       `v' = (-v + R*I*sin(2*pi*f*t))/tau`). How does the amplitude of `v`
-       depend on `f`? Plot it for `f` from 0.001 to 0.5 with `leak.sweep`.
+       `v' = (-v + R*I*sin(2*pi*f*t))/tau`). How does the amplitude of $v$
+       depend on $f$? Plot it for `f` from 0.001 to 0.5 with `leak.sweep`.
 
 ??? success "Solutions"
-    1. `1 - exp(-t/tau) = 0.95` gives `t = tau ln 20 = 29.96`. On the run
+    1. $1 - e^{-t/\tau} = 0.95$ gives $t = \tau \ln 20 = 29.96$. On the run
        `sol.t[np.argmax(sol["v"] >= 0.95 * 5)]` is 29.96 up to the step
        size.
     2. The membrane is a low-pass filter: the amplitude is
-       `R I / sqrt(1 + (2 pi f tau)^2)`. It is about `R I` for
-       `f << 1/(2 pi tau)` = 0.016 and falls as `1/f` above it. Use
+       $R I / \sqrt{1 + (2 \pi f \tau)^2}$. It is about $R I$ for
+       $f \ll 1/(2 \pi \tau)$ = 0.016 and falls as $1/f$ above it. Use
        `leak.sweep("f", freqs, measure=lambda s: s["v"][len(s.t)//2:].max())`
        with `total=500`.
 
 ## Example 2: the theta neuron, and why firing can start slowly
 
 Near a saddle-node bifurcation every one-dimensional neuron model looks
-like `V' = I + V²`, the *topological normal form* of the saddle-node
-[DSN §3.3.4, p. 75]. For `I < 0` it has a rest state `V = −sqrt(|I|)` and a
-threshold `V = +sqrt(|I|)`; for `I > 0` the voltage runs off to infinity in
-a finite time, which is the upstroke of a spike. Resetting `V` after each
+like $\dot{V} = I + V^2$, the *topological normal form* of the saddle-node
+[DSN §3.3.4, p. 75]. For $I < 0$ it has a rest state $V = -\sqrt{\lvert I \rvert}$ and a
+threshold $V = +\sqrt{\lvert I \rvert}$; for $I > 0$ the voltage runs off to infinity in
+a finite time, which is the upstroke of a spike. Resetting $V$ after each
 spike gives the quadratic integrate-and-fire neuron [DSN §3.3.8]. The change
-of variable `V = tan(θ/2)` maps the whole real line, infinity included, onto
+of variable $V = \tan(\theta/2)$ maps the whole real line, infinity included, onto
 a circle, and turns the model into the **theta neuron** of Ermentrout and
 Kopell, which needs no reset [DSN ch. 8, exercise 7, solved on p. 462,
 with a scaled version of the same substitution]:
 
-```
-theta' = (1 - cos(theta)) + (1 + cos(theta)) I
-```
+$$
+\dot{\theta} = (1 - \cos\theta) + (1 + \cos\theta)\, I
+$$
 
-The neuron spikes each time `theta` passes `pi`. Izhikevich calls it the
+The neuron spikes each time $\theta$ passes $\pi$. Izhikevich calls it the
 Ermentrout-Kopell canonical model of Class 1 excitability [DSN p. 469].
 
 ```ode
@@ -174,26 +174,26 @@ done
 ```
 
 The `bound` option matters: XPPAUT stops a run when a variable leaves
-`[-100, 100]`, and here `theta` grows without limit as the neuron keeps
+$[-100, 100]$, and here $\theta$ grows without limit as the neuron keeps
 spiking.
 
-**For `I < 0`** the right side vanishes where `cos(theta) = (1 + I)/(1 - I)`,
+**For $I < 0$** the right side vanishes where $\cos\theta = (1 + I)/(1 - I)$,
 at two angles. One is a stable node, the **rest state**; the other is an
-unstable node, the **threshold**. A perturbation that pushes `theta` past
+unstable node, the **threshold**. A perturbation that pushes $\theta$ past
 the threshold sends it all the way round the circle: a spike.
 
-**At `I = 0`** the two equilibria merge in a saddle-node, at `theta = 0`.
+**At $I = 0$** the two equilibria merge in a saddle-node, at $\theta = 0$.
 Because the circle is invariant, this is a saddle-node on invariant circle
 [DSN §6.1.2].
 
-**For `I > 0`** there is no equilibrium. `theta` goes round and round with
-exact period `pi / sqrt(I)`, so the firing rate is
+**For $I > 0$** there is no equilibrium. $\theta$ goes round and round with
+exact period $\pi / \sqrt{I}$, so the firing rate is
 
-```
-f(I) = sqrt(I) / pi
-```
+$$
+f(I) = \frac{\sqrt{I}}{\pi}
+$$
 
-It starts from zero with infinite slope. The time is spent near `theta = 0`,
+It starts from zero with infinite slope. The time is spent near $\theta = 0$,
 where the vanished equilibria have left a "ghost" and the flow is very slow
 [DSN §3.3.5, p. 75]: arbitrarily slow firing, the signature of Class 1.
 
@@ -215,14 +215,14 @@ rates = th.sweep("I", currents,
 exact_rates = np.sqrt(currents) / np.pi
 ```
 
-`rates` agrees with `exact_rates` (0.3183 at `I = 1`; at small `I` the run
+`rates` agrees with `exact_rates` (0.3183 at $I = 1$; at small $I$ the run
 holds only a few turns, and the last one is incomplete, so 0.0706 against
-0.0712 at `I = 0.05`). Plot rate against `I` and against `sqrt(I)`: the second
+0.0712 at $I = 0.05$). Plot rate against $I$ and against $\sqrt{I}$: the second
 is a straight line. The same square-root law holds for any neuron near a
 SNIC, close enough to the bifurcation [DSN §6.1.2, p. 168].
 
-You can see the bifurcation with AUTO as well: follow the rest state as `I`
-rises and a limit point (LP) appears at `I = 0`.
+You can see the bifurcation with AUTO as well: follow the rest state as $I$
+rises and a limit point (LP) appears at $I = 0$.
 
 ```python
 th.parameters["I"] = -0.5
@@ -233,35 +233,35 @@ d.special("LP")                        # the saddle-node, at I = 0
 ```
 
 !!! note "Exercises"
-    1. Show that the equilibria for `I < 0` satisfy
-       `cos(theta*) = (1 + I)/(1 - I)`. For `I = -0.2` verify the value
+    1. Show that the equilibria for $I < 0$ satisfy
+       $\cos\theta^* = (1 + I)/(1 - I)$. For $I = -0.2$ verify the value
        0.8411 quoted above.
-    2. Near `I = 0`, the time to pass the ghost of the vanished equilibria
-       is long. With `I = 0.001`, how long is the period? Check against
-       `pi / sqrt(I)`.
+    2. Near $I = 0$, the time to pass the ghost of the vanished equilibria
+       is long. With $I = 0.001$, how long is the period? Check against
+       $\pi / \sqrt{I}$.
     3. Start a trajectory just below the threshold, at `th = 0.8`, and
-       another just above it, at `th = 0.9`, with `I = -0.2`. Describe the
+       another just above it, at `th = 0.9`, with $I = -0.2$. Describe the
        two.
 
 ??? success "Solutions"
-    1. Set `1 - cos + I (1 + cos) = 0`, so `cos (I - 1) = -(1 + I)`, which
-       is the stated formula. For `I = -0.2`, `cos = 0.8/1.2 = 2/3` and
-       `theta* = arccos(2/3) = 0.8411`. The rest state is `-0.8411` and the
-       threshold `+0.8411`: they are symmetric about 0, and the rest state
+    1. Set $1 - \cos\theta^* + I \,(1 + \cos\theta^*) = 0$, so $\cos\theta^* \,(I - 1) = -(1 + I)$, which
+       is the stated formula. For $I = -0.2$, $\cos\theta^* = 0.8/1.2 = 2/3$ and
+       $\theta^* = \arccos(2/3) = 0.8411$. The rest state is $-0.8411$ and the
+       threshold $+0.8411$: they are symmetric about 0, and the rest state
        is the stable one.
-    2. The period is `pi/sqrt(0.001)` = 99.3 time units. With `total=1000`
+    2. The period is $\pi/\sqrt{0.001}$ = 99.3 time units. With `total=1000`
        the run holds 10 turns: `th[-1] / (2*np.pi)` is 10.00.
     3. The first (0.8) is below the threshold and moves back down to the
-       rest state, `-0.8411`. The second (0.9) goes up and round the
+       rest state, $-0.8411$. The second (0.9) goes up and round the
        circle, a spike, and ends at the rest state plus a full turn,
-       `-0.8411 + 2 pi = 5.4421`. In one dimension the threshold is a
+       $-0.8411 + 2 \pi = 5.4421$. In one dimension the threshold is a
        single point, the unstable equilibrium.
 
 ## Example 3: FitzHugh-Nagumo, excitability and the Hopf bifurcation
 
 The FitzHugh-Nagumo model imitates how Hodgkin-Huxley-type models generate
-spikes, with two variables instead of four: a fast voltage `v` with an
-N-shaped (cubic) nullcline, and a slow recovery variable `w` that stands for
+spikes, with two variables instead of four: a fast voltage $v$ with an
+N-shaped (cubic) nullcline, and a slow recovery variable $w$ that stands for
 the activation of an outward current [DSN §4.2.6, p. 106]. A common form
 of the model is:
 
@@ -275,18 +275,18 @@ init v=-1.2, w=-0.6
 done
 ```
 
-**Nullclines.** The `v`-nullcline `w = v - v^3/3 + I` is a cubic: it rises,
-falls and rises again. The `w`-nullcline `w = (v + a)/b` is a straight
-line. The current `I` only lifts the cubic. The equilibrium sits where they
+**Nullclines.** The $v$-nullcline $w = v - v^3/3 + I$ is a cubic: it rises,
+falls and rises again. The $w$-nullcline $w = (v + a)/b$ is a straight
+line. The current $I$ only lifts the cubic. The equilibrium sits where they
 cross; the phase plane of the app shows it at once
 (`m.phase_plane("v", "w")` in Python).
 
-**Excitable regime.** At `I = 0` the line crosses the cubic on its left
-branch, at `v* = -1.1994`, `w* = -0.6243`. The eigenvalues are
-`-0.251 ± 0.213i`: a stable focus. Start the model at that point and nothing
-happens. Kick `v` to `-0.4` and the voltage rises along the cubic, then
-jumps to the right branch near `v = 1.8`, creeps down and returns: a single
-spike. Kick it to `-0.8` instead and it goes straight back.
+**Excitable regime.** At $I = 0$ the line crosses the cubic on its left
+branch, at $v^* = -1.1994$, $w^* = -0.6243$. The eigenvalues are
+$-0.251 \pm 0.213i$: a stable focus. Start the model at that point and nothing
+happens. Kick $v$ to $-0.4$ and the voltage rises along the cubic, then
+jumps to the right branch near $v = 1.8$, creeps down and returns: a single
+spike. Kick it to $-0.8$ instead and it goes straight back.
 
 ```python
 fhn = xs.load("fhn.ode")
@@ -304,15 +304,15 @@ Between the two kicks the size of the response grows steeply but
 continuously: a quasi-threshold, which Exercise 2 measures
 [DSN §7.2.5, p. 241].
 
-**Onset of firing.** Raise `I`. The cubic lifts and the crossing moves up
+**Onset of firing.** Raise $I$. The cubic lifts and the crossing moves up
 the left branch toward the **knee**, where the cubic turns. The equilibrium
-loses stability when the trace of the Jacobian, `1 - v*^2 - eps b`, becomes
-zero. That happens not at the knee (`v* = -1`) but slightly to its right,
-at `|v*| = sqrt(1 - eps b) = 0.9675`: the slow variable shifts the Hopf
-point by an amount of the order of `eps` [DSN §4.2.6, p. 107; §6.3.4,
-p. 199]. Solving for `I` gives two Hopf bifurcations, a first near
-`I = 0.3313` where the equilibrium turns unstable, and a second at
-`I = 1.4187` where it becomes stable again on the right branch. Between
+loses stability when the trace of the Jacobian, $1 - (v^*)^2 - \varepsilon b$, becomes
+zero. That happens not at the knee ($v^* = -1$) but slightly to its right,
+at $\lvert v^* \rvert = \sqrt{1 - \varepsilon b} = 0.9675$: the slow variable shifts the Hopf
+point by an amount of the order of $\varepsilon$ [DSN §4.2.6, p. 107; §6.3.4,
+p. 199]. Solving for $I$ gives two Hopf bifurcations, a first near
+$I = 0.3313$ where the equilibrium turns unstable, and a second at
+$I = 1.4187$ where it becomes stable again on the right branch. Between
 them the neuron fires periodically, and it starts at a frequency that is
 not small: Class 2.
 
@@ -337,8 +337,8 @@ orbits.special("LP")[0].value          # 0.3241: the cycles turn back at a fold
 ```
 
 The Hopf bifurcation is **subcritical**: the small cycles that leave the
-Hopf point are unstable, run towards smaller `I`, and turn back at a fold of
-cycles near `I = 0.3241`, where they meet the large stable spiking cycle
+Hopf point are unstable, run towards smaller $I$, and turn back at a fold of
+cycles near $I = 0.3241$, where they meet the large stable spiking cycle
 [DSN §6.1.4, §6.2.3]. Between 0.3241 and 0.3313 the rest state is stable
 and the large spiking cycle exists as well, so the neuron is bistable
 there. Izhikevich notes that in two-dimensional conductance-based models a
@@ -346,8 +346,8 @@ subcritical Hopf point always comes with such a coexistence of rest and
 another attractor [DSN §6.1.4, pp. 174–175].
 
 The oscillation has almost its full size right away: started from the
-initial values of the file, the range of `v` at `I = 0.32` is 0.11 and at
-`I = 0.33` it is already 3.7. In a system with a fast and a slow variable,
+initial values of the file, the range of $v$ at $I = 0.32$ is 0.11 and at
+$I = 0.33$ it is already 3.7. In a system with a fast and a slow variable,
 the cycles that grow from a Hopf point near a knee follow for a while the
 unstable middle branch of the cubic (*canard* cycles), and they exist only
 in an exponentially thin range of the parameter. In a simulation the cycle
@@ -356,10 +356,10 @@ pp. 198–199].
 
 **Relaxation oscillations.** Make the recovery slower, `eps = 0.01`. The
 fast voltage then spends most of its time near the left or right branch of
-the cubic, creeping along it with `w`, and jumps in between: the trace has
+the cubic, creeping along it with $w$, and jumps in between: the trace has
 long plateaus and sharp edges, the shape of a relaxation oscillation
 [DSN §4.1.4, p. 98]. The period grows steeply as `eps` falls, since the
-slow creeping takes a time of order `1/eps`.
+slow creeping takes a time of order $1/\varepsilon$.
 
 ```python
 fhn.parameters["I"] = 0.5
@@ -375,40 +375,40 @@ for eps in (0.08, 0.04, 0.02, 0.01):
 
 !!! note "Exercises"
     1. Compute by hand the Jacobian of the model at an equilibrium
-       `(v*, w*)`, find its trace and determinant, and use them to find
-       `I` for the first Hopf point; compare with AUTO's 0.3313.
-    2. Measure the quasi-threshold at `I = 0`: the largest `v` reached
-       from a kick to `v0` (with `w` at its rest value), for `v0` between
+       $(v^*, w^*)$, find its trace and determinant, and use them to find
+       $I$ for the first Hopf point; compare with AUTO's 0.3313.
+    2. Measure the quasi-threshold at $I = 0$: the largest $v$ reached
+       from a kick to $v_0$ (with $w$ at its rest value), for $v_0$ between
        -0.8 and -0.5.
-    3. With `I = 0.5`, make the system oscillate, then add a pulse of
+    3. With $I = 0.5$, make the system oscillate, then add a pulse of
        current: replace `I` in the `v'` equation by
        `(I + 2*heav(t-100)*heav(110-t))`. What happens to the spike train?
     4. Open `fhn.ode` in the app, press **Nullclines**, and drag `I`. At what
-       `I` does the crossing pass the knee of the cubic? Is it the same
+       $I$ does the crossing pass the knee of the cubic? Is it the same
        value as the Hopf bifurcation?
 
 ??? success "Solutions"
-    1. `J = [[1 - v*^2, -1], [eps, -eps b]]`. The trace is
-       `1 - v*^2 - eps b`; the determinant is `eps (1 - b (1 - v*^2))`. A
-       Hopf bifurcation needs trace 0, so `v*^2 = 1 - eps b = 0.936`, and
-       `v* = -0.9675` on the left branch. The equilibrium lies on both
-       nullclines, so `I = (v* + a)/b - v* + v*^3/3` = 0.3313.
-    2. Run `fhn.run(v=v0, w=eq["w"])` and look at the maximum of `v`. It
-       is -0.67 for `v0 = -0.7` and 1.71 for `v0 = -0.6`. Bisect between
+    1. $J = \begin{pmatrix} 1 - (v^*)^2 & -1 \\ \varepsilon & -\varepsilon b \end{pmatrix}$. The trace is
+       $1 - (v^*)^2 - \varepsilon b$; the determinant is $\varepsilon \,(1 - b \,(1 - (v^*)^2))$. A
+       Hopf bifurcation needs trace 0, so $(v^*)^2 = 1 - \varepsilon b = 0.936$, and
+       $v^* = -0.9675$ on the left branch. The equilibrium lies on both
+       nullclines, so $I = (v^* + a)/b - v^* + (v^*)^3/3$ = 0.3313.
+    2. Run `fhn.run(v=v0, w=eq["w"])` and look at the maximum of $v$. It
+       is -0.67 for $v_0 = -0.7$ and 1.71 for $v_0 = -0.6$. Bisect between
        them and the maximum takes intermediate values too, on a very narrow
-       range of `v0`: the response is steep but continuous, so the
+       range of $v_0$: the response is steep but continuous, so the
        "threshold" depends on what you call a spike.
-    3. The pulse of current pushes `v` and `w` off the cycle; the train
+    3. The pulse of current pushes $v$ and $w$ off the cycle; the train
        comes back to the same cycle but shifted in time (a phase shift).
        The size of the shift depends on when in the cycle the pulse arrives;
        the curve of shift against arrival time is the phase response curve
        (see `phase_response` in the [analysis guide](../python/analysis.md),
        and [DSN ch. 10]).
-    4. The knee is at `v = -1`, the maximum of the cubic's left branch.
-       The crossing is there when `I = (-1 + 0.7)/0.8 + 1 - 1/3 = 0.2917`.
+    4. The knee is at $v = -1$, the maximum of the cubic's left branch.
+       The crossing is there when $I = (-1 + 0.7)/0.8 + 1 - 1/3 = 0.2917$.
        The Hopf point, 0.3313, is a little beyond it: the trace
-       `1 - v*^2 - eps b` is still negative at the knee, where `v*^2 = 1`,
-       and reaches zero only when `v*^2` has dropped to `1 - eps b`.
+       $1 - (v^*)^2 - \varepsilon b$ is still negative at the knee, where $(v^*)^2 = 1$,
+       and reaches zero only when $(v^*)^2$ has dropped to $1 - \varepsilon b$.
 
 ## Where to go next
 

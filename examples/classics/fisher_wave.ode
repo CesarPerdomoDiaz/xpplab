@@ -1,0 +1,12 @@
+# Fisher's equation: an advancing wave
+# u_t = u_xx + u(1-u): a population that grows and spreads. From a small
+# patch it becomes a front that travels at speed 2 (Fisher, 1937;
+# Kolmogorov, Petrovsky and Piskunov, 1937).
+par h=0.5
+u0=u1
+u101=u100
+u[1..100]'=(u[j+1]-2*u[j]+u[j-1])/h^2+u[j]*(1-u[j])
+init u[1..5]=1
+@ total=20,dt=0.01,meth=rungekutta,nout=20
+@ xp=t,yp=u50,xlo=0,xhi=20,ylo=0,yhi=1
+done

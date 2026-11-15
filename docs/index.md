@@ -65,14 +65,15 @@ Windows, macOS and Linux, and in Python.
 
     [Python quick start](python/quickstart.md)
 
--   **Learn from worked examples**
+-   **Start from a classic**
 
     ---
 
-    Neuroscience, ecology, chemistry, mechanics, control and a kite on a
-    tether, each with its model and its figures.
+    The Lorenz attractor, Chua's circuit, the van der Pol oscillator,
+    predator and prey, the heat equation: twenty familiar systems, ready to
+    run. Then worked examples by field, from neurons to a kite.
 
-    [Learn by example](learn/index.md)
+    [Gallery](gallery/index.md) · [Learn by example](learn/index.md)
 
 -   **Look something up**
 
@@ -125,8 +126,9 @@ Windows, macOS and Linux, and in Python.
   against unmodified XPPAUT 8.0.
 - **AUTO without the pain.** No Fortran, no build: continuation runs inside
   the app and from Python.
-- **Made to be learned.** Tutorials, a full reference, and more than a
-  hundred example models in the [gallery](gallery/index.md).
+- **Made to be learned.** Tutorials, a full reference, and a
+  [gallery](gallery/index.md) of classic models, from the Lorenz attractor
+  to the heat equation, each ready to run.
 
 ```python
 import xpplab as xs

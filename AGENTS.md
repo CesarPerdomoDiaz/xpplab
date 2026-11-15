@@ -81,6 +81,9 @@ The example models are in `engine/xppaut/ode/`.
 - `docs/` the MkDocs site; `docs/manual/*.md` is also the app's help.
 - `tests/` golden tests (`golden.py`), API and AUTO checks, sanitizer
   tools; `python/tests/` the package's.
+- `examples/classics/` the classic models (Lorenz, van der Pol, the heat
+  equation, ...) of the app's Models window and the documentation's gallery;
+  each is checked against a known answer in `python/tests/test_classics.py`.
 - `skills/`, `.claude-plugin/`, `.mcp.json` the Claude Code plugin (skill
   plus MCP server).
 

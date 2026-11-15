@@ -103,9 +103,11 @@ XPPE_API int xppe_ic_file(const char *path);
    XPPAUT's array form ("u[1..20]") the value of a formula in the model's
    parameters and functions. In the array form, [j] in the formula stands
    for the index ([j+1] and [j-1] work too), so "u[1..20]" with
-   "sin(2*pi*[j]/20)" sets u1 ... u20. Returns the number of values set; a
-   name that is not a variable, or a formula XPPAUT cannot evaluate,
-   changes nothing. Since API version 5. */
+   "sin(2*pi*[j]/20)" sets u1 ... u20. A variable named in the formula is
+   its initial value as it was before the call ("W" with "V/10"), not what
+   the last run left. Returns the number of values set; a name that is not
+   a variable, or a formula XPPAUT cannot evaluate, changes nothing. Since
+   API version 5. */
 XPPE_API int xppe_ic_formula(const char *target, const char *formula);
 
 /* Numerics > stocHastic > Compute: run the model `trials` times (at least
@@ -445,7 +447,12 @@ XPPE_API int xppe_isochrons(int count, double length, int max_points,
 
 /* Least-squares fit of parameters and initial conditions to data with
    XPPAUT's Levenberg-Marquardt (stocHastic > fIt data). file holds npts
-   rows of ncols numbers, time first. variables names the ODE variables to
+   rows of ncols numbers, time first; npts or ncols below 1 counts them
+   from the file. Lines without a leading number (a header, as the app's
+   export writes) are skipped and commas or semicolons separate numbers
+   too: such a file is read through a plain copy, fit-data.dat in the work
+   folder, and counted whatever npts and ncols say. variables names the ODE
+   variables to
    fit and columns their columns in the file (from 2), both comma-separated;
    parameters lists the parameters and initial conditions to vary.
    tolerance, epsilon and max_iterations replace XPPAUT's defaults (1e-3,

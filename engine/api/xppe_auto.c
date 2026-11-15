@@ -152,6 +152,8 @@ int xppe_auto_parameters(const char *main_par, const char *second_par) {
   return XPPE_OK;
 }
 
+const char *xppe_workdir(void) { return auto_workdir; }
+
 int xppe_auto_set_workdir(const char *dir) {
   if (strlen(dir) >= sizeof auto_workdir) {
     xppe_set_error("directory name too long", NULL);

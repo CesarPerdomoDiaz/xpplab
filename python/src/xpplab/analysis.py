@@ -499,7 +499,9 @@ class AnalysisMixin:
         Levenberg-Marquardt.
 
         ``data`` is a file of rows (time first) or an array of shape
-        (points, columns) with time in the first column. ``variables`` are
+        (points, columns) with time in the first column. The file may have
+        a header and commas, such as the CSV that :meth:`Trajectory.to_csv`
+        and the app's ``export`` write. ``variables`` are
         the variables to fit and ``columns`` their columns in the data,
         counting from 1 for time (default 2, 3, ...). ``parameters`` lists
         the parameters and initial conditions to vary; they start from
@@ -510,15 +512,18 @@ class AnalysisMixin:
         if columns is None:
             columns = list(range(2, 2 + len(variables)))
         if isinstance(data, (str, os.PathLike)):
+            # The engine counts the rows, and reads a header and commas
+            # too, as in the CSV that to_csv() and the app's export write.
             path = Path(data).resolve()
-            rows = np.loadtxt(path, ndmin=2)
+            shape = (0, 0)
         else:
             rows = np.asarray(data, dtype=float)
             if rows.ndim != 2:
                 raise ValueError("data must be a 2-D array: time, then columns")
-            path = Path(self._engine.workdir) / "fit-data.dat"
+            path = Path(self._engine.workdir) / "fit-array.dat"
             np.savetxt(path, rows, fmt="%.17g")
-        self._engine.call("xppe_fit", _b(path), rows.shape[0], rows.shape[1],
+            shape = rows.shape
+        self._engine.call("xppe_fit", _b(path), shape[0], shape[1],
                           _b(",".join(variables)),
                           _b(",".join(str(c) for c in columns)),
                           _b(",".join(parameters)), float(tolerance),

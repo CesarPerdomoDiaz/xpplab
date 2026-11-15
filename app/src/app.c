@@ -848,6 +848,46 @@ void app_freeze(App *a) {
   a->have_traj = false;
 }
 
+/* The freeze command (XPPAUT's Graphic stuff > Freeze): a copy of the run
+   joins the kept curves and the run stays the run, so that ic last,
+   continue, export and the analyses still have it. app_freeze() moves it,
+   for a run that is about to be replaced. */
+bool app_freeze_copy(App *a) {
+  Trajectory c;
+  int j, ok = 1;
+  if (!a->have_traj || a->traj.nrows == 0) {
+    app_log(a, "There is no run yet.");
+    return false;
+  }
+  c = a->traj;
+  c.names = malloc((size_t)c.ncols * APP_NAME_LEN);
+  c.cols = calloc((size_t)c.ncols, sizeof(double *));
+  c.par = c.npar > 0 ? malloc(sizeof(double) * (size_t)c.npar) : NULL;
+  if (!c.names || !c.cols || (c.npar > 0 && !c.par)) ok = 0;
+  for (j = 0; ok && j < c.ncols; j++)
+    if ((c.cols[j] = malloc(sizeof(double) * (size_t)c.nrows)) == NULL)
+      ok = 0;
+    else
+      memcpy(c.cols[j], a->traj.cols[j], sizeof(double) * (size_t)c.nrows);
+  if (!ok) {
+    if (!c.cols) c.ncols = 0;
+    free_traj(&c);
+    app_log(a, "error: out of memory");
+    return false;
+  }
+  memcpy(c.names, a->traj.names, (size_t)c.ncols * APP_NAME_LEN);
+  if (c.npar > 0) memcpy(c.par, a->traj.par, sizeof(double) * (size_t)c.npar);
+  if (a->nfrozen == APP_MAX_FROZEN) {
+    free_traj(&a->frozen[0]);
+    memmove(&a->frozen[0], &a->frozen[1],
+            sizeof a->frozen[0] * (APP_MAX_FROZEN - 1));
+    a->nfrozen--;
+  }
+  a->frozen[a->nfrozen++] = c;
+  app_status(a, "Kept the curve: %d on the plots.", a->nfrozen);
+  return true;
+}
+
 /* Copy the engine's current run into t. */
 static void fetch_run(App *a, Trajectory *t) {
   xpp_engine_api *x = &a->eng->api;

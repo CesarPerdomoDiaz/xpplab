@@ -57,6 +57,7 @@ with tempfile.TemporaryDirectory() as t:
     work = tmp / "commands"
     work.mkdir()
     shutil.copy(examples / "lecar.ode", work)
+    shutil.copy(examples / "cable.ode", work)
     (work / "cmds.txt").write_text(
         "# a brute-force diagram, then AUTO\n"
         "use hopf\n"
@@ -98,6 +99,44 @@ with tempfile.TemporaryDirectory() as t:
           and "error: write theme dark or theme light" in r.stdout
           and "Write: open FILE.ode" in r.stdout, "layout, theme, open: " + r.stdout[-500:])
     check(">> whos" not in r.stdout, "quit ends the commands: " + r.stdout[-300:])
+
+    # fitdata reads the CSV that export writes (a header, commas)
+    r = run(["lecar.ode", "--keep-going", "-c", "set iapp=0.1", "-c", "run",
+             "-c", "export data.csv", "-c", "set gca=1.2 gk=1.8",
+             "-c", "fitdata data.csv V 2 gca,gk", "-c", "get gca", "-c", "get gk"], work)
+    check("Fitted: gca = 1 gk = 2" in r.stdout and "gca = 0.9999999999" in r.stdout,
+          "fitdata on an exported CSV: " + r.stdout[-500:])
+
+    # bvp tol=...: the shooting's tolerance, which only Python could set.
+    # The sealed cable on [0, 1] has v'(0) = -tanh(1) = -0.761594156;
+    # XPPAUT's tolerance of 1e-5 stops at -0.7615917.
+    r = run(["cable.ode", "--keep-going", "-c", "set total=1 dt=0.01 a=0 b=1",
+             "-c", "bvp", "-c", "get vx", "-c", "bvp tol=1e-8", "-c", "get vx",
+             "-c", "bvp tol=abc"], work)
+    check("vx = -0.761591676" in r.stdout and "vx = -0.761594155" in r.stdout,
+          "bvp tol= tightens the shooting: " + r.stdout[-500:])
+    check("error: write bvp [tol=T]" in r.stdout, "bvp refuses a bad setting: " + r.stdout[-300:])
+
+    # freeze keeps a copy and leaves the run: ic last, continue and export
+    # still have it (they said there was no run, or started a new one)
+    r = run(["lecar.ode", "-c", "freeze", "-c", "ic last", "-c", "continue 10",
+             "-c", "export frozen.csv"], work)
+    check(r.returncode == 0 and "There is no run yet" not in r.stdout,
+          "freeze leaves the run: " + r.stdout[-400:])
+    check("Initial values set to the end of the last run." in r.stdout
+          and "Continued to t = 40" in r.stdout and (work / "frozen.csv").exists(),
+          "ic last, continue and export after freeze: " + r.stdout[-400:])
+
+    # An analysis of two columns names both
+    r = run(["lecar.ode", "-c", "xcorr V W 200", "-c", "xcorr V 200"], work)
+    check("Correlation of V and W: 202 rows." in r.stdout
+          and "Correlation of V: 202 rows." in r.stdout,
+          "xcorr names its columns: " + r.stdout[-400:])
+
+    # ic NAME = FORMULA: a variable in the formula is its initial value, not
+    # the state the first run or the equilibrium left in XPPAUT's evaluator
+    r = run(["lecar.ode", "-c", "eq", "-c", "ic w = v/10", "-c", "get w"], work)
+    check("w = -0.0144" in r.stdout, "ic w = v/10 uses v's initial value: " + r.stdout[-300:])
 
     # set: a parameter's or a variable's value must be a number; a typo or a
     # formula is refused, not read as 0 or as its first number

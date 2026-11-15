@@ -100,11 +100,11 @@ void app_analysis_reset(App *a) {
 
 /* ---- Boundary-value problems, the 3D view, the animator ---------------- */
 
-bool app_bvp(App *a) {
+bool app_bvp(App *a, int maxit, double tol, double eps) {
   xpp_engine_api *x;
   int i;
-  char buf[256];
-  size_t len = 0;
+  char buf[256], args[200], num[64];
+  size_t len = 0, k = 0;
   bool outer;
   if (!a->model_ok) return false;
   x = &a->eng->api;
@@ -115,13 +115,22 @@ bool app_bvp(App *a) {
     return false;
   }
   outer = echo_begin(a);
-  if (x->xppe_bvp(0, 0.0, 0.0) != XPPE_OK) {
+  if (x->xppe_bvp(maxit, tol, eps) != XPPE_OK) {
     app_log(a, "error: %s", x->xppe_error());
     app_status(a, "Boundary-value problem: %s", x->xppe_error());
     echo_end(a);
     return false;
   }
-  if (outer) echo_line(a, "sol = m.bvp()");
+  args[0] = '\0';
+  if (maxit > 0)
+    k += (size_t)snprintf(args + k, sizeof args - k, "max_iterations=%d", maxit);
+  if (tol > 0)
+    k += (size_t)snprintf(args + k, sizeof args - k, "%stolerance=%s", k ? ", " : "",
+                          echo_num(tol, num, sizeof num));
+  if (eps > 0)
+    k += (size_t)snprintf(args + k, sizeof args - k, "%sepsilon=%s", k ? ", " : "",
+                          echo_num(eps, num, sizeof num));
+  if (outer) echo_line(a, "sol = m.bvp(%s)", args);
   echo_end(a);
   app_refresh_values(a);
   app_fetch_current(a);
@@ -487,28 +496,6 @@ done:
   return rc;
 }
 
-/* Rows and numbers per row of a data file. */
-static bool file_shape(const char *path, int *rows, int *cols) {
-  FILE *f = app_fopen_utf8(path, "r");
-  char line[4096];
-  *rows = *cols = 0;
-  if (!f) return false;
-  while (fgets(line, sizeof line, f)) {
-    char *p = line, *end;
-    int k = 0;
-    for (;;) {
-      strtod(p, &end);
-      if (end == p) break;
-      k++;
-      p = end;
-    }
-    if (k == 0) continue;
-    if (*cols == 0) *cols = k;
-    (*rows)++;
-  }
-  fclose(f);
-  return *rows > 0;
-}
 
 /* ---- Running a tool ------------------------------------------------------ */
 
@@ -1767,13 +1754,10 @@ static bool analysis_run(App *a, bool outer) {
     break;
   }
   case AN_FIT: {
-    int rows, cols;
-    if (!file_shape(n->fit_file, &rows, &cols)) {
-      app_log(a, "error: cannot read the data file '%s'", n->fit_file);
-      return false;
-    }
-    rc = x->xppe_fit(n->fit_file, rows, cols, n->fit_vars, n->fit_cols,
-                     n->fit_pars, 0, 0, 0);
+    /* The engine counts the rows and reads a header and commas too, as
+       for a file that export wrote. */
+    rc = x->xppe_fit(n->fit_file, 0, 0, n->fit_vars, n->fit_cols, n->fit_pars,
+                     0, 0, 0);
     if (rc == XPPE_OK) {
       char *p, list[256];
       size_t len = 0;
@@ -1825,6 +1809,11 @@ static bool analysis_run(App *a, bool outer) {
   if (n->tool == AN_PRC || n->tool == AN_HFUNCTION)
     app_log(a, "%s: %d points over one period (%.6g).",
             app_analysis_name(n->tool), n->res.nrows, n->period);
+  else if ((n->tool == AN_CORRELATION && n->col2 != n->col) ||
+           n->tool == AN_HISTOGRAM2D ||
+           (n->tool == AN_SPECTRUM && n->spec_kind > 0 && n->spec_kind <= 2))
+    app_log(a, "%s of %s and %s: %d rows.", app_analysis_name(n->tool), c1, c2,
+            n->res.nrows); /* two columns: say both */
   else
     app_log(a, "%s of %s: %d rows.", app_analysis_name(n->tool), c1,
             n->res.nrows);

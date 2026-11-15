@@ -14,8 +14,6 @@ serve
 many
 figure
 annotate
-fourier
-power
 ensemble
 fitdata
 linearize

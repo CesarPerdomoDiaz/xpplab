@@ -134,6 +134,8 @@ nav:
       - hist2d: reference/hist2d.md
       - xcorr: reference/xcorr.md
       - spectrum: reference/spectrum.md
+      - fourier: reference/fourier.md
+      - power: reference/power.md
       - prc: reference/prc.md
       - hfun: reference/hfun.md
       - eq: reference/eq.md

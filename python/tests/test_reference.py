@@ -992,3 +992,43 @@ def test_hfun_page():
     assert all(abs(p2[k] - 7.8) < 0.1 for k in falls) and falls
     ns["m"].close()
     ns["n"].close()
+
+
+def test_fourier_page():
+    text, blocks = python_blocks("fourier.md")
+    ns = {}
+    exec(compile(blocks[0], "fourier.md example", "exec"), ns)
+    m, f = ns["m"], ns["f"]
+    run = m.last_run()
+    assert len(run) == 667 and len(f) == 332 and round(f["freq"][1], 5) == 0.15015
+    assert (round(f["cos"][1], 4), round(f["sin"][1], 4)) == (1.7014, -1.0795)
+    assert max(abs(f["cos"][2]), abs(f["sin"][2])) < 0.002
+    assert (round(f["cos"][3], 4), round(f["sin"][3], 4)) == (-0.2098, 0.1131)
+    assert f["cos"][0] == pytest.approx(run["X"].mean(), abs=1e-9)
+    assert round(np.hypot(1.7014, 1.0795), 3) == 2.015
+    p, _ = m.limit_cycle()
+    assert round(p, 3) == 6.663
+    m.close()
+
+
+def test_power_page():
+    text, blocks = python_blocks("power.md")
+    ns = {}
+    exec(compile(blocks[0], "power.md example", "exec"), ns)
+    m, p = ns["m"], ns["p"]
+    a = p["amplitude"]
+    assert p.columns == ["freq", "amplitude", "phase"]
+    assert [round(a[k], 4) for k in (0, 2, 4, 6)] == [0.0015, 0.0025, 0.0006, 0.0004]
+    assert [round(a[k], 4) for k in (1, 3, 5, 7)] == [2.015, 0.2383, 0.048, 0.011]
+    m5 = xs.load(xs.example("classics/vanderpol.ode"))
+    m5.set(mu=5, total=100)
+    m5.run()
+    m5.ic_last()
+    period, _ = m5.limit_cycle()
+    assert round(period, 2) == 11.61
+    m5.set(total=round(period, 2))
+    m5.run()
+    a5 = m5.power("X")["amplitude"]
+    assert [round(a5[k], 3) for k in (1, 3, 5, 7)] == [2.106, 0.584, 0.307, 0.192]
+    m.close()
+    m5.close()

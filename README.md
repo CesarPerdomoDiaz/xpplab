@@ -92,8 +92,13 @@ the mathematics. XPP Lab removes that first wall:
   *Range*) drops brute-force simulation results right onto AUTO's
   diagram, so students can see that the stable branches are what the
   system actually does.
-- **More than 150 example models** from neuroscience, ecology, chemistry and
-  mechanics, each with its description.
+- **Twenty classics ready to run**: the Lorenz attractor, Chua's circuit,
+  the van der Pol oscillator, predator and prey, the heat equation and more,
+  each with its figure in the
+  [gallery](https://cesarperdomodiaz.github.io/xpplab/gallery/), and each
+  checked against a known answer.
+- **More than 150 of XPPAUT's own example models** from neuroscience,
+  ecology, chemistry and mechanics, each with its description.
 
 ## A look around
 

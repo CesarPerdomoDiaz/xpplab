@@ -71,6 +71,8 @@ The example models are in `engine/xppaut/ode/`.
 ### Layout
 
 - `engine/xppaut/` XPPAUT 8.0's C sources; the first commit is pristine.
+  Editor backups (`*~`, `*.bak`) and a compiled `a.out` that came with it
+  were removed later; nothing else of upstream's tree is.
 - `engine/platform/` null Xlib, Windows compatibility, the embedding layer.
 - `engine/api/` the C API (`xppe.h`), one file per area (`xppe_data.c`
   analysis, `xppe_bvp.c`, `xppe_ani.c`, `xppe_auto.c`, ...).

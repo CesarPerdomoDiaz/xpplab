@@ -78,7 +78,8 @@ static void act_palette(App *a, int arg) { (void)arg, palette_open(a); }
    sure each is a page of docs/manual and that no page is left out. */
 const char *const app_help_pages[] = {
     "welcome", "tutorial", "neuron-tutorial", "analysis", "auto", "tools", "figures",
-    "odefile", "numerics", "commands", "xppaut", "matlab", "auto07p", "codim2", "about"};
+    "odefile", "numerics", "commands", "xppaut", "matlab", "auto07p", "codim2", "about",
+    "reference"};
 const int app_nhelp_pages = (int)(sizeof app_help_pages / sizeof app_help_pages[0]);
 static void act_help(App *a, int arg) { ui_show_help(a, app_help_pages[arg]); }
 
@@ -305,6 +306,8 @@ const Action app_actions[] = {
          "The integrators and how to choose one.", 8),
     HELP("help.commands", false, "Commands and keyboard shortcuts", NULL,
          "Every command of the command window and every shortcut.", 9),
+    HELP("help.reference", false, "Reference: every command and action", NULL,
+         "The index of the reference pages; doc NAME opens one.", 15),
     HELP("help.xppaut", false, "Coming from XPPAUT", NULL,
          "Where XPPAUT's menus and keys are in XPP Lab.", 10),
     HELP("help.matlab", false, "Coming from MATLAB", NULL,
@@ -674,6 +677,8 @@ static int palette_check(App *a) {
         bad += check_fail(a, "the Help menu lists '%s' twice", app_help_pages[i], "");
   }
   for (i = 0; i < docs_count(); i++) {
+    /* the reference pages are reached from their index and by `doc` */
+    if (!strcmp(doc_pages[i].dir, "reference") && strcmp(doc_pages[i].name, "reference")) continue;
     for (j = 0; j < app_nhelp_pages && strcmp(app_help_pages[j], doc_pages[i].name); j++) {}
     if (j == app_nhelp_pages)
       bad += check_fail(a, "the manual page '%s' is not in the Help menu", doc_pages[i].name, "");

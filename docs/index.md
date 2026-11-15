@@ -79,10 +79,11 @@ Windows, macOS and Linux, and in Python.
 
     ---
 
-    The commands and shortcuts, the `.ode` file format, the numerical
-    methods and the Python API.
+    A page for each command and action, with worked examples: `doc NAME`
+    in the app. Also the `.ode` file format, the numerical methods and the
+    Python API.
 
-    [Commands and shortcuts](manual/commands.md)
+    [Reference](reference/reference.md)
 
 </div>
 

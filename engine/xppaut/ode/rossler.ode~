@@ -1,5 +1,0 @@
-x'=-y-z
-y'=x+b*y
-z'=b+z*(x-a)
-par b=.2,a=4
-done

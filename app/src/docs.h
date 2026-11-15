@@ -1,4 +1,5 @@
-/* The manual pages embedded in the executable (docs/manual/*.md). */
+/* The pages embedded in the executable: the manual's chapters
+   (docs/manual/*.md) and the reference pages (docs/reference/*.md). */
 #ifndef XPPS_DOCS_H
 #define XPPS_DOCS_H
 
@@ -6,6 +7,7 @@
 
 typedef struct {
   const char *name; /* file name without .md */
+  const char *dir;  /* "manual" or "reference": its folder, also on the web */
   const char *text; /* Markdown */
 } doc_page;
 

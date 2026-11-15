@@ -91,6 +91,12 @@ if(Python3_FOUND AND TARGET xpplab-batch)
     COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/help_check.py
             ${XPPS_BATCH} ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode)
   set_tests_properties(help PROPERTIES TIMEOUT 600)
+  # doc: the reference pages open with `doc NAME`, every command has a page
+  # or is listed as pending, and every page has the standard sections.
+  add_test(NAME doc
+    COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/doc_check.py
+            ${XPPS_BATCH} ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode)
+  set_tests_properties(doc PROPERTIES TIMEOUT 300)
 endif()
 
 if(Python3_FOUND AND TARGET xpplab)

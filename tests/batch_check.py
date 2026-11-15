@@ -99,6 +99,34 @@ with tempfile.TemporaryDirectory() as t:
           and "Write: open FILE.ode" in r.stdout, "layout, theme, open: " + r.stdout[-500:])
     check(">> whos" not in r.stdout, "quit ends the commands: " + r.stdout[-300:])
 
+    # set: a parameter's or a variable's value must be a number; a typo or a
+    # formula is refused, not read as 0 or as its first number
+    r = run(["lecar.ode", "--keep-going", "-c", "set iapp=abc", "-c", "get iapp",
+             "-c", "set iapp=2*0.05", "-c", "get iapp", "-c", "set v=-0.3x",
+             "-c", "get v", "-c", "set iapp=0.1 v=-0.2", "-c", "get iapp",
+             "-c", "get v", "-c", "set meth=stiff", "-c", "get meth"], work)
+    check(r.stdout.count("the value must be a number") == 3,
+          "set refuses abc, 2*0.05 and -0.3x: " + r.stdout[-600:])
+    check("iapp = 0.05" in r.stdout and "v = -0.144" in r.stdout,
+          "a refused value leaves the old one: " + r.stdout[-600:])
+    check("iapp = 0.1" in r.stdout and "v = -0.2" in r.stdout,
+          "numbers are still set: " + r.stdout[-600:])
+    check("meth = stiff" in r.stdout, "get meth names the method: " + r.stdout[-300:])
+
+    # Options: a word for a number, and a method no first letter matches,
+    # were taken without a word (total=abc made the total 0)
+    r = run(["lecar.ode", "--keep-going", "-c", "set total=abc", "-c", "get total",
+             "-c", "set meth=nope", "-c", "get meth"], work)
+    check("error: total=abc: the value must be a number" in r.stdout
+          and "total = 30" in r.stdout, "set total refuses a word: " + r.stdout[-400:])
+    check("error: no method called nope" in r.stdout and "meth = rungekutta" in r.stdout,
+          "set meth refuses an unknown method: " + r.stdout[-400:])
+
+    # use without a set did nothing, without a word: it names the sets
+    r = run(["lecar.ode", "--keep-going", "-c", "use"], work)
+    check("write use SET, with one of: vvst pp snic hopf hom cool" in r.stdout,
+          "use alone lists the sets: " + r.stdout[-300:])
+
     # Errors: the first one stops, with exit status 1
     r = run(["lecar.ode", "-c", "export x.png phase", "-c", "run"], work)
     check(r.returncode == 1 and "error:" in r.stdout and ">> run" not in r.stdout,

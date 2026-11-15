@@ -105,6 +105,7 @@ nav:
   - Reference:
       - Every command and action: reference/reference.md
       - run: reference/run.md
+      - continue: reference/continue.md
       - range: reference/range.md
       - eq: reference/eq.md
       - eq all: reference/eq-all.md

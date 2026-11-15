@@ -415,3 +415,27 @@ def test_range_page():
     assert fall[0.46] < 0.05 and swing[0.46] > 0.5                            # rests where the other fired
     assert m.get("iapp") == pytest.approx(0.5)        # sweep puts the parameter back
     m.close()
+
+
+def test_continue_page():
+    text, blocks = python_blocks("continue.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "continue.md example 1", "exec"), ns)
+    m, sol = ns["m"], ns["sol"]
+    assert len(sol) == 4001 and sol.t[-1] == pytest.approx(200)
+    exec(compile(blocks[1], "continue.md example 2", "exec"), ns)
+    assert m.get("total") == pytest.approx(30)
+    assert m.get("v") == pytest.approx(-0.144)
+    first = m.run(iapp=0.1)
+    assert len(first) == 601 and first.t[-1] == pytest.approx(30)
+    m.set(iapp=0.1)
+    one = m.run(total=200)
+    diff = np.abs(sol["V"] - one["V"])
+    assert diff.max() < 1e-7 and diff[:601].max() == 0     # 6e-8, none up to t = 30
+    for meth, bound in (("qualrk", 2e-7), ("stiff", 5e-8)):   # More about
+        m.set(meth=meth, total=30)
+        s = m.continue_run(m.run(iapp=0.1), 170)
+        m.set(iapp=0.1)
+        assert np.abs(s["V"] - m.run(total=200)["V"]).max() < bound
+    m.close()

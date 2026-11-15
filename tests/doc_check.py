@@ -95,7 +95,7 @@ def main(exe, model):
         heads = re.findall(r"^## (.+)$", text, re.M)
         # the app's Help window shows these pages and cannot typeset LaTeX yet
         prose = re.sub(r"```.*?```", "", text, flags=re.S)
-        if "$" in prose.replace("\$", ""):
+        if "$" in prose.replace(r"\$", ""):
             bad.append(f"{page.name}: LaTeX ($...$) in a page the app's Help window shows")
         if heads != SECTIONS:
             bad.append(f"{page.name}: sections {heads}, expected {SECTIONS}")

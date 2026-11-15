@@ -119,6 +119,7 @@ nav:
       - click: reference/click.md
       - freeze: reference/freeze.md
       - erase: reference/erase.md
+      - ic: reference/ic.md
       - ic last: reference/ic-last.md
       - ic shift: reference/ic-shift.md
       - annotate: reference/annotate.md

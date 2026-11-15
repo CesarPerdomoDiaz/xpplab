@@ -16,6 +16,7 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | Page | What it does |
 |---|---|
 | [run](run.md) | Integrate the model from its initial values and show the result. |
+| [ic](ic.md) | Set initial values from a formula, one variable or a numbered range. |
 | [ic last](ic-last.md) | Start the next run where the last one ended. |
 | [ic shift](ic-shift.md) | Start the next run where the last one ended, and let the time go on. |
 | [script](script.md) | Save the session as a Python script that repeats it. |

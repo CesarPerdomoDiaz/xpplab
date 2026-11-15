@@ -1243,3 +1243,21 @@ def test_closedloop_page(tmp_path, monkeypatch):
     assert ns["held"].parameters.keys() == {"c"}
     ns["held"].close()
     ns["m"].close()
+
+
+def test_ic_page():
+    text, blocks = python_blocks("ic.md")
+    ns = {}
+    exec(compile(blocks[0], "ic.md example", "exec"), ns)
+    m, sol = ns["m"], ns["sol"]
+    assert m.get("u25") == pytest.approx(1) and round(m.get("u1"), 11) == round(np.sin(np.pi / 50), 11)
+    assert round(float(sol["U25"][-1]), 7) == 0.1390014 and sol.t[-1] == pytest.approx(0.2)
+    rate = 4 * 50 ** 2 * np.sin(np.pi / 100) ** 2
+    assert round(rate, 4) == 9.8664 and round(np.exp(-rate * 0.2), 7) == 0.1390014
+    assert round(np.exp(-np.pi ** 2 * 0.2), 5) == 0.13891
+    lecar = xs.load(xs.example("lecar.ode"))           # a variable is its initial value
+    lecar.run()
+    lecar.ic_formula("W", "V/10")
+    assert lecar.get("W") == pytest.approx(-0.0144, rel=1e-12)
+    lecar.close()
+    m.close()

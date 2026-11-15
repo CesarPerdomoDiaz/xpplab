@@ -87,6 +87,13 @@ with tempfile.TemporaryDirectory() as t:
     check(s.exists() and "m.auto" in s.read_text() and "sol.save(" in s.read_text(),
           "the session is saved as Python")
 
+    # fitdata reads the CSV that export writes (a header, commas)
+    r = run(["lecar.ode", "--keep-going", "-c", "set iapp=0.1", "-c", "run",
+             "-c", "export data.csv", "-c", "set gca=1.2 gk=1.8",
+             "-c", "fitdata data.csv V 2 gca,gk", "-c", "get gca", "-c", "get gk"], work)
+    check("Fitted: gca = 1 gk = 2" in r.stdout and "gca = 0.9999999999" in r.stdout,
+          "fitdata on an exported CSV: " + r.stdout[-500:])
+
     # Errors: the first one stops, with exit status 1
     r = run(["lecar.ode", "-c", "export x.png phase", "-c", "run"], work)
     check(r.returncode == 1 and "error:" in r.stdout and ">> run" not in r.stdout,

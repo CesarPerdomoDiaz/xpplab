@@ -40,7 +40,7 @@ const CommandInfo app_command_table[] = {
     {"nullclines play", NULL, "Step through the frozen nullclines.", NULL, NEED_MODEL},
     {"dirfield", NULL, "Draw the direction field in the phase plane.", "D D", NEED_MODEL, "dirfield off hides it."},
     {"erase", NULL, "Remove the kept curves.", "E", NEED_NONE},
-    {"fit", NULL, "How to fit the plots to the data: double-click a plot.", "W F", NEED_NONE},
+    {"fit", NULL, "Fit every plot's axes to its data (a double-click fits one plot).", "W F", NEED_NONE},
     {"freeze", NULL, "Keep the current curve on the plots.", NULL, NEED_RUN},
     {"use", "SET", "Apply a named parameter set of the model.", NULL, NEED_MODEL},
     {"sets", NULL, "List the model's named parameter sets.", NULL, NEED_MODEL},
@@ -729,6 +729,10 @@ static const char *action_key(App *a, int point, const char *word) {
 }
 
 /* The show_ flag of a window named as in 'show NAME'. */
+#define WINDOW_NAMES                                                              \
+  "time, phase, auto, editor, data, help, console, workspace, models, array, "   \
+  "analysis, 3d, animator"
+
 static bool *window_flag(App *a, const char *w) {
   static const char *names[] = {"time",      "phase",   "auto",   "editor",   "data",
                                 "help",      "console", "workspace", "models", "array",
@@ -1384,7 +1388,9 @@ void app_command(App *a, const char *line_in) {
   } else if (!strcmp(cmd, "freeze")) {
     app_freeze(a);
   } else if (!strcmp(cmd, "fit") || !strcmp(cmd, "wf")) {
-    app_status(a, "Double-click a plot to fit it to the data.");
+    /* XPPAUT's Window > Fit: it only said how to do it by hand */
+    a->fit_serial++;
+    app_status(a, "Fitted the plots to their data.");
   } else if (!strcmp(cmd, "use")) {
     char *s = next_word(&rest);
     if (s) app_apply_set(a, s);
@@ -1587,7 +1593,10 @@ void app_command(App *a, const char *line_in) {
     }
   } else if (!strcmp(cmd, "open")) {
     char *p = skip_space(rest);
-    if (*p) app_open(a, p);
+    if (*p)
+      app_open(a, p);
+    else /* it did nothing, without a word */
+      app_log(a, "Write: open FILE.ode (File > Open... chooses one)");
   } else if (!strcmp(cmd, "new")) {
     app_new_model(a);
   } else if (!strcmp(cmd, "save")) {
@@ -1658,8 +1667,12 @@ void app_command(App *a, const char *line_in) {
       a->reveal_python = true;
       a->show_workspace = true;
       snprintf(a->focus, sizeof a->focus, "workspace");
-    } else if (w) {
+    } else if (w && (window_flag(a, w) || !SDL_strncasecmp(w, "kinescope", strlen(w)) ||
+                     !SDL_strncasecmp(w, "figure", strlen(w)))) {
       snprintf(a->focus, sizeof a->focus, "%s", w);
+    } else { /* any other word did nothing, without a word */
+      app_log(a, "error: no window called %s; the windows are %s", w ? w : "?",
+              WINDOW_NAMES ", kinescope, figure, python");
     }
   } else if (!strcmp(cmd, "hide")) {
     char *w = next_word(&rest);
@@ -1667,14 +1680,23 @@ void app_command(App *a, const char *line_in) {
     if (shown)
       *shown = false;
     else
-      app_log(a, "error: no window called %s", w ? w : "?");
+      app_log(a, "error: no window called %s; the windows are %s", w ? w : "?",
+              WINDOW_NAMES);
   } else if (!strcmp(cmd, "layout")) {
+    /* any word but side made tabs: say so instead */
     char *w = next_word(&rest);
-    a->layout = w && !strcmp(w, "side");
-    a->reset_layout = true;
+    if (w && (!strcmp(w, "side") || !strcmp(w, "tabs"))) {
+      a->layout = !strcmp(w, "side");
+      a->reset_layout = true;
+    } else {
+      app_log(a, "error: write layout side or layout tabs");
+    }
   } else if (!strcmp(cmd, "theme")) {
     char *w = next_word(&rest);
-    a->dark = w && !strcmp(w, "dark");
+    if (w && (!strcmp(w, "dark") || !strcmp(w, "light")))
+      a->dark = !strcmp(w, "dark");
+    else
+      app_log(a, "error: write theme dark or theme light");
   } else if (!strcmp(cmd, "clc") || !strcmp(cmd, "clear")) {
     a->log_len = 0;
     a->log[0] = '\0';

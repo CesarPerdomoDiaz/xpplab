@@ -467,6 +467,7 @@ typedef struct App {
   View3D v3;
   AniUI ani;
   unsigned run_serial; /* counts the runs, for what depends on the last one */
+  unsigned fit_serial; /* the fit command: each plot fits once when it changes */
   int nbcs;          /* the model's boundary conditions (bndry) */
   RunSet many;
   ManyUI mu;

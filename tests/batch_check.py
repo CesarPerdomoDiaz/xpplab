@@ -87,6 +87,18 @@ with tempfile.TemporaryDirectory() as t:
     check(s.exists() and "m.auto" in s.read_text() and "sol.save(" in s.read_text(),
           "the session is saved as Python")
 
+    # Window and file commands that did nothing, or the opposite, with a
+    # wrong word; and quit, which a script went past
+    r = run(["lecar.ode", "--keep-going", "-c", "show zz", "-c", "layout x",
+             "-c", "theme x", "-c", "open", "-c", "show phase", "-c", "quit",
+             "-c", "whos"], work)
+    check("error: no window called zz; the windows are time, phase" in r.stdout,
+          "show names its windows: " + r.stdout[-500:])
+    check("error: write layout side or layout tabs" in r.stdout
+          and "error: write theme dark or theme light" in r.stdout
+          and "Write: open FILE.ode" in r.stdout, "layout, theme, open: " + r.stdout[-500:])
+    check(">> whos" not in r.stdout, "quit ends the commands: " + r.stdout[-300:])
+
     # Errors: the first one stops, with exit status 1
     r = run(["lecar.ode", "-c", "export x.png phase", "-c", "run"], work)
     check(r.returncode == 1 and "error:" in r.stdout and ">> run" not in r.stdout,

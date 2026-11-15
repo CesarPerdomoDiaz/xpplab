@@ -255,7 +255,11 @@ static void diagram_plot(App *a, bool two_param) {
   igSameLine(0, -1);
   ui_notes_menu(a, two_param ? FIG_AUTO2 : FIG_AUTO);
   igSameLine(0, -1);
-  if (Button("Fit")) v->zoomed = false;
+  {
+    static unsigned fitted[2];
+    if (Button("Fit") || fitted[two_param] != a->fit_serial) v->zoomed = false;
+    fitted[two_param] = a->fit_serial;
+  }
   Tooltip("Fit the axes to the diagram and keep them fitted as it grows. "
           "Double-click the plot does the same.");
   ui_view_hint(v, NULL);

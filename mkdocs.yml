@@ -119,6 +119,7 @@ nav:
       - range: reference/range.md
       - mean: reference/mean.md
       - hist: reference/hist.md
+      - hist2d: reference/hist2d.md
       - xcorr: reference/xcorr.md
       - spectrum: reference/spectrum.md
       - eq: reference/eq.md

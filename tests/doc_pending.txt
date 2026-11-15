@@ -23,7 +23,6 @@ ani
 view3d
 fourier
 power
-hist2d
 ensemble
 prc
 hfun

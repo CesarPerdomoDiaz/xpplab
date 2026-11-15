@@ -31,6 +31,7 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [hist](hist.md) | A histogram of a column of the last run: how much of the run is spent at each value. |
 | [xcorr](xcorr.md) | The autocorrelation of a column, or the cross-correlation of two. |
 | [spectrum](spectrum.md) | The power spectral density of a column, or the cross spectrum or coherence of two. |
+| [hist2d](hist2d.md) | A two-dimensional histogram of two columns: the fraction of the run in each cell. |
 | [range](range.md) | Run once for each value of a parameter or initial value: a brute-force diagram, hysteresis, Liapunov exponents. |
 
 ## Equilibria

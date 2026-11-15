@@ -751,3 +751,18 @@ def test_spectrum_page():
     assert len(coarse) == 256 and round(coarse["freq"][1], 3) == 0.039
     assert np.argmax(coarse["power"][1:]) + 1 == 1
     m.close()
+
+
+def test_hist2d_page():
+    text, blocks = python_blocks("hist2d.md")
+    ns = {}
+    exec(compile(blocks[0], "hist2d.md example", "exec"), ns)
+    m, h, k = ns["m"], ns["h"], ns["k"]
+    c = h["count"]
+    assert len(h) == 100 and (c > 0).sum() == 36
+    assert round(c[k], 3) == 0.193 and round(h["x"][k], 3) == -0.284 and round(h["y"][k], 4) == 0.0265
+    run = m.last_run()
+    on_edge = ((run["V"] == run["V"].max()) | (run["W"] == run["W"].max())).sum()
+    assert round(c.sum(), 4) == 0.9995 == round(1 - on_edge / len(run), 4)
+    assert len(m.histogram2d("V", "W")) == 400                 # 20 by 20
+    m.close()

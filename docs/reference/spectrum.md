@@ -27,8 +27,9 @@ overlap by half, each window is tapered (a Hamming window by default) and
 transformed, and the squared transforms are averaged. The result is a table
 of `freq`, in cycles per unit time, and `power`, with `LENGTH`/2 rows.
 
-`LENGTH` is 512 points by default, halved until the run holds at least one
-window. A longer window resolves finer frequencies; more windows give a
+`LENGTH` is 512 points at first; without it the app uses the length given
+last, and Python 512. Either way it is halved until the run holds at
+least two half-overlapping windows. A longer window resolves finer frequencies; more windows give a
 smoother estimate.
 
 With `COLUMN2`, `cross` gives the cross spectrum of the two columns and

@@ -18,8 +18,10 @@ hist COLUMN BINS LO HI
 
 ## Description
 
-`hist COLUMN BINS` divides the range of `COLUMN` into `BINS` equal bins (100
-by default) and counts the stored points of the last run in each. Without
+`hist COLUMN BINS` divides the range of `COLUMN` into `BINS` equal bins and
+counts the stored points of the last run in each. Without `BINS` the app
+uses the number given last, 50 at first; Python's `bins` is 100 unless
+given. Without
 `LO HI` the range is the column's smallest to largest value in the run.
 
 Since the points are stored at equal times, the count in a bin is
@@ -86,7 +88,7 @@ the distribution of the column there.
 
 | Setting | Where | Meaning | Advice |
 |---|---|---|---|
-| `BINS` | the command; `bins=` in Python | The number of bins. | 100 by default. Fewer for a short run, so that each bin holds enough points. |
+| `BINS` | the command; `bins=` in Python | The number of bins. | 50 at first in the app, then the last number given; 100 in Python. Fewer for a short run, so that each bin holds enough points. |
 | `LO`, `HI` | the command; `range=` in Python | The range divided into bins. | The column's range by default. Give it to compare runs on the same bins. |
 | **Condition** | the Histogram tool; `condition=` in Python | Only points where this is true count. | Any expression in the model's quantities, such as `W>0.2`. |
 | **Total time**, **Transient** | `set total=... trans=...` | Which part of the run is counted. | Leave out the transient for the distribution on an attractor. |

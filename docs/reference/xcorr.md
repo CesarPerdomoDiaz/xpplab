@@ -21,7 +21,8 @@ xcorr COLUMN COLUMN2 LAGS
 
 `xcorr COLUMN LAGS` subtracts the mean of `COLUMN` and compares the run
 with itself shifted by every whole number of output steps from −`LAGS`/2
-to `LAGS`/2 (100 lags by default, so ±50 steps). At a shift of zero the
+to `LAGS`/2. Without `LAGS` the app uses the number given last, 100 at
+first (±50 steps); in Python `lags` is 100 unless given. At a shift of zero the
 result is the column's variance; at other shifts it is large when the run
 repeats itself after that time and negative when it is opposite.
 

@@ -11,7 +11,7 @@ click keep off
 ```
 
 - **In the app:** in the Phase Plane, tick **Click to start** and click a
-  point; or XPPAUT's keys `I M` (*Initial conds > Mouse*).
+  point (XPPAUT's *Initial conds > Mouse*).
 - **In Python:** `m.run(V=X, W=Y)`, with the names of the plotted
   variables.
 

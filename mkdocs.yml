@@ -111,6 +111,8 @@ nav:
       - ic read: reference/ic-read.md
       - ic write: reference/ic-write.md
       - whos: reference/whos.md
+      - use: reference/use.md
+      - sets: reference/sets.md
       - range: reference/range.md
       - eq: reference/eq.md
       - eq all: reference/eq-all.md

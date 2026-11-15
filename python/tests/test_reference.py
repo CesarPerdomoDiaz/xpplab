@@ -554,3 +554,39 @@ def test_ic_read_page(tmp_path, monkeypatch):
     m.read_ics("more.txt")
     assert dict(m.ics) == {"V": 1, "W": 2}                   # the rest ignored
     m.close()
+
+
+def test_use_page():
+    text, blocks = python_blocks("use.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "use.md example 1", "exec"), ns)
+    m = ns["m"]
+    snic = sorted((e.kind, round(e["V"], 4)) for e in ns["snic"])
+    assert snic == [("saddle", -0.1425), ("stable node", -0.3825), ("unstable focus", 0.0276)]
+    assert [(e.kind, round(e["V"], 4)) for e in ns["hopf"]] == [("stable focus", -0.4417)]
+    assert (m.get("v3"), m.get("v4"), m.get("gca"), m.get("phi")) == pytest.approx((0, 0.3, 1.1, 0.2))
+    fresh = xs.load(xs.example("lecar.ode"))
+    own = [fresh.get(p) for p in ("v3", "v4", "gca", "phi")]
+    fresh.apply_set("snic")
+    assert [fresh.get(p) for p in ("v3", "v4", "gca", "phi")] == own   # the model's own values
+    with pytest.raises(xs.EngineError, match="no set named nope"):
+        fresh.apply_set("nope")
+    fresh.close()
+    exec(compile(blocks[1], "use.md example 2", "exec"), ns)
+    assert m.get("total") == 100 and m.get("iapp") == pytest.approx(0.1)
+    m.close()
+
+
+def test_sets_page():
+    text, blocks = python_blocks("sets.md")
+    ns = {}
+    exec(compile(blocks[0], "sets.md example", "exec"), ns)
+    m = ns["m"]
+    assert m.sets == ["vvst", "pp", "snic", "hopf", "hom", "cool"]
+    m.apply_set("cool")
+    cool = [m.get(p) for p in ("v3", "v4", "gca", "phi")]
+    assert m.get("iapp") == pytest.approx(0.080918)
+    m.apply_set("hom")
+    assert [m.get(p) for p in ("v3", "v4", "gca", "phi")] == cool     # cool is hom with a current
+    m.close()

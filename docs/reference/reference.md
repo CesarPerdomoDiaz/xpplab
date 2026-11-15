@@ -20,6 +20,8 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [ic shift](ic-shift.md) | Start the next run where the last one ended, and let the time go on. |
 | [ic read](ic-read.md) | Read the initial values from a text file. |
 | [ic write](ic-write.md) | Write the initial values to a text file, one per line. |
+| [use](use.md) | Apply one of the model's named parameter sets. |
+| [sets](sets.md) | List the model's named parameter sets. |
 | [whos](whos.md) | List the variables, parameters and main options, with their values. |
 | [continue](continue.md) | Integrate further from the end of the last run and add the new part to it. |
 | [range](range.md) | Run once for each value of a parameter or initial value: a brute-force diagram, hysteresis, Liapunov exponents. |

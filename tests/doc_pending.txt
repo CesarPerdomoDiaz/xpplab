@@ -12,8 +12,6 @@ dirfield
 erase
 fit
 freeze
-use
-sets
 kinescope capture
 kinescope play
 kinescope clear

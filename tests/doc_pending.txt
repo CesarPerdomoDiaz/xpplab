@@ -4,9 +4,6 @@
 set
 get
 ic
-nullclines freeze
-nullclines unfreeze
-nullclines play
 fit
 kinescope capture
 kinescope play

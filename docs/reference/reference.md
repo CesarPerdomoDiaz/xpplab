@@ -41,6 +41,9 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 |---|---|
 | [eq](eq.md) | Find an equilibrium near the initial values, with its eigenvalues and its stability. |
 | [eq all](eq-all.md) | Find every equilibrium in a region, from many starting points. |
+| [nullclines freeze](nullclines-freeze.md) | Keep the present nullclines, or keep them for several values of a parameter. |
+| [nullclines play](nullclines-play.md) | Show the frozen nullclines one at a time, as a film. |
+| [nullclines unfreeze](nullclines-unfreeze.md) | Remove the frozen nullclines. |
 | [dirfield](dirfield.md) | Draw the direction field in the Phase Plane. |
 | [nullclines](nullclines.md) | Draw the curves where one variable stands still; their crossings are the equilibria. |
 

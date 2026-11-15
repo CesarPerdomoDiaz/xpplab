@@ -788,3 +788,53 @@ def test_bvp_page():
     assert round(other.get("VX"), 11) == -0.76159415594
     m.close()
     other.close()
+
+
+def knee(v_nullcline):
+    """The lower knee of Morris-Lecar's N-shaped V nullcline: its lowest W
+    for V between -0.45 and -0.1."""
+    seg = np.asarray(v_nullcline).reshape(-1, 4)
+    pts = np.vstack([seg[:, :2], seg[:, 2:]])
+    sel = (pts[:, 0] > -0.45) & (pts[:, 0] < -0.1)
+    return pts[sel, 1].min()
+
+
+LECAR_BOX = {"V": (-0.6, 1.2), "W": (-0.25, 1.2)}
+
+
+def test_nullclines_freeze_page():
+    text, blocks = python_blocks("nullclines-freeze.md")
+    ns = {}
+    exec(compile(blocks[0], "nullclines-freeze.md example", "exec"), ns)
+    m, values, frozen = ns["m"], ns["values"], ns["frozen"]
+    knees = [round(knee(vn), 2) for vn, wn in frozen]
+    assert knees == [-0.09, -0.06, -0.03, 0.0, 0.03]
+    assert all(np.array_equal(np.asarray(frozen[0][1]), np.asarray(f[1])) for f in frozen)
+    counts = []
+    for v in values:
+        m.set(iapp=v)
+        counts.append(len(m.find_equilibria(box=LECAR_BOX)))
+    assert counts == [3, 3, 3, 3, 1]
+    m.close()
+
+
+def test_nullclines_play_page():
+    text, blocks = python_blocks("nullclines-play.md")
+    ns = {}
+    exec(compile(blocks[0], "nullclines-play.md example", "exec"), ns)
+    m, values = ns["m"], ns["values"]
+    assert len(ns["frozen"]) == 21
+    assert round(values[16], 3) == 0.08 and round(values[17], 3) == 0.085
+    m.set(iapp=values[16])
+    assert len(m.find_equilibria(box=LECAR_BOX)) == 3
+    m.set(iapp=values[17])
+    assert len(m.find_equilibria(box=LECAR_BOX)) == 1
+    m.close()
+
+
+def test_nullclines_unfreeze_page():
+    text, blocks = python_blocks("nullclines-unfreeze.md")
+    ns = {}
+    exec(compile(blocks[0], "nullclines-unfreeze.md example", "exec"), ns)
+    assert ns["frozen"] == [] and ns["m"].get("iapp") == pytest.approx(0.05)
+    ns["m"].close()

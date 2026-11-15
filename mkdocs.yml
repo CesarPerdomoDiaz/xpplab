@@ -126,6 +126,9 @@ nav:
       - eq: reference/eq.md
       - eq all: reference/eq-all.md
       - nullclines: reference/nullclines.md
+      - nullclines freeze: reference/nullclines-freeze.md
+      - nullclines play: reference/nullclines-play.md
+      - nullclines unfreeze: reference/nullclines-unfreeze.md
       - dirfield: reference/dirfield.md
       - auto steady: reference/auto-steady.md
       - auto from: reference/auto-from.md

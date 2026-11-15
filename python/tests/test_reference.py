@@ -907,3 +907,17 @@ def test_view3d_page():
     import matplotlib.pyplot as plt
     plt.close("all")
     lorenz.close()
+
+
+def test_ani_page():
+    text, blocks = python_blocks("ani.md")
+    ns = {}
+    exec(compile(blocks[0], "ani.md example", "exec"), ns)
+    m, a = ns["m"], ns["a"]
+    assert len(a) == 401 and m.last_run().t[-1] == pytest.approx(20)
+    first, last = a.frame(0)[1], a.frame(len(a) - 1)[1]     # the bob
+    assert first.shape == "ellipse" and first.filled and first.color == "#ff0000"
+    assert (round(first.x1, 4), round(first.y1, 4)) == (0.8637, 0.6665)
+    assert (round(last.x1, 4), round(last.y1, 4)) == (0.4193, 0.1082)
+    assert round(m.last_run()["X"][-1], 3) == -0.203 and round(np.sin(2), 3) == 0.909
+    m.close()

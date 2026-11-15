@@ -20,6 +20,13 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [ic shift](ic-shift.md) | Start the next run where the last one ended, and let the time go on. |
 | [script](script.md) | Save the session as a Python script that repeats it. |
 | [echo](echo.md) | Show each action as the Python that repeats it. |
+| [show](show.md) | Bring a window forward, opening it if it is closed. |
+| [hide](hide.md) | Close a window. |
+| [layout](layout.md) | The Phase Plane beside the Time Series, or all plots as tabs. |
+| [theme](theme.md) | Switch the colours between dark and light. |
+| [palette](palette.md) | Open the command palette, or search it. |
+| [clear](clear.md) | Clear the command window. |
+| [quit](quit.md) | Leave the app, or end a batch script. |
 | [doc](doc.md) | Open the reference page of a command, with its worked examples. |
 | [help](help.md) | List the commands, show one's summary, or open a chapter of the manual. |
 | [open](open.md) | Open a model file. |

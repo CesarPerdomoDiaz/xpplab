@@ -18,10 +18,3 @@ poles
 lqr
 closedloop
 locus
-show
-hide
-layout
-theme
-palette
-clear
-quit

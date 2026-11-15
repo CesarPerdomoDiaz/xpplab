@@ -117,6 +117,7 @@ nav:
       - use: reference/use.md
       - sets: reference/sets.md
       - range: reference/range.md
+      - mean: reference/mean.md
       - eq: reference/eq.md
       - eq all: reference/eq-all.md
       - nullclines: reference/nullclines.md

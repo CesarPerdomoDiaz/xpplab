@@ -647,3 +647,33 @@ def test_freeze_page():
     assert round(rest["V"][-1], 4) == -0.3825 and len(peaks(rest)[0]) == 1
     assert round(firing["V"].max(), 4) == 0.2615 and len(peaks(firing)[0]) == 2
     ns["m"].close()
+
+
+def test_mean_page():
+    text, blocks = python_blocks("mean.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "mean.md example 1", "exec"), ns)
+    m = ns["m"]
+    mean, sd = m.mean("V")
+    assert (round(mean, 6), round(sd, 6)) == (-0.184298, 0.181866)
+    assert round(m.lyapunov(), 6) == 0.009812
+    run = m.run()
+    assert sd == pytest.approx(run["V"].std(ddof=0), rel=1e-12)       # a population
+    m.set(total=2000)
+    m.run()
+    assert round(m.lyapunov(), 4) == 0.0022
+    m.set(iapp=0.05, total=30)
+    m.run()
+    assert [round(x, 6) for x in m.mean("V")] == [-0.299913, 0.172776]
+    assert round(m.lyapunov(), 4) == -0.1755
+    exec(compile(blocks[1], "mean.md example 2", "exec"), ns)
+    lorenz = ns["lorenz"]
+    assert [round(x, 5) for x in lorenz.mean("X")] == [-2.29813, 7.41067]
+    assert round(lorenz.lyapunov(), 4) == 0.8667
+    for total, value in ((400, 0.8707), (2000, 0.8777)):
+        lorenz.set(total=total, maxstor=200000)
+        lorenz.run()
+        assert round(lorenz.lyapunov(), 4) == value
+    m.close()
+    lorenz.close()

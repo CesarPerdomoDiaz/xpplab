@@ -27,7 +27,6 @@ power
 hist
 hist2d
 xcorr
-mean
 ensemble
 prc
 hfun

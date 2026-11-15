@@ -11,7 +11,8 @@ PAGES = ("auto steady", "auto from", "auto set", "auto orbit", "auto save",
          "auto load", "auto reset", "run", "eq", "eq all", "nullclines", "range",
          "continue", "ic last", "ic shift", "whos",
          "ic read", "ic write", "use", "sets",
-         "dirfield", "click", "freeze", "erase")
+         "dirfield", "click", "freeze", "erase",
+         "mean")
 
 #: The method of the package that does what a command does.
 METHODS = {"equilibria": "auto steady", "continue_from": "auto from",
@@ -23,7 +24,8 @@ METHODS = {"equilibria": "auto steady", "continue_from": "auto from",
            "continue_run": "continue", "ic_last": "ic last",
            "read_ics": "ic read", "write_ics": "ic write",
            "apply_set": "use",
-           "vector_field": "dirfield"}
+           "vector_field": "dirfield",
+           "mean": "mean", "lyapunov": "mean"}
 
 
 def doc(name=None, *, open: bool = True) -> str:

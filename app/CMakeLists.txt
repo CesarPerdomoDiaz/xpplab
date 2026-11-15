@@ -220,7 +220,10 @@ if(APPLE)
 else()
   set(APP_DATA_DIR $<TARGET_FILE_DIR:xpplab>)
 endif()
-add_custom_command(TARGET xpplab POST_BUILD
+# A target of its own, run on every build: as the app's POST_BUILD step it
+# ran only when the app was linked again, so a change to the engine alone
+# left the app, and xpplab-batch, running the old copy of the engine.
+add_custom_target(xpplab-data ALL
   COMMAND ${CMAKE_COMMAND} -E make_directory ${APP_DATA_DIR}
   COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:xppe> ${APP_DATA_DIR}
   COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL3::SDL3>
@@ -232,7 +235,10 @@ add_custom_command(TARGET xpplab POST_BUILD
           ${PROJECT_SOURCE_DIR}/examples/classics ${APP_DATA_DIR}/examples/classics
   # The xpplab package, for the console's Python (pyconsole.c)
   COMMAND ${CMAKE_COMMAND} -E copy_directory
-          ${PROJECT_SOURCE_DIR}/python/src/xpplab ${APP_DATA_DIR}/python/xpplab)
+          ${PROJECT_SOURCE_DIR}/python/src/xpplab ${APP_DATA_DIR}/python/xpplab
+  VERBATIM)
+add_dependencies(xpplab-data xpplab xppe)
+add_dependencies(xpplab-batch xpplab-data)
 if(MINGW)
   # SDL3 from MSYS2 needs its libiconv-2.dll. Found on the PATH instead, it
   # can be another build (Git for Windows has one, made for another C

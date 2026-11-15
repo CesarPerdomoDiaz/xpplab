@@ -659,6 +659,21 @@ static void cmd_analysis(App *a, const char *cmd, char *rest) {
   app_analysis_run(a);
 }
 
+/* A parameter's or a variable's value: the whole text must be a number.
+   atof() read "abc" as 0 and "2*0.05" as 2, so a typo set a wrong value
+   without a word. */
+static bool set_number(App *a, const char *name, const char *text, double *v) {
+  char *end;
+  *v = strtod(text, &end);
+  while (*end && isspace((unsigned char)*end)) end++;
+  if (end == text || *end || !isfinite(*v)) {
+    app_log(a, "error: %s=%s: the value must be a number (write 0.1, 1e-3, -2; "
+               "not a formula)", name, text);
+    return false;
+  }
+  return true;
+}
+
 static void cmd_set(App *a, char *rest) {
   char *tok = strtok(rest, " ,;");
   while (tok) {
@@ -667,13 +682,14 @@ static void cmd_set(App *a, char *rest) {
       app_log(a, "error: write set NAME=VALUE (got '%s')", tok);
     } else {
       int i;
+      double v;
       *eq = '\0';
       i = app_find_par(a, tok);
-      if (i >= 0)
-        app_set_param(a, i, atof(eq + 1));
-      else if ((i = app_find_var(a, tok)) >= 0)
-        app_set_ic(a, i, atof(eq + 1));
-      else {
+      if (i >= 0) {
+        if (set_number(a, tok, eq + 1, &v)) app_set_param(a, i, v);
+      } else if ((i = app_find_var(a, tok)) >= 0) {
+        if (set_number(a, tok, eq + 1, &v)) app_set_ic(a, i, v);
+      } else {
         double v;
         /* XPPAUT takes options this app does not list, and ignores names
            it does not know: say so, in case of a typo. */
@@ -1210,9 +1226,12 @@ void app_command(App *a, const char *line_in) {
   } else if (!strcmp(cmd, "get")) {
     char *n = next_word(&rest);
     double v = 0;
-    if (n && a->model_ok && a->eng->api.xppe_get(n, &v) == XPPE_OK)
-      app_log(a, "%s = %.10g", n, v);
-    else
+    if (n && a->model_ok && a->eng->api.xppe_get(n, &v) == XPPE_OK) {
+      if (!SDL_strcasecmp(n, "meth") || !SDL_strcasecmp(n, "method"))
+        app_log(a, "%s = %s", n, app_method_name((int)v)); /* not its number */
+      else
+        app_log(a, "%s = %.10g", n, v);
+    } else
       app_log(a, "error: no value named %s", n ? n : "?");
   } else if (!strcmp(cmd, "whos") || !strcmp(cmd, "who") || !strcmp(cmd, "list")) {
     cmd_whos(a);
@@ -1388,7 +1407,18 @@ void app_command(App *a, const char *line_in) {
     app_status(a, "Double-click a plot to fit it to the data.");
   } else if (!strcmp(cmd, "use")) {
     char *s = next_word(&rest);
-    if (s) app_apply_set(a, s);
+    if (s) {
+      app_apply_set(a, s);
+    } else if (!a->nsets) {
+      app_log(a, "error: write use SET; this model has no parameter sets");
+    } else { /* it did nothing without a word: say what it takes */
+      int i, k;
+      char line[1024];
+      k = snprintf(line, sizeof line, "error: write use SET, with one of:");
+      for (i = 0; i < a->nsets && k < (int)sizeof line - 80; i++)
+        k += snprintf(line + k, sizeof line - k, " %s", a->sets[i]);
+      app_log(a, "%s", line);
+    }
     if (a->needs_run) app_run_live(a);
   } else if (!strcmp(cmd, "sets")) {
     int i;

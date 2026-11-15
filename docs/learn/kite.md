@@ -32,69 +32,71 @@ reasoning is the same, and the numbers here are those of this model.
 ## The model
 
 **Geometry.** The kite flies in the vertical plane that contains the wind.
-Its tether, of length `L`, is straight and fixed to the ground, so the kite
-moves on a circle and one angle describes its position: the elevation `Γ`
+Its tether, of length $L$, is straight and fixed to the ground, so the kite
+moves on a circle and one angle describes its position: the elevation $\Gamma$
 of the tether above the horizontal. The bridle holds the kite's chord at a
-right angle to the tether, so the kite's attitude follows from `Γ` too: the
+right angle to the tether, so the kite's attitude follows from $\Gamma$ too: the
 model has one degree of freedom [MA Box 1.10 (1/5), p. 14]. The tether is
-a holonomic constraint, `R = L`; with `Γ` as the generalised coordinate,
+a holonomic constraint, $R = L$; with $\Gamma$ as the generalised coordinate,
 its force, the tension, does no virtual work and drops out of Lagrange's
 equation [MA Box 1.10 (2/5) and (4/5), pp. 17 and 19].
 
-**Lagrangian.** With the mass `m` at the kite, the kinetic energy is
-`T = m L² Γ'²/2` and the potential of the weight `U = m g L sin Γ`. The
+**Lagrangian.** With the mass $m$ at the kite, the kinetic energy is
+$T = m L^2 \dot{\Gamma}^2/2$ and the potential of the weight $U = m g L \sin\Gamma$. The
 aerodynamic force is not potential; it enters through its generalised
-component `Q_Γ = L (F_A · u_Γ)`, its projection on the direction of
-increasing `Γ` times the lever `L` [MA Box 1.10 (3/5), p. 18]. Lagrange's
-equation `d/dt(∂L/∂Γ') − ∂L/∂Γ = Q_Γ` with `L = T − U` gives
+component $Q_\Gamma = L \,(\mathbf{F}_A \cdot \mathbf{u}_\Gamma)$, its projection on the direction of
+increasing $\Gamma$ times the lever $L$ [MA Box 1.10 (3/5), p. 18]. Lagrange's
+equation $d/dt\,(\partial \mathcal{L}/\partial \dot{\Gamma}) - \partial \mathcal{L}/\partial \Gamma = Q_\Gamma$ with $\mathcal{L} = T - U$ gives
 
-```
-m L² Γ'' = − m g L cos Γ + L F_A,Γ
-```
+$$
+m L^2 \ddot{\Gamma} = -m g L \cos\Gamma + L F_{A,\Gamma}
+$$
 
 **Aerodynamics.** The air moves past the kite at the wind's velocity minus
-the kite's: along the circle `u = L Γ' + V_W sin Γ`, and along the tether
-`w = V_W cos Γ`. The angle of attack is `α = atan2(w, u)`, the dynamic
-pressure `q = ρ (u² + w²)/2`, and lift and drag follow a simple law for a
-flat kite: `C_L = C_L,max sin 2α`, and a drag polar `C_D = C_D0 + k C_L²`.
+the kite's: along the circle $u = L \dot{\Gamma} + V_W \sin\Gamma$, and along the tether
+$w = V_W \cos\Gamma$. The angle of attack is $\alpha = \operatorname{atan2}(w, u)$, the dynamic
+pressure $q = \rho \,(u^2 + w^2)/2$, and lift and drag follow a simple law for a
+flat kite: $C_L = C_{L,\max} \sin 2\alpha$, and a drag polar $C_D = C_{D0} + k C_L^2$.
 Lift is normal to the relative wind and drag along it; their component
-along the circle is `F_A,Γ = q S (C_L sin α − C_D cos α)`, and along the
-tether `F_A,R = −q S (C_L cos α + C_D sin α)`.
+along the circle is $F_{A,\Gamma} = q S \,(C_L \sin\alpha - C_D \cos\alpha)$, and along the
+tether $F_{A,R} = -q S \,(C_L \cos\alpha + C_D \sin\alpha)$.
 
 **The tension.** The tether's force appears once the constraint is
-relaxed: with `R` as a second coordinate, Lagrange's equation for `R`
+relaxed: with $R$ as a second coordinate, Lagrange's equation for $R$
 gives the multiplier, the tension [MA Box 1.10 (5/5), p. 20]. For a tether
 of constant length,
 
-```
-T = m L Γ'² − m g sin Γ − F_A,R
-```
+$$
+T = m L \dot{\Gamma}^2 - m g \sin\Gamma - F_{A,R}
+$$
 
-A real tether only pulls: the model holds while `T > 0`.
+A real tether only pulls: the model holds while $T > 0$.
 
-**Dimensionless form.** Measure time in units of `sqrt(L/g)` (3.19 s for a
-100 m tether), so `τ = t sqrt(g/L)` [MA Box 6.5, p. 120], the wind by
-`sqrt(g L)`, `Ṽ_W = V_W/sqrt(g L)`, and the kite by one number,
-`Λ = ρ S L / (2 m)`. With `' = d/dτ`,
+**Dimensionless form.** Measure time in units of $\sqrt{L/g}$ (3.19 s for a
+100 m tether), so $\tau = t \sqrt{g/L}$ [MA Box 6.5, p. 120], the wind by
+$\sqrt{g L}$, $\tilde{V}_W = V_W/\sqrt{g L}$, and the kite by one number,
+$\Lambda = \rho S L / (2 m)$. With $' = d/d\tau$,
 
-```
-Γ'' = − cos Γ + Λ Ṽ_A (C_L w_A − C_D u_A)
-T/(m g) = Γ'² − sin Γ + Λ Ṽ_A (C_L u_A + C_D w_A)
-u_A = Γ' + Ṽ_W sin Γ,   w_A = Ṽ_W cos Γ,   Ṽ_A = sqrt(u_A² + w_A²)
-```
+$$
+\begin{aligned}
+\Gamma'' &= -\cos\Gamma + \Lambda \tilde{V}_A \,(C_L w_A - C_D u_A) \\
+\frac{T}{m g} &= \Gamma'^2 - \sin\Gamma + \Lambda \tilde{V}_A \,(C_L u_A + C_D w_A) \\
+u_A &= \Gamma' + \tilde{V}_W \sin\Gamma, \qquad w_A = \tilde{V}_W \cos\Gamma, \qquad \tilde{V}_A = \sqrt{u_A^2 + w_A^2}
+\end{aligned}
+$$
 
-The state is `(Γ, Γ')`. The kite of this page has `L = 100 m`,
-`m = 1 kg`, `S = 4 m²`, `ρ = 1.225 kg/m³`, `C_L,max = 1.2`, `C_D0 = 0.06`
-and `k = 0.12`, so `Λ = 245`.
+The state is $(\Gamma, \Gamma')$. The kite of this page has $L = 100\ \mathrm{m}$,
+$m = 1\ \mathrm{kg}$, $S = 4\ \mathrm{m^2}$, $\rho = 1.225\ \mathrm{kg/m^3}$, $C_{L,\max} = 1.2$, $C_{D0} = 0.06$
+and $k = 0.12$, so $\Lambda = 245$.
 
-The divergence of the flow is `∂f/∂Γ'`, which is not zero: aerodynamic
+The divergence of the flow is $\partial f/\partial \Gamma'$, which is not zero: aerodynamic
 forces depend on the velocity, so areas in the phase plane grow or shrink
 [MA Box 8.11, pp. 203–204]. That is what allows attracting equilibria and
 limit cycles, which a Hamiltonian system cannot have.
 
-In the model file `gam` is `Γ` in radians and `om` is `Γ'`. The wind `VW`
+In the model file `gam` is $\Gamma$ in radians and `om` is $\Gamma'$. The wind `VW`
 is in m/s and converted inside. `deg` shows the elevation in degrees and
-`tens` the tension `T/(mg)`. The three global flags stop a run at the
+`tens` the tension $T/(mg)$. The three global flags stop a run at the
 ground, overhead, or when the tether goes slack, but only when `stop = 1`:
 by default the equations run on past those limits, which is useful to see
 where an orbit would go.
@@ -149,13 +151,13 @@ running the model.
 
 ## 1. Steady flight
 
-**Theory.** An equilibrium has `Γ' = 0` and `Γ'' = 0`. With `Γ' = 0`, the
-relative wind is the wind itself and `α = π/2 − Γ`, so `C_L = C_L,max
-sin 2Γ`, and the equilibria are the zeros of the residual
+**Theory.** An equilibrium has $\Gamma' = 0$ and $\Gamma'' = 0$. With $\Gamma' = 0$, the
+relative wind is the wind itself and $\alpha = \pi/2 - \Gamma$, so
+$C_L = C_{L,\max} \sin 2\Gamma$, and the equilibria are the zeros of the residual
 
-```
-F(Γ) = − cos Γ + Λ Ṽ_W² (C_L cos Γ − C_D sin Γ)
-```
+$$
+F(\Gamma) = -\cos\Gamma + \Lambda \tilde{V}_W^2 \,(C_L \cos\Gamma - C_D \sin\Gamma)
+$$
 
 For a strong wind there are two positive zeros, a low and a high flight;
 as the wind weakens they approach each other and disappear together. Below
@@ -164,11 +166,11 @@ pp. 209–210]. A third zero lies below the horizon, where the kite hangs
 under the tether: a mathematical equilibrium, not a flight.
 
 Stability comes from the Jacobian at the equilibrium. For an equation
-`Γ'' = f(Γ, Γ')` it is `[[0, 1], [∂f/∂Γ, ∂f/∂Γ']]`, whose eigenvalues solve
-`λ² − Δ λ − Ψ = 0` with `Δ = ∂f/∂Γ'` (the aerodynamic damping) and
-`Ψ = ∂f/∂Γ` (the restoring force with its sign changed). `Ψ > 0` gives a
-saddle; with `Ψ < 0` the sign of `Δ` decides stability, and the sign of
-`Δ² + 4Ψ` whether it is a node or a focus [MA Box 8.16 (1/4)–(3/4),
+$\Gamma'' = f(\Gamma, \Gamma')$ it is $\begin{pmatrix} 0 & 1 \\ \partial f/\partial \Gamma & \partial f/\partial \Gamma' \end{pmatrix}$, whose eigenvalues solve
+$\lambda^2 - \Delta \lambda - \Psi = 0$ with $\Delta = \partial f/\partial \Gamma'$ (the aerodynamic damping) and
+$\Psi = \partial f/\partial \Gamma$ (the restoring force with its sign changed). $\Psi > 0$ gives a
+saddle; with $\Psi < 0$ the sign of $\Delta$ decides stability, and the sign of
+$\Delta^2 + 4\Psi$ whether it is a node or a focus [MA Box 8.16 (1/4)–(3/4),
 pp. 211–214; §8.2.2 and Box 8.6, p. 197].
 
 **In the app.** Open `kite.ode`. In Workspace > Parameters set `VW` to 2.5.
@@ -216,7 +218,7 @@ At 2.05 m/s two flights exist, both unstable: the lower one is a saddle,
 the upper one an unstable node. At 2.5 m/s the upper flight is a stable
 focus, and at 5 and 8 m/s a stable node. The lower flight is always a
 saddle. As the wind grows the upper flight rises towards 79.28°, where
-`C_L cos Γ = C_D sin Γ`: lift and drag balance along the circle and gravity
+$C_L \cos\Gamma = C_D \sin\Gamma$: lift and drag balance along the circle and gravity
 no longer matters.
 
 ## 2. Following the flights: the bifurcation diagram
@@ -250,7 +252,7 @@ hb.value, math.degrees(hb.u0["gam"])      # 2.2207 m/s, 55.59 deg
 
 Positive-elevation flight therefore exists above 2.0098 m/s, and is locally
 stable only above 2.2207 m/s. At the Hopf point the eigenvalues are
-`±0.908 i`, so small oscillations there last `2π/0.908` time units,
+$\pm 0.908\,i$, so small oscillations there last $2\pi/0.908$ time units,
 22.08 s.
 
 **A downward sweep.** The diagram shows every equilibrium. What a kite
@@ -609,14 +611,14 @@ recovery from every taut state.
 ## 9. The minimum wind for stable flight
 
 **Theory.** The Hopf point can itself be followed in two parameters: the
-wind and the kite. With `Λ = ρ S L/(2 m)` as the second parameter, AUTO
+wind and the kite. With $\Lambda = \rho S L/(2 m)$ as the second parameter, AUTO
 traces the curve of Hopf points, the boundary of stable flight.
 
 **In the app.** In the Bifurcation window set **2nd param.** to `lam`,
 click the HB point, and choose **Two-parameter curve of Hopf points**. The
 Two parameters tab shows the curve. In the Figure window add the diagram
 with y = `VW` and x = `lam`, and set the series' **y scale** to
-0.0319275 = 1/sqrt(g L) to make the wind dimensionless; add the formula
+0.0319275 = $1/\sqrt{g L}$ to make the wind dimensionless; add the formula
 `1.109724/sqrt(x)` to compare.
 
 ```python
@@ -641,10 +643,10 @@ fig.save("kite-scaling.png", dpi=150)
 
 ![The minimum wind for stable flight](../images/kite/kite-scaling.png)
 
-The dimensionless minimum wind falls as `1/sqrt(Λ)`: `Ṽ_W,H ≈ 1.11/sqrt(Λ)`.
-In dimensional terms `V_W,H ≈ 1.11 sqrt(2 m g/(ρ S))`: a lighter kite, or a
+The dimensionless minimum wind falls as $1/\sqrt{\Lambda}$: $\tilde{V}_{W,H} \approx 1.11/\sqrt{\Lambda}$.
+In dimensional terms $V_{W,H} \approx 1.11 \sqrt{2 m g/(\rho S)}$: a lighter kite, or a
 larger one, flies stably in a lighter wind, and the tether's length drops
-out, because it appears both in `Λ` and in the scale of the wind.
+out, because it appears both in $\Lambda$ and in the scale of the wind.
 
 ## Figures for a report
 
@@ -660,7 +662,7 @@ Python script** gives the script that makes the same figure. See
 
 !!! note "Exercises"
     1. Double the kite's area (`lam` = 490). Where are the fold and the Hopf
-       point now? Compare with the `1/sqrt(Λ)` law.
+       point now? Compare with the $1/\sqrt{\Lambda}$ law.
     2. A kite with more drag, `CD0` = 0.12. Does the high-wind elevation
        rise or fall? Why?
     3. At 2.5 m/s, find the largest kick in `om` from the stable flight
@@ -671,12 +673,12 @@ Python script** gives the script that makes the same figure. See
 
 ??? success "Solutions"
     1. With `m.set(lam=490)` and the same continuation, the fold moves to
-       1.4211 m/s, exactly `1/sqrt(2)` times 2.0098: `Ṽ_W` and `Λ` enter
-       the equilibrium condition only as `Λ Ṽ_W²`. The Hopf point moves to
-       1.5702 m/s, and the law gives `1.109724/sqrt(490) × sqrt(g L)` =
+       1.4211 m/s, exactly $1/\sqrt{2}$ times 2.0098: $\tilde{V}_W$ and $\Lambda$ enter
+       the equilibrium condition only as $\Lambda \tilde{V}_W^2$. The Hopf point moves to
+       1.5702 m/s, and the law gives $1.109724/\sqrt{490} \times \sqrt{g L}$ =
        1.5702 m/s.
-    2. It falls, to 74.85°: at high wind `C_L cos Γ = C_D sin Γ`, so
-       `tan Γ = C_L/C_D` drops when the drag grows.
+    2. It falls, to 74.85°: at high wind $C_L \cos\Gamma = C_D \sin\Gamma$, so
+       $\tan\Gamma = C_L/C_D$ drops when the drag grows.
     3. With `stop=1` and `m.run(gam=eq["gam"], om=w)` for `w` growing in
        steps of 0.01, the kite recovers up to `om` = 0.14 at 2.5 m/s, and
        up to 0.46 at 3 m/s: farther from the Hopf point, the unstable orbit

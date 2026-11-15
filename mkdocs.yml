@@ -121,6 +121,8 @@ nav:
       - erase: reference/erase.md
       - ic last: reference/ic-last.md
       - ic shift: reference/ic-shift.md
+      - doc: reference/doc.md
+      - help: reference/help.md
       - open: reference/open.md
       - new: reference/new.md
       - save: reference/save.md

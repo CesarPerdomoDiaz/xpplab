@@ -1133,3 +1133,21 @@ def test_save_page(tmp_path, monkeypatch):
     exec(compile(blocks[0], "save.md example", "exec"), ns)
     assert ns["m"].variables == ["V", "W"]
     ns["m"].close()
+
+
+def test_doc_page(capsys):
+    text, blocks = python_blocks("doc.md")
+    ns = {}
+    exec(compile(blocks[0], "doc.md example", "exec"), ns)
+    lines = capsys.readouterr().out.split()
+    site = "https://cesarperdomodiaz.github.io/xpplab/reference/"
+    assert lines == [site + "range/", site + "range/", site + "reference/"]
+    ns["m"].close()
+
+
+def test_help_page(capsys):
+    text, blocks = python_blocks("help.md")
+    ns = {}
+    exec(compile(blocks[0], "help.md example", "exec"), ns)
+    assert capsys.readouterr().out.strip()
+    ns["m"].close()

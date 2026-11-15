@@ -22,8 +22,6 @@ show
 hide
 layout
 theme
-help
-doc
 palette
 clear
 quit

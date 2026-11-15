@@ -98,6 +98,27 @@ with tempfile.TemporaryDirectory() as t:
           "bvp tol= tightens the shooting: " + r.stdout[-500:])
     check("error: write bvp [tol=T]" in r.stdout, "bvp refuses a bad setting: " + r.stdout[-300:])
 
+    # freeze keeps a copy and leaves the run: ic last, continue and export
+    # still have it (they said there was no run, or started a new one)
+    r = run(["lecar.ode", "-c", "freeze", "-c", "ic last", "-c", "continue 10",
+             "-c", "export frozen.csv"], work)
+    check(r.returncode == 0 and "There is no run yet" not in r.stdout,
+          "freeze leaves the run: " + r.stdout[-400:])
+    check("Initial values set to the end of the last run." in r.stdout
+          and "Continued to t = 40" in r.stdout and (work / "frozen.csv").exists(),
+          "ic last, continue and export after freeze: " + r.stdout[-400:])
+
+    # An analysis of two columns names both
+    r = run(["lecar.ode", "-c", "xcorr V W 200", "-c", "xcorr V 200"], work)
+    check("Correlation of V and W: 202 rows." in r.stdout
+          and "Correlation of V: 202 rows." in r.stdout,
+          "xcorr names its columns: " + r.stdout[-400:])
+
+    # ic NAME = FORMULA: a variable in the formula is its initial value, not
+    # the state the first run or the equilibrium left in XPPAUT's evaluator
+    r = run(["lecar.ode", "-c", "eq", "-c", "ic w = v/10", "-c", "get w"], work)
+    check("w = -0.0144" in r.stdout, "ic w = v/10 uses v's initial value: " + r.stdout[-300:])
+
     # set: a parameter's or a variable's value must be a number; a typo or a
     # formula is refused, not read as 0 or as its first number
     r = run(["lecar.ode", "--keep-going", "-c", "set iapp=abc", "-c", "get iapp",

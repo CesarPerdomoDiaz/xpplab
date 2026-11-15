@@ -29,6 +29,7 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [erase](erase.md) | Remove the kept curves and the marked equilibria from the plots. |
 | [bvp](bvp.md) | Solve the boundary-value problem: the run that meets conditions at both ends. |
 | [continue](continue.md) | Integrate further from the end of the last run and add the new part to it. |
+| [view3d](view3d.md) | Show three columns of the run as a curve in three dimensions. |
 | [mean](mean.md) | The mean and standard deviation of a column, and the largest Liapunov exponent of the run. |
 | [hist](hist.md) | A histogram of a column of the last run: how much of the run is spent at each value. |
 | [xcorr](xcorr.md) | The autocorrelation of a column, or the cross-correlation of two. |

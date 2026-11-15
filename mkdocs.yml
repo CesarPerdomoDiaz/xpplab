@@ -119,6 +119,7 @@ nav:
       - use: reference/use.md
       - sets: reference/sets.md
       - range: reference/range.md
+      - view3d: reference/view3d.md
       - mean: reference/mean.md
       - hist: reference/hist.md
       - hist2d: reference/hist2d.md

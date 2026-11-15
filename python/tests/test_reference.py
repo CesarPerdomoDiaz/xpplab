@@ -885,3 +885,25 @@ def test_shoot_page():
     m.set(jac_eps=1e-6)
     assert round(m.equilibrium({"V": -0.14, "W": 0.035}).eigenvalues[0].real, 6) == 1.028907
     m.close()
+
+
+def test_view3d_page():
+    import matplotlib
+    matplotlib.use("Agg")
+    text, blocks = python_blocks("view3d.md")
+    ns = {}
+    exec(compile(blocks[0], "view3d.md example", "exec"), ns)
+    lorenz, sol = ns["lorenz"], ns["sol"]
+    assert len(sol) == 1601 and sol.t[-1] == pytest.approx(40)
+    assert (round(sol["X"].min(), 1), round(sol["X"].max(), 1)) == (-16.6, 17.6)
+    assert (round(sol["Z"].min(), 1), round(sol["Z"].max(), 1)) == (5.4, 42.7)
+    assert ns["switches"] == 20 and round(np.mean(sol["X"] > 0), 2) == 0.34
+    first = np.where(np.diff(np.sign(sol["X"])) != 0)[0][0] + 1
+    assert round(sol.t[first], 2) == 3.78
+    found = lorenz.find_equilibria(box={"X": (-20, 20), "Y": (-30, 30), "Z": (0, 50)})
+    kinds = sorted((e.kind, round(abs(e["X"]), 4), round(e["Z"], 4)) for e in found)
+    assert kinds == [("saddle", 0.0, 0.0), ("saddle-focus", 8.3267, 26.0),
+                     ("saddle-focus", 8.3267, 26.0)]
+    import matplotlib.pyplot as plt
+    plt.close("all")
+    lorenz.close()

@@ -22,7 +22,7 @@ def upward(t, x, level=0.0, after=0.0):
 
 
 def test_the_classics_are_found():
-    assert len(NAMES) == 20 and "lorenz" in NAMES and "heat" in NAMES
+    assert len(NAMES) == 21 and "lorenz" in NAMES and "heat" in NAMES
     assert xs.example("classics/lorenz.ode").name == "lorenz.ode"
     assert xs.example("classics/lorenz") != xs.example("lorenz.ode")  # XPPAUT's own
     with pytest.raises(FileNotFoundError, match="classics/lorenz.ode"):
@@ -76,6 +76,27 @@ def test_pendulum_small_swings():
         sol = m.run(c=0, th=0.05, total=40)
         assert np.diff(upward(sol.t, sol["TH"])).mean() == pytest.approx(2 * math.pi,
                                                                          abs=5e-3)
+
+
+def test_pendulum_held_upside_down(tmp_path):
+    # Linearised at the top, th = pi, with the torque u as input:
+    # A = [[0, 1], [1, -c]], B = [0, 1]; eigenvalues (-c +- sqrt(c^2 + 4))/2.
+    with load("pendulum") as m:
+        lin = m.linearize(at={"th": math.pi, "w": 0}, inputs=["u"])
+        np.testing.assert_allclose(lin.A, [[0, 1], [1, -0.1]], atol=1e-8)
+        np.testing.assert_allclose(lin.B, [[0], [1]], atol=1e-8)
+        root = math.sqrt(0.01 + 4)
+        np.testing.assert_allclose(sorted(lin.eigenvalues.real),
+                                   [(-0.1 - root) / 2, (-0.1 + root) / 2], atol=1e-8)
+        assert lin.controllable
+        # poles -1, -2: lambda^2 + (c + k2) lambda + (k1 - 1) = lambda^2 + 3 lambda + 2
+        K = lin.place_poles([-1, -2])
+        np.testing.assert_allclose(K, [[3, 2.9]], atol=1e-8)
+        assert lin.lqr().K[0, 0] == pytest.approx(1 + math.sqrt(2), abs=1e-8)
+        held = lin.closed_loop(K, tmp_path / "held.ode")
+        assert held.run(th=math.pi + 0.5, w=0, total=20)["TH"][-1] == pytest.approx(math.pi, abs=1e-5)
+        held.close()
+        assert abs(m.run(th=math.pi + 0.01, w=0, total=20)["TH"][-1] - math.pi) > 1   # falls
 
 
 def test_lotka_volterra_conserves_its_invariant():
@@ -202,3 +223,17 @@ def test_the_chaotic_ones_visit_both_sides():
         x = m.run()["X"][4000:]
         assert x.max() - x.min() > 0.6
         assert m.run(tau=2)["X"][-1] == pytest.approx(1.0, abs=1e-3)   # short delay: steady
+
+
+def test_ornstein_uhlenbeck():
+    # dx = -theta x dt + sigma dW from x0 = 2: mean x0 exp(-theta t), variance
+    # sigma^2 (1 - exp(-2 theta t)) / (2 theta), here tending to 0.125.
+    with load("ornstein_uhlenbeck") as m:
+        ens = m.ensemble(1000)
+        t, mean, var = ens.mean.t, ens.mean["X"], ens.variance["X"]
+        assert np.abs(mean - 2 * np.exp(-t)).max() < 0.04          # 1000 runs: sd 0.011
+        exact = 0.125 * (1 - np.exp(-2 * t))
+        assert np.abs(var - exact)[t > 1].max() < 0.2 * 0.125
+        assert np.mean(var[t > 3]) == pytest.approx(0.125, rel=0.05)
+        assert var[0] == 0 and mean[0] == pytest.approx(2)
+

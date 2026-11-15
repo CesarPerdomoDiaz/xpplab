@@ -274,8 +274,8 @@ else()
     install(IMPORTED_RUNTIME_ARTIFACTS SDL3::SDL3 LIBRARY DESTINATION .
             COMPONENT app)
   endif()
-  # XPPAUT's examples, without the build leftovers in its tree (backups,
-  # object files, a compiled a.out); the tree itself stays as upstream has it.
+  # XPPAUT's examples, without the compiled files that upstream's tree has
+  # among them (shared objects of its C examples).
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/ DESTINATION examples
           COMPONENT app
           PATTERN "*~" EXCLUDE PATTERN "*.o" EXCLUDE PATTERN "*.so" EXCLUDE

@@ -87,6 +87,20 @@ with tempfile.TemporaryDirectory() as t:
     check(s.exists() and "m.auto" in s.read_text() and "sol.save(" in s.read_text(),
           "the session is saved as Python")
 
+    # set: a parameter's or a variable's value must be a number; a typo or a
+    # formula is refused, not read as 0 or as its first number
+    r = run(["lecar.ode", "--keep-going", "-c", "set iapp=abc", "-c", "get iapp",
+             "-c", "set iapp=2*0.05", "-c", "get iapp", "-c", "set v=-0.3x",
+             "-c", "get v", "-c", "set iapp=0.1 v=-0.2", "-c", "get iapp",
+             "-c", "get v", "-c", "set meth=stiff", "-c", "get meth"], work)
+    check(r.stdout.count("the value must be a number") == 3,
+          "set refuses abc, 2*0.05 and -0.3x: " + r.stdout[-600:])
+    check("iapp = 0.05" in r.stdout and "v = -0.144" in r.stdout,
+          "a refused value leaves the old one: " + r.stdout[-600:])
+    check("iapp = 0.1" in r.stdout and "v = -0.2" in r.stdout,
+          "numbers are still set: " + r.stdout[-600:])
+    check("meth = stiff" in r.stdout, "get meth names the method: " + r.stdout[-300:])
+
     # Errors: the first one stops, with exit status 1
     r = run(["lecar.ode", "-c", "export x.png phase", "-c", "run"], work)
     check(r.returncode == 1 and "error:" in r.stdout and ">> run" not in r.stdout,

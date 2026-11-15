@@ -101,6 +101,15 @@ with tempfile.TemporaryDirectory() as t:
           "numbers are still set: " + r.stdout[-600:])
     check("meth = stiff" in r.stdout, "get meth names the method: " + r.stdout[-300:])
 
+    # Options: a word for a number, and a method no first letter matches,
+    # were taken without a word (total=abc made the total 0)
+    r = run(["lecar.ode", "--keep-going", "-c", "set total=abc", "-c", "get total",
+             "-c", "set meth=nope", "-c", "get meth"], work)
+    check("error: total=abc: the value must be a number" in r.stdout
+          and "total = 30" in r.stdout, "set total refuses a word: " + r.stdout[-400:])
+    check("error: no method called nope" in r.stdout and "meth = rungekutta" in r.stdout,
+          "set meth refuses an unknown method: " + r.stdout[-400:])
+
     # use without a set did nothing, without a word: it names the sets
     r = run(["lecar.ode", "--keep-going", "-c", "use"], work)
     check("write use SET, with one of: vvst pp snic hopf hom cool" in r.stdout,

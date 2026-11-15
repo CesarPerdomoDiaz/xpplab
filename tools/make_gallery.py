@@ -222,7 +222,7 @@ EQUATIONS = {
     "vanderpol": r"""\ddot x - \mu\,(1 - x^2)\,\dot x + x = 0, \qquad \mu = 1""",
     "duffing": r"""\ddot x + \delta\,\dot x - x + x^3 = \gamma \cos \omega t,
 \qquad \delta = 0.3,\; \gamma = 0.5,\; \omega = 1.2""",
-    "pendulum": r"""\ddot\theta + c\,\dot\theta + \sin\theta = 0, \qquad c = 0.1""",
+    "pendulum": r"""\ddot\theta + c\,\dot\theta + \sin\theta = u, \qquad c = 0.1,\; u = 0""",
     "oscillator": r"""m\,\ddot x + c\,\dot x + k\,x = 0, \qquad m = 1,\; k = 1,\; c = 0.2""",
     "lotka_volterra": r"""\begin{aligned}
 \dot x &= a x - b x y\\

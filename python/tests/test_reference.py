@@ -727,3 +727,27 @@ def test_xcorr_page():
     fft = m.correlation("V", lags=800, fft=True)["correlation"]
     assert np.abs(fft - cor)[:-2].max() < 1e-7
     m.close()
+
+
+def test_spectrum_page():
+    text, blocks = python_blocks("spectrum.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "spectrum.md example 1", "exec"), ns)
+    m, s, k = ns["m"], ns["s"], ns["k"]
+    f, p = s["freq"], s["power"]
+    assert len(m.last_run()) == 40001 and len(s) == 4096
+    assert round(f[1] - f[0], 5) == 0.00244 and round(f[k], 4) == 0.0610
+    assert abs(f[k] - 1 / 16.45) < f[1] - f[0]
+    peaks = [i for i in range(1, len(p) - 1)
+             if p[i] > p[i - 1] and p[i] >= p[i + 1] and p[i] > 0.1 * p[k]]
+    assert [round(f[i], 4) for i in peaks[:4]] == [0.0610, 0.1221, 0.1831, 0.2417]
+    assert [round(p[i] / p[k], 2) for i in peaks[1:4]] == [0.63, 0.30, 0.11]
+    assert f[-1] < 10 and f[-1] > 9.99                        # 1/(2 dt)
+    c = m.spectrum("V", "W", kind="coherence", length=8192)["coherence"]
+    assert all(round(c[i], 3) == 1.0 for i in peaks[:4])
+    exec(compile(blocks[1], "spectrum.md example 2", "exec"), ns)
+    coarse = ns["coarse"]
+    assert len(coarse) == 256 and round(coarse["freq"][1], 3) == 0.039
+    assert np.argmax(coarse["power"][1:]) + 1 == 1
+    m.close()

@@ -21,7 +21,6 @@ annotate
 bvp
 ani
 view3d
-spectrum
 fourier
 power
 hist2d

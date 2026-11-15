@@ -120,6 +120,7 @@ nav:
       - mean: reference/mean.md
       - hist: reference/hist.md
       - xcorr: reference/xcorr.md
+      - spectrum: reference/spectrum.md
       - eq: reference/eq.md
       - eq all: reference/eq-all.md
       - nullclines: reference/nullclines.md

@@ -40,7 +40,9 @@ static void follow_link(App *a, const char *target) {
     SDL_OpenURL(target);
   } else {
     char name[64];
-    const char *dot = strstr(target, ".md");
+    const char *slash = strrchr(target, '/'), *dot;
+    if (slash) target = slash + 1; /* a page is found by its file name */
+    dot = strstr(target, ".md");
     snprintf(name, sizeof name, "%.*s",
              dot ? (int)(dot - target) : (int)strlen(target), target);
     ui_show_help(a, name);

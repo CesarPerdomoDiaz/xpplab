@@ -28,15 +28,18 @@
 #include "actions.h"
 #include "app.h"
 #include "channel.h"
+#include "docs.h"
 #include "export.h"
 #include "pyconsole.h"
 #include "pyfetch.h"
 
 /* What the window would do. */
 void ui_show_help(App *a, const char *page) {
+  const doc_page *p = page && *page ? docs_find(page) : NULL;
   app_log(a, "The manual is in the desktop app (Help) and at "
-             "https://cesarperdomodiaz.github.io/xpplab/%s%s",
-          page && *page ? "manual/" : "", page && *page ? page : "");
+             "https://cesarperdomodiaz.github.io/xpplab/%s%s%s",
+          p ? p->dir : page && *page ? "manual" : "", page && *page ? "/" : "",
+          page && *page ? page : "");
 }
 
 void ui_console_prefill(App *a, const char *text) {

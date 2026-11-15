@@ -21,7 +21,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from palette_check import ALIASES  # noqa: E402
-PAGE = re.compile(r"/manual/([A-Za-z0-9_-]+)\s*$")
+# a chapter of the manual, or a page of the reference (docs/reference)
+PAGE = re.compile(r"/(?:manual|reference)/([A-Za-z0-9_-]+)\s*$")
 
 
 def batch(exe, model, cmds, *extra):
@@ -88,7 +89,8 @@ def main():
         if name not in from_menu:
             problems.append("the page '%s' is not in the Help menu" % name)
     for page in from_menu:
-        if page not in pages:
+        # the index of the reference pages is in the menu too
+        if page not in pages and page != "reference":
             problems.append("the Help menu opens '%s', which is not in docs/manual" % page)
 
     commands = [l for k, l in rows if k == "command"]

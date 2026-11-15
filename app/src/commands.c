@@ -92,6 +92,7 @@ const CommandInfo app_command_table[] = {
     {"layout", "side | tabs", "The phase plane beside the time series, or all plots in tabs.", NULL, NEED_NONE},
     {"theme", "dark | light", "Switch the colour theme.", NULL, NEED_NONE},
     {"help", NULL, "List the commands, or open a manual page (help TOPIC).", NULL, NEED_NONE, "help COMMAND prints that command's entry; help PAGE opens a manual page. A word that is both, such as auto, does both."},
+    {"doc", "NAME", "Open the reference page of a command or action.", NULL, NEED_NONE, "doc auto steady opens the page of Follow steady states: what it does, every form of the command, worked examples, each setting, and what to do when it fails. doc alone opens the index of the reference; another name of a command (doc sweep) opens that command's page."},
     {"palette", NULL, "Open the command palette.", MOD "Shift+P", NEED_NONE, "palette run runs the first match of the text, palette list lists everything it finds, palette search TEXT shows the best five matches without running any, palette enter acts on the open palette as Enter does (it needs the app's window)."},
     {"clear", NULL, "Clear the command window.", NULL, NEED_NONE, "Also clc."},
     {"quit", NULL, "Leave the app.", "F Q", NEED_NONE, "Also exit."},
@@ -196,6 +197,17 @@ static int help_commands(App *a, const char *topic) {
   return found;
 }
 
+/* Is topic a command, or the first word of some ("auto", "ic")? */
+static int help_commands_exist(const char *topic) {
+  size_t n = strlen(topic);
+  int i;
+  for (i = 0; i < app_ncommands; i++) {
+    const char *c = app_command_table[i].name;
+    if (SDL_strncasecmp(c, topic, n) == 0 && (c[n] == '\0' || c[n] == ' ')) return 1;
+  }
+  return 0;
+}
+
 /* Other names that app_command() takes for a command of the table. */
 static const struct {
   const char *alias, *command;
@@ -257,6 +269,112 @@ static void cmd_help(App *a, char *rest) {
 static char *skip_space(char *s) {
   while (*s && isspace((unsigned char)*s)) s++;
   return s;
+}
+
+/* ---- doc: the reference page of a command or action --------------------- */
+
+/* The reference page of a name: "auto steady" is the page auto-steady. */
+static const doc_page *doc_page_of(const char *name) {
+  char page[64];
+  const doc_page *p;
+  size_t i, k = 0;
+  /* lower case, and one dash for each run of spaces */
+  for (i = 0; name[i] && k + 1 < sizeof page; i++) {
+    if (isspace((unsigned char)name[i])) {
+      if (k && page[k - 1] != '-') page[k++] = '-';
+    } else {
+      page[k++] = (char)tolower((unsigned char)name[i]);
+    }
+  }
+  page[k] = '\0';
+  p = docs_find(page);
+  return p && !strcmp(p->dir, "reference") ? p : NULL;
+}
+
+/* The edit distance between two names, for the closest matches. */
+static int doc_distance(const char *a, const char *b) {
+  int row[64], i, j, la = (int)strlen(a), lb = (int)strlen(b);
+  if (la > 62 || lb > 62) return 99;
+  for (j = 0; j <= lb; j++) row[j] = j;
+  for (i = 1; i <= la; i++) {
+    int diag = row[0];
+    row[0] = i;
+    for (j = 1; j <= lb; j++) {
+      int up = row[j], best = diag + (tolower((unsigned char)a[i - 1]) != tolower((unsigned char)b[j - 1]));
+      if (up + 1 < best) best = up + 1;
+      if (row[j - 1] + 1 < best) best = row[j - 1] + 1;
+      diag = up;
+      row[j] = best;
+    }
+  }
+  return row[lb];
+}
+
+/* Add a name to the list of closest matches if it contains the topic or is
+   within a couple of letters of it. */
+static void doc_candidate(char *list, size_t len, const char *name, const char *topic, int *n) {
+  size_t used = strlen(list);
+  int d = doc_distance(name, topic);
+  if (*n >= 6 || used + strlen(name) + 4 > len) return;
+  if (!SDL_strcasestr(name, topic) && d > 2 && d > (int)strlen(topic) / 3) return;
+  snprintf(list + used, len - used, "%s%s", *n ? ", " : "", name);
+  (*n)++;
+}
+
+/* `doc`: the reference index; `doc NAME`: the reference page of a command or
+   action (another name of a command opens that command's page), else the
+   manual page of that name, else the closest matches. */
+static void cmd_doc(App *a, char *rest) {
+  char line[1024], near[512], *topic = skip_space(rest), *end;
+  const char *name;
+  const doc_page *p;
+  int i, n = 0;
+  for (end = topic + strlen(topic); end > topic && isspace((unsigned char)end[-1]);) *--end = '\0';
+  if (!*topic) {
+    ui_show_help(a, "reference");
+    return;
+  }
+  name = topic;
+  for (i = 0; i < (int)(sizeof help_aliases / sizeof help_aliases[0]); i++)
+    if (SDL_strcasecmp(help_aliases[i].alias, topic) == 0) name = help_aliases[i].command;
+  p = doc_page_of(name);
+  if (!p && !strchr(topic, ' ')) p = docs_find(topic); /* a chapter of the manual */
+  if (p) {
+    if (name != topic) {
+      snprintf(line, sizeof line, "%s is another name for %s.", topic, name);
+      help_say(a, line);
+    }
+    ui_show_help(a, p->name);
+    return;
+  }
+  for (i = 0; i < app_ncommands; i++)
+    if (SDL_strcasecmp(app_command_table[i].name, name) == 0) break;
+  if (i < app_ncommands || help_commands_exist(name)) {
+    snprintf(line, sizeof line, "%s has no reference page yet; its summary:", name);
+    help_say(a, line);
+    help_commands(a, name);
+    return;
+  }
+  near[0] = '\0';
+  for (p = doc_pages; p->name; p++)
+    if (!strcmp(p->dir, "reference") && strcmp(p->name, "reference")) {
+      char spaced[64];
+      size_t k;
+      snprintf(spaced, sizeof spaced, "%s", p->name);
+      for (k = 0; spaced[k]; k++)
+        if (spaced[k] == '-') spaced[k] = ' ';
+      doc_candidate(near, sizeof near, spaced, topic, &n);
+    }
+  for (i = 0; i < app_ncommands; i++)
+    if (!doc_page_of(app_command_table[i].name))
+      doc_candidate(near, sizeof near, app_command_table[i].name, topic, &n);
+  if (n)
+    snprintf(line, sizeof line, "error: no reference page '%s'. Closest: %s. "
+                                "'doc' alone opens the index.", topic, near);
+  else
+    snprintf(line, sizeof line, "error: no reference page '%s'. 'doc' alone opens "
+                                "the index, and 'help' lists the commands.", topic);
+  help_say(a, line);
 }
 
 static char *next_word(char **s) {
@@ -1070,6 +1188,8 @@ void app_command(App *a, const char *line_in) {
 
   if (!strcmp(cmd, "help") || !strcmp(cmd, "?")) {
     cmd_help(a, rest);
+  } else if (!strcmp(cmd, "doc")) {
+    cmd_doc(a, rest);
   } else if (!strcmp(cmd, "run") || !strcmp(cmd, "go") || !strcmp(cmd, "ig")) {
     app_run(a);
   } else if (!strcmp(cmd, "continue") || !strcmp(cmd, "cc")) {

@@ -78,22 +78,32 @@ if(NOT WIN32)
   target_link_libraries(xpps_fig PUBLIC m)
 endif()
 
-file(GLOB DOC_PAGES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/docs/manual/*.md)
+# The manual chapters (docs/manual) and the reference pages (docs/reference,
+# one per command or action, opened by `doc NAME`). A page is found by its
+# file name, so the two folders must not share one.
 set(DOC_SOURCES "")
 set(DOC_TABLE "")
 set(DOC_DECLS "")
-foreach(page ${DOC_PAGES})
-  get_filename_component(stem ${page} NAME_WE)
-  string(MAKE_C_IDENTIFIER "doc_${stem}" sym)
-  embed_file(${page} ${sym} ${GEN}/${sym}.c)
-  list(APPEND DOC_SOURCES ${GEN}/${sym}.c)
-  string(APPEND DOC_DECLS "extern const unsigned char ${sym}[];\n")
-  string(APPEND DOC_TABLE "  {\"${stem}\", (const char *)${sym}},\n")
+set(DOC_STEMS "")
+foreach(dir manual reference)
+  file(GLOB DOC_PAGES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/docs/${dir}/*.md)
+  foreach(page ${DOC_PAGES})
+    get_filename_component(stem ${page} NAME_WE)
+    if(stem IN_LIST DOC_STEMS)
+      message(FATAL_ERROR "docs/manual and docs/reference both have ${stem}.md")
+    endif()
+    list(APPEND DOC_STEMS ${stem})
+    string(MAKE_C_IDENTIFIER "doc_${stem}" sym)
+    embed_file(${page} ${sym} ${GEN}/${sym}.c)
+    list(APPEND DOC_SOURCES ${GEN}/${sym}.c)
+    string(APPEND DOC_DECLS "extern const unsigned char ${sym}[];\n")
+    string(APPEND DOC_TABLE "  {\"${stem}\", \"${dir}\", (const char *)${sym}},\n")
+  endforeach()
 endforeach()
 file(WRITE ${GEN}/docs_index.c
   "/* Generated: the embedded manual pages. */\n"
   "#include \"docs.h\"\n${DOC_DECLS}"
-  "const doc_page doc_pages[] = {\n${DOC_TABLE}  {0, 0}};\n")
+  "const doc_page doc_pages[] = {\n${DOC_TABLE}  {0, 0, 0}};\n")
 
 embed_file(${CMAKE_CURRENT_SOURCE_DIR}/resources/icon_rgba.bin icon_rgba ${GEN}/icon_rgba.c)
 

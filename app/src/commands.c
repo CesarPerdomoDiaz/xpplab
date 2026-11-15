@@ -1399,7 +1399,18 @@ void app_command(App *a, const char *line_in) {
     app_status(a, "Double-click a plot to fit it to the data.");
   } else if (!strcmp(cmd, "use")) {
     char *s = next_word(&rest);
-    if (s) app_apply_set(a, s);
+    if (s) {
+      app_apply_set(a, s);
+    } else if (!a->nsets) {
+      app_log(a, "error: write use SET; this model has no parameter sets");
+    } else { /* it did nothing without a word: say what it takes */
+      int i, k;
+      char line[1024];
+      k = snprintf(line, sizeof line, "error: write use SET, with one of:");
+      for (i = 0; i < a->nsets && k < (int)sizeof line - 80; i++)
+        k += snprintf(line + k, sizeof line - k, " %s", a->sets[i]);
+      app_log(a, "%s", line);
+    }
     if (a->needs_run) app_run_live(a);
   } else if (!strcmp(cmd, "sets")) {
     int i;

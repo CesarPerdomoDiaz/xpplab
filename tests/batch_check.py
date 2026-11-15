@@ -101,6 +101,11 @@ with tempfile.TemporaryDirectory() as t:
           "numbers are still set: " + r.stdout[-600:])
     check("meth = stiff" in r.stdout, "get meth names the method: " + r.stdout[-300:])
 
+    # use without a set did nothing, without a word: it names the sets
+    r = run(["lecar.ode", "--keep-going", "-c", "use"], work)
+    check("write use SET, with one of: vvst pp snic hopf hom cool" in r.stdout,
+          "use alone lists the sets: " + r.stdout[-300:])
+
     # Errors: the first one stops, with exit status 1
     r = run(["lecar.ode", "-c", "export x.png phase", "-c", "run"], work)
     check(r.returncode == 1 and "error:" in r.stdout and ">> run" not in r.stdout,

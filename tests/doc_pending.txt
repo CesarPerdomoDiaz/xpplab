@@ -8,7 +8,6 @@ click
 nullclines freeze
 nullclines unfreeze
 nullclines play
-dirfield
 erase
 fit
 freeze

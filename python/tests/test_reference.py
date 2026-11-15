@@ -590,3 +590,24 @@ def test_sets_page():
     m.apply_set("hom")
     assert [m.get(p) for p in ("v3", "v4", "gca", "phi")] == cool     # cool is hom with a current
     m.close()
+
+
+def test_dirfield_page():
+    text, blocks = python_blocks("dirfield.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "dirfield.md example 1", "exec"), ns)
+    m, X, Y, U, V = (ns[k] for k in ("m", "X", "Y", "U", "V"))
+    assert X.shape == (21, 21)
+    assert np.round(m.rhs({"V": 1.0, "W": 0.2}), 2).tolist() == [-1.38, 2.97]
+    assert np.round(m.rhs({"V": -0.5, "W": 0.5}), 3).tolist() == [-0.148, -0.669]
+    # anticlockwise: right side up, top left, left side down, bottom right
+    assert m.rhs({"V": 1.0, "W": 0.2})[1] > 0 and m.rhs({"V": 0.2, "W": 1.0})[0] < 0
+    assert m.rhs({"V": -0.5, "W": 0.5})[1] < 0 and m.rhs({"V": 0.2, "W": 0.0})[0] > 0
+    exec(compile(blocks[1], "dirfield.md example 2", "exec"), ns)
+    assert np.abs(m.rhs({"V": -0.3825, "W": 0.0013})).max() < 1e-3
+    assert round(np.abs(U).max(), 2) == 5.56 and round(np.abs(V).max(), 2) == 9.24
+    assert X[np.unravel_index(np.abs(U).argmax(), U.shape)] == pytest.approx(1.2)
+    assert X[np.unravel_index(np.abs(V).argmax(), V.shape)] == pytest.approx(1.2)
+    assert m.vector_field("V", "W", (0, 1), (0, 1))[0].shape == (20, 20)   # n's default
+    m.close()

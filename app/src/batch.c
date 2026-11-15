@@ -194,6 +194,7 @@ int main(int argc, char **argv) {
       errors++;
       if (!keep_going) break;
     }
+    if (app.quit) break; /* quit ends the commands, as it ends the app */
   }
   if (script) {
     echo_save(&app, script);

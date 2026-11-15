@@ -467,6 +467,7 @@ typedef struct App {
   View3D v3;
   AniUI ani;
   unsigned run_serial; /* counts the runs, for what depends on the last one */
+  unsigned fit_serial; /* the fit command: each plot fits once when it changes */
   int nbcs;          /* the model's boundary conditions (bndry) */
   RunSet many;
   ManyUI mu;
@@ -559,6 +560,7 @@ bool app_ic_read(App *a, const char *path);  /* Initial conds > File */
 bool app_ic_write(App *a, const char *path);
 bool app_ic_formula(App *a, const char *target, const char *formula);
 void app_freeze(App *a);
+bool app_freeze_copy(App *a); /* the freeze command: keep a copy, run stays */
 void app_clear_curves(App *a);
 bool app_equilibrium(App *a, const double *guess);
 void app_clear_equilibria(App *a);
@@ -693,7 +695,8 @@ bool app_export_locus_csv(App *a, const char *path);
 const char *app_analysis_name(int tool);
 /* Boundary-value problem (XPPAUT's Bndryval), the 3D view's setup from the
    model, and the animator. */
-bool app_bvp(App *a);
+/* maxit, tol, eps: XPPAUT's Bndryval settings; 0 keeps each as it is. */
+bool app_bvp(App *a, int maxit, double tol, double eps);
 void app_view3d_reset(App *a);
 bool app_ani_load(App *a, const char *path);
 bool app_ani_nullclines(App *a, const char *par, int steps, double lo, double hi);

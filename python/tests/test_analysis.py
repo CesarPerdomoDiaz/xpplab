@@ -283,3 +283,26 @@ def test_fit_recovers_a_parameter():
         fitted = m.fit(data, variables="x", parameters="a")
         assert fitted["a"] == pytest.approx(0.5, rel=1e-3)
         assert m.parameters["a"] == pytest.approx(0.5, rel=1e-3)
+
+
+def test_fit_reads_an_exported_csv(tmp_path):
+    # The CSV that to_csv() and the app's export write: a header, commas.
+    # XPPAUT's reader took neither; the engine now reads through a plain copy.
+    with xs.load(ODE / "lecar.ode") as m:
+        sol = m.run(iapp=0.1)
+        sol.to_csv(tmp_path / "data.csv")
+        np.savetxt(tmp_path / "plain.dat", np.column_stack([sol.t, sol["V"]]))
+        found = []
+        for name in ("data.csv", "plain.dat"):
+            m.set(gca=1.2, gk=1.8)
+            found.append(m.fit(tmp_path / name, variables="V", parameters=["gca", "gk"]))
+        assert found[0] == found[1]
+        assert found[0]["gca"] == pytest.approx(1, abs=1e-6)
+        assert found[0]["gk"] == pytest.approx(2, abs=1e-6)
+        (tmp_path / "one.csv").write_text("T\n0\n1\n")
+        (tmp_path / "words.csv").write_text("a,b\nc,d\n")
+        for name, message in (("one.csv", "a column of times and at least one more"),
+                              ("words.csv", "holds no rows of numbers"),
+                              ("missing.csv", "cannot read the data file")):
+            with pytest.raises(xs.EngineError, match=message):
+                m.fit(tmp_path / name, variables="V", parameters=["gca"])

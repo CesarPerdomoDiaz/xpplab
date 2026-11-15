@@ -447,7 +447,12 @@ XPPE_API int xppe_isochrons(int count, double length, int max_points,
 
 /* Least-squares fit of parameters and initial conditions to data with
    XPPAUT's Levenberg-Marquardt (stocHastic > fIt data). file holds npts
-   rows of ncols numbers, time first. variables names the ODE variables to
+   rows of ncols numbers, time first; npts or ncols below 1 counts them
+   from the file. Lines without a leading number (a header, as the app's
+   export writes) are skipped and commas or semicolons separate numbers
+   too: such a file is read through a plain copy, fit-data.dat in the work
+   folder, and counted whatever npts and ncols say. variables names the ODE
+   variables to
    fit and columns their columns in the file (from 2), both comma-separated;
    parameters lists the parameters and initial conditions to vary.
    tolerance, epsilon and max_iterations replace XPPAUT's defaults (1e-3,

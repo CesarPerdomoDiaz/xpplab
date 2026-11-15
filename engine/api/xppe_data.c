@@ -1510,18 +1510,122 @@ int xppe_isochrons(int count, double length, int max_points, int max_periods,
 
 /* ---- Curve fitting ---------------------------------------------------- */
 
-/* test_fit() without its dialog: the same checks, then run_fit(). */
+/* The numbers of one line of a data file, separated by spaces, tabs,
+   commas or semicolons; stops at the first word that is not a number.
+   *odd is set when the line has a comma or a semicolon. */
+static int line_numbers(const char *line, double *v, int max, int *odd) {
+  const char *p = line;
+  char *end;
+  int k = 0;
+  for (;;) {
+    while (*p == ' ' || *p == '\t' || *p == ',' || *p == ';' || *p == '\r' ||
+           *p == '\n') {
+      if (*p == ',' || *p == ';') *odd = 1;
+      p++;
+    }
+    if (!*p) break;
+    if (k < max) v[k] = strtod(p, &end);
+    else strtod(p, &end);
+    if (end == p) break;
+    k++;
+    p = end;
+  }
+  return k;
+}
+
+/* A data file as XPPAUT's fit reads it: rows of numbers separated by
+   spaces. Lines without a leading number (a header such as export writes,
+   a comment) are skipped, and commas or semicolons separate numbers too.
+   Counts the rows of numbers and the numbers in the first. When the file
+   is not plain, writes its numbers to fit-data.dat in the work folder and
+   gives that path in plain. Returns 1 then, 0 for a plain file, -1 if the
+   file cannot be read and -2 if it holds no rows of numbers. */
+static int data_shape(const char *file, char *plain, size_t len, int *rows,
+                      int *cols) {
+  static char line[65536];
+  double v[1];
+  FILE *f, *out;
+  int k, odd = 0, skipped = 0, pass;
+  *rows = *cols = 0;
+  for (pass = 0; pass < 2; pass++) {
+    if ((f = xppe_fopen_utf8(file, "r")) == NULL) return -1;
+    out = NULL;
+    if (pass == 1) {
+      if (!*xppe_workdir()) {
+        fclose(f);
+        return -1;
+      }
+      snprintf(plain, len, "%s/fit-data.dat", xppe_workdir());
+      if ((out = fopen(plain, "w")) == NULL) {
+        fclose(f);
+        return -1;
+      }
+    }
+    while (fgets(line, sizeof line, f)) {
+      const char *p = line;
+      while (*p == ' ' || *p == '\t') p++;
+      k = line_numbers(line, v, 0, &odd);
+      if (k == 0) {
+        if (*p && *p != '\r' && *p != '\n') skipped = 1;
+        continue;
+      }
+      if (pass == 0) {
+        if (*cols == 0) *cols = k;
+        (*rows)++;
+      } else {
+        /* the same numbers, separated by spaces */
+        char *s = line, *end;
+        int j;
+        for (j = 0; j < k; j++) {
+          while (*s == ' ' || *s == '\t' || *s == ',' || *s == ';') s++;
+          end = s;
+          strtod(s, &end);
+          fprintf(out, "%s%.*s", j ? " " : "", (int)(end - s), s);
+          s = end;
+        }
+        fputc('\n', out);
+      }
+    }
+    fclose(f);
+    if (out) fclose(out);
+    if (pass == 0 && *rows == 0) return -2;
+    if (pass == 0 && !odd && !skipped) return 0;
+  }
+  return 1;
+}
+
+/* test_fit() without its dialog: the same checks, then run_fit(). The data
+   file may be one that export writes (a header, commas); npts or ncols < 1
+   counts them from the file. */
 int xppe_fit(const char *file, int npts, int ncols, const char *variables,
              const char *columns, const char *parameters, double tolerance,
              double epsilon, int max_iterations) {
-  char varlist[256], collist[256], parlist[512];
+  char varlist[256], collist[256], parlist[512], plain[1200];
   double a[1000], y0[1000], *yfit;
-  int nvars = 0, npars = 0, i, ok, rc;
+  int nvars = 0, npars = 0, i, ok, rc, rows, cols, shape;
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
-  if (!file || !variables || !columns || !parameters || npts < 1 ||
-      ncols < 2) {
-    xppe_set_error("give the data file, its number of rows and columns, "
-                   "the variables, their columns and the parameters", NULL);
+  if (!file || !variables || !columns || !parameters) {
+    xppe_set_error("give the data file, the variables, their columns and the "
+                   "parameters", NULL);
+    return XPPE_ERR_RANGE;
+  }
+  shape = data_shape(file, plain, sizeof plain, &rows, &cols);
+  if (shape == -1) {
+    xppe_set_error("cannot read the data file %s", file);
+    return XPPE_ERR_LOAD;
+  }
+  if (shape == -2) {
+    xppe_set_error("the data file %s holds no rows of numbers", file);
+    return XPPE_ERR_RANGE;
+  }
+  if (shape == 1 || npts < 1 || ncols < 1) {
+    npts = rows;
+    ncols = cols;
+  }
+  if (shape == 1) file = plain;
+  if (ncols < 2) {
+    xppe_set_error("the data needs a column of times and at least one more; "
+                   "%s has one", shape == 1 ? "the file" : file);
     return XPPE_ERR_RANGE;
   }
   snprintf(varlist, sizeof varlist, "%s", variables);

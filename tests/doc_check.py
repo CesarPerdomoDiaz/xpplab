@@ -47,6 +47,23 @@ def main(exe, model):
         if not ok:
             bad.append(what)
 
+    # Every XPPAUT key the command table (and so help) lists must be one the
+    # app answers to (classic_keys() in ui_common.c): help listed I F, I U and
+    # I M, which did nothing.
+    text = (ROOT / "app" / "src" / "commands.c").read_text(encoding="utf-8")
+    table = text[text.index("const CommandInfo app_command_table[]"):]
+    table = table[:table.index("\n};")]
+    listed = re.findall(r'^\s*\{"([^"]+)", (?:NULL|"[^"]*"), "(?:[^"\\]|\\.)*", "([A-Z](?: [A-Z])?)"',
+                        table, re.M)
+    keys = (ROOT / "app" / "src" / "ui_common.c").read_text(encoding="utf-8")
+    keys = keys[keys.index("static void classic_keys"):]
+    mapped = set()
+    for first, second in re.findall(r"\{'([a-z])', (?:'([a-z])'|0), \"", keys):
+        mapped.add(first.upper() + (" " + second.upper() if second else ""))
+    check(len(listed) > 10, "the keys of the command table were not found")
+    for name, key in listed:
+        check(key in mapped, f"help lists the key {key} for {name}, which the app does not answer to")
+
     out = batch(exe, model, "doc")
     check(SITE + "reference/reference" in out, "doc alone opens the index: " + out)
     for name in ("auto steady", "AUTO  Steady"):

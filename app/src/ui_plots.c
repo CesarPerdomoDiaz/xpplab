@@ -75,9 +75,13 @@ void ui_time_plot(App *a) {
     igEndPopup();
   }
   igSameLine(0, -1);
-  if (Button("Fit")) {
-    time_view.zoomed = false;
-    ImPlot_SetNextAxesToFit();
+  {
+    static unsigned fitted;
+    if (Button("Fit") || fitted != a->fit_serial) {
+      time_view.zoomed = false;
+      ImPlot_SetNextAxesToFit();
+    }
+    fitted = a->fit_serial;
   }
   Tooltip("Fit the axes to the data and keep them fitted as it changes "
           "(W F). Double-click the plot does the same.");
@@ -154,7 +158,11 @@ void ui_array_plot(App *a) {
   igSetNextItemWidth(110);
   Combo("to", &a->array_last, a->cols, a->ncols);
   igSameLine(0, -1);
-  if (Button("Fit")) view.zoomed = false;
+  {
+    static unsigned fitted;
+    if (Button("Fit") || fitted != a->fit_serial) view.zoomed = false;
+    fitted = a->fit_serial;
+  }
   Tooltip("Fit the axes to the data and keep them fitted as it changes. "
           "Double-click the plot does the same.");
   ui_view_hint(&view, NULL);
@@ -458,7 +466,14 @@ void ui_phase_plot(App *a) {
           "starting points, and mark each with its stability (XPPAUT's Sing "
           "pts > Monte Carlo; eq all N for more points).");
   igSameLine(0, -1);
-  if (Button("Fit")) ImPlot_SetNextAxesToFit();
+  {
+    static unsigned fitted;
+    if (Button("Fit") || fitted != a->fit_serial) {
+      ImPlot_SetNextAxesToFit();
+      p->set_window = false; /* a model's window not yet applied would undo it */
+    }
+    fitted = a->fit_serial;
+  }
   igSameLine(0, -1);
   ui_export_button(a, FIG_PHASE);
   igSameLine(0, -1);

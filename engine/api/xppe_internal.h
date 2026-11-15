@@ -12,6 +12,9 @@ int xppe_require_model(void);
 void xppe_set_error(const char *fmt, const char *arg);
 int xppe_same_name(const char *a, const char *b);
 
+/* The engine's work folder (xppe_auto_set_workdir), in ASCII; "" if none. */
+const char *xppe_workdir(void);
+
 /* fopen() by a UTF-8 name, also on Windows (xppe_file.c). */
 FILE *xppe_fopen_utf8(const char *path, const char *mode);
 

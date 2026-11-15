@@ -29,10 +29,10 @@ const CommandInfo app_command_table[] = {
     {"whos", NULL, "List the variables and parameters.", NULL, NEED_MODEL},
     {"ic last", NULL, "Start the next run where the last one ended.", "I L", NEED_RUN},
     {"ic shift", NULL, "Start the next run where the last ended, and let time go on from there.", "I S", NEED_RUN},
-    {"ic read", "FILE", "Read initial values from a file, one number per variable.", "I F", NEED_MODEL, "ic write FILE saves them."},
+    {"ic read", "FILE", "Read initial values from a file, one number per variable.", NULL, NEED_MODEL, "ic write FILE saves them."},
     {"ic write", "FILE", "Write the initial values to a file.", NULL, NEED_MODEL},
-    {"ic", "NAME = FORMULA", "Set a variable, or a range u[1..20] with [j] for the index, from a formula.", "I U", NEED_MODEL},
-    {"click", "X Y", "Start a run at a point of the phase plane, as a click does.", "I M", NEED_MODEL},
+    {"ic", "NAME = FORMULA", "Set a variable, or a range u[1..20] with [j] for the index, from a formula.", NULL, NEED_MODEL},
+    {"click", "X Y", "Start a run at a point of the phase plane, as a click does.", NULL, NEED_MODEL},
     {"eq", NULL, "Find an equilibrium near the initial values and its stability.", "S G", NEED_MODEL},
     {"eq all", NULL, "Find every equilibrium in the phase plane's window from random guesses.", NULL, NEED_MODEL, "eq all [GUESSES] sets the number of random guesses (Sing pts > Monte Carlo)."},
     {"nullclines", NULL, "Draw the nullclines in the phase plane.", "N N", NEED_MODEL, "nullclines off hides them."},
@@ -41,7 +41,7 @@ const CommandInfo app_command_table[] = {
     {"nullclines play", NULL, "Step through the frozen nullclines.", NULL, NEED_MODEL},
     {"dirfield", NULL, "Draw the direction field in the phase plane.", "D D", NEED_MODEL, "dirfield off hides it."},
     {"erase", NULL, "Remove the kept curves.", "E", NEED_NONE},
-    {"fit", NULL, "How to fit the plots to the data: double-click a plot.", "W F", NEED_NONE},
+    {"fit", NULL, "Fit every plot's axes to its data (a double-click fits one plot).", "W F", NEED_NONE},
     {"freeze", NULL, "Keep the current curve on the plots.", NULL, NEED_RUN},
     {"use", "SET", "Apply a named parameter set of the model.", NULL, NEED_MODEL},
     {"sets", NULL, "List the model's named parameter sets.", NULL, NEED_MODEL},
@@ -63,7 +63,7 @@ const CommandInfo app_command_table[] = {
     {"shoot", NULL, "Runs off the equilibrium along its real eigenvectors, both ways.", NULL, NEED_MODEL, "shoot [eps E] [time T] [unstable|stable|both]  (XPPAUT's sHoot)"},
     {"figure", "new W H | panel K | run X Y | ...", "The Figure window: build a figure for papers.", NULL, NEED_MODEL, "figure new W H [ROWS COLS]\nfigure panel K | grid R C | inset\nAdd series to the selected panel:\nfigure run X Y | many X Y [split] | eq\nfigure diagram Y [x X] [min] [stable|unstable]\n       [steady|orbits] [branch B] [between L1 L2]\nfigure range [max|min] | function F LO HI\n       | curve Y X LO HI\n       | from time|phase|auto|auto2\nText, limits and style:\nfigure title|xlabel|ylabel TEXT\nfigure xlim|ylim LO HI|auto\nfigure style K [color #rrggbb] [line --] [width W]\n       [marker o] [scale SX SY] [label TEXT]\nfigure export FILE.pdf|svg|eps|png [DPI]"},
     {"annotate", "WHERE text|arrow|marker|clear ...", "Add text, an arrow or a marker to a plot, or clear them.", NULL, NEED_NONE, "annotate WHERE text X Y [size PT] [color #rrggbb] TEXT\nannotate WHERE arrow X1 Y1 X2 Y2 | marker X Y [o|s|^|D|x|+|*|.]\nannotate WHERE clear [K]\nsize is in points and color is #rrggbb; arrows and markers take color too. The text is what follows the options, so text that begins with the word size or color needs another word before it.\nWHERE is time, phase, auto, auto2 or figure (the Figure window's panel); positions are in the plot's own units."},
-    {"bvp", NULL, "Solve the boundary-value problem (bndry conditions).", NULL, NEED_MODEL},
+    {"bvp", NULL, "Solve the boundary-value problem (bndry conditions).", NULL, NEED_MODEL, "bvp [tol=T] [maxit=N] [eps=E]: the shooting's tolerance (1e-5), its iterations (20) and the step of its Jacobian (1e-5); they stay until changed."},
     {"ani", "FILE.ani", "Open an XPPAUT animation of the run.", NULL, NEED_MODEL, "ani play, ani stop, ani row N; ani grab X Y X2 Y2 presses a grab point at X Y and releases it at X2 Y2; ani nullclines [PAR N LO HI] draws the nullclines of an xnull/ynull file."},
     {"view3d", "X Y Z", "Show three columns in the 3-D view.", NULL, NEED_RUN, "view3d spin [DEG/S | off], view3d angles TH PHI"},
     {"spectrum", "COL [COL2] [N]", "Power spectral density, cross spectrum or coherence of the last run.", NULL, NEED_RUN, "spectrum COL [COL2] [psd|cross|coherence] [N]: windows of N points."},
@@ -746,6 +746,10 @@ static const char *action_key(App *a, int point, const char *word) {
 }
 
 /* The show_ flag of a window named as in 'show NAME'. */
+#define WINDOW_NAMES                                                              \
+  "time, phase, auto, editor, data, help, console, workspace, models, array, "   \
+  "analysis, 3d, animator"
+
 static bool *window_flag(App *a, const char *w) {
   static const char *names[] = {"time",      "phase",   "auto",   "editor",   "data",
                                 "help",      "console", "workspace", "models", "array",
@@ -1402,9 +1406,11 @@ void app_command(App *a, const char *line_in) {
     app_clear_equilibria(a);
     app_status(a, "Erased kept curves and equilibria.");
   } else if (!strcmp(cmd, "freeze")) {
-    app_freeze(a);
+    app_freeze_copy(a);
   } else if (!strcmp(cmd, "fit") || !strcmp(cmd, "wf")) {
-    app_status(a, "Double-click a plot to fit it to the data.");
+    /* XPPAUT's Window > Fit: it only said how to do it by hand */
+    a->fit_serial++;
+    app_status(a, "Fitted the plots to their data.");
   } else if (!strcmp(cmd, "use")) {
     char *s = next_word(&rest);
     if (s) {
@@ -1454,7 +1460,33 @@ void app_command(App *a, const char *line_in) {
   } else if (!strcmp(cmd, "figure") || !strcmp(cmd, "fig")) {
     cmd_figure(a, rest);
   } else if (!strcmp(cmd, "bvp")) {
-    app_bvp(a);
+    /* bvp [tol=T] [maxit=N] [eps=E]: XPPAUT's Bndryval settings */
+    double tol = 0, eps = 0, v;
+    int maxit = 0, ok = 1;
+    char *w, *eq, *end;
+    while (ok && (w = next_word(&rest))) {
+      if (!(eq = strchr(w, '='))) {
+        ok = 0;
+        break;
+      }
+      *eq = '\0';
+      v = strtod(eq + 1, &end);
+      if (end == eq + 1 || *end || !(v > 0) || !isfinite(v))
+        ok = 0;
+      else if (!SDL_strcasecmp(w, "tol"))
+        tol = v;
+      else if (!SDL_strcasecmp(w, "eps"))
+        eps = v;
+      else if (!SDL_strcasecmp(w, "maxit") && v == (int)v)
+        maxit = (int)v;
+      else
+        ok = 0;
+    }
+    if (ok)
+      app_bvp(a, maxit, tol, eps);
+    else
+      app_log(a, "error: write bvp [tol=T] [maxit=N] [eps=E], with positive "
+                 "numbers (maxit a whole one)");
   } else if (!strcmp(cmd, "ani")) {
     char *p = skip_space(rest);
     if (!strncmp(p, "grab", 4) && (!p[4] || isspace((unsigned char)p[4]))) {
@@ -1618,7 +1650,10 @@ void app_command(App *a, const char *line_in) {
     }
   } else if (!strcmp(cmd, "open")) {
     char *p = skip_space(rest);
-    if (*p) app_open(a, p);
+    if (*p)
+      app_open(a, p);
+    else /* it did nothing, without a word */
+      app_log(a, "Write: open FILE.ode (File > Open... chooses one)");
   } else if (!strcmp(cmd, "new")) {
     app_new_model(a);
   } else if (!strcmp(cmd, "save")) {
@@ -1689,8 +1724,12 @@ void app_command(App *a, const char *line_in) {
       a->reveal_python = true;
       a->show_workspace = true;
       snprintf(a->focus, sizeof a->focus, "workspace");
-    } else if (w) {
+    } else if (w && (window_flag(a, w) || !SDL_strncasecmp(w, "kinescope", strlen(w)) ||
+                     !SDL_strncasecmp(w, "figure", strlen(w)))) {
       snprintf(a->focus, sizeof a->focus, "%s", w);
+    } else { /* any other word did nothing, without a word */
+      app_log(a, "error: no window called %s; the windows are %s", w ? w : "?",
+              WINDOW_NAMES ", kinescope, figure, python");
     }
   } else if (!strcmp(cmd, "hide")) {
     char *w = next_word(&rest);
@@ -1698,14 +1737,23 @@ void app_command(App *a, const char *line_in) {
     if (shown)
       *shown = false;
     else
-      app_log(a, "error: no window called %s", w ? w : "?");
+      app_log(a, "error: no window called %s; the windows are %s", w ? w : "?",
+              WINDOW_NAMES);
   } else if (!strcmp(cmd, "layout")) {
+    /* any word but side made tabs: say so instead */
     char *w = next_word(&rest);
-    a->layout = w && !strcmp(w, "side");
-    a->reset_layout = true;
+    if (w && (!strcmp(w, "side") || !strcmp(w, "tabs"))) {
+      a->layout = !strcmp(w, "side");
+      a->reset_layout = true;
+    } else {
+      app_log(a, "error: write layout side or layout tabs");
+    }
   } else if (!strcmp(cmd, "theme")) {
     char *w = next_word(&rest);
-    a->dark = w && !strcmp(w, "dark");
+    if (w && (!strcmp(w, "dark") || !strcmp(w, "light")))
+      a->dark = !strcmp(w, "dark");
+    else
+      app_log(a, "error: write theme dark or theme light");
   } else if (!strcmp(cmd, "clc") || !strcmp(cmd, "clear")) {
     a->log_len = 0;
     a->log[0] = '\0';

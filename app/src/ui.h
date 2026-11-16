@@ -62,6 +62,12 @@ bool Button(const char *label);
 bool ButtonW(const char *label, float width);
 void Tooltip(const char *text);
 void HelpMarker(const char *text);
+/* The reference page of a command (docs/reference): DocHover after a control
+   makes F1 over it open the page; DocButton puts a "?" that opens it at the
+   right of the line (give the control before it the width -DocWidth()). */
+void DocHover(const char *command);
+float DocWidth(void);
+void DocButton(App *a, const char *command);
 void TextWrapped(const char *text);
 ImPlotSpec_c Spec(ImVec4_c color, float weight);
 ImPlotSpec_c SpecMarker(ImVec4_c color, int marker, float size);

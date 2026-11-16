@@ -9,8 +9,9 @@ doc
 doc NAME
 ```
 
-- **In the app:** the **?** beside *Follow steady states* in the
-  Bifurcation window, and the Help window.
+- **In the app:** the **?** beside an action (the Bifurcation window's
+  *Follow steady states*, *Save...*, *Numerics*, the Analysis window's
+  *Compute*, ...), or **F1** with the mouse over a button.
 - **In Python:** `xs.doc("range")`, or `xs.doc(m.sweep)` from the method.
 
 ## Description
@@ -80,8 +81,12 @@ the syntax, `doc` to learn what the command does and how to read it.
 
 ## Tips
 
-- The **?** beside *Follow steady states* opens the page of
-  [auto steady](auto-steady.md) the same way.
+- The **?** beside an action opens its page the same way: beside
+  *Follow steady states* it is [auto steady](auto-steady.md), beside the
+  Analysis window's *Compute* the page of the tool chosen.
+- **F1** with the mouse over a toolbar button (*Run*, *Equilibrium*,
+  *Nullclines*, ...) or an action with a **?** opens that page; elsewhere F1
+  opens the Help window.
 - Read a page's examples in the app: their links run each step.
 
 ## Algorithms

@@ -40,6 +40,36 @@ void HelpMarker(const char *text) {
   Tooltip(text);
 }
 
+/* The reference page of the control under the mouse, for F1: set while the
+   windows are drawn, read by the next frame's shortcuts. */
+static char doc_now[64], doc_last[64];
+
+void DocHover(const char *command) {
+  if (igIsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+    snprintf(doc_now, sizeof doc_now, "%s", command);
+}
+
+float DocWidth(void) { return igGetFrameHeight() + igGetStyle()->ItemSpacing.x; }
+
+void DocButton(App *a, const char *command) {
+  char id[96], tip[256];
+  float q = igGetFrameHeight(), room;
+  igSameLine(0, -1);
+  room = igGetContentRegionAvail().x;
+  if (room > q) igSetCursorPosX(igGetCursorPosX() + room - q);
+  snprintf(id, sizeof id, "?##doc %s", command);
+  if (ButtonW(id, q)) {
+    char cmd[80];
+    snprintf(cmd, sizeof cmd, "doc %s", command);
+    app_command(a, cmd);
+  }
+  DocHover(command);
+  snprintf(tip, sizeof tip, "Open the reference page: what this does, worked "
+                            "examples, each setting, and what to do when it "
+                            "fails (doc %s).", command);
+  Tooltip(tip);
+}
+
 void TextWrapped(const char *text) {
   igPushTextWrapPos(0.0f);
   igTextUnformatted(text, NULL);
@@ -551,8 +581,15 @@ static void shortcuts(App *a) {
   if (chord(ImGuiMod_Ctrl | ImGuiKey_Q)) a->quit = true;
   if (chord(ImGuiKey_F5)) app_run(a);
   if (chord(ImGuiKey_F1)) {
-    a->show_help = true;
-    igSetWindowFocus_Str(WIN_HELP);
+    if (doc_last[0]) {
+      /* over a control that has a reference page: open it */
+      char cmd[80];
+      snprintf(cmd, sizeof cmd, "doc %s", doc_last);
+      app_command(a, cmd);
+    } else {
+      a->show_help = true;
+      igSetWindowFocus_Str(WIN_HELP);
+    }
   }
   if (chord(ImGuiMod_Ctrl | ImGuiKey_Enter)) app_apply_editor(a);
   if (chord(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_P)) {
@@ -615,6 +652,8 @@ void ui_draw(App *a) {
   /* The Kinescope: the film's next run, drawn this frame and captured at
      its end; playback. */
   app_kine_frame(a, igGetIO_Nil()->DeltaTime);
+  memcpy(doc_last, doc_now, sizeof doc_last);
+  doc_now[0] = '\0';
   shortcuts(a);
   ui_menu_bar(a);
 

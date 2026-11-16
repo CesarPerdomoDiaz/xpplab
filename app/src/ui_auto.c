@@ -336,6 +336,7 @@ static void diagram_plot(App *a, bool two_param) {
 static void controls(App *a) {
   AutoUI *u = &a->au;
   int nmax = u->nmax, npr = u->npr, ntst = u->ntst;
+  bool numerics;
   igSeparatorText("What to vary");
   igSetNextItemWidth(-90);
   Combo("Parameter", &u->main_par, a->pars, a->npars);
@@ -358,7 +359,11 @@ static void controls(App *a) {
   Tooltip("The vertical axis: a variable (its max and min for orbits) or "
           "the norm of the solution.");
 
-  if (igCollapsingHeader_TreeNodeFlags("Numerics", ImGuiTreeNodeFlags_DefaultOpen)) {
+  numerics = igCollapsingHeader_TreeNodeFlags("Numerics", ImGuiTreeNodeFlags_DefaultOpen |
+                                                              ImGuiTreeNodeFlags_AllowOverlap);
+  DocHover("auto set");
+  DocButton(a, "auto set");
+  if (numerics) {
     igSetNextItemWidth(-90);
     igInputDouble("Step DS", &u->ds, 0, 0, "%.4g", 0);
     Tooltip("The first step. Its sign sets the direction: make it negative "
@@ -390,32 +395,35 @@ static void controls(App *a) {
   igPushStyleColor_Vec4(ImGuiCol_Button, HEX(0x1565c0));
   igPushStyleColor_Vec4(ImGuiCol_ButtonHovered, HEX(0x1976d2));
   igPushStyleColor_Vec4(ImGuiCol_Text, HEX(0xffffff));
+  /* each action, and beside it a "?" that opens its reference page */
+  if (ButtonW("Follow steady states", -DocWidth())) app_auto_equilibria(a);
+  igPopStyleColor(3);
+  Tooltip("Find the equilibrium near the current initial values, then follow "
+          "it as the parameter changes, detecting folds, Hopf and branch "
+          "points.");
+  DocHover("auto steady");
+  DocButton(a, "auto steady");
+  if (ButtonW("Clear diagram", -DocWidth())) app_auto_reset(a);
+  DocHover("auto reset");
+  DocButton(a, "auto reset");
   {
-    /* the action, and beside it a "?" that opens its reference page */
-    float q = igGetFrameHeight();
-    if (ButtonW("Follow steady states", igGetContentRegionAvail().x - q - igGetStyle()->ItemSpacing.x))
-      app_auto_equilibria(a);
-    igPopStyleColor(3);
-    Tooltip("Find the equilibrium near the current initial values, then follow "
-            "it as the parameter changes, detecting folds, Hopf and branch "
-            "points.");
-    igSameLine(0, -1);
-    if (ButtonW("?##doc_auto_steady", q)) app_command(a, "doc auto steady");
-    Tooltip("Open the reference page: what this does, worked examples, each "
-            "setting, and what to do when it fails (doc auto steady).");
-  }
-  if (ButtonW("Clear diagram", -1)) app_auto_reset(a);
-  {
-    float w = (igGetContentRegionAvail().x - igGetStyle()->ItemSpacing.x) / 2;
+    float w = (igGetContentRegionAvail().x - 2 * DocWidth() - igGetStyle()->ItemSpacing.x) / 2;
     igBeginDisabled(a->au.count == 0);
     if (ButtonW("Save...", w)) ui_dialog_auto_file(a, true);
     igEndDisabled();
     Tooltip("Save the diagram as an .auto file, with AUTO's settings and its "
             "restart data (XPPAUT's AUTO > File > Save diagram).");
+    DocHover("auto save");
+    igSameLine(0, -1);
+    if (ButtonW("?##doc auto save", igGetFrameHeight())) app_command(a, "doc auto save");
+    DocHover("auto save");
+    Tooltip("Open the reference page of Save (doc auto save).");
     igSameLine(0, -1);
     if (ButtonW("Open...", w)) ui_dialog_auto_file(a, false);
     Tooltip("Open a diagram saved here or by XPPAUT. It replaces the one "
             "shown, and its labelled points can be continued.");
+    DocHover("auto load");
+    DocButton(a, "auto load");
   }
 }
 
@@ -477,6 +485,7 @@ static void selected_actions(App *a) {
   igText("%s #%d", p->type_name[0] ? p->type_name : "point", p->label);
   igSameLine(0, -1);
   igTextDisabled("%s", describe(p));
+  DocButton(a, "auto from");
   igText("%s = %.8g", a->eng->api.xppe_auto_parameter_name(p->par1_slot), p->par1);
   if (p->periodic) igText("period = %.6g", p->period);
   n = app_auto_actions(a, u->selected, labels, keys, 8);
@@ -486,13 +495,16 @@ static void selected_actions(App *a) {
       int sel = u->selected;
       app_auto_continue(a, sel, keys[i]);
     }
+    DocHover("auto from");
     igPopID();
   }
   if (p->periodic && p->label) {
-    if (ButtonW("Show this orbit as the run", -1)) app_auto_orbit(a, u->selected);
+    if (ButtonW("Show this orbit as the run", -DocWidth())) app_auto_orbit(a, u->selected);
     Tooltip("Make this periodic orbit, one period from AUTO's own solution, "
             "the current run: see it in the phase plane and the time series, "
             "or analyse it (XPPAUT's AUTO > File > Import orbit).");
+    DocHover("auto orbit");
+    DocButton(a, "auto orbit");
   }
 }
 

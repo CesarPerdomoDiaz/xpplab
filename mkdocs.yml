@@ -123,6 +123,7 @@ nav:
       - ic last: reference/ic-last.md
       - ic shift: reference/ic-shift.md
       - annotate: reference/annotate.md
+      - figure: reference/figure.md
       - show: reference/show.md
       - hide: reference/hide.md
       - fit: reference/fit.md
@@ -139,6 +140,9 @@ nav:
       - export: reference/export.md
       - script: reference/script.md
       - echo: reference/echo.md
+      - py: reference/py.md
+      - python: reference/python.md
+      - serve: reference/serve.md
       - ic read: reference/ic-read.md
       - ic write: reference/ic-write.md
       - set: reference/set.md
@@ -149,6 +153,9 @@ nav:
       - range: reference/range.md
       - view3d: reference/view3d.md
       - ani: reference/ani.md
+      - kinescope capture: reference/kinescope-capture.md
+      - kinescope play: reference/kinescope-play.md
+      - kinescope clear: reference/kinescope-clear.md
       - mean: reference/mean.md
       - ensemble: reference/ensemble.md
       - fitdata: reference/fitdata.md

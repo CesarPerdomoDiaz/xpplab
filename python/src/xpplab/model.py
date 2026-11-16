@@ -1874,23 +1874,71 @@ def load(path: str | os.PathLike, **kw) -> Model:
 
 
 class Trajectory:
-    """The result of an integration: time and every output column."""
+    """A run: time and every output column, one point per output time.
+
+    [`Model.run`][xpplab.Model.run] returns one. A column is read by its
+    name, which ignores case: ``sol["V"]`` is a NumPy array. ``"V" in sol``
+    tells whether there is such a column, and ``len(sol)`` is the number of
+    points. XPPAUT stores runs in single precision, so the values have about
+    seven significant digits.
+
+    Attributes:
+        log (str): what XPPAUT printed during the run.
+        params (dict | None): the parameter values the run used, by name.
+        event (int): the global flag that stopped the run, counted from 1
+            (see [`Model.flags`][xpplab.Model.flags]), or 0 when it ran to
+            the end.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> sol = m.run(iapp=0.1, total=100)
+        >>> sol
+        <Trajectory: 2001 points, t=0..100, columns T, V, W, CUR, ICA, IK, RATE>
+        >>> sol["v"][:3]
+        array([-0.14399999, -0.14128359, -0.13840356])
+        >>> "ICA" in sol, len(sol), sol.params["iapp"], sol.event
+        (True, 2001, 0.1, 0)
+
+    See also:
+        [run](../reference/run.md) in the command window;
+        [`Model.run`][xpplab.Model.run].
+    """
 
     def __init__(self, data: dict[str, np.ndarray], log: str = ""):
         self._data = data
         self.log = log
-        #: The parameter values the run used (a dictionary), or None.
         self.params = None
-        #: The global flag that stopped the run (its number from 1, see
-        #: :attr:`Model.flags`), or 0 when it ran to the end.
         self.event = 0
 
     @property
     def columns(self) -> list[str]:
+        """The names of the columns: ``T``, the variables, then the
+        auxiliary quantities.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> sol.columns
+            ['T', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']
+
+        See also:
+            [`Model.columns`][xpplab.Model] (an attribute).
+        """
         return list(self._data)
 
     @property
     def t(self) -> np.ndarray:
+        """The output times, the column ``T``.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> sol.t[:3]
+            array([0.  , 0.05, 0.1 ])
+
+        See also:
+            [`columns`][xpplab.Trajectory.columns].
+        """
         return self._data["T"]
 
     def __getitem__(self, name: str) -> np.ndarray:
@@ -1906,42 +1954,165 @@ class Trajectory:
         return len(self.t)
 
     def to_numpy(self) -> np.ndarray:
-        """All columns as one array, one row per output time."""
+        """Every column as one array.
+
+        Returns:
+            An array with one row per output time and one column per
+            output column, in the order of
+            [`columns`][xpplab.Trajectory.columns].
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> sol.to_numpy().shape
+            (2001, 7)
+
+        See also:
+            [`to_pandas`][xpplab.Trajectory.to_pandas],
+            [`to_csv`][xpplab.Trajectory.to_csv].
+        """
         return np.column_stack(list(self._data.values()))
 
     def to_pandas(self):
-        """A pandas DataFrame indexed by time."""
+        """The run as a pandas DataFrame indexed by time. Needs pandas.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> df = sol.to_pandas()
+            >>> list(df.columns), df.index.name
+            (['V', 'W', 'CUR', 'ICA', 'IK', 'RATE'], 'T')
+
+        See also:
+            [`to_numpy`][xpplab.Trajectory.to_numpy].
+        """
         import pandas as pd
         df = pd.DataFrame(self._data)
         return df.set_index("T")
 
     def save(self, path: str | os.PathLike) -> None:
-        """Write the data in XPPAUT's output.dat format."""
+        """Write the run in the format of XPPAUT's ``output.dat``: one row
+        per output time, the columns separated by spaces, with eight
+        significant digits and no header.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> sol.save("run.dat")
+            >>> print(open("run.dat").read().splitlines()[1])
+            0.050000001 -0.14128359 0.030090233 0.1 -0.16889939 0.033623815 0.333
+
+        See also:
+            [`to_csv`][xpplab.Trajectory.to_csv], which keeps every digit.
+        """
         np.savetxt(path, self.to_numpy(), fmt="%.8g")
 
     def to_csv(self, path: str | os.PathLike) -> None:
-        """Write the run as CSV with a header, every number exact (the
-        desktop app's ``export FILE.csv`` writes the same file)."""
+        """Write the run as a CSV file with a header, every number exact.
+
+        The desktop app's ``export FILE.csv`` writes the same file.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> sol.to_csv("run.csv")
+            >>> open("run.csv").readline()
+            'T,V,W,CUR,ICA,IK,RATE\\n'
+
+        See also:
+            [export](../reference/export.md) in the command window;
+            [`to_mat`][xpplab.Trajectory.to_mat],
+            [`Model.fit`][xpplab.Model.fit], which reads the file.
+        """
         from .analysis import write_csv
         write_csv(path, self.columns, self.to_numpy())
 
     def to_mat(self, path: str | os.PathLike) -> None:
-        """Write the run as a MATLAB .mat file: ``t`` and one column vector
-        per variable and aux quantity, named as in the model (made valid
-        MATLAB names, see :func:`xpplab.analysis.write_mat`), and the struct
-        ``params`` with the parameter values the run used. The desktop app's
-        ``export FILE.mat`` writes the same file."""
+        """Write the run as a MATLAB .mat file.
+
+        The file holds ``t`` and one column vector per variable and
+        auxiliary quantity, named as in the model (made valid MATLAB names),
+        and the struct ``params`` with the parameter values the run used.
+        The desktop app's ``export FILE.mat`` writes the same file.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> sol.to_mat("run.mat")
+
+            In MATLAB, ``load run.mat`` then ``plot(t, V)``.
+
+        See also:
+            [export](../reference/export.md) in the command window;
+            [`to_csv`][xpplab.Trajectory.to_csv].
+        """
         from .analysis import write_mat
         names = ["t" if k == "T" else k for k in self.columns]
         write_mat(path, names, self._data.values(), self.params)
 
     def plot(self, *y: str, x: str = "T", ax=None, **kw):
-        """Plot columns against time (or against another column with x=)."""
+        """Plot columns against time, or against another column. Needs
+        matplotlib.
+
+        Args:
+            *y: the columns to plot; by default every variable.
+            x: the column along the horizontal axis.
+            ax: the matplotlib axes to draw in; by default new ones.
+            **kw: passed on to matplotlib's ``plot``.
+
+        Returns:
+            The matplotlib axes.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> ax = sol.plot("V", "W")
+            >>> [line.get_label() for line in ax.lines]
+            ['V', 'W']
+            >>> ax = sol.plot("W", x="V")
+            >>> ax.get_xlabel(), ax.get_ylabel()
+            ('V', 'W')
+
+        See also:
+            [`plot3d`][xpplab.Trajectory.plot3d],
+            [`Model.phase_plane`][xpplab.Model.phase_plane].
+        """
         from .plotting import plot_trajectory
         return plot_trajectory(self, list(y), x=x, ax=ax, **kw)
 
     def plot3d(self, x: str, y: str, z: str, ax=None, **kw):
-        """A 3-D plot of three columns (XPPAUT's 3D view), with matplotlib."""
+        """A three-dimensional plot of three columns, as XPPAUT's 3D view
+        draws it. Needs matplotlib.
+
+        Args:
+            x: the first column.
+            y: the second column.
+            z: the third column.
+            ax: matplotlib axes with ``projection="3d"``; by default new ones.
+            **kw: passed on to matplotlib's ``plot``.
+
+        Returns:
+            The matplotlib axes.
+
+        Examples:
+            >>> m = xs.load(xs.example("classics/lorenz"))
+            >>> ax = m.run().plot3d("X", "Y", "Z")
+            >>> ax.get_zlabel()
+            'Z'
+
+        See also:
+            [view3d](../reference/view3d.md) in the command window;
+            [`plot`][xpplab.Trajectory.plot].
+        """
         import matplotlib.pyplot as plt
         if ax is None:
             ax = plt.figure().add_subplot(projection="3d")
@@ -1971,7 +2142,19 @@ class Trajectory:
 
 
 class Values(dict):
-    """A dict whose keys ignore case when read, as the model's names do."""
+    """A dictionary whose keys ignore case when read, as the model's names
+    do. [`Model.evaluate`][xpplab.Model.evaluate] and
+    [`Model.sample_initial`][xpplab.Model.sample_initial] return them.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> row = m.evaluate()
+        >>> row["ica"] == row["ICA"], "Ica" in row
+        (True, True)
+
+    See also:
+        [`Model.evaluate`][xpplab.Model.evaluate].
+    """
 
     def __getitem__(self, name):
         try:
@@ -1987,6 +2170,22 @@ class Values(dict):
             isinstance(k, str) and _key(k) == _key(name) for k in self)
 
     def get(self, name, default=None):
+        """The value of a key, in any case, or ``default`` when there is no
+        such key.
+
+        Args:
+            name: the key.
+            default: what to return when there is no such key.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> row = m.evaluate()
+            >>> round(row.get("Ica"), 6), row.get("gna", 0)
+            (-0.164143, 0)
+
+        See also:
+            [`Model.evaluate`][xpplab.Model.evaluate].
+        """
         return self[name] if name in self else default
 
 
@@ -2012,26 +2211,86 @@ class _SplitMix64:
 
 
 class RunList(list):
-    """Several runs kept together (:meth:`Model.run_many`,
-    :meth:`Model.shoot`): a list of :class:`Trajectory`."""
+    """Several runs kept together: a list of
+    [`Trajectory`][xpplab.Trajectory].
+
+    [`Model.run_many`][xpplab.Model.run_many] and
+    [`Model.shoot`][xpplab.Model.shoot] return one.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> runs = m.run_many([{"V": -0.3}, {"V": 0.2}], iapp=0.1, total=50)
+        >>> runs
+        <RunList: 2 runs, ended by {0: 2}>
+        >>> runs[1]
+        <Trajectory: 1001 points, t=0..50, columns T, V, W, CUR, ICA, IK, RATE>
+
+    See also:
+        [many](../reference/many.md) in the command window.
+    """
 
     @property
     def events(self) -> np.ndarray:
-        """The global flag that stopped each run (0: it ran to the end)."""
+        """The global flag that stopped each run, counted from 1, or 0 for
+        a run that reached the end.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> runs = m.run_many([{"V": -0.3}, {"V": 0.2}], iapp=0.1, total=50)
+            >>> runs.events
+            array([0, 0])
+
+        See also:
+            [`Model.flags`][xpplab.Model.flags],
+            [`counts`][xpplab.RunList.counts].
+        """
         return np.array([s.event for s in self], dtype=int)
 
     def counts(self) -> dict[int, int]:
-        """How many runs each flag stopped, and (key 0) how many ran to the
-        end."""
+        """How many runs each global flag stopped.
+
+        Returns:
+            A dictionary from the flag's number to the count; the key 0
+            counts the runs that reached the end.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> runs = m.run_many([{"V": -0.3}, {"V": 0.2}], iapp=0.1, total=50)
+            >>> runs.counts()
+            {0: 2}
+
+        See also:
+            [`events`][xpplab.RunList.events].
+        """
         out: dict[int, int] = {}
         for e in self.events:
             out[int(e)] = out.get(int(e), 0) + 1
         return dict(sorted(out.items()))
 
     def plot(self, y: str, x: str = "T", *, ax=None, colors=None, **kw):
-        """Every run, ``y`` against ``x``. ``colors`` maps each flag number
-        (0 for runs that reached the end) to a colour, to see at a glance
-        how each run ended."""
+        """Plot every run, one column against another. Needs matplotlib.
+
+        Args:
+            y: the column along the vertical axis.
+            x: the column along the horizontal axis.
+            ax: the matplotlib axes to draw in; by default the current ones.
+            colors: a colour for each flag number (0 for the runs that
+                reached the end), to see how each run ended.
+            **kw: passed on to matplotlib's ``plot``.
+
+        Returns:
+            The matplotlib axes.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> runs = m.run_many([{"V": -0.3}, {"V": 0.2}], iapp=0.1, total=50)
+            >>> ax = runs.plot("W", x="V", colors={0: "tab:blue"})
+            >>> ax.get_xlabel(), ax.get_ylabel()
+            ('V', 'W')
+
+        See also:
+            [`Trajectory.plot`][xpplab.Trajectory.plot].
+        """
         import matplotlib.pyplot as plt
         ax = ax or plt.gca()
         for s in self:
@@ -2042,9 +2301,26 @@ class RunList(list):
         return ax
 
     def to_csv(self, path) -> None:
-        """Every run in one CSV file: ``run`` (from 0), ``event``, then the
-        columns, one row per output time, every number exact. The desktop
-        app's ``export FILE.csv many`` writes the same file."""
+        """Write every run in one CSV file, every number exact.
+
+        The columns are ``run`` (counted from 0), ``event``, then the runs'
+        columns, one row per output time. The desktop app's
+        ``export FILE.csv many`` writes the same file.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> runs = m.run_many([{"V": -0.3}, {"V": 0.2}], iapp=0.1, total=50)
+            >>> runs.to_csv("many.csv")
+            >>> open("many.csv").readline()
+            'run,event,T,V,W,CUR,ICA,IK,RATE\\n'
+
+        See also:
+            [export](../reference/export.md) in the command window;
+            [`to_mat`][xpplab.RunList.to_mat].
+        """
         from .analysis import write_csv
         rows = []
         cols = self[0].columns if len(self) else ["T"]
@@ -2054,9 +2330,22 @@ class RunList(list):
         write_csv(path, ["run", "event"] + cols, rows)
 
     def to_mat(self, path) -> None:
-        """Every run in one .mat file, as :meth:`to_csv` has it: ``run``
-        (from 0), ``event``, then the columns, one row per output time.
-        There is no ``params`` struct (the runs may differ)."""
+        """Write every run in one MATLAB .mat file, with the columns of
+        [`to_csv`][xpplab.RunList.to_csv] as column vectors. There is no
+        ``params`` struct, since the runs may differ.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> runs = m.run_many([{"V": -0.3}, {"V": 0.2}], iapp=0.1, total=50)
+            >>> runs.to_mat("many.mat")
+
+        See also:
+            [export](../reference/export.md) in the command window;
+            [`to_csv`][xpplab.RunList.to_csv].
+        """
         from .analysis import write_mat
         cols = self[0].columns if len(self) else ["T"]
         names = ["t" if k == "T" else k for k in cols]
@@ -2075,7 +2364,22 @@ class RunList(list):
 @dataclass
 class Ensemble:
     """The mean and the variance over many runs of a noisy model, at each
-    output time (see :meth:`Model.ensemble`)."""
+    output time. [`Model.ensemble`][xpplab.Model.ensemble] returns one.
+
+    Attributes:
+        mean (Trajectory): the mean of every column.
+        variance (Trajectory): the variance of every column.
+        trials (int): the number of runs.
+
+    Examples:
+        >>> m = xs.load(xs.example("classics/ornstein_uhlenbeck"))
+        >>> e = m.ensemble(100)
+        >>> e.trials, len(e.t) == len(e.mean)
+        (100, True)
+
+    See also:
+        [ensemble](../reference/ensemble.md) in the command window.
+    """
 
     mean: Trajectory
     variance: Trajectory
@@ -2083,19 +2387,53 @@ class Ensemble:
 
     @property
     def std(self) -> Trajectory:
-        """The standard deviation, column by column (time as it is)."""
+        """The standard deviation of every column; the time column as it
+        is.
+
+        Examples:
+            >>> m = xs.load(xs.example("classics/ornstein_uhlenbeck"))
+            >>> e = m.ensemble(100)
+            >>> bool(np.allclose(e.std["X"] ** 2, e.variance["X"].clip(0)))
+            True
+
+        See also:
+            [`plot`][xpplab.Ensemble.plot], which draws a band of it.
+        """
         data = {k: (v if k == "T" else np.sqrt(np.clip(v, 0, None)))
                 for k, v in self.variance._data.items()}
         return Trajectory(data)
 
     @property
     def t(self) -> np.ndarray:
+        """The output times.
+
+        Examples:
+            >>> m = xs.load(xs.example("classics/ornstein_uhlenbeck"))
+            >>> e = m.ensemble(10)
+            >>> bool((e.t == e.mean["T"]).all())
+            True
+
+        See also:
+            [`Trajectory.t`][xpplab.Trajectory.t].
+        """
         return self.mean.t
 
     def to_table(self) -> "Table":
-        """Time, then each column's mean and variance (``V_mean``,
-        ``V_var``, ...): the desktop app's ``export FILE.csv analysis``
-        after an ensemble writes the same."""
+        """The mean and the variance as one table.
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``T``, then each column's mean and
+            variance (``X_mean``, ``X_var``, ...). The desktop app's
+            ``export FILE.csv analysis`` after an ensemble writes the same.
+
+        Examples:
+            >>> m = xs.load(xs.example("classics/ornstein_uhlenbeck"))
+            >>> m.ensemble(10).to_table().columns
+            ['T', 'X_mean', 'X_var']
+
+        See also:
+            [`to_csv`][xpplab.Ensemble.to_csv].
+        """
         from .analysis import Table
         data = {"T": self.mean.t}
         for name in self.mean.columns:
@@ -2105,15 +2443,60 @@ class Ensemble:
         return Table(data, title="ensemble of %d runs" % self.trials)
 
     def to_csv(self, path) -> None:
+        """Write the table of [`to_table`][xpplab.Ensemble.to_table] as a
+        CSV file, every number exact.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("classics/ornstein_uhlenbeck"))
+            >>> m.ensemble(10).to_csv("ensemble.csv")
+            >>> open("ensemble.csv").readline()
+            'T,X_mean,X_var\\n'
+
+        See also:
+            [export](../reference/export.md) in the command window.
+        """
         self.to_table().to_csv(path)
 
     def to_mat(self, path) -> None:
-        """The table of :meth:`to_table` as a .mat file."""
+        """Write the table of [`to_table`][xpplab.Ensemble.to_table] as a
+        MATLAB .mat file.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("classics/ornstein_uhlenbeck"))
+            >>> m.ensemble(10).to_mat("ensemble.mat")
+
+        See also:
+            [export](../reference/export.md) in the command window.
+        """
         self.to_table().to_mat(path)
 
     def plot(self, *names: str, ax=None, band: float = 1.0):
-        """Each column's mean against time, with a band of ``band``
-        standard deviations around it."""
+        """Plot each column's mean against time, with a band of ``band``
+        standard deviations around it. Needs matplotlib.
+
+        Args:
+            *names: the columns; by default the first after time.
+            ax: the matplotlib axes to draw in; by default the current ones.
+            band: the half-width of the band, in standard deviations.
+
+        Returns:
+            The matplotlib axes.
+
+        Examples:
+            >>> m = xs.load(xs.example("classics/ornstein_uhlenbeck"))
+            >>> ax = m.ensemble(100).plot("X", band=2)
+            >>> ax.get_legend_handles_labels()[1]
+            ['X mean']
+
+        See also:
+            [ensemble](../reference/ensemble.md) in the command window.
+        """
         import matplotlib.pyplot as plt
         ax = ax or plt.gca()
         sd = self.std
@@ -2129,7 +2512,29 @@ class Ensemble:
 
 @dataclass
 class Equilibrium:
-    """An equilibrium, with the eigenvalues of the Jacobian there."""
+    """An equilibrium, with the eigenvalues of the Jacobian there.
+
+    [`Model.equilibrium`][xpplab.Model.equilibrium] and
+    [`Model.find_equilibria`][xpplab.Model.find_equilibria] return them.
+    ``eq["V"]`` is a variable's value, its name in any case.
+
+    Attributes:
+        values (dict[str, float]): the variables' values.
+        eigenvalues (numpy.ndarray): the eigenvalues, complex.
+        discrete (bool): the model is a map, so stability is about the unit
+            circle.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> eq = m.equilibrium()
+        >>> eq
+        <Equilibrium saddle: V=-0.142535, W=0.034049>
+        >>> round(eq["v"], 6), eq.eigenvalues.shape
+        (-0.142535, (2,))
+
+    See also:
+        [eq](../reference/eq.md) in the command window.
+    """
 
     values: dict[str, float]
     eigenvalues: np.ndarray
@@ -2137,17 +2542,50 @@ class Equilibrium:
 
     @property
     def unstable_count(self) -> int:
+        """The number of unstable eigenvalues: with a positive real part,
+        or for a map outside the unit circle.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> [e.unstable_count for e in m.find_equilibria()]
+            [2, 0, 1]
+
+        See also:
+            [`stable`][xpplab.Equilibrium.stable],
+            [`kind`][xpplab.Equilibrium.kind].
+        """
         if self.discrete:
             return int(np.sum(np.abs(self.eigenvalues) > 1))
         return int(np.sum(self.eigenvalues.real > 0))
 
     @property
     def stable(self) -> bool:
+        """Whether no eigenvalue is unstable.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> [e.stable for e in m.find_equilibria()]
+            [False, True, False]
+
+        See also:
+            [`unstable_count`][xpplab.Equilibrium.unstable_count].
+        """
         return self.unstable_count == 0
 
     @property
     def kind(self) -> str:
-        """A plain-language classification, e.g. "stable focus" or "saddle"."""
+        """The kind of equilibrium, in words: ``"stable node"``,
+        ``"unstable focus"``, ``"saddle"``, ``"saddle-focus"``, ...; for a
+        map ``"stable"`` or ``"unstable"``.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> [e.kind for e in m.find_equilibria()]
+            ['unstable focus', 'stable node', 'saddle']
+
+        See also:
+            [`stable`][xpplab.Equilibrium.stable].
+        """
         ev = self.eigenvalues
         if self.discrete:
             return "stable" if self.stable else "unstable"
@@ -2179,8 +2617,26 @@ class Equilibrium:
 
 
 class EquilibriumList(list):
-    """Equilibria found together (:meth:`Model.find_equilibria`): a list of
-    :class:`Equilibrium` that can also be written as a table."""
+    """Equilibria found together: a list of
+    [`Equilibrium`][xpplab.Equilibrium] that can also be written as a
+    table. [`Model.find_equilibria`][xpplab.Model.find_equilibria] returns
+    one.
+
+    Attributes:
+        variables (list[str]): the model's variables, the table's first
+            columns.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> found = m.find_equilibria()
+        >>> found
+        <3 equilibria: unstable focus, stable node, saddle>
+        >>> found[2]
+        <Equilibrium saddle: V=-0.142535, W=0.034049>
+
+    See also:
+        [eq all](../reference/eq-all.md) in the command window.
+    """
 
     def __init__(self, variables, items=()):
         super().__init__(items)
@@ -2196,23 +2652,63 @@ class EquilibriumList(list):
         return cols, rows
 
     def to_csv(self, path: str | os.PathLike) -> None:
-        """One row per equilibrium: the variables, the number of unstable
-        eigenvalues, then each eigenvalue's real and imaginary parts (re1,
-        im1, re2, ...). The desktop app's ``export FILE.csv equilibria``
-        writes the same file."""
+        """Write the equilibria as a CSV file, every number exact.
+
+        There is one row per equilibrium: the variables, ``unstable`` (the
+        number of unstable eigenvalues), then each eigenvalue's real and
+        imaginary parts (``re1``, ``im1``, ``re2``, ...). The desktop app's
+        ``export FILE.csv equilibria`` writes the same file.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> m.find_equilibria().to_csv("eq.csv")
+            >>> open("eq.csv").readline()
+            'V,W,unstable,re1,im1,re2,im2\\n'
+
+        See also:
+            [export](../reference/export.md) in the command window;
+            [`to_pandas`][xpplab.EquilibriumList.to_pandas].
+        """
         from .analysis import write_csv
         write_csv(path, *self._table())
 
     def to_mat(self, path: str | os.PathLike) -> None:
-        """The same table as a MATLAB .mat file, one column vector per
-        column (the desktop app's ``export FILE.mat equilibria`` writes the
-        same file)."""
+        """Write the table of [`to_csv`][xpplab.EquilibriumList.to_csv] as
+        a MATLAB .mat file, one column vector per column. The desktop app's
+        ``export FILE.mat equilibria`` writes the same file.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> m.find_equilibria().to_mat("eq.mat")
+
+        See also:
+            [export](../reference/export.md) in the command window.
+        """
         from .analysis import write_mat
         cols, rows = self._table()
         write_mat(path, cols, np.array(rows, dtype=float).reshape(len(rows), len(cols)).T)
 
     def to_pandas(self):
-        """The same table as a pandas DataFrame."""
+        """The table of [`to_csv`][xpplab.EquilibriumList.to_csv] as a
+        pandas DataFrame. Needs pandas.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> df = m.find_equilibria().to_pandas()
+            >>> list(df.columns)
+            ['V', 'W', 'unstable', 're1', 'im1', 're2', 'im2']
+            >>> df["unstable"].tolist()
+            [2, 0, 1]
+
+        See also:
+            [`to_csv`][xpplab.EquilibriumList.to_csv].
+        """
         import pandas as pd
         cols, rows = self._table()
         return pd.DataFrame(rows, columns=cols)

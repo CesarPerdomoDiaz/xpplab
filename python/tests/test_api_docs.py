@@ -11,6 +11,7 @@ import doctest
 import inspect
 import os
 import re
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -150,6 +151,11 @@ def test_examples_run_as_written(name, obj, fn, tmp_path, monkeypatch):
     if ">>>" not in (doc or ""):
         pytest.skip("no example")
     monkeypatch.chdir(tmp_path)
+    try:  # the examples that plot draw off screen
+        import matplotlib
+        matplotlib.use("Agg")
+    except ImportError:
+        pass
     globs = {"xs": xs, "np": np}
     test = doctest.DocTestParser().get_doctest(doc, globs, name, None, 0)
     runner = doctest.DocTestRunner(
@@ -161,4 +167,6 @@ def test_examples_run_as_written(name, obj, fn, tmp_path, monkeypatch):
         for value in globs.values():
             if isinstance(value, xs.Model):
                 value.close()
+        if "matplotlib.pyplot" in sys.modules:
+            sys.modules["matplotlib.pyplot"].close("all")
     assert runner.failures == 0, "".join(out)

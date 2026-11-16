@@ -5,6 +5,9 @@ repo_url: https://github.com/CesarPerdomoDiaz/xpplab
 edit_uri: edit/main/docs/
 docs_dir: docs
 site_dir: build/site
+# The glossary's hover text, appended to every page, is no page itself.
+exclude_docs: |
+  includes/
 
 theme:
   name: material
@@ -19,6 +22,8 @@ theme:
     - search.suggest
     - search.highlight
     - content.code.copy
+    - content.action.edit
+    - content.tooltips
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -72,6 +77,13 @@ markdown_extensions:
   - md_in_html
   - pymdownx.tabbed:
       alternate_style: true
+  # The glossary's terms explained on hover, on every page (#125). The
+  # definitions are added when the site is built, so the pages the app's
+  # Help window shows stay as they are.
+  - abbr
+  - pymdownx.snippets:
+      base_path: [docs/includes]
+      auto_append: [abbreviations.md]
 
 nav:
   - Home: index.md
@@ -112,6 +124,7 @@ nav:
       - XPPAUT's example models: gallery/xppaut.md
   - Reference:
       - Every command and action: reference/reference.md
+      - Glossary: glossary.md
       - run: reference/run.md
       - continue: reference/continue.md
       - many: reference/many.md

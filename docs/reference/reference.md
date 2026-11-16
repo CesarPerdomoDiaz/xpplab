@@ -21,7 +21,11 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [ic shift](ic-shift.md) | Start the next run where the last one ended, and let the time go on. |
 | [script](script.md) | Save the session as a Python script that repeats it. |
 | [echo](echo.md) | Show each action as the Python that repeats it. |
+| [py](py.md) | Run Python in the command window, with the app's model defined. |
+| [python](python.md) | Choose, stop or install the Python of the app's console. |
+| [serve](serve.md) | Let a notebook, a script or an agent drive the app. |
 | [annotate](annotate.md) | Add text, an arrow or a marker to a plot, or clear them. |
+| [figure](figure.md) | Build a figure for a paper: panels, curves, labels, PDF, SVG, EPS or PNG. |
 | [show](show.md) | Bring a window forward, opening it if it is closed. |
 | [hide](hide.md) | Close a window. |
 | [fit](fit.md) | Fit every plot's axes to its data. |
@@ -49,6 +53,9 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [bvp](bvp.md) | Solve the boundary-value problem: the run that meets conditions at both ends. |
 | [continue](continue.md) | Integrate further from the end of the last run and add the new part to it. |
 | [ani](ani.md) | Play an XPPAUT animation of the run, frame by frame. |
+| [kinescope capture](kinescope-capture.md) | Take a picture of a figure for a film; save the film as a GIF or PNG files. |
+| [kinescope play](kinescope-play.md) | Play the Kinescope's pictures, or show one. |
+| [kinescope clear](kinescope-clear.md) | Delete the Kinescope's pictures. |
 | [view3d](view3d.md) | Show three columns of the run as a curve in three dimensions. |
 | [prc](prc.md) | The phase response curves of a stable limit cycle. |
 | [hfun](hfun.md) | The interaction function of two weakly coupled copies of an oscillator. |

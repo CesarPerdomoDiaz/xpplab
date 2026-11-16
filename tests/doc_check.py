@@ -111,7 +111,9 @@ def main(exe, model):
         text = page.read_text(encoding="utf-8")
         heads = re.findall(r"^## (.+)$", text, re.M)
         # the app's Help window shows these pages and cannot typeset LaTeX yet
+        # (code, fenced or inline, is shown as written: `$V_W$` is a label)
         prose = re.sub(r"```.*?```", "", text, flags=re.S)
+        prose = re.sub(r"`[^`\n]*`", "", prose)
         if "$" in prose.replace(r"\$", ""):
             bad.append(f"{page.name}: LaTeX ($...$) in a page the app's Help window shows")
         if heads != SECTIONS:

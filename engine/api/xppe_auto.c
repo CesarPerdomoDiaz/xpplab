@@ -245,12 +245,30 @@ int xppe_auto_run_form(const char *choice, const char *form) {
   if (choice && choice[0]) xpps_answers_push(choice);
   if (form && form[0]) xpps_answers_push(form);
   before = xppe_auto_count();
+  /* A run adds to the diagram: AUTO keeps the earlier runs' restart data,
+     and new labels and branches go on from the diagram's (auto_nox.c
+     do_auto(), autlib1.c newlab()). */
+  {
+    extern int xpplab_keep_runs, xpplab_label_floor, xpplab_branch_floor;
+    DIAGRAM *d;
+    xpplab_keep_runs = xpplab_label_floor = xpplab_branch_floor = 0;
+    if (DiagFlag)
+      for (d = bifd; d; d = d->next) {
+        xpplab_keep_runs = 1;
+        if (d->lab > xpplab_label_floor) xpplab_label_floor = d->lab;
+        if (abs(d->ibr) > xpplab_branch_floor) xpplab_branch_floor = abs(d->ibr);
+      }
+  }
   saved = calloc(MAXPAR, sizeof *saved);
   for (i = 0; saved && i < NUPAR && i < MAXPAR; i++) get_val(upar_names[i], &saved[i]);
   push_workdir();
   XPPE_GUARD_BEGIN((pop_workdir(), free(saved)));
   auto_run();
   XPPE_GUARD_END;
+  {
+    extern int xpplab_keep_runs, xpplab_label_floor, xpplab_branch_floor;
+    xpplab_keep_runs = xpplab_label_floor = xpplab_branch_floor = 0;
+  }
   pop_workdir();
   if (saved) {
     restore_parameters(saved);

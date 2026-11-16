@@ -141,6 +141,41 @@ def test_every_export_is_on_the_page():
     assert not missing, f"not in docs/python/reference.md: {missing}"
 
 
+NUMBER = re.compile(r"[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?")
+
+
+class Checker(doctest.OutputChecker):
+    """doctest's comparison, except that numbers agree to a relative 1e-4.
+
+    The outputs shown are the ones this platform gives. AUTO locates special
+    points, and the integrators take steps, only to their tolerances, so the
+    last digits shown can differ on another platform's arithmetic."""
+
+    def check_output(self, want, got, optionflags):
+        if super().check_output(want, got, optionflags):
+            return True
+        if NUMBER.sub("#", want) != NUMBER.sub("#", got):
+            return super().check_output(NUMBER.sub("#", want), NUMBER.sub("#", got),
+                                        optionflags) and self._close(want, got)
+        return self._close(want, got)
+
+    @staticmethod
+    def _close(want, got):
+        a, b = NUMBER.findall(want), NUMBER.findall(got)
+        return len(a) == len(b) and all(
+            abs(float(x) - float(y)) <= 1e-4 * max(abs(float(x)), abs(float(y))) + 1e-9
+            for x, y in zip(a, b))
+
+
+def test_the_checker_allows_only_the_last_digits():
+    c, flags = Checker(), doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
+    assert c.check_output("period=25.7585\n", "period=25.7587\n", flags)
+    assert c.check_output("array([0.  , 0.6419])\n", "array([0.    , 0.6419])\n", flags)
+    assert not c.check_output("period=25.7585\n", "period=25.79\n", flags)
+    assert not c.check_output("(1, 2)\n", "(1, 3)\n", flags)
+    assert not c.check_output("HB #2\n", "LP #2\n", flags)
+
+
 DONE = [(name, obj, fn) for name, obj, fn in members() if name not in pending()]
 
 
@@ -159,7 +194,7 @@ def test_examples_run_as_written(name, obj, fn, tmp_path, monkeypatch):
     globs = {"xs": xs, "np": np}
     test = doctest.DocTestParser().get_doctest(doc, globs, name, None, 0)
     runner = doctest.DocTestRunner(
-        optionflags=doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE)
+        checker=Checker(), optionflags=doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE)
     out = []
     try:
         runner.run(test, out=out.append)

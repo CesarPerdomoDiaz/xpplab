@@ -285,16 +285,19 @@ def test_auto_save_load_and_reset_pages(tmp_path, monkeypatch):
     m, d = ns["m"], ns["d"]
     assert len(m.auto.diagram) == 49 and len(d) == 49
     assert [p.label for p in d.special("HB")] == [2, 3]
-    # without the reset: both runs, and two points labelled 2
+    # without the reset: both runs, the second's labels going on from the
+    # first's, its Hopf points 5 and 6 (#131: they were 2 and 3 again)
     m.auto.reset()
     first = m.auto.equilibria("iapp", parmax=0.3)
     second = m.auto.equilibria("iapp", parmax=0.5)
     assert len(first) == 24 and len(m.auto.diagram) == 73 and "73" in text
-    assert [p.label for p in second if p.label] == [1, 2, 3, 4]
-    assert [p.type for p in m.auto.diagram if p.label == 2] == ["HB", "HB"]
+    assert [p.label for p in first if p.label] == [1, 2, 3]
+    assert [p.label for p in second if p.label] == [4, 5, 6, 7]
+    assert [p.label for p in second.special("HB")] == [5, 6] and "5 and 6" in text
+    assert {p.branch for p in first} == {1} and {p.branch for p in second} == {2}
     # a continuation from a label carries on from the highest label
     orbits = m.auto.continue_from(second.first("HB"), "periodic", nmax=50)
-    assert [p.label for p in orbits if p.label][:2] == [5, 6]
+    assert [p.label for p in orbits if p.label][:2] == [8, 9]
     m.close()
 
 

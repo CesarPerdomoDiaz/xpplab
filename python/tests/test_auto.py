@@ -59,6 +59,33 @@ def test_two_parameter_hopf_curve(lecar_hopf):
     assert {p.parameter2 for p in curve} == {"gca"}
 
 
+def test_a_second_run_goes_on_numbering(lecar_hopf):
+    """Labels and branches of a second run from scratch do not repeat the
+    first's (#131): auto from 2 then continued the wrong Hopf point."""
+    m = lecar_hopf
+    m.auto.set(parmax=0.6, nmax=200)
+    first = m.auto.equilibria("iapp")
+    early = first.label(2)
+    m.set(gk=2.4)
+    m.auto.equilibria("iapp")
+    labels = [p.label for p in m.auto.diagram if p.label]
+    assert len(labels) == len(set(labels)) == 7
+    assert sorted({p.branch for p in m.auto.diagram}) == [1, 2]
+    assert m.auto.diagram.label(5).value == pytest.approx(0.05)   # the 2nd start
+    late = m.auto.diagram.label(6)
+    assert late.type == "HB" and late.value == pytest.approx(0.315, abs=1e-3)
+    # each Hopf point is continued from itself
+    m.set(gk=2.0)
+    orbits = m.auto.continue_from(early, "periodic")
+    assert orbits[0].value == pytest.approx(early.value, abs=1e-4)
+    m.set(gk=2.4)
+    orbits = m.auto.continue_from(late, "periodic")
+    assert orbits[0].value == pytest.approx(late.value, abs=1e-4)
+    # after a reset, labels start at 1 again
+    m.auto.reset()
+    assert m.auto.equilibria("iapp").label(1).type == "EP"
+
+
 def test_reset(lecar_hopf):
     lecar_hopf.auto.equilibria("iapp")
     assert len(lecar_hopf.auto.diagram) > 0

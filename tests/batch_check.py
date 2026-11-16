@@ -147,6 +147,17 @@ with tempfile.TemporaryDirectory() as t:
               and "AUTO computed" in r.stdout.split(">> auto from 2 extend")[1],
               "switch at a steady branch point: " + r.stdout[-800:])
 
+    # a second auto steady numbered its labels from 1 again, and the first
+    # run's points could not be continued (#131)
+    r = run(["lecar.ode", "--keep-going", "-c", "use hopf", "-c", "auto set parmax=0.6 nmax=200",
+             "-c", "auto steady iapp", "-c", "set gk=2.4", "-c", "auto steady iapp",
+             "-c", "set gk=2", "-c", "auto from 2 periodic"], work)
+    second = r.stdout.split(">> set gk=2.4")[-1]
+    check("HB #6 at iapp = 0.315" in second and "HB #2 at" not in second
+          and "LP #12 at iapp = 0.248414" in second,
+          "a second run goes on numbering, and label 2 continues the first's Hopf point: "
+          + second[-800:])
+
     # fitdata reads the CSV that export writes (a header, commas)
     r = run(["lecar.ode", "--keep-going", "-c", "set iapp=0.1", "-c", "run",
              "-c", "export data.csv", "-c", "set gca=1.2 gk=1.8",

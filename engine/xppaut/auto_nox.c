@@ -216,6 +216,9 @@ char fort7[200];
 char fort8[200];
 char fort9[200];
 char TMPSWAP[200];
+/* XPP Lab fix: set by the C API before each run when the diagram is kept
+   (see do_auto() and newlab() in autlib1.c); 0 in XPPAUT's own runs. */
+int xpplab_keep_runs=0, xpplab_label_floor=0, xpplab_branch_floor=0;
 
 
 extern char uvar_names[MAXODE][12];
@@ -652,6 +655,12 @@ void do_auto(iold,isave,itp)
                    and running init in auto 
 		*/
  
+    /* XPP Lab fix: a new start (steady states, orbits, a BVP) overwrote
+       the .s file, AUTO's restart data, even when the diagram was kept
+       (auto_new_ss() has the APPEND for that commented out): the earlier
+       runs' points stayed on the plot but could no longer be continued.
+       XPP Lab keeps the diagram, so it keeps their restart data too. */
+    if (xpplab_keep_runs && isave == OVERWRITE) isave = APPEND;
     open_auto(iold); /* this copies the relevant files .s  to fort.3 */
     /* XPP Lab: guarded, so that an exit() inside AUTO ends only this
        continuation (see go_go_auto_guarded() in gogoauto.c). */

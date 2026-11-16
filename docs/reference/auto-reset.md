@@ -52,11 +52,9 @@ After `auto reset` the command window says "AUTO: diagram cleared." The
 second run then draws 49 points, with the Hopf points labelled 2 and 3.
 
 How to read it. Without the reset the diagram would hold both runs, 73
-points, the second drawn over the first. The labels would repeat too: each
-`auto steady` numbers its points from 1, so there would be two points
-labelled 2, the Hopf point of each run. [auto from](auto-from.md) takes a
-label, and with two of the same it uses the later one. A clean diagram has
-one point for each label.
+points, the second drawn over the first, and the second run's labels would
+go on from the first's: its Hopf points would be 5 and 6, not 2 and 3. A
+clean diagram has the same labels whatever was computed before.
 
 ## Settings
 
@@ -73,10 +71,10 @@ There are none.
 
 **How labels are numbered.** A run of [auto steady](auto-steady.md) uses 1
 for its start, the next numbers for its special points and the last for its
-end. A continuation with [auto from](auto-from.md) carries on from the
-highest label so far. A second `auto steady` starts again at 1. So a
-diagram built in a different order has different labels for the same
-points, and one with two runs of `auto steady` has labels that repeat.
+end. Every later run, a continuation with [auto from](auto-from.md) or
+another `auto steady`, carries on from the highest label so far, so no two
+points share a label. Only `auto reset` starts again at 1. So a diagram
+built in a different order has different labels for the same points.
 
 ## Tips
 
@@ -112,3 +110,7 @@ AUTO's restart data is discarded.
 ## Version history
 
 Introduced in 0.1.0.
+
+0.1.4: a second `auto steady` goes on numbering labels and branches from
+the diagram's; before, it started again at 1, and `auto from` with a label
+that two points shared could continue the wrong one.

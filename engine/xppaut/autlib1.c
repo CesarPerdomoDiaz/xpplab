@@ -4450,6 +4450,15 @@ newlab(iap_type *iap, rap_type *rap)
   }
 
  L2:
+  /* XPP Lab fix: a run that starts afresh reads an empty fort.3, so it
+     numbered its labels and its branch from 1 again, and a diagram of two
+     runs had two points labelled 2. The C API sets these floors to the
+     kept diagram's highest label and branch (auto_nox.c); 0 otherwise. */
+  {
+    extern int xpplab_label_floor, xpplab_branch_floor;
+    if (mlab < xpplab_label_floor) mlab = xpplab_label_floor;
+    if (mbr < xpplab_branch_floor) mbr = xpplab_branch_floor;
+  }
   lab = mlab;
   iap->lab = lab;
   if (isw < 0 || irs == 0) {

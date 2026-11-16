@@ -158,6 +158,14 @@ with tempfile.TemporaryDirectory() as t:
           "a second run goes on numbering, and label 2 continues the first's Hopf point: "
           + second[-800:])
 
+    # auto load took a diagram of another model (#131)
+    shutil.copy(examples / "fhn.ode", work)
+    run(["lecar.ode", "-c", "use hopf", "-c", "auto steady iapp", "-c", "auto save lecar.auto"],
+        work)
+    r = run(["fhn.ode", "--keep-going", "-c", "auto load lecar.auto"], work)
+    check("was not loaded: it is a diagram of a model with the variables V W and the "
+          "parameters iapp" in r.stdout, "auto load refuses another model: " + r.stdout[-600:])
+
     # fitdata reads the CSV that export writes (a header, commas)
     r = run(["lecar.ode", "--keep-going", "-c", "set iapp=0.1", "-c", "run",
              "-c", "export data.csv", "-c", "set gca=1.2 gk=1.8",

@@ -21,9 +21,13 @@ computed: [auto from](auto-from.md) continues from them, and
 [auto orbit](auto-orbit.md) shows their orbits.
 
 Open the model the diagram was computed from first, with the same
-parameter set. The file holds the diagram, not the model.
+parameter set. The file holds the diagram, not the model, but it names the
+model's variables and AUTO's parameters, and a file whose names do not
+match the open model is refused: the diagram shown stays.
 
-Files saved by XPPAUT's *AUTO > File > Save diagram* load too.
+Files saved by XPPAUT's *AUTO > File > Save diagram*, and by XPP Lab
+before 0.1.4, load too. They do not name the model, so they are not
+checked.
 
 ## Examples
 
@@ -79,6 +83,15 @@ model that is open *now*. If that is another model, or the same model with
 other parameter values, the numbers are not a solution of it, and the
 continuation fails or follows something meaningless.
 
+**What is checked.** The file's last line names the variables and the
+parameters AUTO used (see [auto save](auto-save.md#more-about)). The
+variables must be the open model's, in the same order, and each of AUTO's
+parameters must be at the same place in the model's list of parameters.
+Two models with the variables `V` and `W`, such as `lecar.ode` and
+`fhn.ode`, differ in their parameters. The values are not checked: the
+same model with another parameter set loads, and is the reader's to get
+right.
+
 ## Tips
 
 - Keep the model's file and its diagram together, and note the parameter
@@ -100,7 +113,8 @@ settings, points and restart data take its place.
 |---|---|---|
 | `error: cannot read FILE` | There is no such file, or it cannot be opened. | Check the name and the folder. In the app a name without a folder is looked for in the folder of the model; in Python, in the working folder. |
 | `Write: auto load FILE.auto` | No file name was given. | Add the name. |
-| The continuation from a loaded label stops after a few points, marked MX | The model that is open is not the one the diagram was computed from. Loading does not check this. | Open the right model, with the right parameter set, and load again. |
+| `error: FILE was not loaded: it is a diagram of a model with the variables V W and the parameters iapp ...; this model has the variables ...` | The file was saved from another model. | Open the model the line names, and load again. |
+| The continuation from a loaded label stops after a few points, marked MX | The model is the right one with other parameter values, or the file was saved by XPPAUT or an older XPP Lab, which do not name the model. | Open the right model, with the right parameter set, and load again. |
 
 ## References
 
@@ -117,3 +131,6 @@ settings, points and restart data take its place.
 ## Version history
 
 Introduced in 0.1.2.
+
+0.1.4: a file saved from another model is refused, with its variables and
+parameters named.

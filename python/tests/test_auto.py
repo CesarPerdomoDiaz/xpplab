@@ -86,6 +86,32 @@ def test_a_second_run_goes_on_numbering(lecar_hopf):
     assert m.auto.equilibria("iapp").label(1).type == "EP"
 
 
+def test_a_diagram_of_another_model_is_refused(lecar_hopf, tmp_path):
+    """auto load took a diagram of another model, and continuing from it
+    failed (#131). fhn.ode has the same variables, V and W."""
+    lecar_hopf.auto.equilibria("iapp")
+    lecar_hopf.auto.save(tmp_path / "lecar.auto")
+    text = (tmp_path / "lecar.auto").read_text()
+    assert text.rstrip().splitlines()[-1] == (
+        "# XPP Lab model: variables V W; parameters iapp phi v1 v2 v3 v4 gca vk")
+    with xs.load(ODE / "fhn.ode") as f:
+        f.auto.equilibria("I_0", parmax=1)
+        n = len(f.auto.diagram)
+        with pytest.raises(xs.EngineError, match="was not loaded: it is a diagram "
+                           "of a model with the variables V W and the parameters iapp"):
+            f.auto.load(tmp_path / "lecar.auto")
+        assert len(f.auto.diagram) == n          # the diagram shown stays
+        # a file without the line (XPPAUT's) is not checked, as before
+        old = tmp_path / "old.auto"
+        old.write_text("".join(ln for ln in text.splitlines(True)
+                               if not ln.startswith("# XPP Lab")))
+        assert len(f.auto.load(old)) == len(lecar_hopf.auto.diagram)
+    # the right model loads, and continues from its labels
+    lecar_hopf.auto.reset()
+    lecar_hopf.auto.load(tmp_path / "lecar.auto")
+    assert len(lecar_hopf.auto.continue_from(2, "periodic", nmax=20)) == 20
+
+
 def test_reset(lecar_hopf):
     lecar_hopf.auto.equilibria("iapp")
     assert len(lecar_hopf.auto.diagram) > 0

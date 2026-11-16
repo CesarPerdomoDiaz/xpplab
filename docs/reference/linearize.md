@@ -88,8 +88,14 @@ input is enough to hold both states.
 ## Results
 
 - **The command window** gives the point, the eigenvalues and the rank.
-- **The Analysis window** shows A, B and the eigenvalues in the complex
-  plane; `export FILE.csv analysis` writes them.
+- **The Analysis window** says in words where the linearisation was
+  taken and whether that point is an equilibrium, whether it is stable and
+  whether the inputs can steer every state, then shows A and B (hover over
+  an entry for all its digits and its error estimate), the eigenvalues,
+  the singular values, and the eigenvalues in the complex plane with the
+  stable region shaded. `export FILE.csv analysis` writes them. If the
+  right-hand side has a kink or a jump at the point, a note says how far
+  the derivatives can be trusted.
 - **In Python** a `Linearization`: `A`, `B`, `eigenvalues`,
   `controllability`, `rank`, `controllable`, `singular_values`,
   `residual`, and the error estimates `A_error`, `B_error`.

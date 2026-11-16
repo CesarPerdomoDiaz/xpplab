@@ -78,6 +78,12 @@ little on its way back.
 ## Results
 
 - **The command window** gives K and the closed-loop poles.
+- **The Analysis window**, after *Linearise* with inputs, has an *Optimal
+  control (LQR)* section under the gain: one weight per state (Q) and one
+  per input (R), all 1 to start with. *Compute the LQR gain* puts the gain
+  in *Gain K* and the closed loop's poles in the pole list, so that
+  *Simulate the closed loop* and the root locus over the gain use it.
+  Moving a pole afterwards places the poles instead.
 - **In Python** an `LQR` result: `K`, `poles`, and the Riccati solution.
 
 ## More about

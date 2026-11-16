@@ -67,6 +67,17 @@ writes this controller into the model to test it.
 ## Results
 
 - **The command window** gives K, one row per input, one entry per state.
+- **The Analysis window**, after *Linearise* with inputs, has a *Pole
+  placement* section under the eigenvalues. The poles start at the
+  eigenvalues moved into the stable region: an unstable one is reflected
+  into the left half-plane (for a map, inverted into the unit circle).
+  Type new values, or drag the blue circles in the complex plane: a real
+  pole moves along the real axis, a complex one takes its conjugate with
+  it; *pair* joins a real pole with the next real one into a complex pair,
+  and *split* turns a pair into two real poles. *Gain K* follows as you
+  go, and the blue dots are the eigenvalues of A − BK as computed, on the
+  circles when the placement worked. *Simulate the closed loop* does what
+  [closedloop](closedloop.md) does.
 - **In Python** `lin.place_poles()` returns K as an array.
 
 ## More about
@@ -75,6 +86,12 @@ writes this controller into the model to test it.
 poles can be reached, by exactly one K. Fast poles need large gains, and
 large gains can saturate a real actuator or excite what the linear model
 leaves out; [lqr](lqr.md) balances speed against effort instead.
+
+**Several inputs.** With one input the gain is unique (Ackermann's
+formula). With several, the spare freedom is spent on keeping the closed
+loop's eigenvectors well apart (the method of Kautsky, Nichols and Van
+Dooren), so that the poles stay put when the model is a little different;
+a pole can then be repeated up to as many times as there are inputs.
 
 ## Tips
 

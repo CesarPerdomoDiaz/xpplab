@@ -73,7 +73,7 @@ where the linear design stops working.
 
 | Setting | Where | Meaning | Advice |
 |---|---|---|---|
-| `FILE.ode` | the command; `path` in Python | Where to write the closed loop. | Next to the model by default. |
+| `FILE.ode` | the command; `path` in Python | Where to write the closed loop. | `NAME_closed_loop.ode` next to the model by default; for a shipped example, in Documents/XPP Lab. |
 
 ## Results
 

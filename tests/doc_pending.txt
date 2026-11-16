@@ -1,7 +1,6 @@
 # Commands whose reference page (docs/reference) is still to be written.
 # tests/doc_check.py: this list may only shrink. Write the page, then
 # delete the line.
-fit
 kinescope capture
 kinescope play
 kinescope clear
@@ -9,4 +8,3 @@ py
 python
 serve
 figure
-fitdata

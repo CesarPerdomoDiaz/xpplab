@@ -91,6 +91,15 @@ def test_doc_opens_the_page_of_a_command_or_a_method():
     assert xs.doc("AUTO  Steady", open=False) == site + "auto-steady/"
     with xs.load(xs.example("lecar.ode")) as m:
         assert xs.doc(m.auto.equilibria, open=False) == site + "auto-steady/"
+        # a method that shares its name with a command opens its own page
+        assert xs.doc(m.fit, open=False) == site + "fitdata/"
+        assert xs.doc(m.auto.load, open=False) == site + "auto-load/"
+        assert xs.doc(m.auto.save, open=False) == site + "auto-save/"
+        assert xs.doc(m.auto.set, open=False) == site + "auto-set/"
+    assert xs.doc(xs.load, open=False) == site + "open/"
+    assert xs.doc("fit", open=False) == site + "fit/"       # the command
+    assert xs.doc("save", open=False) == site + "save/"
+    assert xs.doc("equilibria", open=False) == site + "auto-steady/"
     assert xs.doc(open=False) == site + "reference/"
     assert xs.doc("no such thing", open=False) == site + "reference/"
     # the package knows exactly the pages that exist
@@ -1261,3 +1270,29 @@ def test_ic_page():
     assert lecar.get("W") == pytest.approx(-0.0144, rel=1e-12)
     lecar.close()
     m.close()
+
+
+def test_fitdata_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("fitdata.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "fitdata.md example 1", "exec"), ns)
+    m = ns["m"]
+    assert (tmp_path / "data.csv").read_text().startswith("T,V,W")      # export's CSV
+    assert round(m.get("gca"), 10) == 0.9999999999 and round(m.get("gk"), 9) == 2.000000006
+    assert f"{m.get('gca'):.6g}" == "1" and f"{m.get('gk'):.6g}" == "2"  # "Fitted: gca = 1 gk = 2"
+    exec(compile(blocks[1], "fitdata.md example 2", "exec"), ns)
+    assert round(m.get("W"), 2) == 0.03
+    m.close()
+
+
+def test_fit_page():
+    text, blocks = python_blocks("fit.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "fit.md example", "exec"), ns)
+    sol = ns["sol"]
+    assert round(float(sol["V"].min()), 2) == -0.43 and round(float(sol["V"].max()), 2) == 0.23
+    assert round(float(sol["W"].min()), 1) == 0 and round(float(sol["W"].max()), 1) == 0.4
+    ns["m"].close()

@@ -24,6 +24,7 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [annotate](annotate.md) | Add text, an arrow or a marker to a plot, or clear them. |
 | [show](show.md) | Bring a window forward, opening it if it is closed. |
 | [hide](hide.md) | Close a window. |
+| [fit](fit.md) | Fit every plot's axes to its data. |
 | [layout](layout.md) | The Phase Plane beside the Time Series, or all plots as tabs. |
 | [theme](theme.md) | Switch the colours between dark and light. |
 | [palette](palette.md) | Open the command palette, or search it. |
@@ -64,6 +65,7 @@ is described in [Commands and shortcuts](../manual/commands.md), and
 | [power](power.md) | The Fourier series as amplitudes and phases. |
 | [spectrum](spectrum.md) | The power spectral density of a column, or the cross spectrum or coherence of two. |
 | [hist2d](hist2d.md) | A two-dimensional histogram of two columns: the fraction of the run in each cell. |
+| [fitdata](fitdata.md) | Fit parameters and initial values to data, by least squares. |
 | [many](many.md) | Run from many initial values drawn at random in a box. |
 | [range](range.md) | Run once for each value of a parameter or initial value: a brute-force diagram, hysteresis, Liapunov exponents. |
 

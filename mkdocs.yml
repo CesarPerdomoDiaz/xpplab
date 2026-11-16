@@ -125,6 +125,7 @@ nav:
       - annotate: reference/annotate.md
       - show: reference/show.md
       - hide: reference/hide.md
+      - fit: reference/fit.md
       - layout: reference/layout.md
       - theme: reference/theme.md
       - palette: reference/palette.md
@@ -150,6 +151,7 @@ nav:
       - ani: reference/ani.md
       - mean: reference/mean.md
       - ensemble: reference/ensemble.md
+      - fitdata: reference/fitdata.md
       - linearize: reference/linearize.md
       - poles: reference/poles.md
       - lqr: reference/lqr.md

@@ -154,9 +154,16 @@ point (BP, label 2) at `r` = 0 where it loses stability, and the parabola
 
 How to read it. For steady states AUTO switches branch by itself: when a
 branch ends it goes back to each branch point it found and follows the
-branch that crosses there. Nothing more is needed, and `auto from 2 switch`
-would only draw `x` = 0 again. `switch` is for branch points on branches of
-*periodic orbits*, where AUTO does not do it by itself.
+branch that crosses there. Nothing more is needed. The Bifurcation window
+offers no *Switch to the other branch* at such a point, and
+`auto from 2 switch` says why instead of drawing `x` = 0 again. `switch` is
+for branch points on branches of *periodic orbits*, where AUTO does not
+switch by itself.
+
+AUTO follows the other branch at up to five branch points a run (its
+setting MXBF). On a model with more, the later ones keep only the branch
+they lie on: raise the limit in Python with `m.auto.set(mxbf=10)` and run
+again.
 
 ## Settings
 
@@ -256,7 +263,7 @@ the value at the Hopf point.
 | `error: unknown action NAME` | The action is not one of the six. | See the table under Description. |
 | `error: no parameter NAME` | `PAR2` is not a parameter of the model. | `whos` lists the parameters. |
 | The same special points repeat | The branch is a closed loop and **Max steps** is large. | Lower **Max steps**. |
-| `switch` draws the branch it started from | The point is a branch point of steady states, whose other branch AUTO has drawn already. | Nothing: look at the diagram of `auto steady`. |
+| `error: BP #N is a branch point of steady states: AUTO follows the other branch of such a point by itself, ...` | AUTO switches branch at a branch point of steady states by itself, in the run that finds it; `switch` would retrace the branch. | Look at the diagram of `auto steady`. If the other branch is missing, the run met more than five branch points: `m.auto.set(mxbf=10)` in Python, and run again. |
 
 ## References
 
@@ -282,3 +289,6 @@ the value at the Hopf point.
 ## Version history
 
 Introduced in 0.1.0.
+
+0.1.4: `switch` at a branch point of steady states is an error that says
+why, and the Bifurcation window no longer offers it there.

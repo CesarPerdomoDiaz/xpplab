@@ -136,6 +136,17 @@ with tempfile.TemporaryDirectory() as t:
     good = r.stdout.split(">> figure xlim 0 50")[1]
     check("error" not in good, "figure xlim 0 50 and a good style: " + good)
 
+    # switch at a branch point of steady states retraced the branch it
+    # started from: AUTO had followed the other one already (#131)
+    pf = examples.parent / "tstauto" / "pf.ode"
+    if pf.exists():
+        shutil.copy(pf, work)
+        r = run(["pf.ode", "--keep-going", "-c", "auto steady", "-c", "auto from 2 switch",
+                 "-c", "auto from 2 extend"], work)
+        check("error: BP #2 is a branch point of steady states" in r.stdout
+              and "AUTO computed" in r.stdout.split(">> auto from 2 extend")[1],
+              "switch at a steady branch point: " + r.stdout[-800:])
+
     # fitdata reads the CSV that export writes (a header, commas)
     r = run(["lecar.ode", "--keep-going", "-c", "set iapp=0.1", "-c", "run",
              "-c", "export data.csv", "-c", "set gca=1.2 gk=1.8",

@@ -62,7 +62,7 @@ branch of steady states, then the periodic branch from the Hopf point.
 | `NTST` | **Mesh NTST** | `m.auto.set(ntst=...)` | |
 | `NCOL`, `IAD`, `MXBF`, `IID`, `ITMX`, `ITNW`, `NWTN`, `IADS`, `EPSL`, `EPSU`, `EPSS` | not in the app | `m.auto.set(ncol=..., iad=..., ...)` | The same names in lower case. |
 | `ISP` | not in the app | `m.auto.set(suppbp=1)` | XPP Lab sets `ISP` itself for each kind of run, and `suppbp=1` sets it to 0. See below. |
-| `ISW=-1` at a branch point | select the BP, **Switch to the other branch** | `m.auto.continue_from(bp, "switch")` | |
+| `ISW=-1` at a branch point | select the BP, **Switch to the other branch** | `m.auto.continue_from(bp, "switch")` | At a branch point of periodic orbits. At one of steady states AUTO switches by itself (`MXBF`). |
 | `ISW=2` at LP, HB, PD, TR | select the point, a two-parameter action | `m.auto.continue_from(pt, "two-parameter", second=...)` | |
 | `IRS` with a label | select the point in the table or on the plot | `m.auto.continue_from(5, ...)` | The label is one of the current diagram. |
 | the labels `LP`, `HB`, `BP`, `PD`, `TR`, `EP`, `MX` | the **Type** column | `p.type`, `d.special("HB")`, `d.first("LP")`, `d.label(5)` | A regular point has the type `""`. |

@@ -231,6 +231,8 @@ To do:
 ### M11 Scale and reach
 - [ ] A compiled engine for large models, checked against XPPAUT's
 - [ ] A model builder that writes the `.ode` file
-- [ ] SBML and NeuroML import
+- [ ] SBML and NeuroML import (design in
+      [docs/design/import.md](docs/design/import.md), which lists the
+      pieces)
 - [ ] XPP Lab in the browser, with nothing to install
 - [ ] An index of toolboxes that install with pip and appear in the app

@@ -166,6 +166,10 @@ with tempfile.TemporaryDirectory() as t:
     check("was not loaded: it is a diagram of a model with the variables V W and the "
           "parameters iapp" in r.stdout, "auto load refuses another model: " + r.stdout[-600:])
 
+    # set took a name the model does not have without a word
+    r = run(["lecar.ode", "--keep-going", "-c", "set gna=1"], work)
+    check("error: unknown name gna" in r.stdout, "set refuses an unknown name: " + r.stdout[-400:])
+
     # fitdata reads the CSV that export writes (a header, commas)
     r = run(["lecar.ode", "--keep-going", "-c", "set iapp=0.1", "-c", "run",
              "-c", "export data.csv", "-c", "set gca=1.2 gk=1.8",

@@ -1,26 +1,3 @@
 # Members of the Python API not yet written to the reference standard
-# (test_api_docs.py). The list may only shrink.
-app.connect
-app.App
-app.App.close
-app.App.command
-app.App.set
-app.App.get
-app.App.run
-app.App.last_run
-app.App.open
-app.App.model
-app.App.parameters
-app.App.initial_conditions
-app.App.variables
-app.App.columns
-app.AppModel
-app.AppModel.set
-app.AppModel.get
-app.AppModel.run
-app.AppModel.last_run
-app.AppModel.command
-app.AppModel.variables
-app.AppModel.columns
-app.AppModel.local
-app.AppError
+# (test_api_docs.py). The list may only shrink; it is empty now, so every
+# new function, method or property needs its entry written.

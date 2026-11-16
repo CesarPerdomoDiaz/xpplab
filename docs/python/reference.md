@@ -6,11 +6,10 @@ output, and links to the command of the desktop app that does the same
 (the [command reference](../reference/reference.md)). The examples are run
 by the tests, as written, so the outputs shown are the package's.
 
-The examples start with `import xpplab as xs` and `import numpy as np`.
-`xs.doc(m.run)` opens the command reference page of a method.
-
-Some entries are still being written to this standard; they have a
-shorter description and no example yet.
+The examples start with `import xpplab as xs` and `import numpy as np`,
+in an empty folder. Those of `xs.app` need the desktop app running with
+`lecar.ode` open. `xs.doc(m.run)` opens the command reference page of a
+method.
 
 ## Models
 

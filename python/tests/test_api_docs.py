@@ -179,12 +179,59 @@ def test_the_checker_allows_only_the_last_digits():
 DONE = [(name, obj, fn) for name, obj, fn in members() if name not in pending()]
 
 
+@pytest.fixture(scope="module")
+def desktop_app(tmp_path_factory):
+    """The desktop app, started scripted with lecar.ode, for the examples of
+    xpplab.app. They run when XPPLAB_APP names the app's executable (the app
+    opens a window, as tests/channel_check.py does); otherwise they skip."""
+    exe = os.environ.get("XPPLAB_APP")
+    if not exe:
+        pytest.skip("the examples of xpplab.app need the desktop app: set XPPLAB_APP")
+    import shutil
+    import subprocess
+    import time
+    work = tmp_path_factory.mktemp("app")
+    model = work / "lecar.ode"
+    shutil.copy(xs.example("lecar.ode"), model)
+    channel = work / "channel.json"
+    old = os.environ.get("XPPLAB_CHANNEL")
+    os.environ["XPPLAB_CHANNEL"] = str(channel)
+    proc = subprocess.Popen([exe, str(model), "--serve", "--screenshot",
+                             str(work / "shot.png"), "--frames", "1000000"],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for _ in range(600):
+        if channel.exists() or proc.poll() is not None:
+            break
+        time.sleep(0.05)
+    if not channel.exists():
+        proc.kill()
+        pytest.skip("the desktop app did not start")
+    yield model
+    try:
+        with xs.app.connect() as app:
+            app.command("quit")
+    except xs.app.AppError:
+        pass  # the app closes the connection as it quits
+    try:
+        proc.wait(timeout=30)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+    if old is None:
+        os.environ.pop("XPPLAB_CHANNEL", None)
+    else:
+        os.environ["XPPLAB_CHANNEL"] = old
+
+
 @pytest.mark.parametrize("name,obj,fn", DONE, ids=[d[0] for d in DONE])
-def test_examples_run_as_written(name, obj, fn, tmp_path, monkeypatch):
+def test_examples_run_as_written(name, obj, fn, tmp_path, monkeypatch, request):
     doc = inspect.getdoc(obj if inspect.isclass(obj) or isinstance(obj, property)
                          else fn)
     if ">>>" not in (doc or ""):
         pytest.skip("no example")
+    if name.startswith("app."):
+        model = request.getfixturevalue("desktop_app")
+        with xs.app.connect() as app:  # each example starts from the file
+            app.open(model)
     monkeypatch.chdir(tmp_path)
     try:  # the examples that plot draw off screen
         import matplotlib
@@ -200,7 +247,7 @@ def test_examples_run_as_written(name, obj, fn, tmp_path, monkeypatch):
         runner.run(test, out=out.append)
     finally:
         for value in globs.values():
-            if isinstance(value, xs.Model):
+            if isinstance(value, (xs.Model, xs.app.App)):
                 value.close()
         if "matplotlib.pyplot" in sys.modules:
             sys.modules["matplotlib.pyplot"].close("all")

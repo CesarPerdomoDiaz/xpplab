@@ -101,6 +101,14 @@ find out where things are, then small ones for the diagram you keep.
 parameter and the variables together, so their right size depends on the
 scale of the model's variables as well as of the parameter.
 
+The command and Python also take AUTO's other settings, which the
+Numerics section does not show: `normmin` and `normmax` (a branch stops
+when its norm leaves them: check them when a branch stops early), `ncol`
+(collocation points per mesh interval), `epsl`, `epsu` and `epss`
+(Newton's tolerances, and the one for locating special points), `iad` and
+`iads` (how often the mesh and the step adapt), `mxbf` (how many branch
+points one run follows), `itmx`, `itnw`, `nwtn`, `iid` and `suppbp`.
+
 ## Results
 
 Nothing is drawn. The values appear in the **Numerics** section of the

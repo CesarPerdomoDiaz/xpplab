@@ -146,7 +146,11 @@ NAME=VALUE ...`, or as keywords in Python. A model file can set its own with
 
 - **The Bifurcation window** shows the branch: the parameter across, and up
   the variable chosen under **Plot** (its value at the steady state). Red is
-  stable and black unstable, solid and dashed, as in XPPAUT.
+  stable and black unstable, solid and dashed, as in XPPAUT; periodic
+  orbits, added by [auto from](auto-from.md), are green and blue. Scroll to
+  zoom and drag to pan (right-drag zooms to a box): the view then stays
+  where it is while AUTO adds points, and a double-click or **Fit** shows
+  the whole diagram again.
 - **The table of special points** lists each labelled point with its type,
   the parameter value and the state. Click a row, or the point on the plot,
   to select it. The actions that make sense from it appear beside the table.

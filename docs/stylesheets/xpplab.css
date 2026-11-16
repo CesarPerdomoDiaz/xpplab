@@ -109,3 +109,13 @@
   border-color: #c98a00;
   color: #fff;
 }
+
+/* The gallery's cards: smaller than Material's, so that three or four fit
+   in a row (#125). */
+.md-typeset .grid.cards.gallery {
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+.md-typeset .grid.cards.gallery > ul > li > p:first-child img {
+  display: block;
+  margin: 0 auto;
+}

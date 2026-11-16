@@ -313,6 +313,14 @@ def classics_page():
              "The example models that came with XPPAUT are on "
              "[their own page](xppaut.md).", ""]
     done = 0
+    # At a glance: a card per model, which links its section below (#125).
+    cards = ['<div class="grid cards gallery" markdown>', ""]
+    for section, names in SECTIONS:
+        for name in names:
+            title = TITLES.get(name, describe(CLASSICS / f"{name}.ode", limit=0)[0])
+            cards += [f"-   [![{title}](img/classic-{name}.png)](#{name})", "",
+                      f"    **[{title}](#{name})**  ", f"    {section}", ""]
+    lines += cards + ["</div>", ""]
     for section, names in SECTIONS:
         lines += [f"## {section}", ""]
         for name in names:
@@ -325,7 +333,7 @@ def classics_page():
             fig.tight_layout(pad=0.4)
             fig.savefig(OUT / "img" / f"classic-{name}.png")
             plt.close(fig)
-            lines += [f"### {title}", "",
+            lines += [f"### {title} {{#{name}}}", "",
                       f"![{title}](img/classic-{name}.png)", "",
                       f"*{caption}*", "", about, "",
                       "$$", EQUATIONS[name], "$$", "",
@@ -375,20 +383,23 @@ def xppaut_page(limit):
             break
     lines = ["# XPPAUT's example models", "",
              f"The {len(entries)} example models that ship with XPPAUT, run by "
-             "XPP Lab. Open any of them from the app's **Models** window, "
-             "or in Python with `xs.load(xs.example(\"name.ode\"))`. The "
-             "[gallery](index.md) has the classic systems.", ""]
+             "XPP Lab, each with its first variables against time. Open any of "
+             "them from the app's **Models** window, or in Python with "
+             "`xs.load(xs.example(\"name.ode\"))`. The "
+             "[gallery](index.md) has the classic systems.", "",
+             '<div class="grid cards gallery" markdown>', ""]
     for path, variables, params in entries:
         title, rest = describe(path)
         about = " ".join(x for x in (title if title != path.stem else "", rest) if x)
-        lines += [f"## {path.stem}", "",
-                  f"![{path.stem}](img/{path.stem}.png)", "",
-                  about or "No description in the file.", "",
-                  f"Variables: {', '.join(variables[:10])}"
+        lines += [f"-   ![{path.stem}](img/{path.stem}.png)", "",
+                  f"    **{path.stem}** · [model file]({REPO}engine/xppaut/ode/{path.name})",
+                  f"    {{ #{path.stem} }}", "",
+                  f"    {about or 'No description in the file.'}", "",
+                  f"    Variables: {', '.join(variables[:10])}"
                   f"{' ...' if len(variables) > 10 else ''}. "
                   f"Parameters: {', '.join(params[:10]) or 'none'}"
-                  f"{' ...' if len(params) > 10 else ''}. "
-                  f"[Model file]({REPO}engine/xppaut/ode/{path.name})", ""]
+                  f"{' ...' if len(params) > 10 else ''}.", ""]
+    lines += ["</div>", ""]
     (OUT / "xppaut.md").write_text("\n".join(lines), encoding="utf-8")
     return len(entries)
 

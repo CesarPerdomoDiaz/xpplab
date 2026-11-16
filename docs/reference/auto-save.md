@@ -98,7 +98,9 @@ parameters that were not varied.
 - Save before an experiment that may clutter the diagram, such as a branch
   of orbits with **Max steps** too high. Loading the file again is quicker
   than clearing and recomputing.
-- Files written here open in XPPAUT, and XPPAUT's open here.
+- Files written here open in XPPAUT, and XPPAUT's open here. XPPAUT
+  writes the numbers with 6 digits; XPP Lab writes them in full, so a
+  diagram it saved comes back exactly as it was.
 
 ## Algorithms
 

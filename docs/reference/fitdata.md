@@ -103,7 +103,7 @@ changed, for the model's later fits too.
 ## Results
 
 - **The parameters** hold the fitted values, and the command window lists
-  them.
+  them. The model is run again to show the fitted solution.
 - **The log** shows each iteration's error and, at the end, the
   covariance of the fitted values.
 - **In Python** `m.fit()` returns the fitted values as a dictionary.

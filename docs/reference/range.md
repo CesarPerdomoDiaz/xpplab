@@ -12,12 +12,15 @@ range NAME FROM TO STEPS VAR continue
 range NAME FROM TO STEPS lyap
 range NAME FROM TO STEPS eq
 range NAME FROM TO STEPS NAME2 FROM2 TO2 STEPS2 VAR
+range NAME FROM TO STEPS NAME2 FROM2 TO2 VAR
+range NAME FROM TO STEPS film
 ```
 
 `sweep` is another name for `range`.
 
-- **In the app:** Workspace > **Range**, or XPPAUT's *Initial conds >
-  Range*.
+- **In the app:** Workspace > **Range**, or Run > **Range...** (XPPAUT's
+  *Initial conds > Range*; with **Vary a second value too**, its *2par
+  range*).
 - **In Python:** `m.sweep("iapp", values, measure=...)`, and
   `m.sweep_grid(...)` for two values on a grid.
 
@@ -41,16 +44,24 @@ What is kept depends on the last word:
 - **`lyap`**: the largest Liapunov exponent of each run: negative for rest,
   zero for an oscillation, positive for chaos.
 - **`eq`**: the equilibrium at each value, found by Newton's method from the
-  one before, with its stability (XPPAUT's *Sing pts > Range*).
+  one before (the first time from the initial values), with its stability
+  (XPPAUT's *Sing pts > Range*). No run is made: steady states and their
+  stability without AUTO.
 
 `continue` starts each run where the previous one ended, instead of from the
 initial values. The sweep then follows one attractor as the parameter
 changes, which is how to see bistability: sweep up and then down, and the
 two disagree where two attractors coexist.
 
-With a second name and range the sweep covers two values: on a grid of
-`STEPS` × `STEPS2` runs, or, without `STEPS2`, along a line with both
-changing together.
+`film` draws each run alone and has the Kinescope capture its figure after
+every run: see [kinescope capture](kinescope-capture.md).
+
+With a second name and range the sweep covers two values (XPPAUT's *2par
+range*): on a grid of `STEPS` × `STEPS2` runs, every pair once (XPPAUT's
+"Array"), or, without `STEPS2`, along a line with both changing together,
+`STEPS` runs from (`FROM`, `FROM2`) to (`TO`, `TO2`) (XPPAUT's "Crv"). The
+second name may also be a variable: `range iapp 0 0.3 3 V -0.2 0.2 2` runs
+over `iapp` and `V`'s initial value, keeping the runs.
 
 ## Examples
 
@@ -130,20 +141,37 @@ in depends on its history: *hysteresis*.
 
 | Setting | Where | Meaning | Advice |
 |---|---|---|---|
-| `STEPS` | the command; the length of `values` in Python | The number of runs. | 20 by default. Enough to see the shape; then refine near the changes. |
-| `VAR`, `lyap`, `eq` | the command; `measure=` in Python | What to keep from each run. | `VAR` for a diagram, `lyap` to tell rest, oscillation and chaos apart. |
-| `continue` | the command; `continue_runs=True` in Python | Start each run where the last ended. | Use it to follow an attractor, and sweep both ways to find hysteresis. |
+| `NAME`, `FROM`, `TO` | the command; **Range over**, **From**, **To** in the Range tab | The parameter, or a variable's initial value, and its range. | |
+| `STEPS` | the command; **Steps** in the Range tab; the length of `values` in Python | The number of runs. | 20 by default. Enough to see the shape; then refine near the changes. |
+| `VAR`, `lyap`, `eq` | the command; in the Range tab **Max / min of a variable**, **Liapunov exponent**, **Equilibria (no runs)**, or **Keep each trajectory** for none; `measure=` in Python | What to keep from each run. | `VAR` for a diagram, `lyap` to tell rest, oscillation and chaos apart. |
+| `continue` | the command; **Start each run where the last ended** in the Range tab (XPPAUT's "Use old ICs" = No); `continue_runs=True` in Python | Start each run where the last ended. | Use it to follow an attractor, and sweep both ways to find hysteresis. |
+| `NAME2 FROM2 TO2 STEPS2` | the command; **Vary a second value too**, then **On a grid** or **Together, along a line**, in the Range tab; `m.sweep_grid()` in Python | The second value, and how the two move. | A grid maps a plane of two values; a line crosses it once. |
 | **Total time**, **Transient** | `set total=... trans=...` | The length of each run and the part dropped before measuring. | The transient must be long enough for the run to settle, or the measure mixes the approach with the attractor. |
 
 ## Results
 
-- **Without `VAR`**: all the runs, in the Time Series and the Phase Plane.
+- **Without `VAR`**: all the runs overlaid in the Time Series and the
+  Phase Plane, up to 16.
 - **With `VAR`**: the maximum and minimum against `NAME`, as grey dots in
   the Bifurcation window when it is set to that parameter and variable.
   `figure range` puts them in a figure, and `export FILE.csv range` writes a
   table with one row per value: `NAME`, `VAR_max`, `VAR_min`.
 - **With `lyap`**: the exponent at each value, in the table that
   `export FILE.csv range` writes.
+- **With `eq`**: the chosen variable of each equilibrium against `NAME`,
+  red where the equilibrium is stable and black where it is not. When the
+  parameter matches the Bifurcation window's, the dots appear on AUTO's
+  diagram too, and should sit on its steady-state branch.
+- **Two values on a grid**, with `VAR` or `lyap`: a colour map over the two
+  values, the first across and the second up. **Show** picks what the
+  colour means for the maximum and minimum: the swing (max − min, zero where
+  the system settles to an equilibrium), the max or the min. For the
+  Liapunov exponent the colours run from blue (negative) through white to
+  red (positive), so chaotic regions stand out.
+- **Two values along a line**: plotted against the first value, as with
+  one.
+- **Two values**, exported: `export FILE.csv range` writes one row per run
+  with both values.
 - **In Python** `m.sweep()` returns a list of runs, or with `measure=` an
   array of the measure at each value. The parameter and the initial values
   are put back afterwards.
@@ -167,6 +195,10 @@ bifurcation it takes longer, because the attractor is only weakly stable,
 so a sweep close to a bifurcation needs a longer transient than one far
 from it.
 
+**Two values.** On a grid, `continue` goes through it row by row, the first
+value changing fastest. Keeping the runs works for up to 16 runs. `eq`
+follows the first value only.
+
 ## Tips
 
 - Start with few steps over a wide range, then narrow the range around
@@ -174,7 +206,12 @@ from it.
 - Always sweep both ways with `continue` when the diagram has folds.
 - If the points near a bifurcation scatter, the runs have not settled:
   raise `total` and `trans`.
-- For chaos, the swing does not tell rest from chaos: use `lyap`.
+- For chaos, the swing does not tell rest from chaos: use `lyap`. Try the
+  Lorenz model with `range r 20 30 30 lyap continue`: where the exponent
+  rises above zero, the system is chaotic.
+- For a map over two parameters, `range iapp 0 0.5 21 gca 0.8 1.4 13 V`
+  runs a 21 by 13 grid; `range iapp 0 0.5 30 gca 0.8 1.2 lyap`, with no
+  second count, runs along a line.
 
 ## Algorithms
 
@@ -182,8 +219,8 @@ Each run is an ordinary [run](run.md) with the model's method and step.
 For `VAR` the maximum and minimum are taken over the stored points after
 the transient. For `lyap` the exponent is computed from the run as XPPAUT's
 *Liapunov exponent* does. For `eq` Newton's method starts at each value from
-the equilibrium found at the value before, as XPPAUT's *Sing pts > Range*
-does.
+the equilibrium found at the value before (at the first value, from the
+initial values), as XPPAUT's *Sing pts > Range* does.
 
 ## When it fails
 

@@ -69,7 +69,7 @@ wind speed into the dimensionless one of a model.
 - **Columns of the run**: any two columns of the last run, `aux` quantities
   included.
 - **Many runs / shooting**: the runs of Workspace > Many runs (see
-  [Many runs](tools.md#many-runs-and-shooting)), as one series or one per
+  [many](../reference/many.md) and [shoot](../reference/shoot.md)), as one series or one per
   way the runs ended.
 - **Bifurcation diagram**: along the diagram, any of a variable or an `aux`
   quantity (the value at each steady state; the maximum or minimum over
@@ -128,24 +128,9 @@ that resolution recorded in the file, so that it is placed at its size:
 
 ## Commands
 
-The same from the command window or an `xpplab-batch` script:
-
-```
-figure new 86 65 1 2           a page of 86 x 65 mm, one row of two panels
-figure panel 2                 work on panel 2
-figure run T V                 two columns of the run
-figure many V W split          the many runs, a series per ending
-figure diagram V stable steady   (also: unstable, orbits, min, x X,
-                                 branch B, between L1 L2, where COL min LO HI)
-figure function 1/sqrt(x) 0.1 10
-figure curve V' V -1 1
-figure xlabel Wind velocity $V_W$ [m/s]
-figure xlim 2.1 2.3            (ylim, or xlim auto)
-figure style 1 color #d62728 line -- width 1 marker o scale 1 57.2958 label Stable
-figure export figure.pdf       (or .svg, .eps, .png 600)
-annotate figure text 2.2 0.4 size 10 color #d62728 saddle $V_W$
-annotate figure arrow 2.1 0.2 2.2 0.35
-annotate figure marker 2.2 0.35 o
-annotate figure clear 2        (delete the second; without a number, all)
-annotate phase text -0.2 0.2 peak     (also time, auto, auto2: the plot windows)
-```
+Everything the window does is also a command, for the command window or
+an `xpplab-batch` script: `figure new 86 65 1 2`, `figure run T V`,
+`figure xlabel Wind velocity $V_W$ [m/s]`, `figure export figure.pdf`, and
+`annotate figure text 2.2 0.4 saddle`. Every form, with worked examples,
+is on [figure](../reference/figure.md) and
+[annotate](../reference/annotate.md).

@@ -99,12 +99,20 @@ frictionless pendulum, swinging for ever at angular frequency 1.
 
 ## Results
 
-- **The Analysis window** draws the poles' paths in the complex plane.
+- **The Analysis window** draws the poles' paths in the complex plane,
+  each from an x at the first value to an o at the last, in the *Root
+  locus* section under the eigenvalues after *Linearise*.
 - **The command window** lists the crossings of the edge of stability.
 - **In Python** a `RootLocus`: `values`, `poles`, `crossings()`, `plot()`,
   `to_csv()`.
 
 ## More about
+
+**Branches and crossings.** From one step to the next each eigenvalue is
+matched with the nearest one, so a branch follows one eigenvalue. A
+crossing is found between the two steps around it. Over a parameter, a
+complex pair crossing the imaginary axis is a Hopf bifurcation, and a real
+eigenvalue crossing zero a fold or a branch point.
 
 **Gain margin.** The smallest scale of the gain that keeps the loop
 stable, here 1/3, is a measure of robustness: a real controller whose

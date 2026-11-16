@@ -13,7 +13,8 @@ view3d spin off
 view3d angles THETA PHI
 ```
 
-- **In the app:** Run > **3D view**; drag in the view to turn it.
+- **In the app:** Run > **3D view**, or View > **3D View**; drag in the
+  view to turn it.
 - **In Python:** `sol.plot3d("X", "Y", "Z")`, a matplotlib 3-D plot.
 
 ## Description
@@ -68,14 +69,15 @@ sheets, joined where the curve crosses over.
 
 | Setting | Where | Meaning | Advice |
 |---|---|---|---|
-| `X`, `Y`, `Z` | the command; the names in Python | The three columns. | Any columns of the run. |
-| `SPEED` | `view3d spin SPEED` | Degrees a second. | 24 by default. |
-| `THETA`, `PHI` | `view3d angles` | The view's angles, in degrees. | Turn by dragging, and read them off for a figure you will remake. |
+| `X`, `Y`, `Z` | the command; **x**, **y**, **z** in the view; the names in Python | The three columns. | Any columns of the run. |
+| `SPEED` | `view3d spin SPEED`; **Spin** in the view | Degrees a second. | 24 by default. |
+| `THETA`, `PHI` | `view3d angles`; **theta**, **phi** in the view | The view's angles, in degrees, as XPPAUT's: `THETA` turns the box about the vertical axis, and `PHI` tilts it, with 90 for a side view and 0 looking straight down. | Turn by dragging, and read them off for a figure you will remake. |
 
 ## Results
 
-- **The 3-D view** draws the run as a curve, and its axes with their
-  names.
+- **The 3-D view** draws the run as a curve in a box, with any kept
+  curves, and its axes with their names. Drag to turn it, scroll to zoom,
+  double-click to reset the zoom.
 - **In Python** `sol.plot3d()` returns matplotlib's 3-D axes.
 
 ## More about
@@ -83,6 +85,11 @@ sheets, joined where the curve crosses over.
 **Three dimensions on a screen.** A still 3-D picture is a projection, and
 a curve can seem to cross itself where it only passes behind. Turning the
 view, or letting it spin, separates what is in front from what is behind.
+
+**A model's own view.** A model that asks for a 3-D plot, as
+`@ xplot=x, yplot=y, zplot=z, axes=3d, phi=60` does (with `xmin=` ...
+`zmax=` for the box), opens with its view, as in XPPAUT. **Reset** returns
+to it.
 
 **Equilibria of the Lorenz system.** With `r` = 27, `s` = 10 and
 `b` = 8/3, the equilibria are the origin, a saddle, and C± = (±√(b(r−1)),

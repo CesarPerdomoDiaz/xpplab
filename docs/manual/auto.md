@@ -25,12 +25,10 @@ marks a **special point**:
 
 Stable parts are drawn solid, unstable parts dashed. The colours follow
 XPPAUT: steady states are red (stable) and black (unstable); periodic orbits
-are green (stable) and blue (unstable).
-
-To look closely at part of the diagram, scroll to zoom and drag to pan
-(right-drag zooms to a box). The view then stays where you put it while
-AUTO adds points; double-click the plot or press **Fit** to see the whole
-diagram again.
+are green (stable) and blue (unstable). The reference pages say how to
+read every part of the window: [auto steady](../reference/auto-steady.md)
+for steady states, [auto from](../reference/auto-from.md) for what can be
+continued from each kind of point.
 
 ## A typical session
 
@@ -57,126 +55,54 @@ set (Workspace > Sets), then [follow the steady states in iapp](cmd:auto steady 
 
 ## Check the diagram with simulations
 
-**Workspace > Range** (XPPAUT's *Initial conds > Range*) runs the model
-once for each value of a parameter, and in *Max / min* mode records the
-maximum and minimum of a variable after a transient. When the parameter and
-the plotted variable match the Bifurcation window's, the results appear as
-grey dots on AUTO's diagram. They should sit on the stable branches: the
-solid red lines and the solid green ones. Where the system is bistable,
-different initial values land on different branches; tick *Start each run
-where the last ended* to follow one branch as the parameter moves.
+A diagram is a computation, and worth checking against runs.
+**Workspace > Range** in *Max / min* mode runs the model once per value of
+the parameter and records the largest and smallest value of a variable;
+when the parameter and the variable match the Bifurcation window's, they
+appear as grey dots on AUTO's diagram, and should sit on the stable
+branches. See [range](../reference/range.md).
 
 ## The numerical settings
 
-| Setting | Meaning | Advice |
-|---|---|---|
-| Step DS | Size of the first step. **Its sign is the direction.** | Use a negative DS to explore towards smaller parameter values. |
-| DS min, DS max | Bounds on the adaptive step. | A smaller DS max gives smoother curves and fewer missed points. |
-| Par min, Par max | The parameter range. | AUTO stops at the edges. |
-| Max steps (NMAX) | Most steps per run. | A closed loop of orbits runs until NMAX: lower it to stop sooner. |
-| Label every (NPR) | Also label a point every N steps. | Labelled points can be continued from. |
-| Mesh NTST | Mesh intervals for periodic orbits. | Increase it (to 50 or 100) for spiky orbits such as action potentials. |
+Three settings matter most. **Par min** and **Par max** are where the
+branch stops; set them first. The sign of **Step DS** is the direction
+the branch is followed in: negative to go towards smaller values first.
+**DS max** controls the quality: smaller gives a smoother curve and fewer
+missed points. For periodic orbits, raise **Mesh NTST** (to 50 or 100)
+for spiky orbits such as action potentials, and keep **Max steps** low,
+since a branch of orbits is often a closed loop that AUTO retraces. Each
+setting is on [auto set](../reference/auto-set.md).
 
 ## Saving a diagram and coming back to it
 
 **Save...** under the buttons saves the diagram as an `.auto` file, the
-format of XPPAUT's *AUTO > File > Save diagram*. The file holds AUTO's
-settings, every point, and AUTO's restart data. **Open...** brings it back
-in place of the diagram shown, so the next day you can pick a labelled
-point and carry on where you stopped. XPPAUT opens these files too, and
-XPP Lab opens XPPAUT's. (XPPAUT wrote the numbers with 6 digits; XPP Lab
-writes them in full, so a diagram comes back exactly as saved.)
+format of XPPAUT's *AUTO > File > Save diagram*, and **Open...** brings it
+back, so the next day you can pick a labelled point and carry on.
+**Show this orbit as the run** makes one period of a periodic orbit the
+current run, for the phase plane, the time series and the Analysis tools.
+See [auto save](../reference/auto-save.md),
+[auto load](../reference/auto-load.md) and
+[auto orbit](../reference/auto-orbit.md).
 
-To see one of the periodic orbits, select a point on a periodic branch and
-press **Show this orbit as the run** (XPPAUT's *Import orbit*). One period
-of the orbit, from AUTO's own solution, becomes the current run: it shows
-in the phase plane and the time series, and the Analysis tools work on it.
+## Boundary value problems, homoclinic and heteroclinic orbits
 
-Commands: `auto save fold.auto`, `auto load fold.auto`, `auto orbit 6`.
-
-## Boundary value problems, homoclinic and heteroclinic orbits (Python)
-
-AUTO's boundary value, homoclinic and heteroclinic starts are available from
-Python as `start("bvp", ...)`, `start("homoclinic", ...)` and
-`start("heteroclinic", ...)`, and tested against known answers
-(`python/tests/test_auto_bvp_homoclinic.py`). The desktop app does
-not offer them yet.
-
-**Boundary value problems.** Rescale the interval to `[0, 1]`, give one `b`
-line per equation, and run the model so that AUTO starts from a solution
-that satisfies the conditions. For `x'' = l x`, `x(0) = 0`, `x(1) = 1`:
-
-```python
-m.run()                      # the exact solution at l = 1
-d = m.auto.start("bvp", "l", nmax=40, ds=0.05)
-```
-
-Each point agrees with `x'(0) = sqrt(l) / sinh(sqrt(l))`.
-
-**Homoclinic orbits.** The start continues a long periodic orbit in two
-parameters. Find the orbit first: continue periodic orbits from a Hopf point
-until the period is large, import one with `auto.orbit(point)`, and put the
-model's parameters at that point's values. Then give the saddle:
-
-```python
-m.auto.orbit(orbit_point)
-m.set(a=orbit_point.value)
-h = m.auto.start("homoclinic", "a", second="b", left=[0, 0],
-                 unstable=1, stable=1)
-```
-
-`left=` is the saddle (and `right=` the second equilibrium of a
-heteroclinic start); `unstable=` and `stable=` are the dimensions of its
-manifolds. They fill the "Homoclinic info" box XPPAUT shows. The test uses
-`x' = y`, `y' = x(1-x) - a y + b x y`: the curve starts where the period of
-the orbits diverges and follows `a = 6b/7` for small `b`.
-
-Limits:
-
-- The starting orbit must be close to the homoclinic but not too long. A
-  period of about 150 worked. With a period of 12 000 or more in the same
-  model, and with a period of 370 in another, the first steps left the
-  curve. Start from the first labelled orbit with a long period, not the
-  longest.
-- The first steps after the start can wobble before AUTO settles on the
-  curve (a couple of per cent in the test); the test allows 1% on the
-  settled points.
-- Only 1-dimensional unstable and stable manifolds in the plane have been
-  tested.
-
-**Heteroclinic orbits.** A heteroclinic start continues a connection from the
-saddle `left=` to the saddle `right=`. The last run is the first
-approximation: a trajectory that leaves the first saddle along its unstable
-manifold and arrives near the second; its length becomes the truncation
-interval. The test uses the bistable front, `u'' + c u' + u(1-u)(u-a) = 0`:
-
-```python
-m.run()   # from near (1, 0) along the front to near (0, 0)
-h = m.auto.start("heteroclinic", "c", second="a", left=[1, 0],
-                 right=[0, 0], unstable=1, stable=1)
-```
-
-The connection from (1, 0) to (0, 0) lies exactly on `c = √2 (1/2 − a)`, and
-AUTO's points agree with it to 1e-10 while both ends are saddles
-(0 < a < 1), in either direction along the curve and whichever method made
-the starting run. The orbit's least `v` matches the front's −1/(4√2).
-Two things to watch:
-
-- The starting run must actually leave the first saddle. Started 1e-6 from
-  it, CVODE at its default tolerance stays there, and AUTO then finds
-  nothing; at TOL = ATOL = 1e-10 it follows the front.
-- Past a = 0 the end (0, 0) is no longer a saddle but a node, and the
-  continued points drift away from the formula: a saddle-to-saddle
-  connection no longer describes the front there.
+AUTO's boundary-value, homoclinic and heteroclinic starts are available
+from Python, `m.auto.start("bvp", ...)`, `"homoclinic"` and
+`"heteroclinic"`; the desktop app does not offer them yet. The Python
+guide's [Bifurcations with AUTO](https://cesarperdomodiaz.github.io/xpplab/python/auto/#boundary-value-problems-homoclinic-and-heteroclinic-orbits)
+shows how to start each, with the tested examples and their limits.
 
 ## When things go wrong
 
 - **"AUTO computed no points"**: the start point is probably not an
   equilibrium. Run the model to steady state first, or press Equilibrium.
-- **The branch stops early**: check Par min and Par max, and Norm max.
-  Then try a smaller DS max.
+- **The branch stops early**: check Par min and Par max, then try a
+  smaller DS max.
 - **Periodic orbits fail from a Hopf point**: increase NTST, or reduce DS.
 - **Points come out jagged**: reduce DS max.
+
+Each reference page ends with a *When it fails* table of every message
+its command can give, why, and what to do.
 
 ## Scripting the same analysis
 

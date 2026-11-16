@@ -18,8 +18,9 @@ kinescope film FIGURE
 `FIGURE` is `time`, `phase`, `auto` or `auto2`. `ks` is another name for
 `kinescope`.
 
-- **In the app:** View > **Kinescope**: the figure, **Capture**, **Save
-  animated GIF...** and **Save frames as PNG...**; XPPAUT's keys `K C`
+- **In the app:** View > **Kinescope**, or Run > **Kinescope...**: the
+  figure, **Capture**, **Save animated GIF...** (XPPAUT's *Make AniGif*)
+  and **Save frames as PNG...** (XPPAUT's *Save*); XPPAUT's keys `K C`
   (*Kinescope > Capture*). Workspace > Range > **Film it in the
   Kinescope** is `kinescope film`.
 - **In Python:** draw each run with matplotlib and save the frames with
@@ -40,8 +41,9 @@ at first. The pictures are kept in order, up to 200.
 
 `kinescope film` is XPPAUT's Range with *Movie* set: it empties the
 Kinescope, runs the model for each value of the Workspace's Range tab,
-draws each run alone, and captures the figure after every run. Afterwards
-the parameter and the initial values are as they were.
+draws each run alone, and captures the figure after every run, so keep
+that figure in view while it films. Afterwards the parameter and the
+initial values are as they were.
 `range iapp 0 0.3 10 film` sets the range and films it in one command.
 
 ## Examples
@@ -129,6 +131,10 @@ captures) are placed at the top left of the largest, on white.
 - Set the figure's axes first ([fit](fit.md) or the model's window), so
   that every frame has the same scale.
 - Use `kinescope frames` to put single frames in a paper.
+- In the Morris-Lecar model with the nullclines on, a film of `iapp` from
+  0 to 0.3 (`range iapp 0 0.3 10 film`) shows the `V` nullcline rising,
+  and the trajectory going from rest to a limit cycle and back to rest as
+  the current grows.
 
 ## Algorithms
 

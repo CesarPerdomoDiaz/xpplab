@@ -31,15 +31,17 @@ Any other ending, such as `.txt` or `.dat`, gets the CSV text.
 | `WHAT` | What is written |
 |---|---|
 | `auto` | The bifurcation diagram: one row per point. |
-| `range` | The table of a [range](range.md) that measures a variable or the Liapunov exponent. |
+| `range` | The table of a [range](range.md) that measures a variable or the Liapunov exponent; over two values, one row per run with both values. |
 | `analysis` | The result in the Analysis window: a histogram, spectrum, correlation and so on. |
 | `equilibria` | The equilibria the last [eq all](eq-all.md) found, with their eigenvalues. |
-| `nullclines` | The nullclines shown and frozen, as line segments. |
+| `nullclines` | The nullclines shown and frozen, as line segments: one row per segment, with the set (0 for the nullclines shown, then 1, 2, ... for those [frozen](nullclines-freeze.md)), which nullcline (1 for the horizontal variable's, 2 for the vertical one's, as XPPAUT numbers them) and the segment's ends `x1`, `y1`, `x2`, `y2`. XPPAUT's *Nullcline > Save*. |
+| `many` | The runs of [many](many.md) or [shoot](shoot.md), each with its ending: `run`, `event`, then the run's columns. |
 | `locus` | The root locus of the control tools. |
 
 `export FILE.svg FIGURE` saves a figure as a vector drawing: `time` (the
 Time Series), `phase`, `auto` or `auto2`. `.png` saves it as it looks on
-the screen, so it needs the app's window.
+the screen, so it needs the app's window, with the figure in view: a plot
+in a tab behind another cannot be saved as a PNG.
 
 ## Examples
 

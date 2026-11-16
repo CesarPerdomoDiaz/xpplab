@@ -114,6 +114,8 @@ the trajectories.
   and for a saddle how many manifold branches were drawn.
 - **The Phase Plane** marks the equilibrium, and for a saddle draws its
   manifolds.
+- **Workspace > Initial values > From equilibrium** makes the last
+  equilibrium found the initial values.
 - **In Python** `m.equilibrium()` returns an `Equilibrium`: `e["V"]` is a
   value, `e.eigenvalues` the eigenvalues, `e.stable` whether it is stable,
   `e.kind` the words above. With `set_initial=True` the equilibrium becomes

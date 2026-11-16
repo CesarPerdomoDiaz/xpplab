@@ -397,6 +397,14 @@ int xppe_set(const char *name, const char *value) {
   redo_stuff();
   XPPE_GUARD_END;
   xppe_end_call();
+  /* A name that is no variable, parameter or option reaches XPPAUT's
+     set_option(), which only prints that it does not know it and changes
+     nothing: say so instead. */
+  if (last_log && strstr(last_log, "!! Option ") &&
+      strstr(last_log, " not recognized")) {
+    xppe_set_error("unknown name %s", name);
+    return XPPE_ERR_NAME;
+  }
   if (is_meth) {
     char msg[700];
     snprintf(msg, sizeof msg,

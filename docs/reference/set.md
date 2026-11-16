@@ -127,7 +127,7 @@ XPPAUT's own reading of `@` lines.
 | `error: total=abc: the value must be a number` | An option's value is not a number. | Write the number. |
 | `error: no method called NAME; the methods are ...` | No method starts with that letter. | Use a method's name. |
 | `error: write set NAME=VALUE (got 'NAME')` | The `=` or the value is missing. | Write `NAME=VALUE`, without spaces. |
-| `note: NAME is not a parameter, variable or option the app knows; XPPAUT may ignore it` | A misspelt name, or an option the app does not list. | Check the name with `whos`. |
+| `error: unknown name NAME` | The model has no parameter or variable of that name, and XPPAUT has no such option: a misspelt name. Nothing is set for it; the names before it on the line are set. | Check the name with `whos`. |
 
 ## References
 
@@ -143,3 +143,7 @@ XPPAUT's own reading of `@` lines.
 ## Version history
 
 Introduced in 0.1.0. Values that are not numbers are refused since 0.1.4.
+
+0.1.4: a name that is no parameter, variable or option is refused with an
+error, in the app and in Python (`m.set` raises `EngineError`). Before,
+XPPAUT printed that it did not recognise the option and went on.

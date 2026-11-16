@@ -89,6 +89,20 @@ def test_an_option_needs_a_number(lecar):
     assert lecar.get("TOTAL") == 50
 
 
+def test_an_unknown_name_raises(lecar):
+    # XPPAUT's set_option() printed "!! Option GNA not recognized" and went
+    # on, so m.set(gna=1) did nothing without a word.
+    with pytest.raises(xs.EngineError, match="unknown name gna") as e:
+        lecar.set(iapp=0.2, gna=1)
+    assert e.value.kind == "name"
+    assert lecar.get("iapp") == 0.2         # the names before it are set
+    with pytest.raises(xs.EngineError, match="unknown name gna"):
+        lecar.get("gna")
+    # the options XPPAUT knows, the plot's ones too, are still taken
+    lecar.set(xlo=-1, xplot="V", dfgrid=10, total=10)
+    assert lecar.get("TOTAL") == 10
+
+
 def test_equilibrium(lecar):
     eq = lecar.equilibrium()
     assert set(eq.values) == {"V", "W"}

@@ -705,12 +705,8 @@ static void cmd_set(App *a, char *rest) {
       } else if ((i = app_find_var(a, tok)) >= 0) {
         if (set_number(a, tok, eq + 1, &v)) app_set_ic(a, i, v);
       } else {
-        double v;
-        /* XPPAUT takes options this app does not list, and ignores names
-           it does not know: say so, in case of a typo. */
-        if (a->model_ok && a->eng->api.xppe_get(tok, &v) != XPPE_OK)
-          app_log(a, "note: %s is not a parameter, variable or option the app "
-                     "knows; XPPAUT may ignore it", tok);
+        /* an option; a name that is no option either is refused by the
+           engine, which logs "error: unknown name NAME" */
         app_set_option(a, tok, eq + 1);
       }
     }

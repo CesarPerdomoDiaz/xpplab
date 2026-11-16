@@ -90,12 +90,53 @@ class _NamedValues(MutableMapping):
 class Model(AnalysisMixin):
     """An XPPAUT model loaded from an .ode file.
 
-    ```python
-    m = Model("lecar.ode")
-    m.parameters["iapp"] = 0.1
-    sol = m.run(total=200)
-    sol["V"]          # NumPy array
-    ```
+    Each model has its own copy of XPPAUT's engine, so several can be open
+    at once. [`xs.load`][xpplab.load] is the usual way to make one.
+
+    Args:
+        path: the .ode file. Files it includes, tables and data files are
+            looked up in its folder.
+        options: XPPAUT command-line options, such as ``["-silent"]``.
+        engine_library: the engine's shared library; by default the one
+            in the package, or ``$XPPLAB_ENGINE``.
+
+    Attributes:
+        path (Path): the .ode file, as an absolute path.
+        variables (list[str]): the state variables, in the file's order and
+            in capitals, as XPPAUT stores them.
+        columns (list[str]): the output columns of a run: ``T``, the
+            variables, then the auxiliary quantities (``aux``).
+        sets (list[str]): the named parameter sets (``set name {...}``).
+        auto (Auto): AUTO's continuation of this model; see
+            [`Auto`][xpplab.auto.Auto].
+        load_log (str): what XPPAUT printed while reading the file.
+
+    Raises:
+        FileNotFoundError: there is no such file.
+        EngineError: XPPAUT could not read the file; the message gives the
+            line.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> m
+        <Model lecar.ode: 2 variables (V, W), 12 parameters>
+        >>> m.columns
+        ['T', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']
+        >>> m.sets
+        ['vvst', 'pp', 'snic', 'hopf', 'hom', 'cool']
+
+        A model can be used in a ``with`` block, which frees its engine at
+        the end:
+
+        >>> with xs.load(xs.example("lecar.ode")) as m:
+        ...     sol = m.run(iapp=0.1, total=100)
+        >>> len(sol)
+        2001
+
+    See also:
+        [open](../reference/open.md) and [new](../reference/new.md) in the
+        command window; [`from_text`][xpplab.Model.from_text]; the
+        [ODE file format](../manual/odefile.md).
     """
 
     def __init__(self, path: str | os.PathLike, *, options: list[str] = (),
@@ -126,7 +167,42 @@ class Model(AnalysisMixin):
 
     @classmethod
     def from_text(cls, text: str, name: str = "model.ode", **kw) -> "Model":
-        """Load a model from the text of an .ode file."""
+        """Load a model from the text of an .ode file.
+
+        The text is written to a new temporary folder, which is where files
+        the model writes or reads by a relative name are.
+
+        Args:
+            text: the model, as it would be in an .ode file.
+            name: the file name to give it, which the model's
+                [`name`][xpplab.Model.name] reports.
+            **kw: passed on to [`Model`][xpplab.Model].
+
+        Returns:
+            The loaded model.
+
+        Raises:
+            EngineError: XPPAUT could not read the text; the message gives
+                the line.
+
+        Examples:
+            >>> m = xs.Model.from_text('''
+            ... x' = -a*x
+            ... par a=1
+            ... init x=1
+            ... @ total=2
+            ... done
+            ... ''', name="decay.ode")
+            >>> m
+            <Model decay.ode: 1 variables (X), 1 parameters>
+            >>> sol = m.run()
+            >>> print(f"{sol['X'][-1]:.4f}")
+            0.1353
+
+        See also:
+            [new](../reference/new.md) in the command window;
+            [`xs.load`][xpplab.load].
+        """
         d = Path(tempfile.mkdtemp(prefix="xpplab-model-"))
         p = d / name
         p.write_text(text)
@@ -136,23 +212,89 @@ class Model(AnalysisMixin):
 
     @property
     def name(self) -> str:
+        """The file name of the model, without its folder.
+
+        Examples:
+            >>> xs.load(xs.example("lecar.ode")).name
+            'lecar.ode'
+
+        See also:
+            [`path`][xpplab.Model] (an attribute), the whole path.
+        """
         return self.path.name
 
     @property
     def parameters(self) -> _NamedValues:
-        """Parameters, as a live dictionary: ``m.parameters["a"] = 2``."""
+        """The parameters, as a live dictionary.
+
+        Reading an entry asks the engine for the current value; writing one
+        sets it, as [`set`][xpplab.Model.set] does. Names ignore case. The
+        keys are in the file's order. Parameters cannot be added or removed.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> m.parameters
+            {iapp=0.05, phi=0.333, v1=-0.01, v2=0.15, v3=0.1, v4=0.145, gca=1, vk=-0.7, vl=-0.5, gk=2, gl=0.5, om=1}
+            >>> m.parameters["IAPP"] = 0.1
+            >>> m.parameters["iapp"]
+            0.1
+            >>> m.parameters["gna"]
+            Traceback (most recent call last):
+            KeyError: "no parameter named 'gna'; available: iapp, phi, v1, v2, v3, v4, gca, vk, vl, gk, gl, om"
+
+        See also:
+            [set](../reference/set.md) and [whos](../reference/whos.md) in
+            the command window; [`set`][xpplab.Model.set],
+            [`initial_conditions`][xpplab.Model.initial_conditions].
+        """
         return _NamedValues(self, self._parameter_names, "parameter")
 
     @property
     def initial_conditions(self) -> _NamedValues:
-        """Initial conditions of the state variables, as a live dictionary."""
+        """The initial conditions of the state variables, as a live
+        dictionary. ``m.ics`` is the same.
+
+        Each run starts from these values. Reading an entry asks the engine;
+        writing one sets it, as [`set`][xpplab.Model.set] does. Names ignore
+        case.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> m.initial_conditions
+            {V=-0.144, W=0.03}
+            >>> m.ics["v"] = -0.3
+            >>> m.ics["V"]
+            -0.3
+
+        See also:
+            [ic](../reference/ic.md) in the command window;
+            [`ic_last`][xpplab.Model.ic_last],
+            [`read_ics`][xpplab.Model.read_ics].
+        """
         return _NamedValues(self, self.variables, "variable")
 
     ics = initial_conditions
 
     @property
     def options(self) -> dict[str, float | str]:
-        """The numerical options (TOTAL, DT, METH, ...), as a snapshot."""
+        """The numerical options, as a snapshot.
+
+        These are the options that [`get`][xpplab.Model.get] reads: the
+        integration (``TOTAL``, ``DT``, ``METH``, ``TOL``, ...), the
+        Poincaré map (``POIMAP``, ...) and Newton's method for equilibria
+        (``NEWT_TOL``, ...). The dictionary is a copy: change an option
+        with [`set`][xpplab.Model.set].
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> o = m.options
+            >>> o["TOTAL"], o["DT"], o["METH"]
+            (30.0, 0.05, 'rungekutta')
+
+        See also:
+            [set](../reference/set.md) in the command window, which lists
+            every option; [`get`][xpplab.Model.get].
+        """
         out: dict[str, float | str] = {}
         for o in OPTIONS:
             try:
@@ -162,7 +304,28 @@ class Model(AnalysisMixin):
         return out
 
     def get(self, name: str) -> float | str:
-        """Value of a parameter, an initial condition or a numerical option."""
+        """The value of a parameter, an initial condition or a numerical
+        option.
+
+        Args:
+            name: the name, in any case: ``"iapp"``, ``"V"``, ``"total"``.
+
+        Returns:
+            The value, as a float. ``METH`` gives the method's name, such as
+            ``"rungekutta"``.
+
+        Raises:
+            EngineError: nothing has that name.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> m.get("iapp"), m.get("v"), m.get("total"), m.get("meth")
+            (0.05, -0.144, 30.0, 'rungekutta')
+
+        See also:
+            [get](../reference/get.md) in the command window;
+            [`set`][xpplab.Model.set], [`options`][xpplab.Model.options].
+        """
         v = ctypes.c_double()
         self._engine.call("xppe_get", _b(name), ctypes.byref(v))
         if _key(name) == "METH":
@@ -173,8 +336,36 @@ class Model(AnalysisMixin):
     def set(self, **values) -> "Model":
         """Set parameters, initial conditions or numerical options.
 
-        ``m.set(iapp=0.1, total=200, meth="stiff")``. Names ignore case.
-        This works exactly like a ``set`` line in an ODE file.
+        This works like an ``@`` line of an .ode file: names ignore case,
+        and the values stay until they are set again. The method, ``meth``,
+        takes a name: one of XPPAUT's (``"rungekutta"``, ``"stiff"``,
+        ``"cvode"``, ...) or an alias (``"rk4"``, ``"dopri5"``); the
+        dictionary ``xs.METHODS`` has them all.
+
+        Args:
+            **values: names and values: parameters, variables (their initial
+                conditions) or options (``total``, ``dt``, ``meth``, ...).
+
+        Returns:
+            The model itself, so that calls chain:
+            ``m.set(iapp=0.1).run()``.
+
+        Raises:
+            EngineError: nothing has one of the names. The values before it
+                are set.
+            ValueError: ``meth`` names no method.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> m.set(iapp=0.1, total=200, meth="stiff")
+            <Model lecar.ode: 2 variables (V, W), 12 parameters>
+            >>> m.get("iapp"), m.get("total"), m.get("meth")
+            (0.1, 200.0, 'stiff')
+
+        See also:
+            [set](../reference/set.md) in the command window;
+            [`get`][xpplab.Model.get], [`parameters`][xpplab.Model.parameters],
+            [`apply_set`][xpplab.Model.apply_set].
         """
         for name, value in values.items():
             if _key(name) == "METH" and isinstance(value, str):
@@ -190,7 +381,32 @@ class Model(AnalysisMixin):
         return self
 
     def apply_set(self, name: str) -> "Model":
-        """Apply a named parameter set from the model file (``set name {...}``)."""
+        """Apply a named parameter set of the .ode file.
+
+        A line ``set hopf {v3=0, v4=.3, gca=1.1, phi=.2}`` in the file
+        names a set; this sets those values, as if by
+        [`set`][xpplab.Model.set]. The names are in the model's ``sets``.
+
+        Args:
+            name: the set's name.
+
+        Returns:
+            The model itself, so that calls chain.
+
+        Raises:
+            EngineError: the file has no set of that name.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> m.sets
+            ['vvst', 'pp', 'snic', 'hopf', 'hom', 'cool']
+            >>> m.apply_set("hopf").get("phi")
+            0.2
+
+        See also:
+            [use](../reference/use.md) and [sets](../reference/sets.md) in
+            the command window; [`set`][xpplab.Model.set].
+        """
         self._engine.call("xppe_apply_set", _b(name))
         return self
 
@@ -199,8 +415,40 @@ class Model(AnalysisMixin):
     def run(self, **values) -> "Trajectory":
         """Integrate from the current initial conditions.
 
-        Keyword arguments are applied with :meth:`set` first, so
-        ``m.run(total=100, iapp=0.2)`` is shorthand for a set followed by a run.
+        The run uses the model's method and options, from ``T0`` for
+        ``TOTAL`` time units, and keeps every ``NOUT``-th step. XPPAUT
+        stores the points in single precision, so they have about seven
+        significant digits.
+
+        A run stops early when a variable leaves ``BOUND`` (the model's
+        [`log`][xpplab.Model.log] then says which), or when a global flag
+        with ``{arret=1}`` fires (its number is then in the result's
+        ``event``; see [`flags`][xpplab.Model.flags]).
+
+        Args:
+            **values: set first, as by [`set`][xpplab.Model.set], and kept
+                afterwards: ``m.run(iapp=0.2, total=100)`` is
+                ``m.set(iapp=0.2, total=100).run()``.
+
+        Returns:
+            The run: time and every output column. See
+            [`Trajectory`][xpplab.Trajectory].
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> sol
+            <Trajectory: 2001 points, t=0..100, columns T, V, W, CUR, ICA, IK, RATE>
+            >>> print(f"V goes from {sol['V'].min():.4f} to {sol['V'].max():.4f}")
+            V goes from -0.3804 to 0.2615
+            >>> m.get("iapp"), m.get("total")
+            (0.1, 100.0)
+
+        See also:
+            [run](../reference/run.md) in the command window;
+            [`continue_run`][xpplab.Model.continue_run],
+            [`run_many`][xpplab.Model.run_many],
+            [`sweep`][xpplab.Model.sweep].
         """
         if values:
             self.set(**values)
@@ -214,11 +462,32 @@ class Model(AnalysisMixin):
 
     @property
     def flags(self) -> list[tuple[str, int]]:
-        """The model's global flags (``global sign condition {events}``), in
-        order, as ``(condition, sign)``: sign 1 when the condition crosses
+        """The model's global flags, in the file's order.
+
+        A line ``global sign condition {events}`` of the .ode file is a
+        flag: when ``condition`` crosses zero, the events happen. Each flag
+        is given as ``(condition, sign)``: sign 1 when the condition crosses
         zero going up, -1 going down, 0 either way. A run stopped by one of
-        them (an ``{arret=1}`` event) has its number, counted from 1, in
-        :attr:`Trajectory.event`."""
+        them (an ``{arret=1}`` event) has its number, counted from 1, in the
+        run's ``event``.
+
+        Examples:
+            >>> m = xs.Model.from_text('''
+            ... x' = 1
+            ... global 1 x-2 {arret=1}
+            ... @ total=10
+            ... done
+            ... ''')
+            >>> m.flags
+            [('x-2', 1)]
+            >>> sol = m.run()
+            >>> sol.event, float(sol.t[-1])
+            (1, 2.0)
+
+        See also:
+            [`run_many`][xpplab.Model.run_many], whose result counts the
+            runs each flag stopped; the [ODE file format](../manual/odefile.md).
+        """
         out = []
         sign = ctypes.c_int()
         for i in range(self._engine.call("xppe_flag_count", check=False)):
@@ -228,14 +497,38 @@ class Model(AnalysisMixin):
 
     def run_many(self, initial, **values) -> "RunList":
         """Run once from each of several initial conditions and keep every
-        run (the desktop app's Many initial values).
+        run, as the desktop app's *Many initial values* does.
 
-        ``initial`` is a list of dicts of variable values (other variables
-        keep their initial value), or an array with one row per run and one
-        column per variable. Keyword arguments are applied with :meth:`set`
-        first. Returns a :class:`RunList`: the trajectories in order, with
-        ``events``, the global flag that stopped each run (0 for none). The
-        initial conditions are restored afterwards."""
+        The initial conditions are restored afterwards.
+
+        Args:
+            initial: the starting states: a list of dictionaries of variable
+                values (the variables left out keep their initial value), or
+                an array with one row per run and one column per variable.
+                [`sample_initial`][xpplab.Model.sample_initial] draws them at
+                random.
+            **values: set first, as by [`set`][xpplab.Model.set], and kept.
+
+        Returns:
+            The runs, in order, as a [`RunList`][xpplab.RunList]: a list of
+            [`Trajectory`][xpplab.Trajectory] with ``events``, the global
+            flag that stopped each run (0 for none), and ``counts()``.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> runs = m.run_many([{"V": -0.3}, {"V": 0.2}], iapp=0.1, total=50)
+            >>> runs
+            <RunList: 2 runs, ended by {0: 2}>
+            >>> [round(float(r["V"][0]), 4) for r in runs]
+            [-0.3, 0.2]
+            >>> m.get("V")
+            -0.144
+
+        See also:
+            [many](../reference/many.md) in the command window;
+            [`sample_initial`][xpplab.Model.sample_initial],
+            [`run`][xpplab.Model.run].
+        """
         if values:
             self.set(**values)
         if isinstance(initial, np.ndarray) or (
@@ -255,16 +548,45 @@ class Model(AnalysisMixin):
 
     def sample_initial(self, n: int, box: dict, *, require: dict | None = None,
                        seed: int = 1, tries: int = 100000) -> list[dict]:
-        """``n`` initial conditions drawn at random, uniformly, in a box.
+        """Initial conditions drawn at random, uniformly, in a box.
 
-        ``box`` maps variables to ``(low, high)``; the others keep their
-        initial value. ``require`` maps output columns (variables or
-        auxiliaries) to ``(low, high)``: a draw is kept only if every one of
-        them lies in its range there, so ``require={"tens": (0, inf)}``
-        keeps the states where an auxiliary ``tens`` is positive. The draws
-        come from a SplitMix64 generator started at ``seed``, the one the
-        desktop app uses, so the same call gives the same states in both.
-        Returns a list of dicts, ready for :meth:`run_many`."""
+        The draws come from a SplitMix64 generator started at ``seed``, the
+        one the desktop app uses, so the same call gives the same states in
+        both.
+
+        Args:
+            n: how many states to return.
+            box: the variables to draw, each with its range ``(low, high)``.
+                The other variables keep their initial value.
+            require: output columns (variables or auxiliaries), each with a
+                range ``(low, high)``. A draw is kept only if every one of
+                them is in its range there: ``require={"tens": (0, inf)}``
+                keeps the states where an auxiliary ``tens`` is positive.
+            seed: where the generator starts.
+            tries: how many draws to make at most.
+
+        Returns:
+            ``n`` dictionaries of variable values, ready for
+            [`run_many`][xpplab.Model.run_many].
+
+        Raises:
+            ValueError: fewer than ``n`` draws met ``require`` in ``tries``
+                draws.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> starts = m.sample_initial(3, {"V": (-0.5, 0.5), "W": (0, 0.5)})
+            >>> [round(s["V"], 4) for s in starts]
+            [0.0666, 0.471, -0.0557]
+            >>> starts = m.sample_initial(3, {"V": (-0.5, 0.5)},
+            ...                           require={"ICA": (-0.1, 0)})
+            >>> all(-0.1 <= m.evaluate(s)["ICA"] <= 0 for s in starts)
+            True
+
+        See also:
+            [many](../reference/many.md) in the command window;
+            [`run_many`][xpplab.Model.run_many].
+        """
         names = [self.variables[self._var_index(k)] for k in box]
         bounds = [(float(a), float(b)) for a, b in box.values()]
         need = [(name, float(a), float(b)) for name, (a, b) in (require or {}).items()]
@@ -287,10 +609,33 @@ class Model(AnalysisMixin):
 
     def continue_run(self, trajectory: "Trajectory",
                      time: float | None = None) -> "Trajectory":
-        """XPPAUT's Continue (C C): integrate ``time`` more (default: the
-        total time) from where ``trajectory`` ended, and return it with the
-        new points appended. The initial conditions, T0 and the total time
-        are left as they were."""
+        """Integrate more from where a run ended, as XPPAUT's Continue does.
+
+        The initial conditions, ``T0`` and ``TOTAL`` are left as they were.
+
+        Args:
+            trajectory: the run to continue. An empty one, or ``None``, gives
+                a plain [`run`][xpplab.Model.run].
+            time: how long to go on; by default ``TOTAL``.
+
+        Returns:
+            ``trajectory`` with the new points appended: one
+            [`Trajectory`][xpplab.Trajectory] from the first run's start to
+            the new end.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> longer = m.continue_run(sol, 50)
+            >>> longer
+            <Trajectory: 3001 points, t=0..150, columns T, V, W, CUR, ICA, IK, RATE>
+            >>> m.get("total"), m.get("t0")
+            (100.0, 0.0)
+
+        See also:
+            [continue](../reference/continue.md) in the command window;
+            [`run`][xpplab.Model.run], [`ic_last`][xpplab.Model.ic_last].
+        """
         if trajectory is None or not len(trajectory):
             return self.run()
         t0, total = float(self.get("T0")), float(self.get("TOTAL"))
@@ -353,8 +698,24 @@ class Model(AnalysisMixin):
         return Ensemble(parts[0], parts[1], int(trials))
 
     def last_run(self) -> "Trajectory":
-        """The engine's most recent run, such as the one period of the limit
-        cycle that :meth:`phase_response` leaves behind."""
+        """The engine's most recent run, wherever it came from.
+
+        Some methods integrate as a step of their work and return something
+        else; this gives their run. [`phase_response`][xpplab.Model.phase_response],
+        for example, leaves one period of the limit cycle.
+
+        Returns:
+            The run, as a [`Trajectory`][xpplab.Trajectory].
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> m.last_run()
+            <Trajectory: 2001 points, t=0..100, columns T, V, W, CUR, ICA, IK, RATE>
+
+        See also:
+            [`run`][xpplab.Model.run].
+        """
         return self._collect()
 
     def _collect(self) -> "Trajectory":
@@ -839,11 +1200,52 @@ class Model(AnalysisMixin):
 
     @property
     def log(self) -> str:
-        """What the engine printed during the last call."""
+        """What XPPAUT printed during the last call to the engine.
+
+        XPPAUT reports some things only in its printed output: warnings,
+        the steps of Newton's method, AUTO's progress. Errors are raised as
+        [`EngineError`][xpplab.EngineError] with this text in the message.
+        What was printed while reading the file is in ``load_log``.
+
+        Examples:
+            A run of x' = x leaves ``BOUND`` and stops; the log says where:
+
+            >>> m = xs.Model.from_text('''
+            ... x' = x
+            ... init x=1
+            ... @ total=10, bound=100
+            ... done
+            ... ''')
+            >>> m.run()
+            <Trajectory: 93 points, t=0..4.6, columns T, X>
+            >>> print(m.log)
+            variable	f(t-1)	f(t)
+             X	99.4843	104.585
+             X out of bounds at t = 4.650000
+             Integration not completed -- will write anyway...
+             Run complete ...
+
+        See also:
+            [`EngineError`][xpplab.EngineError].
+        """
         return self._engine.log
 
     def close(self) -> None:
-        """Free the engine behind this model."""
+        """Free the engine behind this model.
+
+        The model cannot be used afterwards. A model in a ``with`` block is
+        closed at its end; one that is no longer referenced is closed by
+        Python's garbage collector.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> m.close()
+            >>> with xs.load(xs.example("lecar.ode")) as m:
+            ...     sol = m.run()
+
+        See also:
+            [quit](../reference/quit.md) in the command window.
+        """
         self._engine.close()
 
     def __enter__(self) -> "Model":
@@ -872,7 +1274,34 @@ class Model(AnalysisMixin):
 
 
 def load(path: str | os.PathLike, **kw) -> Model:
-    """Load an XPPAUT .ode file. Same as ``Model(path)``."""
+    """Load an XPPAUT .ode file.
+
+    Args:
+        path: the .ode file. [`example`][xpplab.example] gives the path of a
+            shipped example.
+        **kw: passed on to [`Model`][xpplab.Model]: ``options``,
+            ``engine_library``.
+
+    Returns:
+        The model, as ``Model(path, **kw)`` would.
+
+    Raises:
+        FileNotFoundError: there is no such file.
+        EngineError: XPPAUT could not read the file; the message gives the
+            line.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> m
+        <Model lecar.ode: 2 variables (V, W), 12 parameters>
+        >>> xs.load("nothing.ode")
+        Traceback (most recent call last):
+        FileNotFoundError: ...nothing.ode
+
+    See also:
+        [open](../reference/open.md) in the command window;
+        [`Model.from_text`][xpplab.Model.from_text].
+    """
     return Model(path, **kw)
 
 

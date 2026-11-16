@@ -31,18 +31,37 @@ def classics() -> list[Path]:
 
 
 def example(name: str) -> Path:
-    """The path of a shipped example model, to pass to :func:`xpplab.load`::
+    """The path of a shipped example model, to pass to
+    [`xs.load`][xpplab.load].
 
-        m = xs.load(xs.example("lecar.ode"))
+    The examples are XPPAUT's own (``engine/xppaut/ode`` in the source) and
+    the classic models of the documentation's gallery.
 
-    ``name`` is the file name; the ``.ode`` ending may be left out. The
-    classic models (the Lorenz attractor, the van der Pol oscillator, ...)
-    are in the folder ``classics``::
+    Args:
+        name: the file name; the ``.ode`` ending may be left out. The
+            classic models (the Lorenz attractor, the van der Pol
+            oscillator, ...) are in the folder ``classics``.
 
-        m = xs.load(xs.example("classics/lorenz"))
+    Returns:
+        The path of the file.
 
-    Raises ``FileNotFoundError`` when there is no such model, naming the
-    closest ones."""
+    Raises:
+        FileNotFoundError: there is no such model; the message names the
+            closest ones.
+
+    Examples:
+        >>> xs.example("lecar.ode").name
+        'lecar.ode'
+        >>> m = xs.load(xs.example("classics/lorenz"))
+        >>> m.variables
+        ['X', 'Y', 'Z']
+        >>> xs.example("lecr")
+        Traceback (most recent call last):
+        FileNotFoundError: no example model 'lecr' (looked in ...); close names: lecar.ode...
+
+    See also:
+        [`xs.load`][xpplab.load]; the [gallery](../gallery/index.md).
+    """
     name = str(name)
     dirs = example_dirs()
     # in a source checkout the classics are in examples/classics

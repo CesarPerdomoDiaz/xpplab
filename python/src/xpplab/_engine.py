@@ -55,9 +55,31 @@ _ERROR_NAMES = {
 class EngineError(RuntimeError):
     """An error reported by the XPPAUT engine.
 
-    ``log`` holds everything the engine printed during the failing call,
-    which usually explains the problem (for example a syntax error in the
-    model file).
+    The message says what went wrong and ends with the last lines XPPAUT
+    printed, which usually explain it: a syntax error in the model file
+    names the formula, for example.
+
+    Attributes:
+        code (int): the engine's error code, negative.
+        kind (str): the code in words: ``"load"``, ``"name"``,
+            ``"range"``, ``"numeric"``, ``"state"`` or ``"fatal"``.
+        log (str): everything the engine printed during the failing call.
+
+    Examples:
+        >>> try:
+        ...     xs.Model.from_text("x' = -a*x\\ndone\\n")
+        ... except xs.EngineError as e:
+        ...     print(e.kind)
+        ...     print(e.log.strip())
+        load
+        illegal expression: A
+        -A*X
+         ^
+        A
+        ERROR compiling X'
+
+    See also:
+        [`Model.log`][xpplab.Model.log].
     """
 
     def __init__(self, message: str, code: int = 0, log: str = ""):
@@ -122,11 +144,25 @@ def _library_name() -> str:
 
 
 def find_engine_library() -> Path:
-    """Locate the engine library.
+    """The path of the engine library, XPPAUT compiled as a shared
+    library, that each [`Model`][xpplab.Model] loads.
 
-    The XPPLAB_ENGINE environment variable wins. Otherwise use the copy
-    installed inside the package, then a development build in the
-    repository's build/ directory.
+    The environment variable ``XPPLAB_ENGINE`` wins. Otherwise the copy
+    installed inside the package is used, then a development build in the
+    repository's ``build`` folder.
+
+    Returns:
+        The library's path.
+
+    Raises:
+        EngineError: no library was found.
+
+    Examples:
+        >>> xs.find_engine_library().name in ("libxppe.dll", "libxppe.so", "libxppe.dylib")
+        True
+
+    See also:
+        [Installation](../install.md).
     """
     env = os.environ.get("XPPLAB_ENGINE")
     if env:

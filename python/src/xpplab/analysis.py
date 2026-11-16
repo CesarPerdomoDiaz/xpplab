@@ -83,9 +83,42 @@ def write_mat(path, names, columns, params=None) -> None:
 
 
 class Table:
-    """A table of results: named NumPy columns, the first one the x-axis.
-    ``params`` (a dictionary of parameter values, or None) goes into a
-    ``.mat`` file as the struct ``params``."""
+    """A table of results: named NumPy columns, the first one the
+    horizontal axis.
+
+    The analysis methods return them: histograms, spectra, sweeps of
+    equilibria, phase response curves, ... A column is read by its name,
+    which ignores case: ``t["count"]``. ``"count" in t`` tells whether there
+    is such a column, and ``len(t)`` is the number of rows.
+
+    Args:
+        data: the columns, by name, in order.
+        title: what the table holds, shown in its ``repr`` and plots.
+        log: what XPPAUT printed while computing it.
+        params: parameter values, by name, which a .mat file keeps as the
+            struct ``params``.
+
+    Attributes:
+        title (str): what the table holds.
+        log (str): what XPPAUT printed while computing it.
+        params (dict | None): parameter values, by name.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> sol = m.run(iapp=0.1, total=200)
+        >>> h = m.histogram("V", bins=10)
+        >>> h
+        <Table Histogram of V: 11 rows, columns bin, count>
+        >>> int(h["COUNT"][0])
+        1020
+        >>> t = xs.Table({"x": np.arange(3.0), "y": np.arange(3.0) ** 2}, title="squares")
+        >>> t
+        <Table squares: 3 rows, columns x, y>
+
+    See also:
+        [export](../reference/export.md) in the command window, which
+        writes the app's tables.
+    """
 
     def __init__(self, data: dict[str, np.ndarray], title: str = "",
                  log: str = "", params: dict | None = None):
@@ -96,6 +129,18 @@ class Table:
 
     @property
     def columns(self) -> list[str]:
+        """The names of the columns, in order.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> h = m.histogram("V", bins=10)
+            >>> h.columns
+            ['bin', 'count']
+
+        See also:
+            [`to_numpy`][xpplab.Table.to_numpy].
+        """
         return list(self._data)
 
     def __getitem__(self, name: str) -> np.ndarray:
@@ -111,10 +156,39 @@ class Table:
         return len(next(iter(self._data.values()))) if self._data else 0
 
     def to_numpy(self) -> np.ndarray:
+        """Every column as one array.
+
+        Returns:
+            An array with one row per row of the table and one column per
+            column, in the order of [`columns`][xpplab.Table.columns].
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> h = m.histogram("V", bins=10)
+            >>> h.to_numpy().shape
+            (11, 2)
+
+        See also:
+            [`to_pandas`][xpplab.Table.to_pandas].
+        """
         return np.column_stack(list(self._data.values()))
 
     def to_pandas(self):
-        """A pandas DataFrame indexed by the first column."""
+        """The table as a pandas DataFrame indexed by its first column.
+        Needs pandas.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> h = m.histogram("V", bins=10)
+            >>> df = h.to_pandas()
+            >>> df.index.name, list(df.columns)
+            ('bin', ['count'])
+
+        See also:
+            [`to_numpy`][xpplab.Table.to_numpy].
+        """
         import pandas as pd
         df = pd.DataFrame(self._data)
         return df.set_index(self.columns[0])
@@ -122,10 +196,41 @@ class Table:
     @classmethod
     def from_grid(cls, name: str, values, name2: str, values2, columns: dict,
                   title: str = "", params: dict | None = None) -> "Table":
-        """A table of results on a grid (see :meth:`Model.sweep_grid`): one
-        row per point, going through ``values`` for each of ``values2``, the
-        two values first and then each of ``columns``, arrays of shape
-        ``(len(values2), len(values))``."""
+        """A table of results on a grid, such as
+        [`Model.sweep_grid`][xpplab.Model.sweep_grid] computes, one row per
+        point.
+
+        The rows go through ``values`` for each of ``values2``.
+
+        Args:
+            name: the first value's name.
+            values: its values.
+            name2: the second value's name.
+            values2: its values.
+            columns: the results, by name, each an array of shape
+                ``(len(values2), len(values))``.
+            title: what the table holds.
+            params: parameter values, by name, for a .mat file.
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``name``, ``name2``, then the
+            results.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> amp = m.sweep_grid("iapp", [0, 0.1, 0.2], "gca", [1, 1.2], total=200,
+            ...                    measure=lambda s: np.ptp(s["V"][len(s) // 2:]))
+            >>> t = xs.Table.from_grid("iapp", [0, 0.1, 0.2], "gca", [1, 1.2],
+            ...                        {"amplitude": amp})
+            >>> t
+            <Table: 6 rows, columns iapp, gca, amplitude>
+            >>> t["gca"]
+            array([1. , 1. , 1. , 1.2, 1.2, 1.2])
+
+        See also:
+            [range](../reference/range.md) in the command window, whose
+            two-parameter export writes such a table.
+        """
         v1, v2 = np.asarray(values, dtype=float), np.asarray(values2, dtype=float)
         data = {name: np.tile(v1, len(v2)), name2: np.repeat(v2, len(v1))}
         for key, arr in columns.items():
@@ -135,11 +240,31 @@ class Table:
     @classmethod
     def from_nullclines(cls, sets, first: int = 0, title: str = "") -> "Table":
         """Nullclines as a table, one row per line segment, as the desktop
-        app's ``export FILE.csv nullclines`` writes them: the set (``first``
-        for the first pair in ``sets``, then counting up), which nullcline
-        (1 the x variable's, 2 the y variable's) and the segment's ends
-        x1, y1, x2, y2. ``sets`` holds ``(x_nullcline, y_nullcline)`` pairs
-        from :meth:`Model.nullclines` or :meth:`Model.nullcline_sweep`."""
+        app's ``export FILE.csv nullclines`` writes them.
+
+        Args:
+            sets: ``(x_nullcline, y_nullcline)`` pairs, as
+                [`Model.nullclines`][xpplab.Model.nullclines] and
+                [`Model.nullcline_sweep`][xpplab.Model.nullcline_sweep]
+                return them.
+            first: the number of the first pair; the others count up from
+                it.
+            title: what the table holds.
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``set``, ``nullcline`` (1 for the
+            horizontal variable's, 2 for the vertical one's) and the
+            segment's ends ``x1``, ``y1``, ``x2``, ``y2``.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> pair = m.nullclines("V", "W", (-0.6, 0.6), (-0.1, 0.6))
+            >>> xs.Table.from_nullclines([pair])
+            <Table: 420 rows, columns set, nullcline, x1, y1, x2, y2>
+
+        See also:
+            [nullclines](../reference/nullclines.md) in the command window.
+        """
         rows = []
         for k, pair in enumerate(sets):
             for which, segs in enumerate(pair, start=1):
@@ -151,20 +276,73 @@ class Table:
         return cls({n: table[:, i] for i, n in enumerate(names)}, title=title)
 
     def to_csv(self, path: str | os.PathLike) -> None:
-        """Write the table as CSV, every number exact (the desktop app's
-        ``export FILE.csv analysis`` writes the same file)."""
+        """Write the table as a CSV file, every number exact.
+
+        The desktop app's ``export FILE.csv analysis`` writes the same file.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> h = m.histogram("V", bins=10)
+            >>> h.to_csv("hist.csv")
+            >>> open("hist.csv").readline()
+            'bin,count\\n'
+
+        See also:
+            [export](../reference/export.md) in the command window;
+            [`to_mat`][xpplab.Table.to_mat].
+        """
         cols = [np.asarray(v, dtype=float) for v in self._data.values()]
         write_csv(path, self.columns, zip(*cols))
 
     def to_mat(self, path: str | os.PathLike) -> None:
-        """Write the table as a MATLAB .mat file: one column vector per
-        column (names made valid MATLAB names, see :func:`write_mat`), and
-        the struct ``params`` when the table has parameter values (the
-        desktop app's ``export FILE.mat analysis`` writes the same file)."""
+        """Write the table as a MATLAB .mat file.
+
+        Each column becomes a column vector, its name made a valid MATLAB
+        name (other characters become ``_``); the struct ``params`` holds
+        the table's parameter values, if it has any. The desktop app's
+        ``export FILE.mat analysis`` writes the same file.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> h = m.histogram("V", bins=10)
+            >>> h.to_mat("hist.mat")
+
+        See also:
+            [export](../reference/export.md) in the command window;
+            [`to_csv`][xpplab.Table.to_csv].
+        """
         write_mat(path, self.columns, self._data.values(), self.params)
 
     def plot(self, *y: str, ax=None, **kw):
-        """Plot columns (by default the second) against the first."""
+        """Plot columns against the first. Needs matplotlib.
+
+        Args:
+            *y: the columns to plot; by default the second.
+            ax: the matplotlib axes to draw in; by default the current ones.
+            **kw: passed on to matplotlib's ``plot``.
+
+        Returns:
+            The matplotlib axes.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> h = m.histogram("V", bins=10)
+            >>> ax = h.plot()
+            >>> ax.get_xlabel(), ax.get_ylabel(), ax.get_title()
+            ('bin', 'count', 'Histogram of V')
+
+        See also:
+            [`Trajectory.plot`][xpplab.Trajectory.plot].
+        """
         import matplotlib.pyplot as plt
         ax = ax or plt.gca()
         x = self.columns[0]

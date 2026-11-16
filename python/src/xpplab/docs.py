@@ -55,16 +55,32 @@ METHODS = {"equilibria": "auto steady", "continue_from": "auto from",
 
 
 def doc(name=None, *, open: bool = True) -> str:
-    """Open the reference page of a command or action in the browser, and
-    return its address::
+    """Open the reference page of a command in the browser, and return its
+    address, as the desktop app's ``doc NAME`` does.
 
-        xs.doc("auto steady")         # Follow steady states
-        xs.doc(m.auto.equilibria)     # the same page, from the method
-        xs.doc()                      # the index of the reference
+    Args:
+        name: a command of the desktop app's command window, such as
+            ``"auto steady"``; or a method of the package that does the
+            same, as a name or as the method itself. A name with no page,
+            or none, opens the index of the reference.
+        open: open the page; ``False`` only returns the address.
 
-    ``name`` is a command of the desktop app's command window, or a method
-    of the package that does the same. A name with no page opens the index.
-    ``open=False`` only returns the address.
+    Returns:
+        The page's address.
+
+    Examples:
+        >>> xs.doc("auto steady", open=False)
+        'https://cesarperdomodiaz.github.io/xpplab/reference/auto-steady/'
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> xs.doc(m.auto.equilibria, open=False)
+        'https://cesarperdomodiaz.github.io/xpplab/reference/auto-steady/'
+        >>> xs.doc("sweep", open=False)
+        'https://cesarperdomodiaz.github.io/xpplab/reference/range/'
+        >>> xs.doc(open=False)
+        'https://cesarperdomodiaz.github.io/xpplab/reference/reference/'
+
+    See also:
+        [doc](../reference/doc.md) in the command window.
     """
     page = "reference"
     if name is not None:

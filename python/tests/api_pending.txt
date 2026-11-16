@@ -1,31 +1,5 @@
 # Members of the Python API not yet written to the reference standard
 # (test_api_docs.py). The list may only shrink.
-EngineError
-find_engine_library
-Table
-Table.columns
-Table.to_numpy
-Table.to_pandas
-Table.from_grid
-Table.from_nullclines
-Table.to_csv
-Table.to_mat
-Table.plot
-Linearization
-Linearization.error
-Linearization.valid_radius
-Linearization.to_csv
-Linearization.plot
-Linearization.place_poles
-Linearization.closed_loop
-Linearization.root_locus
-Linearization.lqr
-LQR
-RootLocus
-RootLocus.crossings
-RootLocus.to_csv
-RootLocus.to_mat
-RootLocus.plot
 Figure
 Figure.set
 Figure.text
@@ -44,7 +18,6 @@ Animation.grab_points
 Animation.grab
 Animation.plot
 Animation.save_gif
-doc
 app.connect
 app.App
 app.App.close

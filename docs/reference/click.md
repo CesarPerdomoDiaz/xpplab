@@ -11,7 +11,8 @@ click keep off
 ```
 
 - **In the app:** in the Phase Plane, tick **Click to start** and click a
-  point (XPPAUT's *Initial conds > Mouse*).
+  point (XPPAUT's *Initial conds > Mouse*); tick **Keep each** beside it
+  to keep every clicked run (*Initial conds > mIce*).
 - **In Python:** `m.run(V=X, W=Y)`, with the names of the plotted
   variables.
 
@@ -24,9 +25,9 @@ to start from an exact point.
 
 The new initial values stay, so a later `run` starts from the same point.
 
-`click keep` keeps every run started by a click on the plots, so that a
-few clicks draw a phase portrait; `click keep off` goes back to one run at
-a time. [erase](erase.md) removes the kept runs.
+`click keep` keeps every run started by a click on the plots, up to 16,
+so that a few clicks draw a phase portrait; `click keep off` goes back to
+one run at a time. [erase](erase.md) (the key `E`) removes the kept runs.
 
 ## Examples
 
@@ -70,7 +71,7 @@ starts on one side return directly, starts on the other go round the spike.
 | Setting | Where | Meaning | Advice |
 |---|---|---|---|
 | `X`, `Y` | the command; the values in Python | The start, in the plotted variables. | The Phase Plane's x and y choose which variables they are. |
-| `keep` | `click keep`, `click keep off` | Keep each clicked run on the plots. | On for a phase portrait. |
+| `keep` | `click keep`, `click keep off`; **Keep each** in the Phase Plane | Keep each clicked run on the plots. | On for a phase portrait. |
 | **Click to start** | Phase Plane | Whether a click on the plot starts a run. | Off when you click to zoom or to read values. |
 
 ## Results

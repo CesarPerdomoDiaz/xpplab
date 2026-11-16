@@ -69,7 +69,7 @@ wind speed into the dimensionless one of a model.
 - **Columns of the run**: any two columns of the last run, `aux` quantities
   included.
 - **Many runs / shooting**: the runs of Workspace > Many runs (see
-  [many](../reference/many.md)), as one series or one per
+  [many](../reference/many.md) and [shoot](../reference/shoot.md)), as one series or one per
   way the runs ended.
 - **Bifurcation diagram**: along the diagram, any of a variable or an `aux`
   quantity (the value at each steady state; the maximum or minimum over

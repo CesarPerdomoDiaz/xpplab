@@ -13,7 +13,10 @@ shoot stable
 shoot both
 ```
 
-- **In the app:** the command (XPPAUT's *Initial conds > sHoot*).
+- **In the app:** Workspace > **Many runs** > *Shoot from an
+  equilibrium*: **step off**, **time**, the directions, then **Shoot**
+  (XPPAUT's *Initial conds > sHoot*, which XPPAUT offers after *Sing
+  pts*).
 - **In Python:** `runs = m.shoot(eq)`, with `directions="stable"` or
   `"all"`, `eps=` and `total=`.
 
@@ -90,9 +93,9 @@ manifold computes the threshold curve in one go.
 
 | Setting | Where | Meaning | Advice |
 |---|---|---|---|
-| `eps` | `shoot eps ...`; `eps=` in Python | How far from the equilibrium the runs start. | 1e-5. Smaller follows the manifold more closely at the start, at the cost of a longer run to leave. |
-| `time` | `shoot time ...`; `total=` in Python | The length of each run. | Long enough to see where each branch goes. |
-| `unstable`, `stable`, `both` | the command; `directions=` in Python (`"all"` for both) | Which manifolds. | `unstable` by default. |
+| `eps` | `shoot eps ...`; **step off** in the tab; `eps=` in Python | How far from the equilibrium the runs start. | 1e-5. Smaller follows the manifold more closely at the start, at the cost of a longer run to leave. |
+| `time` | `shoot time ...`; **time** in the tab (0 keeps the model's total time); `total=` in Python | The length of each run. | Long enough to see where each branch goes. |
+| `unstable`, `stable`, `both` | the command; the directions box in the tab; `directions=` in Python (`"all"` for both) | Which manifolds: forward in time along the unstable directions, backward along the stable ones, or both. | `unstable` by default. |
 
 ## Results
 
@@ -100,6 +103,7 @@ manifold computes the threshold curve in one go.
   family, as the Workspace's **Many runs** tab draws its runs.
 - **The command window** says how many runs there were, and how many ran
   to the end.
+- **`export FILE.csv many`** writes the runs, as for [many](many.md).
 - **In Python** `m.shoot()` returns the list of runs; `runs.directions`
   gives the eigenvalue and the sign of each.
 

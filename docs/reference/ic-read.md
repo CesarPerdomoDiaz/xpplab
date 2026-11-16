@@ -9,7 +9,7 @@ ic read FILE
 ```
 
 - **In the app:** Workspace > **Initial values** > **From file...**
-  (XPPAUT's *Initial conds > File*).
+  (XPPAUT's *Initial conds > File*, `I F` in XPPAUT).
 - **In Python:** `m.read_ics("state.txt")`.
 
 ## Description

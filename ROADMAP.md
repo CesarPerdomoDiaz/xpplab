@@ -230,6 +230,8 @@ To do:
 
 ### M11 Scale and reach
 - [ ] A compiled engine for large models, checked against XPPAUT's
+      (design note with measurements:
+      [docs/design/compiled-engine.md](docs/design/compiled-engine.md))
 - [ ] A model builder that writes the `.ode` file
 - [ ] SBML and NeuroML import
 - [ ] XPP Lab in the browser, with nothing to install

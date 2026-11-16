@@ -38,11 +38,16 @@
 #include "gui_backend.h"
 #include "ui.h"
 
-extern const unsigned char font_roboto[], font_cousine[];
-extern const unsigned int font_roboto_size, font_cousine_size;
+extern const unsigned char font_roboto[], font_cousine[], font_dejavu[];
+extern const unsigned int font_roboto_size, font_cousine_size, font_dejavu_size;
 
 static ImGuiStyle base_style;
 
+/* A face, with DejaVu Sans merged in behind it for the characters it lacks:
+   Roboto and Cousine have no command key, shift arrow, minus-or-plus, or
+   sub- and superscript digits, which the manual and the reference pages
+   use, and the Help window showed them as boxes. DejaVu Sans is already in
+   the program, for the Figure window. */
 static ImFont *add_font(const unsigned char *data, unsigned int size) {
   ImGuiIO *io = igGetIO_Nil();
   ImFontConfig *cfg = ImFontConfig_ImFontConfig();
@@ -51,6 +56,11 @@ static ImFont *add_font(const unsigned char *data, unsigned int size) {
   cfg->OversampleH = 2;
   f = ImFontAtlas_AddFontFromMemoryTTF(io->Fonts, (void *)data, (int)size, 15.0f,
                                        cfg, NULL);
+  if (f) {
+    cfg->MergeMode = true; /* only for glyphs the face above does not have */
+    ImFontAtlas_AddFontFromMemoryTTF(io->Fonts, (void *)font_dejavu,
+                                     (int)font_dejavu_size, 15.0f, cfg, NULL);
+  }
   ImFontConfig_destroy(cfg);
   return f;
 }

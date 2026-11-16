@@ -61,7 +61,7 @@ if(Python3_FOUND AND TARGET xpplab)
   # <file>.err when it fails, and exits 0 when it works.
   add_test(NAME app_exit_status
     COMMAND Python3::Interpreter ${CMAKE_CURRENT_SOURCE_DIR}/app_check.py
-            $<TARGET_FILE:xpplab> ${PROJECT_SOURCE_DIR}/examples/lecar.ode)
+            $<TARGET_FILE:xpplab> ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode)
   set_tests_properties(app_exit_status PROPERTIES TIMEOUT 120
                         SKIP_RETURN_CODE 77)
 endif()

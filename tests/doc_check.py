@@ -129,12 +129,8 @@ def main(exe, model):
             continue
         text = page.read_text(encoding="utf-8")
         heads = re.findall(r"^## (.+)$", text, re.M)
-        # the app's Help window shows these pages and cannot typeset LaTeX yet
-        # (code, fenced or inline, is shown as written: `$V_W$` is a label)
-        prose = re.sub(r"```.*?```", "", text, flags=re.S)
-        prose = re.sub(r"`[^`\n]*`", "", prose)
-        if "$" in prose.replace(r"\$", ""):
-            bad.append(f"{page.name}: LaTeX ($...$) in a page the app's Help window shows")
+        # $...$ is typeset by the Help window too; tests/help_math_check.c
+        # checks that each formula is one it can typeset
         if heads != SECTIONS:
             bad.append(f"{page.name}: sections {heads}, expected {SECTIONS}")
         check((page.stem.replace("-", " ")) in names,

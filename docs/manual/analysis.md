@@ -97,9 +97,12 @@ See [ensemble](../reference/ensemble.md).
 ## Can it be controlled: linearisation and controllability
 
 Near an equilibrium a model behaves like the linear system
-`dx' = A dx + B du`, where `dx` is the distance from the equilibrium, `A`
-is the Jacobian of the right-hand side and `B` holds its derivatives with
-respect to the **inputs**: the parameters you treat as controls (an
+
+$$\dot{\delta x} = A\,\delta x + B\,\delta u$$
+
+where $\delta x$ is the distance from the equilibrium, $A$ is the Jacobian
+of the right-hand side and $B$ holds its derivatives with respect to the
+**inputs** $u$: the parameters you treat as controls (an
 injected current, a force, a thrust). **Linearise** (*Run > Linearise...*)
 computes them, says whether the equilibrium is stable, and whether the
 inputs can steer every state (the controllability matrix has full rank).
@@ -115,12 +118,16 @@ See [linearize](../reference/linearize.md), and the Python guide
 
 ## Making it stable: pole placement and LQR
 
-When the inputs can steer every state, the feedback `u = u0 - K (x - x*)`
-turns the linear system into `dx' = (A - B K) dx`. **Pole placement**
-chooses `K` so that the eigenvalues of `A - B K`, the poles of the closed
-loop, are where you want them. The **linear-quadratic regulator** instead
-takes weights, how much each state's distance matters and how dear each
-input is, and finds the gain that minimises the cost. **Simulate the closed
+When the inputs can steer every state, the feedback
+$u = u_0 - K\,(x - x^*)$ turns the linear system into
+$\dot{\delta x} = (A - BK)\,\delta x$. **Pole placement** chooses $K$ so
+that the eigenvalues of $A - BK$, the poles of the closed loop, are where
+you want them. The **linear-quadratic regulator** instead takes weights,
+$Q$ for how much each state's distance matters and $R$ for how dear each
+input is, and finds the gain that minimises
+
+$$J = \int_0^\infty \left(\delta x^T Q\,\delta x + \delta u^T R\,\delta u\right) dt$$
+ **Simulate the closed
 loop** writes the model with the feedback built in, and runs it: the full
 nonlinear model, which shows how far from the point the linear design
 still works.
@@ -150,6 +157,6 @@ Try it with [Morris-Lecar](example:lecar.ode): `set iapp=0.1`,
 rest state crosses into the left half-plane at iapp = 0.2037, at ±1.26i:
 there the equilibrium regains its stability in a Hopf bifurcation. With
 the pendulum above, `locus gain 0 2` shows the unstable pole coming in at
-g = 0.662, where `9.8 - 14.8 g = 0`.
+$g = 0.662$, where $9.8 - 14.8\,g = 0$.
 
 See [locus](../reference/locus.md).

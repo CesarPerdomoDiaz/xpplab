@@ -22,7 +22,7 @@ static void tokens(const char *text, char *out, size_t size) {
     if (t.kind == HM_END) break;
     if (t.kind == HM_SKIP) continue;
     kind = t.kind == HM_TEXT ? "text" : t.kind == HM_LINK ? "link"
-         : t.kind == HM_IMAGE ? "image" : "code";
+         : t.kind == HM_IMAGE ? "image" : t.kind == HM_MATH ? "math" : "code";
     snprintf(piece, sizeof piece, "%s%s:%.*s", out[0] ? "|" : "", kind,
              (int)(t.text_end - t.text), t.text);
     if (t.kind == HM_LINK || t.kind == HM_IMAGE)
@@ -87,6 +87,14 @@ int main(int argc, char **argv) {
   check("2 * 3 * 4 and a `x*y` code",
         "text:2 |text:* 3 |text:* 4 and a |code:x*y|text: code");
   check("not a link [x] or ! mark", "text:not a link |text:[x] or ! mark");
+  /* mathematics, by the website's rules (pymdownx.arithmatex) */
+  check("with $x^2$ here", "text:with |math:x^2|text: here");
+  check("$\\dot{x} = A\\,x$.", "math:\\dot{x} = A\\,x|text:.");
+  check("costs $5 and $10", "text:costs |text:$5 and |text:$10");
+  check("a $ x$ is no formula", "text:a |text:$ x|text:$ is no formula");
+  check("a \\$ sign", "text:a |text:$|text: sign");
+  check("`$BLACK` is code", "code:$BLACK|text: is code");
+  check("$a \\$ b$", "math:a \\$ b");
   if (argc > 1) check_page(argv[1]);
   if (failures) return 1;
   puts("help markup: ok");

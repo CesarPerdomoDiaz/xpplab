@@ -91,6 +91,15 @@ def test_doc_opens_the_page_of_a_command_or_a_method():
     assert xs.doc("AUTO  Steady", open=False) == site + "auto-steady/"
     with xs.load(xs.example("lecar.ode")) as m:
         assert xs.doc(m.auto.equilibria, open=False) == site + "auto-steady/"
+        # a method that shares its name with a command opens its own page
+        assert xs.doc(m.fit, open=False) == site + "fitdata/"
+        assert xs.doc(m.auto.load, open=False) == site + "auto-load/"
+        assert xs.doc(m.auto.save, open=False) == site + "auto-save/"
+        assert xs.doc(m.auto.set, open=False) == site + "auto-set/"
+    assert xs.doc(xs.load, open=False) == site + "open/"
+    assert xs.doc("fit", open=False) == site + "fit/"       # the command
+    assert xs.doc("save", open=False) == site + "save/"
+    assert xs.doc("equilibria", open=False) == site + "auto-steady/"
     assert xs.doc(open=False) == site + "reference/"
     assert xs.doc("no such thing", open=False) == site + "reference/"
     # the package knows exactly the pages that exist
@@ -323,3 +332,967 @@ def test_run_page():
           tol=1e-6, atol=1e-6, maxstor=5000)
     assert len(m.run().t) == 601
     m.close()
+
+
+def test_eq_pages():
+    text, blocks = python_blocks("eq.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "eq.md example 1", "exec"), ns)
+    e = ns["e"]
+    assert e.kind == "saddle"
+    assert (e["V"], e["W"]) == pytest.approx((-0.142535, 0.034049), abs=1e-6)
+    assert sorted(e.eigenvalues.real) == pytest.approx([-0.30101, 1.02997], abs=1e-5)
+    exec(compile(blocks[1], "eq.md example 2", "exec"), ns)
+    low, high = ns["low"], ns["high"]
+    assert low.kind == "stable node"
+    assert (low["V"], low["W"]) == pytest.approx((-0.382505, 0.001286), abs=1e-6)
+    assert sorted(low.eigenvalues.real) == pytest.approx([-0.89036, -0.40276], abs=1e-5)
+    assert high.kind == "unstable focus"
+    assert (high["V"], high["W"]) == pytest.approx((0.02761, 0.26924), abs=1e-5)
+    assert high.eigenvalues.real == pytest.approx([0.52042, 0.52042], abs=1e-5)
+    assert sorted(abs(high.eigenvalues.imag)) == pytest.approx([0.7811, 0.7811], abs=1e-4)
+    # a run from the initial values ends at the stable node, not the saddle
+    m = ns["m"]
+    m.set(v=-0.144, w=0.03)
+    assert m.run()["V"][-1] == pytest.approx(low["V"], abs=1e-3)
+    m.close()
+
+    text, blocks = python_blocks("eq-all.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "eq-all.md example 1", "exec"), ns)
+    found = ns["found"]
+    assert len(found) == 3
+    assert sorted(e.kind for e in found) == ["saddle", "stable node", "unstable focus"]
+    exec(compile(blocks[1], "eq-all.md example 2", "exec"), ns)
+    one = ns["one"]
+    assert len(one) == 1 and one[0].kind == "unstable focus"
+    assert one[0]["V"] == pytest.approx(-0.152093, abs=1e-6)
+    ns["m"].close()
+
+
+def test_nullclines_page():
+    text, blocks = python_blocks("nullclines.md")
+    assert len(blocks) == 2
+    box = {"V": (-0.6, 1.2), "W": (-0.25, 1.2)}
+
+    def distance(segments, point):
+        a, b = segments[:, :2], segments[:, 2:]
+        ab = b - a
+        t = np.clip(((point - a) * ab).sum(1) / np.maximum((ab ** 2).sum(1), 1e-30), 0, 1)
+        return np.hypot(*(a + t[:, None] * ab - point).T).min()
+
+    ns = {}
+    exec(compile(blocks[0], "nullclines.md example 1", "exec"), ns)
+    m, vn, wn = ns["m"], ns["vn"], ns["wn"]
+    found = m.find_equilibria(box=box)
+    assert sorted(round(e["V"], 4) for e in found) == [-0.3825, -0.1425, 0.0276]
+    for e in found:          # every equilibrium lies on both nullclines
+        p = np.array([e["V"], e["W"]])
+        assert distance(vn, p) < 1e-3 and distance(wn, p) < 1e-3, e.kind
+    # above the V nullcline V decreases, below it increases
+    v0 = -0.3
+    w_on = vn[np.argmin(abs((vn[:, 0] + vn[:, 2]) / 2 - v0)), 1]
+    assert m.rhs({"V": v0, "W": w_on + 0.05})[0] < 0 < m.rhs({"V": v0, "W": w_on - 0.05})[0]
+    exec(compile(blocks[1], "nullclines.md example 2", "exec"), ns)
+    one = m.find_equilibria(box=box)
+    assert len(one) == 1 and one[0].kind == "unstable focus"
+    assert one[0]["V"] == pytest.approx(0.0443, abs=5e-5)
+    m.set(iapp=0.08)
+    assert len(m.find_equilibria(box=box)) == 3
+    m.close()
+
+
+def test_range_page():
+    text, blocks = python_blocks("range.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "range.md example 1", "exec"), ns)
+    m, values, up = ns["m"], ns["values"], ns["up"]
+    swing = dict(zip(np.round(values, 2), np.round(up, 3)))
+    assert swing[0.24] == 0 and swing[0.47] == 0
+    assert swing[0.25] == pytest.approx(0.638, abs=1e-3)
+    assert swing[0.27] == pytest.approx(0.652, abs=1e-3) and max(up) == pytest.approx(0.652, abs=1e-3)
+    assert swing[0.46] == pytest.approx(0.529, abs=1e-3)
+    firing = [v for v, s in swing.items() if s > 0.1]
+    assert min(firing) == 0.25 and max(firing) == 0.46      # bracket 0.2484 and 0.4657
+    exec(compile(blocks[1], "range.md example 2", "exec"), ns)
+    climb = dict(zip(np.round(values, 2), ns["climb"]))
+    fall = dict(zip(np.round(values, 2), ns["fall"]))
+    assert climb[0.25] < 0.05 and climb[0.26] < 0.05 and climb[0.27] > 0.6   # rests until past HB
+    assert fall[0.46] < 0.05 and swing[0.46] > 0.5                            # rests where the other fired
+    assert m.get("iapp") == pytest.approx(0.5)        # sweep puts the parameter back
+    m.close()
+
+
+def test_continue_page():
+    text, blocks = python_blocks("continue.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "continue.md example 1", "exec"), ns)
+    m, sol = ns["m"], ns["sol"]
+    assert len(sol) == 4001 and sol.t[-1] == pytest.approx(200)
+    exec(compile(blocks[1], "continue.md example 2", "exec"), ns)
+    assert m.get("total") == pytest.approx(30)
+    assert m.get("v") == pytest.approx(-0.144)
+    first = m.run(iapp=0.1)
+    assert len(first) == 601 and first.t[-1] == pytest.approx(30)
+    m.set(iapp=0.1)
+    one = m.run(total=200)
+    diff = np.abs(sol["V"] - one["V"])
+    assert diff.max() < 1e-7 and diff[:601].max() == 0     # 6e-8, none up to t = 30
+    for meth, bound in (("qualrk", 2e-7), ("stiff", 5e-8)):   # More about
+        m.set(meth=meth, total=30)
+        s = m.continue_run(m.run(iapp=0.1), 170)
+        m.set(iapp=0.1)
+        assert np.abs(s["V"] - m.run(total=200)["V"]).max() < bound
+    m.close()
+
+
+def peaks(run):
+    v = run["V"]
+    i = np.where((v[1:-1] > v[:-2]) & (v[1:-1] > v[2:]) & (v[1:-1] > 0.1))[0] + 1
+    return run.t[i], v[i]
+
+
+def test_ic_last_page():
+    text, blocks = python_blocks("ic-last.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "ic-last.md example", "exec"), ns)
+    m, first, second = ns["m"], ns["first"], ns["second"]
+    assert first["V"][0] == pytest.approx(-0.144)
+    assert first["V"][-1] == pytest.approx(-0.2384, abs=1e-4)
+    assert first["W"][-1] == pytest.approx(0.00706, abs=1e-5)
+    assert second["V"][0] == first["V"][-1] and second.t[0] == 0
+    assert m.get("V") == pytest.approx(-0.23842227676, abs=1e-11)   # full precision
+    assert float(np.float32(m.get("V"))) == pytest.approx(-0.2384222746, abs=1e-10)
+    t1, v1 = peaks(first)
+    t2, v2 = peaks(second)
+    assert list(np.round(t1, 2)) == [2.05, 18.5] and list(np.round(t2, 2)) == [4.95, 21.45]
+    assert round(v1[0], 4) == 0.2553 and round(v1[1], 4) == 0.2615
+    assert round(v2[0], 4) == 0.2613 and round(v2[1], 4) == 0.2615
+    m.close()
+
+
+def test_ic_shift_page():
+    text, blocks = python_blocks("ic-shift.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "ic-shift.md example", "exec"), ns)
+    m, first, second = ns["m"], ns["first"], ns["second"]
+    assert first.t[-1] == pytest.approx(9.9852, abs=1e-4)
+    assert m.get("T0") == pytest.approx(9.9852, abs=1e-4)
+    assert second.t[0] == pytest.approx(9.9852, abs=1e-4)
+    assert second.t[-1] == pytest.approx(19.9704, abs=1e-4)
+    assert second["x"][-1] == pytest.approx(-0.8317, abs=1e-4)
+    one = xs.load(xs.example("forcpend.ode"))
+    one.set(total=20, trans=0)
+    whole = one.run()
+    assert np.array_equal(second["x"], whole["x"][len(first) - 1:])   # to the last digit
+    other = xs.load(xs.example("forcpend.ode"))
+    other.set(total=10, trans=0)
+    a = other.run()
+    other.ic_last()
+    b = other.run()
+    assert b.t[0] == 0 and b["x"][-1] == pytest.approx(-7.546, abs=1e-3)
+    gap = np.abs(b["x"] - whole["x"][len(a) - 1:]).max()
+    assert gap == pytest.approx(6.7, abs=0.05) and gap > 2 * np.pi
+    for x in (m, one, other):
+        x.close()
+
+
+def test_whos_page():
+    text, blocks = python_blocks("whos.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "whos.md example 1", "exec"), ns)
+    m = ns["m"]
+    assert m.variables == ["V", "W"] and len(m.parameters) == 12
+    assert dict(m.initial_conditions) == pytest.approx({"V": -0.144, "W": 0.03})
+    assert m.options["METH"] == "rungekutta" and m.options["TOTAL"] == 30
+    assert "Output columns: 7" in text and "cur`, `ica`, `ik`, `rate`" in text
+    exec(compile(blocks[1], "whos.md example 2", "exec"), ns)
+    p = dict(m.parameters)
+    assert p["iapp"] == pytest.approx(0.1)
+    assert (p["phi"], p["v3"], p["v4"], p["gca"]) == pytest.approx((0.2, 0, 0.3, 1.1))
+    m.close()
+
+
+def test_ic_write_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("ic-write.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "ic-write.md example", "exec"), ns)
+    m, path = ns["m"], ns["path"]
+    lines = path.read_text().split()
+    assert len(lines) == 2 and float(lines[0]) == m.get("V") and float(lines[1]) == m.get("W")
+    assert lines[0].startswith("-0.23842227676")           # Python: full precision
+    # The app's file, from the stored run: the numbers the page shows.
+    stored = [float(np.float32(m.get(v))) for v in ("V", "W")]
+    assert repr(stored[0]) == "-0.23842227458953857"
+    assert repr(stored[1]) == "0.007057134062051773"
+    m.close()
+
+
+def test_ic_read_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("ic-read.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "ic-read.md example 1", "exec"), ns)
+    m = ns["m"]
+    saved = [float(x) for x in (tmp_path / "firing.txt").read_text().split()]
+    assert [m.get("V"), m.get("W")] == saved                 # to the last digit
+    assert m.get("V") == pytest.approx(-0.23842227676, abs=1e-11)
+    assert float(np.float32(m.get("V"))) == pytest.approx(-0.2384222746, abs=1e-10)  # the app's
+    assert float(np.float32(m.get("W"))) == pytest.approx(0.007057134062, abs=1e-12)
+    exec(compile(blocks[1], "ic-read.md example 2", "exec"), ns)
+    assert dict(m.ics) == {"V": -0.3, "W": 0.01}
+    (tmp_path / "short.txt").write_text("0.5\n")
+    with pytest.raises(xs.EngineError, match="holds 1 number; the model has 2 variables"):
+        m.read_ics("short.txt")
+    with pytest.raises(xs.EngineError, match="cannot open"):
+        m.read_ics("none.txt")
+    (tmp_path / "head.txt").write_text("V W\n1 2\n")
+    with pytest.raises(xs.EngineError, match="holds 0 numbers"):
+        m.read_ics("head.txt")
+    (tmp_path / "more.txt").write_text("1;2;3\n")
+    m.read_ics("more.txt")
+    assert dict(m.ics) == {"V": 1, "W": 2}                   # the rest ignored
+    m.close()
+
+
+def test_use_page():
+    text, blocks = python_blocks("use.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "use.md example 1", "exec"), ns)
+    m = ns["m"]
+    snic = sorted((e.kind, round(e["V"], 4)) for e in ns["snic"])
+    assert snic == [("saddle", -0.1425), ("stable node", -0.3825), ("unstable focus", 0.0276)]
+    assert [(e.kind, round(e["V"], 4)) for e in ns["hopf"]] == [("stable focus", -0.4417)]
+    assert (m.get("v3"), m.get("v4"), m.get("gca"), m.get("phi")) == pytest.approx((0, 0.3, 1.1, 0.2))
+    fresh = xs.load(xs.example("lecar.ode"))
+    own = [fresh.get(p) for p in ("v3", "v4", "gca", "phi")]
+    fresh.apply_set("snic")
+    assert [fresh.get(p) for p in ("v3", "v4", "gca", "phi")] == own   # the model's own values
+    with pytest.raises(xs.EngineError, match="no set named nope"):
+        fresh.apply_set("nope")
+    fresh.close()
+    exec(compile(blocks[1], "use.md example 2", "exec"), ns)
+    assert m.get("total") == 100 and m.get("iapp") == pytest.approx(0.1)
+    m.close()
+
+
+def test_sets_page():
+    text, blocks = python_blocks("sets.md")
+    ns = {}
+    exec(compile(blocks[0], "sets.md example", "exec"), ns)
+    m = ns["m"]
+    assert m.sets == ["vvst", "pp", "snic", "hopf", "hom", "cool"]
+    m.apply_set("cool")
+    cool = [m.get(p) for p in ("v3", "v4", "gca", "phi")]
+    assert m.get("iapp") == pytest.approx(0.080918)
+    m.apply_set("hom")
+    assert [m.get(p) for p in ("v3", "v4", "gca", "phi")] == cool     # cool is hom with a current
+    m.close()
+
+
+def test_dirfield_page():
+    text, blocks = python_blocks("dirfield.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "dirfield.md example 1", "exec"), ns)
+    m, X, Y, U, V = (ns[k] for k in ("m", "X", "Y", "U", "V"))
+    assert X.shape == (21, 21)
+    assert np.round(m.rhs({"V": 1.0, "W": 0.2}), 2).tolist() == [-1.38, 2.97]
+    assert np.round(m.rhs({"V": -0.5, "W": 0.5}), 3).tolist() == [-0.148, -0.669]
+    # anticlockwise: right side up, top left, left side down, bottom right
+    assert m.rhs({"V": 1.0, "W": 0.2})[1] > 0 and m.rhs({"V": 0.2, "W": 1.0})[0] < 0
+    assert m.rhs({"V": -0.5, "W": 0.5})[1] < 0 and m.rhs({"V": 0.2, "W": 0.0})[0] > 0
+    exec(compile(blocks[1], "dirfield.md example 2", "exec"), ns)
+    assert np.abs(m.rhs({"V": -0.3825, "W": 0.0013})).max() < 1e-3
+    assert round(np.abs(U).max(), 2) == 5.56 and round(np.abs(V).max(), 2) == 9.24
+    assert X[np.unravel_index(np.abs(U).argmax(), U.shape)] == pytest.approx(1.2)
+    assert X[np.unravel_index(np.abs(V).argmax(), V.shape)] == pytest.approx(1.2)
+    assert m.vector_field("V", "W", (0, 1), (0, 1))[0].shape == (20, 20)   # n's default
+    m.close()
+
+
+def test_click_page():
+    text, blocks = python_blocks("click.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "click.md example", "exec"), ns)
+    m, below, above = ns["m"], ns["below"], ns["above"]
+    assert round(below["V"].max(), 4) == -0.1644 and round(above["V"].max(), 4) == 0.2371
+    assert round(below["V"][-1], 4) == round(above["V"][-1], 4) == -0.3825   # both rest
+    assert (m.get("V"), m.get("W")) == pytest.approx((-0.16, 0.0013))       # the values stay
+    lo, hi = -0.2, -0.15                                                     # the threshold
+    for _ in range(20):
+        mid = (lo + hi) / 2
+        lo, hi = (lo, mid) if m.run(V=mid, W=0.0013)["V"].max() > 0 else (mid, hi)
+    assert round(lo, 4) == -0.1682
+    m.close()
+
+
+def test_erase_page():
+    text, blocks = python_blocks("erase.md")
+    ns = {}
+    exec(compile(blocks[0], "erase.md example", "exec"), ns)
+    assert len(ns["runs"]) == 2 and len(ns["found"]) == 3
+    ns["m"].close()
+
+
+def test_freeze_page():
+    text, blocks = python_blocks("freeze.md")
+    ns = {}
+    exec(compile(blocks[0], "freeze.md example", "exec"), ns)
+    rest, firing = ns["runs"]
+    assert (round(rest["V"].min(), 4), round(rest["V"].max(), 4)) == (-0.4306, 0.2283)
+    assert round(rest["V"][-1], 4) == -0.3825 and len(peaks(rest)[0]) == 1
+    assert round(firing["V"].max(), 4) == 0.2615 and len(peaks(firing)[0]) == 2
+    ns["m"].close()
+
+
+def test_mean_page():
+    text, blocks = python_blocks("mean.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "mean.md example 1", "exec"), ns)
+    m = ns["m"]
+    mean, sd = m.mean("V")
+    assert (round(mean, 6), round(sd, 6)) == (-0.184298, 0.181866)
+    assert round(m.lyapunov(), 6) == 0.009812
+    run = m.run()
+    assert sd == pytest.approx(run["V"].std(ddof=0), rel=1e-12)       # a population
+    m.set(total=2000)
+    m.run()
+    assert round(m.lyapunov(), 4) == 0.0022
+    m.set(iapp=0.05, total=30)
+    m.run()
+    assert [round(x, 6) for x in m.mean("V")] == [-0.299913, 0.172776]
+    assert round(m.lyapunov(), 4) == -0.1755
+    exec(compile(blocks[1], "mean.md example 2", "exec"), ns)
+    lorenz = ns["lorenz"]
+    assert [round(x, 5) for x in lorenz.mean("X")] == [-2.29813, 7.41067]
+    assert round(lorenz.lyapunov(), 4) == 0.8667
+    for total, value in ((400, 0.8707), (2000, 0.8777)):
+        lorenz.set(total=total, maxstor=200000)
+        lorenz.run()
+        assert round(lorenz.lyapunov(), 4) == value
+    m.close()
+    lorenz.close()
+
+
+def test_hist_page():
+    text, blocks = python_blocks("hist.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "hist.md example 1", "exec"), ns)
+    m, h = ns["m"], ns["h"]
+    assert len(h) == 11 and h.columns == ["bin", "count"]
+    assert h["count"].tolist() == [1020, 858, 750, 349, 173, 138, 144, 142, 151, 275, 1]
+    assert round(h["bin"][0], 4) == -0.3804 and round(h["bin"][-1], 4) == 0.2615
+    assert round(h["bin"][1] - h["bin"][0], 4) == 0.0642
+    run = m.last_run()
+    assert len(run) == 4001
+    assert np.histogram(run["V"], bins=10)[0][-1] == 276
+    exec(compile(blocks[1], "hist.md example 2", "exec"), ns)
+    assert ns["w"]["count"].sum() == 857 == (run["W"] > 0.2).sum()
+    # a point less than a width below LO counts in the first bin (truncation)
+    lo = run["V"].min() + 0.5 * 0.0642
+    g = m.histogram("V", bins=10, range=(lo, lo + 0.642))
+    assert g["count"][0] == ((run["V"] >= lo - 0.0642) & (run["V"] < lo + 0.0642)).sum()
+    m.close()
+
+
+def test_xcorr_page():
+    text, blocks = python_blocks("xcorr.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "xcorr.md example 1", "exec"), ns)
+    m, run, c = ns["m"], ns["run"], ns["c"]
+    lag, cor = c["lag"], c["correlation"]
+    assert len(c) == 802 and lag[0] == -20 and lag[-1] == 20
+    assert round(lag[1] - lag[0], 5) == 0.04994 and round(lag[400], 3) == -0.025
+    assert round(cor[400], 5) == 0.03308 == round(run["V"].var(), 5)
+    later = lag > 5
+    j = np.argmax(cor[later])
+    assert abs(lag[later][j] - 16.45) < 0.05 and round(cor[later][j], 4) == 0.0311
+    assert round(cor[later][j] / cor[400], 2) == 0.94
+    k = np.where((lag > 0) & (lag < 16))[0]
+    assert round(lag[k[np.argmin(cor[k])]], 2) == 8.51 and round(cor[k].min(), 4) == -0.0142
+    assert len(m.correlation("V")) == 102 and m.correlation("V")["lag"][-1] == 2.5
+    exec(compile(blocks[1], "xcorr.md example 2", "exec"), ns)
+    vw = ns["vw"]
+    near = np.abs(vw["lag"]) < 8
+    assert round(vw["lag"][near][np.argmax(vw["correlation"][near])], 2) == 1.32
+    v, w = run["V"] - run["V"].mean(), run["W"] - run["W"].mean()
+    assert (v[:-26] * w[26:]).mean() > 10 * abs((v[26:] * w[:-26]).mean())   # W follows V
+    fft = m.correlation("V", lags=800, fft=True)["correlation"]
+    assert np.abs(fft - cor)[:-2].max() < 1e-7
+    m.close()
+
+
+def test_spectrum_page():
+    text, blocks = python_blocks("spectrum.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "spectrum.md example 1", "exec"), ns)
+    m, s, k = ns["m"], ns["s"], ns["k"]
+    f, p = s["freq"], s["power"]
+    assert len(m.last_run()) == 40001 and len(s) == 4096
+    assert round(f[1] - f[0], 5) == 0.00244 and round(f[k], 4) == 0.0610
+    assert abs(f[k] - 1 / 16.45) < f[1] - f[0]
+    peaks = [i for i in range(1, len(p) - 1)
+             if p[i] > p[i - 1] and p[i] >= p[i + 1] and p[i] > 0.1 * p[k]]
+    assert [round(f[i], 4) for i in peaks[:4]] == [0.0610, 0.1221, 0.1831, 0.2417]
+    assert [round(p[i] / p[k], 2) for i in peaks[1:4]] == [0.63, 0.30, 0.11]
+    assert f[-1] < 10 and f[-1] > 9.99                        # 1/(2 dt)
+    c = m.spectrum("V", "W", kind="coherence", length=8192)["coherence"]
+    assert all(round(c[i], 3) == 1.0 for i in peaks[:4])
+    exec(compile(blocks[1], "spectrum.md example 2", "exec"), ns)
+    coarse = ns["coarse"]
+    assert len(coarse) == 256 and round(coarse["freq"][1], 3) == 0.039
+    assert np.argmax(coarse["power"][1:]) + 1 == 1
+    m.close()
+
+
+def test_hist2d_page():
+    text, blocks = python_blocks("hist2d.md")
+    ns = {}
+    exec(compile(blocks[0], "hist2d.md example", "exec"), ns)
+    m, h, k = ns["m"], ns["h"], ns["k"]
+    c = h["count"]
+    assert len(h) == 100 and (c > 0).sum() == 36
+    assert round(c[k], 3) == 0.193 and round(h["x"][k], 3) == -0.284 and round(h["y"][k], 4) == 0.0265
+    run = m.last_run()
+    on_edge = ((run["V"] == run["V"].max()) | (run["W"] == run["W"].max())).sum()
+    assert round(c.sum(), 4) == 0.9995 == round(1 - on_edge / len(run), 4)
+    assert len(m.histogram2d("V", "W")) == 400                 # 20 by 20
+    m.close()
+
+
+def test_bvp_page():
+    text, blocks = python_blocks("bvp.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "bvp.md example 1", "exec"), ns)
+    m, sol = ns["m"], ns["sol"]
+    assert round(m.get("V"), 12) == 1 and round(m.get("VX"), 11) == -1.31303528556
+    assert abs(m.get("VX") + 1 / np.tanh(1)) < 1e-10
+    assert np.abs(sol["V"] - ns["exact"]).max() < 4e-8 and sol.t[-1] == pytest.approx(1)
+    guess = m.get("VX")
+    exec(compile(blocks[1], "bvp.md example 2", "exec"), ns)
+    loose = ns["loose"]
+    assert round(loose, 7) == -0.7615917 and abs(loose + np.tanh(1)) == pytest.approx(2.5e-6, abs=1e-7)
+    assert round(m.get("VX"), 11) == -0.76159415592 and abs(m.get("VX") + np.tanh(1)) < 4e-11
+    other = xs.load(xs.example("cable.ode"))            # from the first solution
+    other.set(total=1, dt=0.01, VX=guess, a=0, b=1)
+    other.bvp()
+    assert round(other.get("VX"), 11) == -0.76159415594
+    m.close()
+    other.close()
+
+
+def knee(v_nullcline):
+    """The lower knee of Morris-Lecar's N-shaped V nullcline: its lowest W
+    for V between -0.45 and -0.1."""
+    seg = np.asarray(v_nullcline).reshape(-1, 4)
+    pts = np.vstack([seg[:, :2], seg[:, 2:]])
+    sel = (pts[:, 0] > -0.45) & (pts[:, 0] < -0.1)
+    return pts[sel, 1].min()
+
+
+LECAR_BOX = {"V": (-0.6, 1.2), "W": (-0.25, 1.2)}
+
+
+def test_nullclines_freeze_page():
+    text, blocks = python_blocks("nullclines-freeze.md")
+    ns = {}
+    exec(compile(blocks[0], "nullclines-freeze.md example", "exec"), ns)
+    m, values, frozen = ns["m"], ns["values"], ns["frozen"]
+    knees = [round(knee(vn), 2) for vn, wn in frozen]
+    assert knees == [-0.09, -0.06, -0.03, 0.0, 0.03]
+    assert all(np.array_equal(np.asarray(frozen[0][1]), np.asarray(f[1])) for f in frozen)
+    counts = []
+    for v in values:
+        m.set(iapp=v)
+        counts.append(len(m.find_equilibria(box=LECAR_BOX)))
+    assert counts == [3, 3, 3, 3, 1]
+    m.close()
+
+
+def test_nullclines_play_page():
+    text, blocks = python_blocks("nullclines-play.md")
+    ns = {}
+    exec(compile(blocks[0], "nullclines-play.md example", "exec"), ns)
+    m, values = ns["m"], ns["values"]
+    assert len(ns["frozen"]) == 21
+    assert round(values[16], 3) == 0.08 and round(values[17], 3) == 0.085
+    m.set(iapp=values[16])
+    assert len(m.find_equilibria(box=LECAR_BOX)) == 3
+    m.set(iapp=values[17])
+    assert len(m.find_equilibria(box=LECAR_BOX)) == 1
+    m.close()
+
+
+def test_nullclines_unfreeze_page():
+    text, blocks = python_blocks("nullclines-unfreeze.md")
+    ns = {}
+    exec(compile(blocks[0], "nullclines-unfreeze.md example", "exec"), ns)
+    assert ns["frozen"] == [] and ns["m"].get("iapp") == pytest.approx(0.05)
+    ns["m"].close()
+
+
+def test_export_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("export.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "export.md example", "exec"), ns)
+    m, sol = ns["m"], ns["sol"]
+    lines = (tmp_path / "run.csv").read_text().splitlines()
+    assert lines[0] == "T,V,W,CUR,ICA,IK,RATE" and len(lines) == 602
+    first = lines[1].split(",")
+    assert first[1:4] == ["-0.14399999380111694", "0.029999999329447746", "0.05000000074505806"]
+    back = np.genfromtxt(tmp_path / "run.csv", delimiter=",", names=True)
+    assert np.array_equal(back["V"], sol["V"])                          # exact
+    assert (tmp_path / "run.mat").stat().st_size > 0 and sol.params["iapp"] == pytest.approx(0.05)
+    found = m.find_equilibria(box=LECAR_BOX)
+    focus = [e for e in found if e.kind == "unstable focus"][0]
+    ev = sorted(focus.eigenvalues, key=lambda z: -z.imag)
+    assert round(ev[0].real, 4) == 0.5204 and round(ev[0].imag, 4) == 0.7811
+    m.close()
+
+
+def test_shoot_page():
+    text, blocks = python_blocks("shoot.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "shoot.md example 1", "exec"), ns)
+    m, eq, runs = ns["m"], ns["eq"], ns["runs"]
+    assert eq.kind == "saddle" and round(eq["V"], 4) == -0.1425 and round(eq["W"], 4) == 0.0340
+    assert len(runs) == 2 and round(runs.directions[0][0], 4) == 1.0289
+    up, down = sorted(runs, key=lambda r: -r["V"].max())
+    assert round(up["V"].max(), 4) == 0.2273 and abs(up["V"][-1] + 0.3825) < 5e-4
+    assert down["V"].max() < -0.142 and abs(down["V"][-1] + 0.3825) < 5e-4
+    exec(compile(blocks[1], "shoot.md example 2", "exec"), ns)
+    crossings = []
+    for r in ns["stable"]:
+        w, v = r["W"], r["V"]
+        for k in np.where(np.diff(np.sign(w - 0.0013)) != 0)[0]:
+            f = (0.0013 - w[k]) / (w[k + 1] - w[k])
+            crossings.append(v[k] + f * (v[k + 1] - v[k]))
+    assert [round(c, 6) for c in crossings] == [-0.168228]
+    assert round(eq.eigenvalues[0].real, 5) == 1.02997                 # jac_eps 0.001
+    assert round(m.linearize(at=eq.values).eigenvalues[0].real, 7) == 1.0289065
+    m.set(jac_eps=1e-6)
+    assert round(m.equilibrium({"V": -0.14, "W": 0.035}).eigenvalues[0].real, 6) == 1.028907
+    m.close()
+
+
+def test_view3d_page():
+    import matplotlib
+    matplotlib.use("Agg")
+    text, blocks = python_blocks("view3d.md")
+    ns = {}
+    exec(compile(blocks[0], "view3d.md example", "exec"), ns)
+    lorenz, sol = ns["lorenz"], ns["sol"]
+    assert len(sol) == 1601 and sol.t[-1] == pytest.approx(40)
+    assert (round(sol["X"].min(), 1), round(sol["X"].max(), 1)) == (-16.6, 17.6)
+    assert (round(sol["Z"].min(), 1), round(sol["Z"].max(), 1)) == (5.4, 42.7)
+    assert ns["switches"] == 20 and round(np.mean(sol["X"] > 0), 2) == 0.34
+    first = np.where(np.diff(np.sign(sol["X"])) != 0)[0][0] + 1
+    assert round(sol.t[first], 2) == 3.78
+    found = lorenz.find_equilibria(box={"X": (-20, 20), "Y": (-30, 30), "Z": (0, 50)})
+    kinds = sorted((e.kind, round(abs(e["X"]), 4), round(e["Z"], 4)) for e in found)
+    assert kinds == [("saddle", 0.0, 0.0), ("saddle-focus", 8.3267, 26.0),
+                     ("saddle-focus", 8.3267, 26.0)]
+    import matplotlib.pyplot as plt
+    plt.close("all")
+    lorenz.close()
+
+
+def test_ani_page():
+    text, blocks = python_blocks("ani.md")
+    ns = {}
+    exec(compile(blocks[0], "ani.md example", "exec"), ns)
+    m, a = ns["m"], ns["a"]
+    assert len(a) == 401 and m.last_run().t[-1] == pytest.approx(20)
+    first, last = a.frame(0)[1], a.frame(len(a) - 1)[1]     # the bob
+    assert first.shape == "ellipse" and first.filled and first.color == "#ff0000"
+    assert (round(first.x1, 4), round(first.y1, 4)) == (0.8637, 0.6665)
+    assert (round(last.x1, 4), round(last.y1, 4)) == (0.4193, 0.1082)
+    assert round(m.last_run()["X"][-1], 3) == -0.203 and round(np.sin(2), 3) == 0.909
+    m.close()
+
+
+def from_spike(model, prc):
+    """The PRC in V with the phase measured from the spike."""
+    run = model.last_run()
+    spike = (run.t[np.argmax(run["V"])] - run.t[0]) / prc.period
+    phase = (prc["phase"] - spike) % 1.0
+    order = np.argsort(phase)
+    return phase[order], prc["V"][order]
+
+
+def test_prc_page():
+    text, blocks = python_blocks("prc.md")
+    ns = {}
+    exec(compile(blocks[0], "prc.md example", "exec"), ns)
+    m, h, snic, hopf = ns["m"], ns["h"], ns["snic"], ns["hopf"]
+    assert len(snic) == 330 and round(snic.period, 4) == 16.4745
+    assert round(hopf.period, 2) == 15.64
+    for model, prc, top, at, low, at_low, neg in (
+            (m, snic, 58.7, 0.66, -7.2, 0.10, 0.16), (h, hopf, 25.3, 0.79, -12.3, 0.21, 0.50)):
+        phase, z = from_spike(model, prc)
+        assert round(z.max(), 1) == top and round(phase[np.argmax(z)], 2) == at
+        assert round(z.min(), 1) == low and round(phase[np.argmin(z)], 2) == at_low
+        assert round(np.mean(z < 0), 2) == neg
+    # the normalisation, and a kick of 0.001 at the largest value
+    m.set(iapp=0.1)
+    p = m.phase_response()
+    run = m.last_run()
+    dots = [np.dot(m.rhs({"V": run["V"][i], "W": run["W"][i]}), [p["V"][i], p["W"][i]])
+            for i in range(len(run))]
+    assert round(min(dots), 4) == 0.9986 and round(max(dots), 4) == 1.0022
+    i = int(np.argmax(p["V"]))
+    assert round(p["V"][i], 2) == 58.69
+
+    def next_peak(state):
+        s = m.run(total=2 * p.period, **state)
+        v = s["V"]
+        k = np.where((v[1:-1] > v[:-2]) & (v[1:-1] >= v[2:]) & (v[1:-1] > 0.1))[0][0] + 1
+        a, b, c = v[k - 1], v[k], v[k + 1]
+        return s.t[k] + 0.5 * (a - c) / (a - 2 * b + c) * (s.t[1] - s.t[0])
+    x0 = {"V": float(run["V"][i]), "W": float(run["W"][i])}
+    t0 = next_peak(x0)
+    assert round(t0 - next_peak({"V": x0["V"] + 1e-3, "W": x0["W"]}), 4) == 0.0584
+    assert round(t0 - next_peak({"V": x0["V"] - 1e-3, "W": x0["W"]}), 4) == -0.0587
+    m.close()
+    h.close()
+
+
+def test_hfun_page():
+    text, blocks = python_blocks("hfun.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "hfun.md example 1", "exec"), ns)
+    h = ns["h"]
+    assert h.columns == ["phi", "H", "Hodd", "Heven"] and len(h) == 330
+    H, odd, even = h["H"], h["Hodd"], h["Heven"]
+    n = len(H)
+    mirror = np.array([H[n - 1 - k] for k in range(n)])                # XPPAUT's pairing
+    assert np.allclose(odd, 0.5 * (H - mirror)) and np.allclose(even, 0.5 * (H + mirror))
+    phi = h["phi"]
+    assert abs(odd[0]) < 1e-4 and round((odd[1] - odd[0]) / (phi[1] - phi[0]), 3) == 0.699
+    falls = [k for k in np.where(np.diff(np.sign(odd)) != 0)[0] if odd[k + 1] < odd[k]]
+    assert [round(phi[k], 1) for k in falls] == [8.2]
+    exec(compile(blocks[1], "hfun.md example 2", "exec"), ns)
+    hh = ns["hh"]
+    o2, p2 = hh["Hodd"], hh["phi"]
+    assert round((o2[1] - o2[0]) / (p2[1] - p2[0]), 3) == 0.378
+    falls = [k for k in np.where(np.diff(np.sign(o2)) != 0)[0] if o2[k + 1] < o2[k]]
+    assert all(abs(p2[k] - 7.8) < 0.1 for k in falls) and falls
+    ns["m"].close()
+    ns["n"].close()
+
+
+def test_fourier_page():
+    text, blocks = python_blocks("fourier.md")
+    ns = {}
+    exec(compile(blocks[0], "fourier.md example", "exec"), ns)
+    m, f = ns["m"], ns["f"]
+    run = m.last_run()
+    assert len(run) == 667 and len(f) == 332 and round(f["freq"][1], 5) == 0.15015
+    assert (round(f["cos"][1], 4), round(f["sin"][1], 4)) == (1.7014, -1.0795)
+    assert max(abs(f["cos"][2]), abs(f["sin"][2])) < 0.002
+    assert (round(f["cos"][3], 4), round(f["sin"][3], 4)) == (-0.2098, 0.1131)
+    assert f["cos"][0] == pytest.approx(run["X"].mean(), abs=1e-9)
+    assert round(np.hypot(1.7014, 1.0795), 3) == 2.015
+    p, _ = m.limit_cycle()
+    assert round(p, 3) == 6.663
+    m.close()
+
+
+def test_power_page():
+    text, blocks = python_blocks("power.md")
+    ns = {}
+    exec(compile(blocks[0], "power.md example", "exec"), ns)
+    m, p = ns["m"], ns["p"]
+    a = p["amplitude"]
+    assert p.columns == ["freq", "amplitude", "phase"]
+    assert [round(a[k], 4) for k in (0, 2, 4, 6)] == [0.0015, 0.0025, 0.0006, 0.0004]
+    assert [round(a[k], 4) for k in (1, 3, 5, 7)] == [2.015, 0.2383, 0.048, 0.011]
+    m5 = xs.load(xs.example("classics/vanderpol.ode"))
+    m5.set(mu=5, total=100)
+    m5.run()
+    m5.ic_last()
+    period, _ = m5.limit_cycle()
+    assert round(period, 2) == 11.61
+    m5.set(total=round(period, 2))
+    m5.run()
+    a5 = m5.power("X")["amplitude"]
+    assert [round(a5[k], 3) for k in (1, 3, 5, 7)] == [2.106, 0.584, 0.307, 0.192]
+    m.close()
+    m5.close()
+
+
+def test_script_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("script.md")
+    ns = {}
+    exec(compile(blocks[0], "script.md example", "exec"), ns)
+    eq = ns["eq"]
+    assert eq.kind == "unstable focus"
+    assert (round(eq["V"], 7), round(eq["W"], 5)) == (0.0442523, 0.31671)
+    ev = sorted(eq.eigenvalues, key=lambda z: -z.imag)[0]
+    assert (round(ev.real, 5), round(ev.imag, 4)) == (0.32827, 1.0303)
+    assert (tmp_path / "run.csv").exists()
+    ns["m"].close()
+
+
+def test_echo_page():
+    text, blocks = python_blocks("echo.md")
+    ns = {}
+    exec(compile(blocks[0], "echo.md example", "exec"), ns)
+    eq = ns["eq"]
+    assert eq.kind == "unstable focus" and round(eq["V"], 7) == 0.0442523
+    ns["m"].close()
+
+
+def test_many_page():
+    text, blocks = python_blocks("many.md")
+    ns = {}
+    exec(compile(blocks[0], "many.md example", "exec"), ns)
+    m, runs, swing = ns["m"], ns["runs"], ns["swing"]
+    assert len(runs) == 50 and runs.counts() == {0: 50}
+    assert (swing > 0.3).sum() == 16 and (swing < 0.05).sum() == 34
+    assert round(swing[swing > 0.3].min(), 3) == 0.648 and swing[swing < 0.05].max() < 0.005
+    rest = m.equilibrium({"V": -0.2, "W": 0.1})
+    assert rest.stable and (round(rest["V"], 4), round(rest["W"], 4)) == (-0.2072, 0.2008)
+    m.close()
+
+
+def test_set_page():
+    text, blocks = python_blocks("set.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "set.md example 1", "exec"), ns)
+    m, sol = ns["m"], ns["sol"]
+    assert len(sol) == 2001 and sol.t[-1] == pytest.approx(100) and m.get("METH") == "stiff"
+    assert m.get("DT") == pytest.approx(0.05)
+    exec(compile(blocks[1], "set.md example 2", "exec"), ns)
+    sol = ns["sol"]
+    assert sol["V"][0] == pytest.approx(-0.2) and repr(float(sol["W"][0]))[:12] == "0.0099999997"
+    m.close()
+
+
+def test_get_page():
+    text, blocks = python_blocks("get.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "get.md example 1", "exec"), ns)
+    m = ns["m"]
+    assert (m.get("iapp"), m.get("total"), m.get("meth")) == (pytest.approx(0.1), 100.0, "stiff")
+    exec(compile(blocks[1], "get.md example 2", "exec"), ns)
+    n = ns["n"]
+    assert round(n.get("V"), 11) == -0.23842227676
+    assert "%.10g" % float(np.float32(n.get("V"))) == "-0.2384222746"
+    m.close()
+    n.close()
+
+
+def test_open_page():
+    text, blocks = python_blocks("open.md")
+    ns = {}
+    exec(compile(blocks[0], "open.md example", "exec"), ns)
+    m = ns["m"]
+    assert m.variables == ["X", "Y", "Z"]
+    assert dict(m.parameters) == pytest.approx({"r": 27, "s": 10, "b": 2.66666})
+    assert (m.get("X"), m.get("Z"), m.get("TOTAL"), m.get("DT")) == pytest.approx((-7.5, 30, 40, 0.025))
+    m.close()
+
+
+def test_new_page():
+    text, blocks = python_blocks("new.md")
+    ns = {}
+    exec(compile(blocks[0], "new.md example", "exec"), ns)
+    m = ns["m"]
+    assert m.variables == ["V", "W"] and len(m.parameters) == 4
+    assert (m.get("V"), m.get("W"), m.get("TOTAL")) == pytest.approx((-1, 1, 200))
+    # the same model as the app's template (app_new_model in app/src/app.c)
+    source = (ROOT / "app" / "src" / "app.c").read_text(encoding="utf-8")
+    for line in ("v' = v - v^3/3 - w + I", "w' = eps*(v + a - b*w)",
+                 "par I=0.5, a=0.7, b=0.8, eps=0.08", "init v=-1, w=1",
+                 "@ total=200, dt=0.05, xp=v, yp=w"):
+        assert line in source and line in blocks[0]
+    m.close()
+
+
+def test_save_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("save.md")
+    ns = {}
+    exec(compile(blocks[0], "save.md example", "exec"), ns)
+    assert ns["m"].variables == ["V", "W"]
+    ns["m"].close()
+
+
+def test_doc_page(capsys):
+    text, blocks = python_blocks("doc.md")
+    ns = {}
+    exec(compile(blocks[0], "doc.md example", "exec"), ns)
+    lines = capsys.readouterr().out.split()
+    site = "https://cesarperdomodiaz.github.io/xpplab/reference/"
+    assert lines == [site + "range/", site + "range/", site + "reference/"]
+    ns["m"].close()
+
+
+def test_help_page(capsys):
+    text, blocks = python_blocks("help.md")
+    ns = {}
+    exec(compile(blocks[0], "help.md example", "exec"), ns)
+    assert capsys.readouterr().out.strip()
+    ns["m"].close()
+
+
+def test_annotate_page():
+    text, blocks = python_blocks("annotate.md")
+    ns = {}
+    exec(compile(blocks[0], "annotate.md example", "exec"), ns)
+    notes = ns["notes"]["phase"].notes
+    assert [n["kind"] for n in notes] == ["text", "arrow", "marker"]
+    assert notes[0]["size"] == 14 and notes[1]["color"] == "#d62728"
+    focus = [e for e in ns["m"].find_equilibria(box=LECAR_BOX) if e.kind == "unstable focus"][0]
+    assert (round(focus["V"], 2), round(focus["W"], 2)) == (0.03, 0.27)
+    import matplotlib.pyplot as plt
+    plt.close("all")
+    ns["m"].close()
+
+
+def test_ensemble_page():
+    text, blocks = python_blocks("ensemble.md")
+    ns = {}
+    exec(compile(blocks[0], "ensemble.md example", "exec"), ns)
+    t, mean, var = ns["t"], ns["mean"], ns["var"]
+    assert len(t) == 501 and ns["ens"].trials == 400
+    table = {1: (0.753, 0.1204), 2: (0.288, 0.1224), 5: (0.026, 0.1387)}
+    for when, (mu, v) in table.items():
+        k = int(np.argmin(abs(t - when)))
+        assert (round(mean[k], 3), round(var[k], 4)) == (mu, v)
+    assert round(np.abs(mean - 2 * np.exp(-t)).max(), 3) == 0.045
+    assert round(var[t > 3].mean(), 3) == 0.131
+    ns["m"].close()
+
+
+def inverted_pendulum():
+    m = xs.load(xs.example("classics/pendulum"))
+    return m, m.linearize(at={"th": np.pi, "w": 0}, inputs=["u"])
+
+
+def test_linearize_page():
+    text, blocks = python_blocks("linearize.md")
+    ns = {}
+    exec(compile(blocks[0], "linearize.md example", "exec"), ns)
+    lin = ns["lin"]
+    np.testing.assert_allclose(lin.A, [[0, 1], [1, -0.1]], atol=1e-8)
+    np.testing.assert_allclose(lin.B, [[0], [1]], atol=1e-8)
+    assert [round(e, 5) for e in sorted(lin.eigenvalues.real)] == [-1.05125, 0.95125]
+    assert lin.controllable and lin.rank == 2
+    ns["m"].close()
+
+
+def test_poles_page():
+    text, blocks = python_blocks("poles.md")
+    ns = {}
+    exec(compile(blocks[0], "poles.md example", "exec"), ns)
+    np.testing.assert_allclose(ns["K"], [[3, 2.9]], atol=1e-8)
+    ns["m"].close()
+
+
+def test_lqr_page():
+    text, blocks = python_blocks("lqr.md")
+    ns = {}
+    exec(compile(blocks[0], "lqr.md example", "exec"), ns)
+    equal, angle = ns["equal"], ns["angle"]
+    assert np.round(equal.K, 5).tolist() == [[2.41421, 2.31628]]
+    assert equal.K[0, 0] == pytest.approx(1 + np.sqrt(2), abs=1e-9)
+    assert sorted(np.round(equal.poles.real, 5)) == [-1.4212, -0.99509]
+    assert np.round(angle.K, 5).tolist() == [[4.31662, 3.00536]]
+    assert round(angle.poles[0].real, 4) == -1.5527 and round(abs(angle.poles[0].imag), 5) == 0.95174
+    ns["m"].close()
+
+
+def test_locus_page():
+    text, blocks = python_blocks("locus.md")
+    ns = {}
+    exec(compile(blocks[0], "locus.md example", "exec"), ns)
+    [(gain, pole)] = ns["rl"].crossings()
+    assert gain == pytest.approx(1 / 3, abs=1e-9) and pole == 0
+    exec(compile(blocks[1], "locus.md example 2", "exec"), ns)
+    crossings = ns["loc"].crossings()
+    assert [round(c, 9) for c, _ in crossings] == [0, 0]
+    assert sorted(round(p.imag, 9) for _, p in crossings) == [-1, 1]
+    ns["m"].close()
+
+
+def test_closedloop_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("closedloop.md")
+    ns = {}
+    exec(compile(blocks[0], "closedloop.md example", "exec"), ns)
+    assert ns["sol"]["TH"][-1] == pytest.approx(np.pi, abs=1e-5)
+    assert round(ns["free"]["TH"][-1], 2) == 5.24
+    assert ns["held"].parameters.keys() == {"c"}
+    ns["held"].close()
+    ns["m"].close()
+
+
+def test_ic_page():
+    text, blocks = python_blocks("ic.md")
+    ns = {}
+    exec(compile(blocks[0], "ic.md example", "exec"), ns)
+    m, sol = ns["m"], ns["sol"]
+    assert m.get("u25") == pytest.approx(1) and round(m.get("u1"), 11) == round(np.sin(np.pi / 50), 11)
+    assert round(float(sol["U25"][-1]), 7) == 0.1390014 and sol.t[-1] == pytest.approx(0.2)
+    rate = 4 * 50 ** 2 * np.sin(np.pi / 100) ** 2
+    assert round(rate, 4) == 9.8664 and round(np.exp(-rate * 0.2), 7) == 0.1390014
+    assert round(np.exp(-np.pi ** 2 * 0.2), 5) == 0.13891
+    lecar = xs.load(xs.example("lecar.ode"))           # a variable is its initial value
+    lecar.run()
+    lecar.ic_formula("W", "V/10")
+    assert lecar.get("W") == pytest.approx(-0.0144, rel=1e-12)
+    lecar.close()
+    m.close()
+
+
+def test_fitdata_page(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("fitdata.md")
+    assert len(blocks) == 2
+    ns = {}
+    exec(compile(blocks[0], "fitdata.md example 1", "exec"), ns)
+    m = ns["m"]
+    assert (tmp_path / "data.csv").read_text().startswith("T,V,W")      # export's CSV
+    assert round(m.get("gca"), 10) == 0.9999999999 and round(m.get("gk"), 9) == 2.000000006
+    assert f"{m.get('gca'):.6g}" == "1" and f"{m.get('gk'):.6g}" == "2"  # "Fitted: gca = 1 gk = 2"
+    exec(compile(blocks[1], "fitdata.md example 2", "exec"), ns)
+    assert round(m.get("W"), 2) == 0.03
+    m.close()
+
+
+def test_fit_page():
+    text, blocks = python_blocks("fit.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "fit.md example", "exec"), ns)
+    sol = ns["sol"]
+    assert round(float(sol["V"].min()), 2) == -0.43 and round(float(sol["V"].max()), 2) == 0.23
+    assert round(float(sol["W"].min()), 1) == 0 and round(float(sol["W"].max()), 1) == 0.4
+    ns["m"].close()

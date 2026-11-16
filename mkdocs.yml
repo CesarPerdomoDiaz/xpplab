@@ -113,6 +113,66 @@ nav:
   - Reference:
       - Every command and action: reference/reference.md
       - run: reference/run.md
+      - continue: reference/continue.md
+      - many: reference/many.md
+      - bvp: reference/bvp.md
+      - click: reference/click.md
+      - freeze: reference/freeze.md
+      - erase: reference/erase.md
+      - ic: reference/ic.md
+      - ic last: reference/ic-last.md
+      - ic shift: reference/ic-shift.md
+      - annotate: reference/annotate.md
+      - show: reference/show.md
+      - hide: reference/hide.md
+      - fit: reference/fit.md
+      - layout: reference/layout.md
+      - theme: reference/theme.md
+      - palette: reference/palette.md
+      - clear: reference/clear.md
+      - quit: reference/quit.md
+      - doc: reference/doc.md
+      - help: reference/help.md
+      - open: reference/open.md
+      - new: reference/new.md
+      - save: reference/save.md
+      - export: reference/export.md
+      - script: reference/script.md
+      - echo: reference/echo.md
+      - ic read: reference/ic-read.md
+      - ic write: reference/ic-write.md
+      - set: reference/set.md
+      - get: reference/get.md
+      - whos: reference/whos.md
+      - use: reference/use.md
+      - sets: reference/sets.md
+      - range: reference/range.md
+      - view3d: reference/view3d.md
+      - ani: reference/ani.md
+      - mean: reference/mean.md
+      - ensemble: reference/ensemble.md
+      - fitdata: reference/fitdata.md
+      - linearize: reference/linearize.md
+      - poles: reference/poles.md
+      - lqr: reference/lqr.md
+      - locus: reference/locus.md
+      - closedloop: reference/closedloop.md
+      - hist: reference/hist.md
+      - hist2d: reference/hist2d.md
+      - xcorr: reference/xcorr.md
+      - spectrum: reference/spectrum.md
+      - fourier: reference/fourier.md
+      - power: reference/power.md
+      - prc: reference/prc.md
+      - hfun: reference/hfun.md
+      - eq: reference/eq.md
+      - eq all: reference/eq-all.md
+      - shoot: reference/shoot.md
+      - nullclines: reference/nullclines.md
+      - nullclines freeze: reference/nullclines-freeze.md
+      - nullclines play: reference/nullclines-play.md
+      - nullclines unfreeze: reference/nullclines-unfreeze.md
+      - dirfield: reference/dirfield.md
       - auto steady: reference/auto-steady.md
       - auto from: reference/auto-from.md
       - auto set: reference/auto-set.md

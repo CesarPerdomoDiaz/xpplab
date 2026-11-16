@@ -1,70 +1,10 @@
 # Commands whose reference page (docs/reference) is still to be written.
 # tests/doc_check.py: this list may only shrink. Write the page, then
 # delete the line.
-continue
-set
-get
-whos
-ic last
-ic shift
-ic read
-ic write
-ic
-click
-eq
-eq all
-nullclines
-nullclines freeze
-nullclines unfreeze
-nullclines play
-dirfield
-erase
-fit
-freeze
-use
-sets
-range
 kinescope capture
 kinescope play
 kinescope clear
 py
 python
 serve
-many
-shoot
 figure
-annotate
-bvp
-ani
-view3d
-spectrum
-fourier
-power
-hist
-hist2d
-xcorr
-mean
-ensemble
-prc
-hfun
-fitdata
-linearize
-poles
-lqr
-closedloop
-locus
-open
-new
-save
-export
-script
-echo
-show
-hide
-layout
-theme
-help
-doc
-palette
-clear
-quit

@@ -83,9 +83,12 @@ the complete solution at each labelled point (for a periodic orbit, the
 whole orbit on its mesh). Without the restart data a diagram could be drawn but not
 continued.
 
-**What is not in the file.** The model. The file does not say which model
-it was computed from, nor the values of the parameters that were not
-varied.
+**Which model.** The last line of the file names the model's variables
+and the parameters AUTO used:
+`# XPP Lab model: variables V W; parameters iapp phi v1 v2 v3 v4 gca vk`.
+[auto load](auto-load.md) refuses a file whose line does not match the
+open model. The model itself is not in the file, nor the values of the
+parameters that were not varied.
 
 ## Tips
 
@@ -100,7 +103,9 @@ varied.
 ## Algorithms
 
 The file is XPPAUT's diagram file, written by XPPAUT's own routine, with
-AUTO's restart file appended.
+AUTO's restart file appended and then the line that names the model.
+XPPAUT reads the file as before: it copies the end of the file into its
+restart file, whose reader stops at the first line that is not a record.
 
 ## When it fails
 
@@ -126,3 +131,6 @@ AUTO's restart file appended.
 ## Version history
 
 Introduced in 0.1.2.
+
+0.1.4: the file ends with a line naming the model's variables and AUTO's
+parameters, which `auto load` checks.

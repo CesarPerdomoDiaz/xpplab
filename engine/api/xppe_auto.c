@@ -479,6 +479,92 @@ void create_auto_file_name(void);
 
 /* save_auto() (auto_nox.c) to the path given, without its file dialog: the
    settings, the plot, the diagram and AUTO's restart data (its .s file). */
+/* The line XPP Lab writes at the end of a .auto file: the model's
+   variables, so that loading can refuse a diagram of another model. XPPAUT
+   copies the end of the file into its .s file with the restart data, where
+   its readers (findlb(), newlab()) stop at the first line that is not a
+   record, so it still reads the file. */
+#define MODEL_RECORD "# XPP Lab model:"
+extern char uvar_names[MAXODE][12];
+extern char this_auto_file[];
+
+static void write_model_record(FILE *fp) {
+  int i;
+  fprintf(fp, "\n%s variables", MODEL_RECORD);
+  for (i = 0; i < NODE; i++) fprintf(fp, " %s", uvar_names[i]);
+  fprintf(fp, "; parameters");
+  for (i = 0; i < NAutoPar; i++)
+    fprintf(fp, " %s", AutoPar[i] >= 0 && AutoPar[i] < NUPAR ? upar_names[AutoPar[i]] : "?");
+  fputc('\n', fp);
+}
+
+/* 1 when the file's record names the open model's variables, and its
+   parameters at the places the file's AUTO settings point to (their first
+   line), or the file has no record (XPPAUT's files, and XPP Lab's before
+   0.1.4); else 0, with the reason in why. */
+static int model_record_matches(FILE *fp, char *why, size_t len) {
+  char line[4096], last[4096] = "", *vars, *pars, *tok;
+  int npar = 0, slot[8], i, n = 0, ok = 1;
+  size_t k;
+  if (fscanf(fp, "%d", &npar) != 1 || npar < 0 || npar > 8) npar = 0;
+  for (i = 0; i < npar; i++)
+    if (fscanf(fp, "%d", &slot[i]) != 1) npar = i;
+  rewind(fp);
+  while (fgets(line, sizeof line, fp))
+    if (strncmp(line, MODEL_RECORD, strlen(MODEL_RECORD)) == 0)
+      snprintf(last, sizeof last, "%s", line + strlen(MODEL_RECORD));
+  rewind(fp);
+  if (!last[0]) return 1;
+  for (k = 0; last[k]; k++)
+    if (last[k] == '\r' || last[k] == '\n') last[k] = '\0';
+  vars = strstr(last, "variables");
+  pars = strstr(last, "; parameters");
+  if (!vars || !pars) return 1; /* a record this version cannot read */
+  *pars = '\0';
+  vars += strlen("variables");
+  pars += strlen("; parameters");
+  {
+    char copy[4096];
+    snprintf(copy, sizeof copy, "%s", vars);
+    for (tok = strtok(copy, " "); tok; tok = strtok(NULL, " "), n++)
+      if (n >= NODE || !xppe_same_name(tok, uvar_names[n])) ok = 0;
+    if (n != NODE) ok = 0;
+    snprintf(copy, sizeof copy, "%s", pars);
+    for (i = 0, tok = strtok(copy, " "); tok; tok = strtok(NULL, " "), i++)
+      if (i >= npar || slot[i] < 0 || slot[i] >= NUPAR ||
+          !xppe_same_name(tok, upar_names[slot[i]]))
+        ok = 0;
+  }
+  if (ok) return 1;
+  k = (size_t)snprintf(why, len, "it is a diagram of a model with the variables%s and "
+                                 "the parameters%s; this model has the variables", vars, pars);
+  for (i = 0; i < NODE && k < len; i++)
+    k += (size_t)snprintf(why + k, len - k, " %s", uvar_names[i]);
+  if (k < len) k += (size_t)snprintf(why + k, len - k, " and the parameters");
+  for (i = 0; i < NUPAR && i < 8 && k < len; i++)
+    k += (size_t)snprintf(why + k, len - k, " %s", upar_names[i]);
+  return 0;
+}
+
+/* The model record is not restart data: keep the .s file as AUTO wrote it. */
+static void strip_model_record(void) {
+  char path[1100], tmp[1110], line[4096];
+  FILE *in, *out;
+  snprintf(path, sizeof path, "%s.s", this_auto_file);
+  snprintf(tmp, sizeof tmp, "%s.tmp", path);
+  if ((in = fopen(path, "r")) == NULL) return;
+  if ((out = fopen(tmp, "w")) == NULL) {
+    fclose(in);
+    return;
+  }
+  while (fgets(line, sizeof line, in))
+    if (strncmp(line, MODEL_RECORD, strlen(MODEL_RECORD)) != 0) fputs(line, out);
+  fclose(in);
+  fclose(out);
+  remove(path);
+  rename(tmp, path);
+}
+
 int xppe_auto_save(const char *path) {
   FILE *fp = NULL;
   int rc, status = 0;
@@ -494,7 +580,10 @@ int xppe_auto_save(const char *path) {
   if ((fp = xppe_fopen_utf8(path, "w")) != NULL) {
     save_auto_numerics(fp);
     save_auto_graph(fp);
-    if ((status = save_diagram(fp, NODE)) == 1) save_q_file(fp);
+    if ((status = save_diagram(fp, NODE)) == 1) {
+      save_q_file(fp);
+      write_model_record(fp);
+    }
     fclose(fp);
   }
   XPPE_GUARD_END;
@@ -514,9 +603,19 @@ int xppe_auto_save(const char *path) {
 int xppe_auto_load(const char *path) {
   FILE *fp;
   int rc, status = 0;
+  char why[1024];
   if ((rc = xppe_require_model()) != XPPE_OK) return rc;
   if ((fp = xppe_fopen_utf8(path, "r")) == NULL) {
     xppe_set_error("cannot read %s", path);
+    return XPPE_ERR_LOAD;
+  }
+  /* A diagram of another model loads without complaint, and continuing
+     from its labels fails (#131): refuse it, and keep the diagram shown. */
+  if (!model_record_matches(fp, why, sizeof why)) {
+    char msg[2048];
+    fclose(fp);
+    snprintf(msg, sizeof msg, "%s was not loaded: %s", path, why);
+    xppe_set_error("%s", msg);
     return XPPE_ERR_LOAD;
   }
   xppe_begin_call();
@@ -526,7 +625,10 @@ int xppe_auto_load(const char *path) {
   if (NBifs > 1) yes_reset_auto();
   load_auto_numerics(fp);
   load_auto_graph(fp);
-  if ((status = load_diagram(fp, NODE)) == 1) make_q_file(fp);
+  if ((status = load_diagram(fp, NODE)) == 1) {
+    make_q_file(fp);
+    strip_model_record();
+  }
   fclose(fp);
   XPPE_GUARD_END;
   pop_workdir();

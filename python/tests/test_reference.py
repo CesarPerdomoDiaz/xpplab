@@ -179,8 +179,9 @@ def test_auto_from_page():
     for p in trivial[1:]:
         if not p.label:
             assert p.stable == (p.value < 0)
-    switched = ns["m"].auto.continue_from(bp[0], "switch")
-    assert all(abs(p.u0["X"]) < 1e-9 for p in switched)   # x = 0 again
+    # switch would retrace x = 0: it says why instead (#131)
+    with pytest.raises(ValueError, match="branch point of steady states"):
+        ns["m"].auto.continue_from(bp[0], "switch")
     ns["m"].close()
 
 

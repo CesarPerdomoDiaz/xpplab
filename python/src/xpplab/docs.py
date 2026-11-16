@@ -16,7 +16,9 @@ PAGES = ("auto steady", "auto from", "auto set", "auto orbit", "auto save",
          "nullclines freeze", "nullclines play", "nullclines unfreeze",
          "export", "shoot", "view3d", "ani", "prc", "hfun", "fourier", "power", "script", "echo", "many", "set", "get", "open", "new", "save", "doc", "help",
          "show", "hide", "layout", "theme", "palette", "clear", "quit", "annotate",
-         "ensemble", "linearize", "poles", "lqr", "locus", "closedloop", "ic", "fit", "fitdata")
+         "ensemble", "linearize", "poles", "lqr", "locus", "closedloop", "ic", "fit", "fitdata",
+         "kinescope capture", "kinescope play", "kinescope clear", "py", "python",
+         "serve", "figure")
 
 #: The method of the package that does what a command does.
 #: A method of a class, ``Class.method``, wins over a bare name.
@@ -48,7 +50,8 @@ METHODS = {"equilibria": "auto steady", "continue_from": "auto from",
            "load": "open", "from_text": "new",
            "ensemble": "ensemble", "linearize": "linearize", "place_poles": "poles",
            "lqr": "lqr", "root_locus": "locus", "closed_loop": "closedloop",
-           "ic_formula": "ic", "fit": "fitdata"}
+           "ic_formula": "ic", "fit": "fitdata",
+           "connect": "serve", "Figure": "figure"}
 
 
 def doc(name=None, *, open: bool = True) -> str:

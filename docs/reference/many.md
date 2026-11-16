@@ -11,7 +11,10 @@ many N seed S VAR LO HI ...
 many N VAR LO HI ... keep COLUMN LO HI
 ```
 
-- **In the app:** Workspace > **Many runs**.
+- **In the app:** Workspace > **Many runs** > *Random initial values*:
+  tick the variables to draw and give each its two values, set the number
+  of **runs** and the **seed**, optionally a **keep where** condition, and
+  press **Run them**.
 - **In Python:** `starts = m.sample_initial(50, {"V": (lo, hi), ...})`,
   then `runs = m.run_many(starts)`.
 
@@ -77,16 +80,23 @@ has more than one attractor, and roughly where their basins meet.
 
 | Setting | Where | Meaning | Advice |
 |---|---|---|---|
-| `N` | the command; the first argument in Python | The number of runs. | Tens for a picture, hundreds for a fraction. |
-| `VAR LO HI` | the command; the box in Python | The variables to draw and their ranges. | Variables not named keep their initial values. |
-| `seed` | the command; `seed=` in Python | Where the random numbers start. | Change it for another sample. |
-| `keep COLUMN LO HI` | the command; `require=` in Python | Keep only draws where a column lies in a range. | For a constraint such as an energy. |
+| `N` | the command; **runs** in the tab (up to 5000); the first argument in Python | The number of runs. | Tens for a picture, hundreds for a fraction. |
+| `VAR LO HI` | the command; a ticked variable and its two values in the tab; the box in Python | The variables to draw and their ranges. | Variables not named keep their initial values. |
+| `seed` | the command; **seed** in the tab; `seed=` in Python | Where the random numbers start. | Change it for another sample. |
+| `keep COLUMN LO HI` | the command; **keep where** in the tab; `require=` in Python | Keep only draws where a column, a variable or an `aux` quantity, lies in a range. | For a constraint such as an energy. `inf` is allowed: `keep tens 0 inf` keeps the states where a tether is taut. |
 
 ## Results
 
-- **The plots** draw all the runs.
-- **The command window** says how many ran to the end and which flags
-  stopped the others.
+- **The plots** draw all the runs in the Phase Plane and the Time Series,
+  each coloured by the way it ended: by the flag that stopped it, or as
+  having run to the end. In the tab, **Show on the plots** hides or shows
+  them and **Clear** deletes them.
+- **The command window** and the status bar say how many ran to the end
+  and which flags stopped the others.
+- **`export FILE.csv many`** writes every run with its ending: the columns
+  `run` and `event`, then the run's own. The
+  [Figure window](../manual/figures.md) draws the runs for a paper, as one
+  series or one per ending.
 - **In Python** `m.run_many()` returns a `RunList` of the runs, with
   `.events` and `.counts()` for the flags.
 
@@ -97,6 +107,17 @@ its basin. With two attractors the basins share a boundary, often the
 stable manifold of a saddle or, as here, an unstable cycle. The fraction
 of random starts that reach each attractor estimates the size of its
 basin within the box.
+
+**Flags that stop a run.** A run ends early when a global flag of the
+model stops it, such as
+
+```
+global -1 gam {arret=1}      # gam crosses zero going down: the ground
+global -1 tn {arret=stop}    # a tension through zero; stop=0 turns it off
+```
+
+and the runs are counted by the flag that stopped them, or as having run
+to the end.
 
 ## Tips
 

@@ -2368,7 +2368,10 @@ int app_auto_actions(App *a, int point, const char **labels, const char **keys,
   } else if (strcmp(t, "LP") == 0) {
     ADD("Two-parameter curve of folds", "");
   } else if (strcmp(t, "BP") == 0) {
-    ADD("Switch to the other branch", "s");
+    /* At a branch point of steady states (AUTO's type 1) AUTO has followed
+       the other branch already, in the run that found it; switch would
+       retrace this one. It is for branch points of orbits and BVPs (6). */
+    if (p->type % 10 != 1) ADD("Switch to the other branch", "s");
     ADD("Extend this branch", "e");
     ADD("Two-parameter curve of branch points", "t");
   } else if (strcmp(t, "PD") == 0) {
@@ -2424,6 +2427,15 @@ static bool auto_continue(App *a, int point, const char *key) {
   if (!p->label) {
     app_log(a, "AUTO: only labelled points can be continued; pick a point "
                "with a number.");
+    return false;
+  }
+  if (strcmp(key, "s") == 0 && p->type % 10 == 1) {
+    app_log(a, "error: %s #%d is a branch point of steady states: AUTO follows the "
+              "other branch of such a point by itself, in the run that finds it, "
+              "and switch would only retrace this one. If the other branch is "
+              "missing, the run met more branch points than AUTO follows (MXBF, "
+              "5 a run): m.auto.set(mxbf=10) in Python follows more.",
+            p->type_name, p->label);
     return false;
   }
   if (!app_auto_push_settings(a)) return false;

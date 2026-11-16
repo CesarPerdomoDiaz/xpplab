@@ -97,6 +97,8 @@ def test_doc_opens_the_page_of_a_command_or_a_method():
         assert xs.doc(m.auto.save, open=False) == site + "auto-save/"
         assert xs.doc(m.auto.set, open=False) == site + "auto-set/"
     assert xs.doc(xs.load, open=False) == site + "open/"
+    assert xs.doc(xs.app.connect, open=False) == site + "serve/"
+    assert xs.doc(xs.Figure, open=False) == site + "figure/"
     assert xs.doc("fit", open=False) == site + "fit/"       # the command
     assert xs.doc("save", open=False) == site + "save/"
     assert xs.doc("equilibria", open=False) == site + "auto-steady/"
@@ -177,8 +179,9 @@ def test_auto_from_page():
     for p in trivial[1:]:
         if not p.label:
             assert p.stable == (p.value < 0)
-    switched = ns["m"].auto.continue_from(bp[0], "switch")
-    assert all(abs(p.u0["X"]) < 1e-9 for p in switched)   # x = 0 again
+    # switch would retrace x = 0: it says why instead (#131)
+    with pytest.raises(ValueError, match="branch point of steady states"):
+        ns["m"].auto.continue_from(bp[0], "switch")
     ns["m"].close()
 
 
@@ -282,16 +285,19 @@ def test_auto_save_load_and_reset_pages(tmp_path, monkeypatch):
     m, d = ns["m"], ns["d"]
     assert len(m.auto.diagram) == 49 and len(d) == 49
     assert [p.label for p in d.special("HB")] == [2, 3]
-    # without the reset: both runs, and two points labelled 2
+    # without the reset: both runs, the second's labels going on from the
+    # first's, its Hopf points 5 and 6 (#131: they were 2 and 3 again)
     m.auto.reset()
     first = m.auto.equilibria("iapp", parmax=0.3)
     second = m.auto.equilibria("iapp", parmax=0.5)
     assert len(first) == 24 and len(m.auto.diagram) == 73 and "73" in text
-    assert [p.label for p in second if p.label] == [1, 2, 3, 4]
-    assert [p.type for p in m.auto.diagram if p.label == 2] == ["HB", "HB"]
+    assert [p.label for p in first if p.label] == [1, 2, 3]
+    assert [p.label for p in second if p.label] == [4, 5, 6, 7]
+    assert [p.label for p in second.special("HB")] == [5, 6] and "5 and 6" in text
+    assert {p.branch for p in first} == {1} and {p.branch for p in second} == {2}
     # a continuation from a label carries on from the highest label
     orbits = m.auto.continue_from(second.first("HB"), "periodic", nmax=50)
-    assert [p.label for p in orbits if p.label][:2] == [5, 6]
+    assert [p.label for p in orbits if p.label][:2] == [8, 9]
     m.close()
 
 
@@ -1295,4 +1301,104 @@ def test_fit_page():
     sol = ns["sol"]
     assert round(float(sol["V"].min()), 2) == -0.43 and round(float(sol["V"].max()), 2) == 0.23
     assert round(float(sol["W"].min()), 1) == 0 and round(float(sol["W"].max()), 1) == 0.4
+    ns["m"].close()
+
+
+def _agg():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    return plt
+
+
+def test_kinescope_capture_page(tmp_path, monkeypatch):
+    plt = _agg()
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("kinescope-capture.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "kinescope-capture.md example", "exec"), ns)
+    from PIL import Image
+    gif = Image.open(tmp_path / "film.gif")
+    assert gif.n_frames == 3
+    rest, slow, fast = (r["V"][len(r) // 2:] for r in ns["runs"])
+    assert round(float(rest.min()), 2) == -0.39 and round(float(rest.max()), 2) == -0.38
+    assert (round(float(slow.min()), 2), round(float(slow.max()), 2)) == (-0.38, 0.26)
+    assert (round(float(fast.min()), 2), round(float(fast.max()), 2)) == (-0.28, 0.29)
+    plt.close("all")
+    ns["m"].close()
+
+
+@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive")
+@pytest.mark.filterwarnings("ignore:Animation was deleted without rendering")
+def test_kinescope_play_page():
+    import gc
+    plt = _agg()
+    text, blocks = python_blocks("kinescope-play.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "kinescope-play.md example", "exec"), ns)
+    assert len(ns["runs"]) == 3 and ns["film"]._interval == 500
+    plt.close("all")
+    ns["m"].close()
+    ns.clear()
+    gc.collect()        # the film is collected here, under these filters
+
+
+def test_kinescope_clear_page():
+    plt = _agg()
+    plt.figure()
+    text, blocks = python_blocks("kinescope-clear.md")
+    exec(compile(blocks[0], "kinescope-clear.md example", "exec"), {})
+    assert plt.get_fignums() == []
+
+
+def test_py_page():
+    text, blocks = python_blocks("py.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "py.md example", "exec"), ns)
+    m, sol, eq = ns["m"], ns["sol"], ns["eq"]
+    assert repr(np.max(sol["V"])) == "np.float64(0.26150020956993103)"   # as the console prints it
+    assert round(float(np.max(sol["V"])), 4) == 0.2615
+    assert eq.kind == "unstable focus" and m.get("iapp") == pytest.approx(0.1)
+    m.close()
+
+
+def test_python_page():
+    text, blocks = python_blocks("python.md")
+    exec(compile(blocks[0], "python.md example", "exec"), {})
+
+
+def test_serve_page():
+    text, blocks = python_blocks("serve.md")
+    assert len(blocks) == 1
+    compile(blocks[0], "serve.md example", "exec")         # needs the app: not run here
+    # what the app returns equals the package's own run (checked against the app by hand)
+    m = xs.load(xs.example("lecar.ode"))
+    sol = m.run(iapp=0.2, total=200)
+    assert repr(float(np.max(sol["V"]))) == "0.2983856201171875" and len(sol) == 4001
+    m.close()
+    m = xs.load(xs.example("lecar.ode"))
+    m.set(iapp=0.2)
+    eq = m.equilibrium()
+    assert eq.kind == "unstable focus"
+    assert (round(eq["V"], 7), round(eq["W"], 6)) == (0.0687252, 0.393797)
+    ev = sorted(eq.eigenvalues, key=lambda z: -z.imag)
+    assert (round(ev[0].real, 6), round(ev[0].imag, 4)) == (0.010419, 1.2556)
+    m.close()
+
+
+def test_figure_page(tmp_path, monkeypatch):
+    plt = _agg()
+    monkeypatch.chdir(tmp_path)
+    text, blocks = python_blocks("figure.md")
+    assert len(blocks) == 1
+    ns = {}
+    exec(compile(blocks[0], "figure.md example", "exec"), ns)
+    from PIL import Image
+    png = Image.open(tmp_path / "lecar.png")
+    assert png.size == (2031, 1535) and round(png.info["dpi"][0]) == 600
+    assert (tmp_path / "lecar.pdf").read_bytes()[:4] == b"%PDF"
+    plt.close("all")
     ns["m"].close()

@@ -499,6 +499,24 @@ static void eigen_plane(App *a) {
   ImPlot_EndPlot();
 }
 
+/* The reference page of an analysis tool (docs/reference). */
+static const char *tool_doc(const AnalysisUI *n) {
+  switch (n->tool) {
+  case AN_SPECTRUM: return "spectrum";
+  case AN_FOURIER: return n->polar ? "power" : "fourier";
+  case AN_HISTOGRAM: return "hist";
+  case AN_HISTOGRAM2D: return "hist2d";
+  case AN_CORRELATION: return "xcorr";
+  case AN_STATISTICS: return "mean";
+  case AN_PRC: return "prc";
+  case AN_HFUNCTION: return "hfun";
+  case AN_FIT: return "fitdata";
+  case AN_ENSEMBLE: return "ensemble";
+  case AN_LINEARIZE: return "linearize";
+  default: return "reference";
+  }
+}
+
 static void heading(const char *title, const char *help) {
   igTextDisabled("%s", title);
   HelpMarker(help);
@@ -592,7 +610,9 @@ static void lqr_section(App *a) {
     igPopID();
   }
   igPopItemWidth();
-  if (ButtonW("Compute the LQR gain", -1)) app_lqr(a);
+  if (ButtonW("Compute the LQR gain", -DocWidth())) app_lqr(a);
+  DocHover("lqr");
+  DocButton(a, "lqr");
   if (L->have_K && L->K_lqr)
     igTextDisabled("The gain above is the LQR gain; moving a pole places the "
                    "poles instead.");
@@ -672,12 +692,14 @@ static void locus_section(App *a) {
   igPopItemWidth();
   if (R->p_steps < 2) R->p_steps = 2;
   if (R->g_steps < 2) R->g_steps = 2;
-  if (ButtonW("Draw the locus", -1)) {
+  if (ButtonW("Draw the locus", -DocWidth())) {
     if (R->mode == 2)
       app_parameter_locus(a, R->par, R->p_lo, R->p_hi, R->p_steps);
     else
       app_gain_locus(a, R->mode, R->input, R->state, R->g_lo, R->g_hi, R->g_steps);
   }
+  DocHover("locus");
+  DocButton(a, "locus");
   if (R->kind != LOCUS_NONE) {
     if (R->crossings[0]) {
       igPushStyleColor_Vec4(ImGuiCol_Text, verdict_color(a, DOUBT));
@@ -698,11 +720,13 @@ static void gain_section(App *a) {
   if (L->have_K) {
     matrix_table("##K", L->K, NULL, L->m, L->n, L->inputs, a->vars);
     igSpacing();
-    if (ButtonW("Simulate the closed loop", -1)) closed_loop_asked = true;
+    if (ButtonW("Simulate the closed loop", -DocWidth())) closed_loop_asked = true;
+    DocHover("closedloop");
     Tooltip("Writes the model with each input replaced by u = u0 - K (x - x*) "
             "as NAME_closed_loop.ode next to this one (for an example, in "
             "Documents/XPP Lab), opens it with the current values and runs it. "
             "In Python: lin.closed_loop(K).");
+    DocButton(a, "closedloop");
   } else if (L->K_error[0]) {
     igPushStyleColor_Vec4(ImGuiCol_Text, verdict_color(a, BAD));
     TextWrapped(L->K_error);
@@ -759,6 +783,7 @@ static void linear_result(App *a) {
               "Nichols and Van Dooren for several). They start at the "
               "eigenvalues moved into the stable region. In Python: "
               "K = lin.place_poles([...]); the command: poles P1 P2 ...");
+      DocButton(a, "poles");
       pole_editor(a);
       igSpacing();
       gain_section(a);
@@ -795,6 +820,7 @@ static void controls(App *a) {
         n->tool = i;
     igEndCombo();
   }
+  DocHover(tool_doc(n));
   igSpacing();
   if (n->tool <= AN_STATISTICS) {
     igTextDisabled(needs_two(n) ? "Columns" : "Column");
@@ -910,8 +936,10 @@ static void controls(App *a) {
   igPushStyleColor_Vec4(ImGuiCol_Button, HEX(0x2e7d32));
   igPushStyleColor_Vec4(ImGuiCol_ButtonHovered, HEX(0x388e3c));
   igPushStyleColor_Vec4(ImGuiCol_Text, HEX(0xffffff));
-  if (ButtonW("Compute", -1)) app_analysis_run(a);
+  if (ButtonW("Compute", -DocWidth())) app_analysis_run(a);
   igPopStyleColor(3);
+  DocHover(tool_doc(n));
+  DocButton(a, tool_doc(n));
   igSpacing();
   igPushTextWrapPos(0);
   igTextDisabled("%s", about[n->tool]);

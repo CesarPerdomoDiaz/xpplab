@@ -31,15 +31,17 @@ Any other ending, such as `.txt` or `.dat`, gets the CSV text.
 | `WHAT` | What is written |
 |---|---|
 | `auto` | The bifurcation diagram: one row per point. |
-| `range` | The table of a [range](range.md) that measures a variable or the Liapunov exponent. |
+| `range` | The table of a [range](range.md) that measures a variable or the Liapunov exponent; over two values, one row per run with both values. |
 | `analysis` | The result in the Analysis window: a histogram, spectrum, correlation and so on. |
 | `equilibria` | The equilibria the last [eq all](eq-all.md) found, with their eigenvalues. |
-| `nullclines` | The nullclines shown and frozen, as line segments. |
+| `nullclines` | The nullclines shown and frozen, as line segments: one row per segment, with the set (0 for the nullclines shown, then 1, 2, ... for those [frozen](nullclines-freeze.md)), which nullcline (1 for the horizontal variable's, 2 for the vertical one's, as XPPAUT numbers them) and the segment's ends `x1`, `y1`, `x2`, `y2`. XPPAUT's *Nullcline > Save*. |
+| `many` | The runs of [many](many.md) or [shoot](shoot.md), each with its ending: `run`, `event`, then the run's columns. |
 | `locus` | The root locus of the control tools. |
 
 `export FILE.svg FIGURE` saves a figure as a vector drawing: `time` (the
 Time Series), `phase`, `auto` or `auto2`. `.png` saves it as it looks on
-the screen, so it needs the app's window.
+the screen, so it needs the app's window, with the figure in view: a plot
+in a tab behind another cannot be saved as a PNG.
 
 ## Examples
 
@@ -116,10 +118,45 @@ reads back as the same double-precision number. Reading the file gives
 back exactly the numbers XPP Lab computed, which is what makes a session
 and its Python script comparable to the last bit.
 
-**MATLAB names.** Column names are made valid MATLAB names: a character
-that is not a letter, digit or underscore becomes `_`, an `x` goes in front
-of a name that does not start with a letter, and repeated names get `_2`,
-`_3` and so on.
+**MATLAB files.** A name ending in `.mat` gives a MATLAB file for
+everything that `export` writes as CSV. MATLAB's `load` reads it with no
+toolbox: `s = load("run.mat"); plot(s.t, s.V); s.params.iapp`. It is a
+Level 5 MAT-file, little-endian and uncompressed, and every column is a
+column vector of doubles:
+
+| Export | Variables |
+|---|---|
+| a run | `t`, then one vector per variable and auxiliary quantity, named as in the model, and the struct `params` with the parameter values the run used |
+| `range` | the swept value or values, then the measure (`V_max`, `V_min`, or `lyapunov`), and `params`; a Range that follows equilibria has the columns of the CSV and no `params` |
+| `auto` | `branch`, `point`, `label`, `stable`, `periodic`, `two_parameter`, `value`, `value2` (NaN for a one-parameter point), `norm`, `period`, then `V_max` and `V_min` for every variable. The text columns of the CSV (`type`, `parameter`, `parameter2`) are left out. |
+| `equilibria`, `nullclines`, `analysis`, `many`, `locus` | the columns of the CSV file |
+
+`export lin.mat analysis` after `linearize` is not available, because the
+table has a column of state names: use CSV.
+
+**MATLAB names.** MATLAB names start with a letter and hold only letters,
+digits and underscores, up to 63 characters. Each column's name is
+changed by these rules, in this order:
+
+1. every character that is not a letter, digit or underscore becomes `_`
+   (a non-ASCII character becomes one `_`);
+2. if the result does not start with a letter, `x` goes in front (`_u`
+   becomes `x_u`, `1x` becomes `x1x`, and an empty name becomes `x`);
+3. the name is cut to 63 characters;
+4. a MATLAB keyword (`end`, `for`, `if`, `function`, `global`, `while`,
+   ...: the names `iskeyword` lists) gets `_` added, so `end` becomes
+   `end_`;
+5. a name already used earlier in the file gets `_2`, `_3`, ... added until
+   it is new, cut further so that the ending fits. With a `params` struct,
+   `params` counts as used. The parameters' names are made unique among
+   themselves in the same way.
+
+So the column `V max` is `V_max`, and a second `V_max` is `V_max_2`.
+
+**The same bytes.** A MATLAB file holds no date, host or version: its
+header text is always `MATLAB 5.0 MAT-file, written by XPP Lab`. The same
+data gives the same file every time, and the file the app writes and the
+one the session's Python script writes are identical.
 
 ## Tips
 

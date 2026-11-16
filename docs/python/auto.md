@@ -119,3 +119,78 @@ The file is XPPAUT's `.auto` format (*AUTO > File > Save diagram*), so
 XPPAUT and the desktop app open it too. Numbers are written in full, so a
 loaded diagram is the one saved. `orbit()` is XPPAUT's *Import orbit*: the
 orbit becomes the model's last run, and the analysis methods use it.
+
+## Boundary value problems, homoclinic and heteroclinic orbits
+
+AUTO's boundary value, homoclinic and heteroclinic starts are
+`m.auto.start("bvp", ...)`, `start("homoclinic", ...)` and
+`start("heteroclinic", ...)` (see [`Auto.start`](reference.md#xpplab.auto.Auto.start)),
+tested against known answers in `python/tests/test_auto_bvp_homoclinic.py`.
+The desktop app does not offer them yet.
+
+**Boundary value problems.** Rescale the interval to `[0, 1]`, give one `b`
+line per equation, and run the model so that AUTO starts from a solution
+that satisfies the conditions. For `x'' = l x`, `x(0) = 0`, `x(1) = 1`:
+
+```python
+m.run()                      # the exact solution at l = 1
+d = m.auto.start("bvp", "l", nmax=40, ds=0.05)
+```
+
+Each point agrees with `x'(0) = sqrt(l) / sinh(sqrt(l))`.
+
+**Homoclinic orbits.** The start continues a long periodic orbit in two
+parameters. Find the orbit first: continue periodic orbits from a Hopf point
+until the period is large, import one with `auto.orbit(point)`, and put the
+model's parameters at that point's values. Then give the saddle:
+
+```python
+m.auto.orbit(orbit_point)
+m.set(a=orbit_point.value)
+h = m.auto.start("homoclinic", "a", second="b", left=[0, 0],
+                 unstable=1, stable=1)
+```
+
+`left=` is the saddle (and `right=` the second equilibrium of a
+heteroclinic start); `unstable=` and `stable=` are the dimensions of its
+manifolds. They fill the "Homoclinic info" box XPPAUT shows. The test uses
+`x' = y`, `y' = x(1-x) - a y + b x y`: the curve starts where the period of
+the orbits diverges and follows `a = 6b/7` for small `b`.
+
+Limits:
+
+- The starting orbit must be close to the homoclinic but not too long. A
+  period of about 150 worked. With a period of 12 000 or more in the same
+  model, and with a period of 370 in another, the first steps left the
+  curve. Start from the first labelled orbit with a long period, not the
+  longest.
+- The first steps after the start can wobble before AUTO settles on the
+  curve (a couple of per cent in the test); the test allows 1% on the
+  settled points.
+- Only 1-dimensional unstable and stable manifolds in the plane have been
+  tested.
+
+**Heteroclinic orbits.** A heteroclinic start continues a connection from the
+saddle `left=` to the saddle `right=`. The last run is the first
+approximation: a trajectory that leaves the first saddle along its unstable
+manifold and arrives near the second; its length becomes the truncation
+interval. The test uses the bistable front, `u'' + c u' + u(1-u)(u-a) = 0`:
+
+```python
+m.run()   # from near (1, 0) along the front to near (0, 0)
+h = m.auto.start("heteroclinic", "c", second="a", left=[1, 0],
+                 right=[0, 0], unstable=1, stable=1)
+```
+
+The connection from (1, 0) to (0, 0) lies exactly on `c = √2 (1/2 − a)`, and
+AUTO's points agree with it to 1e-10 while both ends are saddles
+(0 < a < 1), in either direction along the curve and whichever method made
+the starting run. The orbit's least `v` matches the front's −1/(4√2).
+Two things to watch:
+
+- The starting run must actually leave the first saddle. Started 1e-6 from
+  it, CVODE at its default tolerance stays there, and AUTO then finds
+  nothing; at TOL = ATOL = 1e-10 it follows the front.
+- Past a = 0 the end (0, 0) is no longer a saddle but a node, and the
+  continued points drift away from the formula: a saddle-to-saddle
+  connection no longer describes the front there.

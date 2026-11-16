@@ -136,6 +136,36 @@ with tempfile.TemporaryDirectory() as t:
     good = r.stdout.split(">> figure xlim 0 50")[1]
     check("error" not in good, "figure xlim 0 50 and a good style: " + good)
 
+    # switch at a branch point of steady states retraced the branch it
+    # started from: AUTO had followed the other one already (#131)
+    pf = examples.parent / "tstauto" / "pf.ode"
+    if pf.exists():
+        shutil.copy(pf, work)
+        r = run(["pf.ode", "--keep-going", "-c", "auto steady", "-c", "auto from 2 switch",
+                 "-c", "auto from 2 extend"], work)
+        check("error: BP #2 is a branch point of steady states" in r.stdout
+              and "AUTO computed" in r.stdout.split(">> auto from 2 extend")[1],
+              "switch at a steady branch point: " + r.stdout[-800:])
+
+    # a second auto steady numbered its labels from 1 again, and the first
+    # run's points could not be continued (#131)
+    r = run(["lecar.ode", "--keep-going", "-c", "use hopf", "-c", "auto set parmax=0.6 nmax=200",
+             "-c", "auto steady iapp", "-c", "set gk=2.4", "-c", "auto steady iapp",
+             "-c", "set gk=2", "-c", "auto from 2 periodic"], work)
+    second = r.stdout.split(">> set gk=2.4")[-1]
+    check("HB #6 at iapp = 0.315" in second and "HB #2 at" not in second
+          and "LP #12 at iapp = 0.248414" in second,
+          "a second run goes on numbering, and label 2 continues the first's Hopf point: "
+          + second[-800:])
+
+    # auto load took a diagram of another model (#131)
+    shutil.copy(examples / "fhn.ode", work)
+    run(["lecar.ode", "-c", "use hopf", "-c", "auto steady iapp", "-c", "auto save lecar.auto"],
+        work)
+    r = run(["fhn.ode", "--keep-going", "-c", "auto load lecar.auto"], work)
+    check("was not loaded: it is a diagram of a model with the variables V W and the "
+          "parameters iapp" in r.stdout, "auto load refuses another model: " + r.stdout[-600:])
+
     # fitdata reads the CSV that export writes (a header, commas)
     r = run(["lecar.ode", "--keep-going", "-c", "set iapp=0.1", "-c", "run",
              "-c", "export data.csv", "-c", "set gca=1.2 gk=1.8",

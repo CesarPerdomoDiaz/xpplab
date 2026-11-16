@@ -9,7 +9,8 @@ eq all
 eq all GUESSES
 ```
 
-- **In the app:** Phase Plane > **All equilibria**.
+- **In the app:** Phase Plane > **All equilibria**, or Run > **Find all
+  equilibria**.
 - **In Python:** `found = m.find_equilibria()`, or with a box:
   `m.find_equilibria(box={"V": (-0.6, 1.2), "W": (-0.25, 1.2)})`.
 
@@ -93,7 +94,9 @@ small basin of Newton's method is missed.
 ## Results
 
 - **The command window** lists each equilibrium with its kind.
-- **The Phase Plane** marks them.
+- **The Phase Plane** marks them, filled when stable and open when not.
+- **`export FILE.csv equilibria`** writes every equilibrium found with its
+  eigenvalues ([export](export.md)).
 - **In Python** a list of `Equilibrium`, each with its values, `kind`,
   `stable` and `eigenvalues`.
 

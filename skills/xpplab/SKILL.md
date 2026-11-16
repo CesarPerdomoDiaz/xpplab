@@ -88,7 +88,9 @@ MCP server" below.
 
 7. **Other points.** LP (fold): `action="two-parameter",
    second_parameter=...` traces the fold in a parameter plane, likewise for
-   HB. BP: `action="switch"`. PD on orbits: `action="doubling"`.
+   HB. BP on orbits: `action="switch"`; at a BP of steady states AUTO has
+   already followed the other branch in the same run (up to `mxbf`, 5 a
+   run). PD on orbits: `action="doubling"`.
 
 8. **Check against simulation.** `sweep` over the same range with a
    `transient` and `total` long enough for 3 or more cycles after it. Its

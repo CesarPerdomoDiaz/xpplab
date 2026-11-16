@@ -244,7 +244,9 @@ def create_server(session: Optional[Session] = None):
             action: Annotated[Optional[str], Field(description=(
                 "What to do from the labelled point. From HB: 'periodic' "
                 "(limit cycles), 'two-parameter', 'extend', 'new'. From LP: "
-                "'two-parameter'. From BP: 'switch', 'extend', 'new', "
+                "'two-parameter'. From BP: 'switch' (a BP of periodic "
+                "orbits; at a BP of steady states AUTO has already followed "
+                "the other branch), 'extend', 'new', "
                 "'two-parameter'. From PD: 'doubling', 'two-parameter', "
                 "'fixed-period', 'extend'. From TR: 'two-parameter', "
                 "'fixed-period', 'extend'. From a regular point: 'extend'."))] = None,

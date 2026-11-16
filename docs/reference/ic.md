@@ -13,8 +13,9 @@ ic NAME[FROM..TO] = FORMULA
 In the range form, `[j]` in the formula stands for the index, and `[j+1]`,
 `[j-1]` work too.
 
-- **In the app:** Workspace > **Initial values**, the formula fields
-  (XPPAUT's *Initial conds > formUla*).
+- **In the app:** Workspace > **Initial values** > *From a formula*: the
+  variable or range in the first box, the formula in the second, then
+  **Set** (XPPAUT's *Initial conds > formUla*, `I U` in XPPAUT).
 - **In Python:** `m.ic_formula("u[1..49]", "sin(pi*[j]/50)")`.
 
 ## Description
@@ -94,6 +95,10 @@ whatever the last run or equilibrium left behind.
 ## Tips
 
 - Check a few values with [get](get.md) before running.
+- A formula can be as short as `ic V = vk + 0.1`, 0.1 above the parameter
+  `vk`. In the Amari model (`amari.ode`, cells `u0` ... `u199`),
+  `ic u[0..199] = 0.8*exp(-([j]-100)^2/50)` puts a bump in the middle of
+  the line.
 - To start from the end of a run instead, use [ic last](ic-last.md).
 
 ## Algorithms

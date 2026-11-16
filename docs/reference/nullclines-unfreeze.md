@@ -58,7 +58,9 @@ in the model.
 
 **What else clears the plots.** [erase](erase.md) removes the kept runs
 and the marked equilibria, but not the frozen nullclines; `nullclines
-unfreeze` removes only those. To start afresh, use both.
+unfreeze` removes only those. To start afresh, use both. Choosing other
+variables for the Phase Plane's axes also removes the frozen nullclines,
+which belong to the plane they were drawn in.
 
 ## Tips
 

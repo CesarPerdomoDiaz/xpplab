@@ -10,8 +10,9 @@ bvp
 bvp tol=T maxit=N eps=E
 ```
 
-- **In the app:** Run > **Boundary-value problem** (XPPAUT's *Bndryval >
-  Show*).
+- **In the app:** Run > **Boundary-value problem**, or the **Solve BVP**
+  toolbar button, which a model with `bndry` statements shows (XPPAUT's
+  *Bndryval > Show*).
 - **In Python:** `sol = m.bvp()`, or `m.bvp(tolerance=1e-8)`.
 
 ## Description
@@ -27,7 +28,8 @@ XPPAUT expects one condition per variable.
 guess, it runs over [`T0`, `T0` + `total`], measures how far the conditions
 are from zero, and corrects the initial values by Newton's method until
 they are within the tolerance. On success the initial values hold the
-solution's, and the solution is the current run.
+solution's, so the next solve starts from it, and the solution is the
+current run.
 
 `tol`, `maxit` and `eps` change XPPAUT's settings for the shooting: the
 tolerance (1e-5 at first), the most Newton iterations (20) and the step of

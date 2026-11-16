@@ -10,8 +10,10 @@ nullclines freeze
 nullclines freeze PARAMETER FROM TO N
 ```
 
-- **In the app:** Phase Plane > **Freeze...** (XPPAUT's *Nullcline >
-  Freeze*, and *Freeze > Range*).
+- **In the app:** Phase Plane > **Freeze...** > **Freeze these
+  nullclines**, or XPPAUT's keys `N F` (*Nullcline > Freeze*); under *For
+  several values of a parameter*, **Parameter**, **From**, **To**,
+  **Values** and **Freeze them** (*Freeze > Range*).
 - **In Python:** `frozen = m.nullcline_sweep("iapp", values, "V", "W",
   xlim, ylim)`, a list of the nullclines for each value.
 
@@ -63,7 +65,7 @@ equilibrium is left: the fold at `iapp` = 0.0833 that
 
 | Setting | Where | Meaning | Advice |
 |---|---|---|---|
-| `PARAMETER`, `FROM`, `TO`, `N` | the command; the Freeze window; `values` in Python | The parameter and its values. | A handful of values shows the motion; many make a smooth film. |
+| `PARAMETER`, `FROM`, `TO`, `N` | the command; **Freeze...** > *For several values of a parameter* (up to 100 values there); `values` in Python | The parameter and its values. | A handful of values shows the motion; many make a smooth film. |
 | **The window** | the Phase Plane's view; `xlim`, `ylim` in Python | Where the nullclines are computed. | As for [nullclines](nullclines.md). |
 
 ## Results
@@ -72,6 +74,11 @@ equilibrium is left: the fold at `iapp` = 0.0833 that
   ones. One picked with `nullclines show K` is drawn as strongly as the
   live ones, with its parameter value in the legend.
 - **The status line** says how many were frozen.
+- **`export FILE.csv nullclines`** (Phase Plane > **Export...** >
+  **Nullclines as CSV or MAT...**, XPPAUT's *Nullcline > Save*) writes the
+  shown and the frozen nullclines as line segments; see
+  [export](export.md). An SVG of the Phase Plane includes the frozen
+  nullclines.
 - **In Python** `m.nullcline_sweep()` returns a list with, for each value,
   the pair of nullclines as [nullclines](nullclines.md) returns them.
 
@@ -85,6 +92,10 @@ a bifurcation before it is computed.
 
 **The sweep and the parameter.** The parameter is set to each value in turn
 and put back afterwards, so the model is unchanged.
+
+**They belong to their plane.** Frozen nullclines are curves in the plane
+of the Phase Plane's two variables. Choosing other variables for its axes
+deletes them.
 
 ## Tips
 

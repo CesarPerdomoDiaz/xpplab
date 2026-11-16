@@ -486,7 +486,9 @@ class Auto:
 
         ``action`` depends on the point: from a Hopf point "periodic",
         "two-parameter", "extend" or "new"; from a fold "two-parameter";
-        from a branch point "switch", "extend", "two-parameter"; from period
+        from a branch point "switch" (of periodic orbits or a BVP: at one
+        of steady states AUTO has switched already), "extend",
+        "two-parameter"; from period
         doubling "doubling", "two-parameter", "fixed-period"; from a torus
         point "two-parameter", "fixed-period"; from an ordinary point
         "extend". Two-parameter continuations need ``second=``.
@@ -496,11 +498,23 @@ class Auto:
             "periodic" if p.periodic else "steady")
         choices = _ACTIONS[kind]
         if action is None:
-            action = next(iter(choices))
+            # at a branch point of steady states, extend: see "switch" below
+            action = ("extend" if kind == "BP" and p.type_code % 10 == 1
+                      else next(iter(choices)))
         if action not in choices:
             raise ValueError(
                 f"from a {TYPE_NAMES.get(p.type, kind)} you can: "
                 f"{', '.join(choices)} (got {action!r})")
+        if action == "switch" and p.type_code % 10 == 1:
+            # AUTO's type 1: a branch point of an algebraic problem, whose
+            # other branch AUTO follows by itself in the run that finds it.
+            raise ValueError(
+                f"BP #{p.label} is a branch point of steady states: AUTO "
+                "follows the other branch of such a point by itself, in the "
+                "run that finds it, and switch would only retrace this one. If "
+                "the other branch is missing, the run met more branch points "
+                "than AUTO follows (MXBF, 5 a run): m.auto.set(mxbf=10) "
+                "follows more.")
         if parameter or second:
             self.parameters(parameter or p.parameter, second)
         if action == "two-parameter" and second is None and kind != "steady":

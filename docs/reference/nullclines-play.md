@@ -11,7 +11,7 @@ nullclines show K
 ```
 
 - **In the app:** Phase Plane > **Freeze...** > the **Show** slider and
-  the **Play** box.
+  the **Play** box (XPPAUT's *Freeze > Animate*).
 - **In Python:** draw each pair of `m.nullcline_sweep()` in turn, for
   example as frames of a matplotlib animation.
 

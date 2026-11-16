@@ -83,7 +83,10 @@ random numbers are at the same place when the ensemble starts.
 ## Results
 
 - **The Analysis window** draws each column's mean with a band of one
-  standard deviation.
+  standard deviation; *Show* switches to another column, or to a
+  variance. The other windows keep the last of the runs. The mean and the
+  variance equal what XPPAUT's batch mode writes with `@ stoch=1` and
+  `@ stoch=2`.
 - **The table** has `T`, `X_mean` and `X_var` for each column;
   `export FILE.csv analysis` writes it.
 - **In Python** `m.ensemble()` returns an `Ensemble`: `mean` and

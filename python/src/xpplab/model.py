@@ -655,31 +655,93 @@ class Model(AnalysisMixin):
         return out
 
     def sensitivity(self, params=None, **values) -> "Sensitivity":
-        """Sensitivity of the trajectory to parameters: S(t) = dx/dp.
+        """How the run changes with the parameters: $S(t) = \\partial x(t) / \\partial p$.
 
-        Builds the variational equations dS/dt = (df/dx) S + df/dp from the
-        model's formulas, adds them to the model, and integrates the lot with
-        the model's own method and options from the current initial
-        conditions (S = 0 at the start). ``params`` is one name or a list
-        (default: every parameter). Keyword arguments are applied with
-        :meth:`set` first. Returns a :class:`Sensitivity`: ``s["gk"]`` has
-        shape (time, variables). Models with tables, delays, maps, noise or
-        functions the symbolic derivative does not know raise a
-        ``ValueError``.
+        The variational equations $\\dot S = (\\partial f/\\partial x)\\,S +
+        \\partial f/\\partial p$ are built from the model's formulas by
+        symbolic differentiation, added to the model, and integrated with it
+        by the model's own method and options, from the current initial
+        conditions with $S = 0$.
+
+        Args:
+            params: a parameter's name, or a list of them; by default every
+                parameter.
+            **values: set first, as by [`set`][xpplab.Model.set], and kept.
+
+        Returns:
+            A [`Sensitivity`][xpplab.Sensitivity]: ``s["a"]`` is an array
+            with one row per output time (``s.t``) and one column per
+            variable.
+
+        Raises:
+            ValueError: the model has tables, delays, noise, is a map, or
+                uses a function the symbolic derivative does not know.
+
+        Examples:
+            For $x' = -a x$ with $x(0) = 1$, $x = e^{-at}$ and
+            $\\partial x/\\partial a = -t e^{-at}$, which is $-e^{-1}$ at
+            $t = 1$:
+
+            >>> m = xs.Model.from_text('''
+            ... x' = -a*x
+            ... par a=1
+            ... init x=1
+            ... @ total=2
+            ... done
+            ... ''')
+            >>> s = m.sensitivity("a")
+            >>> s
+            Sensitivity(41 points, variables X; parameters A)
+            >>> print(f"{s.t[20]:g} {s['a'][20, 0]:.6f} {-np.exp(-1):.6f}")
+            1 -0.367879 -0.367879
+
+        See also:
+            [`linearize`][xpplab.Model.linearize]; the
+            [MCP tool](../agents.md) ``sensitivity``.
         """
         from . import sensitivity as _sens
         return _sens.run(self, params, **values)
 
     def ensemble(self, trials: int, **values) -> "Ensemble":
-        """Run a noisy model ``trials`` times and average (XPPAUT's
-        Numerics > stocHastic > Compute).
+        """Run a noisy model many times and average, as XPPAUT's
+        *Numerics > stocHastic > Compute* does.
 
         Every run starts from the same initial conditions while the random
-        numbers (``wiener`` and ``ran()``) go on, so the runs differ. The
-        result holds the mean and the variance of every column at each
-        output time, computed by XPPAUT as its batch mode does with
-        ``@ stoch=1`` (in single precision). Keyword arguments are applied
-        with :meth:`set` first. The last run stays as the engine's run.
+        numbers (``wiener`` and ``ran()``) go on, so the runs differ. XPPAUT
+        computes the mean and the variance of every column at each output
+        time, as its batch mode does with ``@ stoch=1``, in single
+        precision. The last run stays as the engine's run
+        ([`last_run`][xpplab.Model.last_run]).
+
+        Args:
+            trials: how many runs.
+            **values: set first, as by [`set`][xpplab.Model.set], and kept.
+
+        Returns:
+            An [`Ensemble`][xpplab.Ensemble]: ``mean`` and ``variance``, each
+            a [`Trajectory`][xpplab.Trajectory], ``std`` and ``trials``.
+
+        Examples:
+            An Ornstein-Uhlenbeck process, $dx = -x\\,dt + s\\,dW$ with
+            $x(0) = 1$: its mean is $e^{-t}$.
+
+            >>> m = xs.Model.from_text('''
+            ... x' = -x + s*w
+            ... wiener w
+            ... par s=0.5
+            ... init x=1
+            ... @ total=5, dt=0.01, nout=100
+            ... done
+            ... ''')
+            >>> e = m.ensemble(200)
+            >>> e.mean
+            <Trajectory: 6 points, t=0..5, columns T, X>
+            >>> bool(abs(e.mean["X"][1] - np.exp(-1)) < 0.05)
+            True
+
+        See also:
+            [ensemble](../reference/ensemble.md) in the command window;
+            [`run`][xpplab.Model.run].
         """
         if values:
             self.set(**values)
@@ -736,12 +798,41 @@ class Model(AnalysisMixin):
 
     def equilibrium(self, guess: dict | None = None, *,
                     set_initial: bool = False) -> "Equilibrium":
-        """Find an equilibrium with Newton's method.
+        """Find an equilibrium with Newton's method, as XPPAUT's *Sing pts*
+        does, with its eigenvalues.
 
-        The search starts from ``guess`` (a dict of variable values) or from
-        the current initial conditions. With ``set_initial=True`` the
-        equilibrium becomes the new initial condition, which is how AUTO
-        continuations usually start.
+        Newton's method uses the options ``NEWT_TOL``, ``NEWT_ITER`` and
+        ``JAC_EPS``. For a map (``meth="discrete"``) it finds a fixed point.
+
+        Args:
+            guess: where Newton's method starts, as a dictionary of variable
+                values; the variables left out start at their initial value.
+                By default the initial conditions.
+            set_initial: make the equilibrium the new initial condition,
+                which is how AUTO continuations usually start.
+
+        Returns:
+            An [`Equilibrium`][xpplab.Equilibrium]: its ``values``,
+            ``eigenvalues``, ``kind`` and ``stable``.
+
+        Raises:
+            EngineError: Newton's method did not converge.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> eq = m.equilibrium()
+            >>> eq
+            <Equilibrium saddle: V=-0.142535, W=0.034049>
+            >>> np.round(eq.eigenvalues.real, 4)
+            array([ 1.03 , -0.301])
+            >>> m.equilibrium({"V": -0.4})
+            <Equilibrium stable node: V=-0.382505, W=0.0012856>
+
+        See also:
+            [eq](../reference/eq.md) in the command window;
+            [`find_equilibria`][xpplab.Model.find_equilibria],
+            [`equilibrium_sweep`][xpplab.Model.equilibrium_sweep],
+            [`linearize`][xpplab.Model.linearize].
         """
         n = len(self.variables)
         x = (ctypes.c_double * n)()
@@ -763,31 +854,80 @@ class Model(AnalysisMixin):
 
     def linearize(self, at: dict | None = None, inputs=(), *,
                   step: float | None = None, tol: float | None = None):
-        """Linearise at an equilibrium and test controllability.
+        """Linearise at an equilibrium, $\\dot{\\delta x} = A\\,\\delta x +
+        B\\,\\delta u$, and test controllability.
 
-        ``at`` is a dict of variable values (others keep their initial
-        value); by default the equilibrium found by :meth:`equilibrium`.
-        ``inputs`` lists the parameters that act as controls. A is the
-        Jacobian of the right-hand side and B the derivative with respect to
-        each input, both by central differences of :meth:`rhs` extrapolated to
-        zero step (Ridders' method, which picks its own step; ``step=`` sets
-        a fixed relative step instead). Returns a
-        :class:`~xpplab.control.Linearization` with ``A``, ``B``,
-        ``eigenvalues``, ``controllability`` (the matrix [B, AB, ...]),
-        ``rank`` and ``controllable``. ``tol`` is the singular-value cutoff
-        for the rank."""
+        $A$ is the Jacobian of the right-hand side and $B$ its derivative
+        with respect to each input, both by central differences of
+        [`rhs`][xpplab.Model.rhs] extrapolated to zero step (Ridders'
+        method, which picks its own step).
+
+        Args:
+            at: the state, as a dictionary of variable values (the variables
+                left out keep their initial value); by default the
+                equilibrium [`equilibrium`][xpplab.Model.equilibrium] finds.
+            inputs: the parameters that act as controls, the columns of $B$.
+            step: a fixed relative step for the differences, in place of
+                Ridders' extrapolation.
+            tol: the cutoff for the singular values of the controllability
+                matrix in its rank.
+
+        Returns:
+            A [`Linearization`][xpplab.Linearization]: ``A``, ``B``,
+            ``eigenvalues``, ``controllability`` (the matrix
+            $[B, AB, \\ldots]$), ``rank`` and ``controllable``, and the design
+            methods ``place_poles``, ``lqr`` and ``root_locus``.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> lin = m.linearize(inputs=["iapp"])
+            >>> lin
+            Linearization(n=2, inputs=['iapp'], rank=2, controllable=True)
+            >>> np.round(lin.A, 4)
+            array([[ 1.1843, -1.1149],
+                   [ 0.207 , -0.4564]])
+            >>> lin.B
+            array([[1.],
+                   [0.]])
+
+        See also:
+            [linearize](../reference/linearize.md) in the command window;
+            [`equilibrium`][xpplab.Model.equilibrium]; the
+            [control design guide](control.md).
+        """
         from .control import linearize
         return linearize(self, at, inputs, step=step, tol=tol)
 
     def manifolds(self, guess: dict | None = None):
-        """Stable and unstable manifolds of a saddle, as XPPAUT draws them.
+        """The stable and unstable manifolds of a saddle, as XPPAUT's
+        *Sing pts* draws them.
 
-        Finds the equilibrium near ``guess`` (or the initial values). If it
-        is a saddle with a one-dimensional stable or unstable direction,
-        each branch is integrated from just off the equilibrium along its
-        eigenvector: forward in time for unstable branches, backward for
-        stable ones. Returns ``(equilibrium, [(kind, Trajectory), ...])``
-        with kind "stable" or "unstable"; the list is empty for non-saddles.
+        If the equilibrium is a saddle with a one-dimensional stable or
+        unstable direction, each branch is integrated from just off the
+        equilibrium along its eigenvector: forward in time for the unstable
+        branches, backward for the stable ones. Each runs for ``TOTAL``.
+
+        Args:
+            guess: where Newton's method starts, as for
+                [`equilibrium`][xpplab.Model.equilibrium].
+
+        Returns:
+            ``(equilibrium, branches)``: the [`Equilibrium`][xpplab.Equilibrium]
+            and a list of ``(kind, trajectory)``, kind ``"stable"`` or
+            ``"unstable"``. The list is empty for an equilibrium that is not
+            a saddle.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> eq, branches = m.manifolds()
+            >>> eq
+            <Equilibrium saddle: V=-0.142535, W=0.034049>
+            >>> [kind for kind, run in branches]
+            ['unstable', 'unstable', 'stable', 'stable']
+
+        See also:
+            [`shoot`][xpplab.Model.shoot], which also works for nodes;
+            [`phase_plane`][xpplab.Model.phase_plane].
         """
         eq = self.equilibrium(guess)
         n = self._engine.call("xppe_manifold_count", check=False)
@@ -800,9 +940,27 @@ class Model(AnalysisMixin):
         return eq, branches
 
     def eigenvector(self, A, eigenvalue: float) -> np.ndarray:
-        """The eigenvector of the matrix ``A`` for one of its real
-        eigenvalues, by XPPAUT's own inverse iteration (the one Sing pts
-        uses to draw invariant sets), with length 1."""
+        """The eigenvector of a matrix for one of its real eigenvalues, by
+        XPPAUT's own inverse iteration, the one *Sing pts* uses to draw
+        invariant sets.
+
+        Args:
+            A: a square matrix.
+            eigenvalue: one of its real eigenvalues.
+
+        Returns:
+            The eigenvector, of length 1. Its sign is the one the iteration
+            gives.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> m.eigenvector([[2, 0], [1, -1]], 2)
+            array([0.9486833 , 0.31622777])
+
+        See also:
+            [`linearize`][xpplab.Model.linearize],
+            [`shoot`][xpplab.Model.shoot].
+        """
         A = np.asarray(A, dtype=float)
         n = A.shape[0]
         a = (ctypes.c_double * (n * n))(*A.ravel())
@@ -813,19 +971,46 @@ class Model(AnalysisMixin):
     def shoot(self, at=None, *, eps: float = 1e-5, total: float | None = None,
               directions: str = "unstable") -> "RunList":
         """Integrate away from an equilibrium along its real eigenvectors,
-        both ways: the start of its unstable (or stable) manifolds, as
-        XPPAUT's Initial conds > sHoot does after Sing pts.
+        both ways, as XPPAUT's *Initial conds > sHoot* does after *Sing pts*:
+        the start of its unstable or stable manifolds.
 
-        ``at`` is an :class:`Equilibrium`, or a dict guess for Newton's
-        method (by default the initial values). Each real eigenvector ``v``
-        of the Jacobian (from :meth:`linearize`) with an eigenvalue of the
-        chosen sign gives two runs, from ``x_e + eps*v`` and ``x_e - eps*v``:
-        forward in time for ``directions="unstable"`` (eigenvalue > 0),
-        backward for ``"stable"`` (eigenvalue < 0); ``"all"`` does both. A
-        node's two unstable directions both count, unlike XPPAUT's
-        invariant sets, which are drawn for saddles only. ``total`` sets
-        the time of each run. Returns a :class:`RunList` whose
-        ``directions`` holds ``(eigenvalue, sign)`` for each run."""
+        Each real eigenvector $v$ of the Jacobian (from
+        [`linearize`][xpplab.Model.linearize]) with an eigenvalue of the
+        chosen sign gives two runs, from $x_e + \\varepsilon v$ and
+        $x_e - \\varepsilon v$: forward in time for an unstable direction,
+        backward for a stable one. A node's two unstable directions both
+        count, unlike XPPAUT's invariant sets, which are drawn for saddles
+        only. The initial conditions, ``TOTAL`` and ``DT`` are restored
+        afterwards.
+
+        Args:
+            at: an [`Equilibrium`][xpplab.Equilibrium], or where Newton's
+                method starts, as for [`equilibrium`][xpplab.Model.equilibrium].
+            eps: how far from the equilibrium each run starts.
+            total: how long each run is; by default ``TOTAL``.
+            directions: ``"unstable"`` (eigenvalues > 0), ``"stable"``
+                (eigenvalues < 0) or ``"all"``.
+
+        Returns:
+            A [`RunList`][xpplab.RunList], two runs per direction, with
+            ``equilibrium`` and ``directions``: ``(eigenvalue, sign)`` for
+            each run.
+
+        Raises:
+            ValueError: ``directions`` is not one of the three.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> runs = m.shoot()
+            >>> runs
+            <RunList: 2 runs, ended by {0: 2}>
+            >>> [(round(lam, 4), sign) for lam, sign in runs.directions]
+            [(1.0289, 1), (1.0289, -1)]
+
+        See also:
+            [shoot](../reference/shoot.md) in the command window;
+            [`manifolds`][xpplab.Model.manifolds].
+        """
         if directions not in ("unstable", "stable", "all"):
             raise ValueError('directions is "unstable", "stable" or "all"')
         eq = at if isinstance(at, Equilibrium) else self.equilibrium(at)
@@ -862,32 +1047,90 @@ class Model(AnalysisMixin):
         """How the eigenvalues of an equilibrium move as a parameter
         changes: a root locus over the parameter.
 
-        ``values`` is ``(low, high)``; the parameter takes ``steps`` values
-        evenly between them and, as in :meth:`equilibrium_sweep`, Newton's
-        method follows the equilibrium from the initial conditions (or
-        ``guess``). Returns a :class:`~xpplab.RootLocus`: ``rl.poles`` has
-        one row per value and one column per eigenvalue, matched from step
-        to step; ``rl.crossings()`` gives the values where one crosses into
-        or out of the stable region (a Hopf bifurcation, say); ``rl.plot()``
-        draws them in the complex plane. The parameter is restored
-        afterwards. The engine computes it (``xppe_parameter_locus``), so
-        the desktop app's root locus gives the same numbers."""
+        The parameter takes ``steps`` values evenly from ``low`` to ``high``
+        and, as in [`equilibrium_sweep`][xpplab.Model.equilibrium_sweep],
+        Newton's method follows the equilibrium from one value to the next.
+        The eigenvalues are matched from step to step. The parameter is
+        restored afterwards. The engine computes the locus, so the desktop
+        app's gives the same numbers.
+
+        Args:
+            parameter: the parameter to vary.
+            values: ``(low, high)``.
+            steps: how many values.
+            guess: where Newton's method starts at the first value, as for
+                [`equilibrium`][xpplab.Model.equilibrium].
+
+        Returns:
+            A [`RootLocus`][xpplab.RootLocus]: ``poles`` has one row per
+            value and one column per eigenvalue; ``crossings()`` gives the
+            values where one crosses into or out of the stable region (a
+            Hopf bifurcation, say); ``plot()`` draws the locus in the
+            complex plane.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode")).apply_set("hopf")
+            >>> rl = m.root_locus("iapp", (0, 0.4), 41)
+            >>> rl
+            RootLocus(iapp from 0 to 0.4, 41 steps, 2 branches)
+            >>> [(round(p, 4), complex(round(z.real, 4), round(z.imag, 4)))
+            ...  for p, z in rl.crossings()]
+            [(0.2622, 0.4341j), (0.2622, -0.4341j)]
+
+        See also:
+            [locus](../reference/locus.md) in the command window;
+            [`Linearization.root_locus`][xpplab.Linearization.root_locus],
+            a locus over a feedback gain;
+            [`auto.equilibria`][xpplab.auto.Auto.equilibria], which finds
+            the Hopf point exactly.
+        """
         from .control import root_locus
         return root_locus(self, parameter, values, steps, guess)
 
     def equilibrium_sweep(self, parameter: str, values, *,
                           guess: dict | None = None):
-        """Follow an equilibrium as a parameter changes: XPPAUT's Sing pts >
-        Range, a quick diagram of steady states without AUTO.
+        """Follow an equilibrium as a parameter changes, as XPPAUT's
+        *Sing pts > Range* does: a quick diagram of steady states without
+        AUTO.
 
         For each value in turn the parameter takes it, and Newton's method
-        starts from the equilibrium found at the value before (the first
-        time from the initial conditions, or from ``guess``). Returns a
-        Table: the parameter, each variable, then ``unstable`` and
-        ``stable``, the numbers of eigenvalues with positive and negative
-        real parts (for maps, outside and inside the unit circle). Where
-        Newton's method failed the row holds NaN. The parameter is restored
-        afterwards."""
+        starts from the equilibrium found at the value before. It cannot go
+        round a fold: past one, it jumps to another branch or fails. The
+        parameter is restored afterwards.
+
+        Args:
+            parameter: the parameter to vary.
+            values: its values, in order.
+            guess: where Newton's method starts at the first value, as for
+                [`equilibrium`][xpplab.Model.equilibrium].
+
+        Returns:
+            A [`Table`][xpplab.Table]: the parameter, each variable, then
+            ``unstable`` and ``stable``, the numbers of eigenvalues with
+            positive and negative real parts (for maps, outside and inside
+            the unit circle). Where Newton's method failed, the row holds
+            NaN.
+
+        Examples:
+            The saddle of ``lecar.ode`` meets a fold between 0.05 and 0.1,
+            and the sweep jumps to the upper branch:
+
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> t = m.equilibrium_sweep("iapp", [0, 0.05, 0.1, 0.15])
+            >>> t
+            <Table Equilibria as iapp changes: 4 rows, columns iapp, V, W, unstable, stable>
+            >>> np.round(t.to_numpy(), 4)
+            array([[ 0.    , -0.079 ,  0.078 ,  1.    ,  1.    ],
+                   [ 0.05  , -0.1425,  0.034 ,  1.    ,  1.    ],
+                   [ 0.1   ,  0.0443,  0.3167,  2.    ,  0.    ],
+                   [ 0.15  ,  0.0574,  0.3573,  2.    ,  0.    ]])
+
+        See also:
+            [`equilibrium`][xpplab.Model.equilibrium],
+            [`root_locus`][xpplab.Model.root_locus];
+            [`auto.equilibria`][xpplab.auto.Auto.equilibria], which follows
+            the branch round its folds.
+        """
         name = self.parameters._lookup(parameter)
         vals = [float(v) for v in values]
         buf = (ctypes.c_double * max(len(vals), 1))(*vals)
@@ -898,15 +1141,36 @@ class Model(AnalysisMixin):
     def find_equilibria(self, guesses: int = 100, box: dict | None = None,
                         tol: float = 0.001) -> "EquilibriumList":
         """Every equilibrium Newton's method finds from random starting
-        points: XPPAUT's Sing pts > Monte Carlo.
+        points, as XPPAUT's *Sing pts > Monte Carlo* does.
 
-        The ``guesses`` starting points are spread uniformly over a box:
-        ``box`` maps variables to ``(low, high)``, and the others span -10
-        to 10, XPPAUT's default. Equilibria closer than ``tol`` (the sum of
-        the absolute differences) count as one. Returns the equilibria in
-        the order found, as a list of :class:`Equilibrium`. XPPAUT's random
-        numbers repeat from run to run, so the same calls find the same
-        list."""
+        XPPAUT's random numbers repeat from run to run, so the same calls
+        find the same list.
+
+        Args:
+            guesses: how many starting points.
+            box: the variables' ranges, ``{"V": (low, high)}``; the
+                variables left out span -10 to 10, XPPAUT's default.
+            tol: equilibria closer than this (the sum of the absolute
+                differences) count as one.
+
+        Returns:
+            The equilibria in the order found, as an
+            [`EquilibriumList`][xpplab.EquilibriumList]: a list of
+            [`Equilibrium`][xpplab.Equilibrium] that can be written as a
+            table.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> found = m.find_equilibria()
+            >>> found
+            <3 equilibria: unstable focus, stable node, saddle>
+            >>> found[1].kind, round(found[1]["V"], 4)
+            ('stable node', -0.3825)
+
+        See also:
+            [eq all](../reference/eq-all.md) in the command window;
+            [`equilibrium`][xpplab.Model.equilibrium].
+        """
         n = len(self.variables)
         lo = (ctypes.c_double * n)(*([-10.0] * n))
         hi = (ctypes.c_double * n)(*([10.0] * n))
@@ -953,34 +1217,102 @@ class Model(AnalysisMixin):
         return x
 
     def rhs(self, state=None, t: float = 0.0) -> np.ndarray:
-        """The right-hand side f(t, x) of the ODEs, as an array.
+        """The right-hand side $f(t, x)$ of the equations, evaluated by
+        XPPAUT.
 
-        ``state`` is a dict of variable values (others keep their initial
-        value) or a full array; by default the initial condition. For maps it
-        is the next state."""
+        Args:
+            state: a dictionary of variable values (the variables left out
+                keep their initial value) or an array of every variable; by
+                default the initial conditions.
+            t: the time.
+
+        Returns:
+            An array with one entry per variable: the derivatives, or for a
+            map the next state.
+
+        Raises:
+            ValueError: an array of the wrong length.
+            KeyError: a dictionary names no variable.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> m.rhs()
+            array([0.00278328, 0.0015529 ])
+            >>> m.rhs({"V": 0})
+            array([0.29128404, 0.0604044 ])
+
+        See also:
+            [`evaluate`][xpplab.Model.evaluate], which also gives the
+            auxiliary quantities; [`linearize`][xpplab.Model.linearize].
+        """
         x = self._state(state)
         f = (ctypes.c_double * len(self.variables))()
         self._engine.call("xppe_rhs", float(t), x, f)
         return np.array(f[:])
 
     def evaluate(self, state=None, t: float = 0.0) -> "Values":
-        """Every output column at one state: time, the variables and the
-        auxiliary quantities (``aux`` lines), computed as XPPAUT computes a
-        row of a run. ``state`` is a dict of variable values (others keep
-        their initial value) or a full array; by default the initial
-        condition. Returns a dict whose keys ignore case:
-        ``m.evaluate({"gam": 1.0, "om": 0})["tens"]``."""
+        """Every output column at one state, as XPPAUT computes a row of a
+        run: time, the variables and the auxiliary quantities (``aux``).
+
+        Args:
+            state: a dictionary of variable values (the variables left out
+                keep their initial value) or an array of every variable; by
+                default the initial conditions.
+            t: the time.
+
+        Returns:
+            A [`Values`][xpplab.Values]: a dictionary of the columns whose
+            keys ignore case.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> row = m.evaluate()
+            >>> list(row)
+            ['T', 'V', 'W', 'CUR', 'ICA', 'IK', 'RATE']
+            >>> round(row["ica"], 6)
+            -0.164143
+
+        See also:
+            [`rhs`][xpplab.Model.rhs],
+            [`sample_initial`][xpplab.Model.sample_initial], whose
+            ``require`` tests these columns.
+        """
         x = self._state(state)
         out = (ctypes.c_double * len(self.columns))()
         self._engine.call("xppe_columns_at", float(t), x, out, len(self.columns))
         return Values(zip(self.columns, out[:]))
 
     def nullclines(self, x: str, y: str, xlim, ylim, grid: int = 100):
-        """XPPAUT's nullclines in the (x, y) plane over the given window.
+        """The nullclines in a plane of two variables, computed by XPPAUT's
+        own routine.
 
-        Returns ``(x_nullcline, y_nullcline)``: arrays of line segments with
-        shape (n, 4) holding x1, y1, x2, y2. The other variables keep their
-        initial values."""
+        The ``x`` nullcline is where $\\dot x = 0$, the ``y`` nullcline where
+        $\\dot y = 0$. XPPAUT finds them on a grid of ``grid`` by ``grid``
+        cells, as line segments. The other variables keep their initial
+        values.
+
+        Args:
+            x: the variable along the horizontal axis.
+            y: the variable along the vertical axis.
+            xlim: ``(low, high)`` of ``x``.
+            ylim: ``(low, high)`` of ``y``.
+            grid: the number of cells along each side.
+
+        Returns:
+            ``(x_nullcline, y_nullcline)``: two arrays of line segments, one
+            row per segment holding x1, y1, x2, y2.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> nv, nw = m.nullclines("V", "W", (-0.6, 0.6), (-0.1, 0.6))
+            >>> nv.shape, nw.shape
+            ((274, 4), (146, 4))
+
+        See also:
+            [nullclines](../reference/nullclines.md) in the command window;
+            [`nullcline_sweep`][xpplab.Model.nullcline_sweep],
+            [`phase_plane`][xpplab.Model.phase_plane].
+        """
         ix, iy = self._var_index(x), self._var_index(y)
         maxseg = 40000
         out = []
@@ -996,10 +1328,35 @@ class Model(AnalysisMixin):
 
     def nullcline_sweep(self, parameter: str, values, x: str, y: str, xlim, ylim,
                         grid: int = 100) -> list:
-        """The nullclines for each value of a parameter (XPPAUT's Nullcline
-        > Freeze > Range): a list of ``(x_nullcline, y_nullcline)`` pairs as
-        :meth:`nullclines` returns them, one per value. The parameter is
-        put back afterwards."""
+        """The nullclines for each value of a parameter, as XPPAUT's
+        *Nullcline > Freeze > Range* does. The parameter is restored
+        afterwards.
+
+        Args:
+            parameter: the parameter to vary.
+            values: its values.
+            x: the variable along the horizontal axis.
+            y: the variable along the vertical axis.
+            xlim: ``(low, high)`` of ``x``.
+            ylim: ``(low, high)`` of ``y``.
+            grid: the number of cells along each side.
+
+        Returns:
+            One ``(x_nullcline, y_nullcline)`` pair per value, as
+            [`nullclines`][xpplab.Model.nullclines] returns them.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> frozen = m.nullcline_sweep("iapp", [0, 0.1, 0.2],
+            ...                            "V", "W", (-0.6, 0.6), (-0.1, 0.6))
+            >>> len(frozen), m.get("iapp")
+            (3, 0.05)
+
+        See also:
+            [nullclines freeze](../reference/nullclines-freeze.md) in the
+            command window; [`phase_plane`][xpplab.Model.phase_plane],
+            whose ``frozen`` draws them.
+        """
         old = float(self.get(parameter))
         out = []
         try:
@@ -1011,8 +1368,33 @@ class Model(AnalysisMixin):
         return out
 
     def vector_field(self, x: str, y: str, xlim, ylim, n: int = 20):
-        """The vector field on an n x n grid: returns X, Y, U, V for
-        matplotlib's quiver. Other variables keep their initial values."""
+        """The vector field on a grid in a plane of two variables. The other
+        variables keep their initial values.
+
+        Args:
+            x: the variable along the horizontal axis.
+            y: the variable along the vertical axis.
+            xlim: ``(low, high)`` of ``x``.
+            ylim: ``(low, high)`` of ``y``.
+            n: the number of points along each side.
+
+        Returns:
+            ``(X, Y, U, V)``, each an ``n`` by ``n`` array, ready for
+            matplotlib's ``quiver``: the grid and the derivatives there (for
+            a map, the step to the next state).
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> X, Y, U, V = m.vector_field("V", "W", (-0.6, 0.6), (-0.1, 0.6), n=5)
+            >>> X.shape
+            (5, 5)
+            >>> print(f"{U[0, 0]:.4f} {V[0, 0]:.4f}")
+            0.1206 0.1877
+
+        See also:
+            [dirfield](../reference/dirfield.md) in the command window;
+            [`phase_plane`][xpplab.Model.phase_plane].
+        """
         ix, iy = self._var_index(x), self._var_index(y)
         xs = np.linspace(xlim[0], xlim[1], n)
         ys = np.linspace(ylim[0], ylim[1], n)
@@ -1033,11 +1415,42 @@ class Model(AnalysisMixin):
                     xlim=None, ylim=None, trajectory: bool = True,
                     nullclines: bool = True, field: bool = True,
                     equilibrium: bool = True, frozen=None, ax=None):
-        """Draw the phase plane: trajectory, nullclines, direction field and
-        the nearby equilibrium, in one call. Returns the matplotlib axes.
+        """Draw the phase plane in one call: a run, the nullclines, the
+        direction field and the nearest equilibrium. Needs matplotlib.
 
-        ``frozen`` is a list of earlier nullclines to draw faded, such as
-        :meth:`nullcline_sweep` returns."""
+        The run starts from the initial conditions and lasts ``TOTAL``.
+
+        Args:
+            x: the variable along the horizontal axis; by default the first.
+            y: the variable along the vertical axis; by default the second.
+            xlim: ``(low, high)`` of ``x``; by default the run's range with
+                a margin of 15%.
+            ylim: ``(low, high)`` of ``y``; likewise.
+            trajectory: draw a run from the initial conditions.
+            nullclines: draw the nullclines.
+            field: draw the direction field.
+            equilibrium: mark the equilibrium Newton's method finds from the
+                initial conditions, filled if it is stable, with its
+                manifolds if it is a saddle (see
+                [`manifolds`][xpplab.Model.manifolds]).
+            frozen: earlier nullclines to draw faded, such as
+                [`nullcline_sweep`][xpplab.Model.nullcline_sweep] returns.
+            ax: the matplotlib axes to draw in; by default new ones.
+
+        Returns:
+            The matplotlib axes.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> ax = m.phase_plane(xlim=(-0.6, 0.6), ylim=(-0.1, 0.6))
+            >>> ax.get_xlabel(), ax.get_ylabel()
+            ('V', 'W')
+
+        See also:
+            [nullclines](../reference/nullclines.md) and
+            [dirfield](../reference/dirfield.md) in the command window;
+            the [phase plane guide](phase-plane.md).
+        """
         from .plotting import plot_phase_plane
         x = x or self.variables[0]
         y = y or self.variables[1]
@@ -1047,69 +1460,179 @@ class Model(AnalysisMixin):
                                 frozen=frozen, ax=ax)
 
     def ic_last(self, *, shift: bool = False) -> "Model":
-        """Start the next run where the last one ended (XPPAUT's Initial
-        conds > Last, I L): the final state, in full precision, becomes the
-        initial condition.
+        """Start the next run where the last one ended, as XPPAUT's
+        *Initial conds > Last* does.
 
-        With ``shift=True`` (Initial conds > Shift, I S) the start time T0
-        also becomes the time the run ended, so that the time goes on: it
-        matters for models with forcing terms in t.
+        The final state of the engine's last run becomes the initial
+        condition, in full precision (not the single precision of the
+        stored run).
+
+        Args:
+            shift: also make ``T0`` the time the run ended, as *Initial
+                conds > Shift* does, so that time goes on. It matters for
+                models with forcing terms in ``t``.
+
+        Returns:
+            The model itself, so that calls chain:
+            ``m.ic_last().run()``.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> m.ic_last().ics
+            {V=0.0277074, W=0.0412408}
+            >>> round(m.ic_last(shift=True).get("t0"), 6)
+            100.0
+
+        See also:
+            [ic last](../reference/ic-last.md) and
+            [ic shift](../reference/ic-shift.md) in the command window;
+            [`continue_run`][xpplab.Model.continue_run].
         """
         self._engine.call("xppe_ic_shift" if shift else "xppe_ic_last")
         return self
 
     def read_ics(self, path) -> "Model":
-        """Read the initial conditions from a text file (XPPAUT's Initial
-        conds > File, I F): the first numbers in it, one per variable in
-        order, separated by spaces, new lines or commas. A file with fewer
-        numbers than variables raises EngineError and changes nothing."""
+        """Read the initial conditions from a text file, as XPPAUT's
+        *Initial conds > File* does.
+
+        The file's first numbers are taken, one per variable in the model's
+        order, separated by spaces, new lines or commas.
+
+        Args:
+            path: the file.
+
+        Returns:
+            The model itself, so that calls chain.
+
+        Raises:
+            EngineError: the file has fewer numbers than the model has
+                variables. Nothing is changed.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> with open("start.ics", "w") as f:
+            ...     _ = f.write("-0.3 0.01\\n")
+            >>> m.read_ics("start.ics").ics
+            {V=-0.3, W=0.01}
+
+        See also:
+            [ic read](../reference/ic-read.md) in the command window;
+            [`write_ics`][xpplab.Model.write_ics].
+        """
         self._engine.call("xppe_ic_file", os.fsencode(Path(path).resolve()))
         return self
 
     def write_ics(self, path) -> Path:
         """Write the initial conditions to a text file, one per line in the
-        order of the variables, exactly: :meth:`read_ics` reads it back."""
+        order of the variables, with every digit, so that
+        [`read_ics`][xpplab.Model.read_ics] reads back the same values.
+
+        Args:
+            path: the file to write.
+
+        Returns:
+            The file's path.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> path = m.ic_last().write_ics("end.ics")
+            >>> print(path.read_text())
+            0.027707405522076907
+            0.041240834023850106
+            <BLANKLINE>
+
+        See also:
+            [ic write](../reference/ic-write.md) in the command window;
+            [`read_ics`][xpplab.Model.read_ics].
+        """
         path = Path(path)
         path.write_text("".join(repr(float(self.get(v))) + "\n"
                                 for v in self.variables))
         return path
 
     def ic_formula(self, target: str, formula: str) -> "Model":
-        """Set initial conditions from a formula (XPPAUT's Initial conds >
-        formUla, I U), evaluated by XPPAUT with the model's parameters and
-        functions. A variable named in the formula stands for its initial
-        value before the call: ``m.ic_formula("W", "V/10")``.
+        """Set initial conditions from a formula, as XPPAUT's *Initial
+        conds > formUla* does.
 
-        ``target`` is a variable, ``m.ic_formula("V", "vk + 0.1")``, or a
-        range of numbered variables in XPPAUT's array form, where ``[j]`` in
-        the formula stands for the index::
+        XPPAUT evaluates the formula with the model's parameters and
+        functions. A variable named in it stands for its initial value
+        before the call.
 
-            m.ic_formula("u[1..50]", "exp(-([j]-25)^2/20)")
+        Args:
+            target: a variable, or a range of numbered variables in XPPAUT's
+                array form, ``"u[1..50]"``, where ``[j]`` in the formula
+                stands for the index: ``m.ic_formula("u[1..50]",
+                "exp(-([j]-25)^2/20)")``.
+            formula: the formula, in the syntax of an .ode file.
+
+        Returns:
+            The model itself, so that calls chain.
+
+        Raises:
+            EngineError: the target is no variable, or XPPAUT cannot parse
+                the formula.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> m.ic_formula("W", "V/10").ics
+            {V=-0.144, W=-0.0144}
+            >>> m.ic_formula("V", "vk + 0.1").ics
+            {V=-0.6, W=-0.0144}
+
+        See also:
+            [ic](../reference/ic.md) in the command window;
+            [`initial_conditions`][xpplab.Model.initial_conditions].
         """
         self._engine.call("xppe_ic_formula", _b(target), _b(formula))
         return self
 
     def sweep(self, parameter: str, values, *, measure=None,
               continue_runs: bool = False, **run_kw):
-        """Run once per value of a parameter or initial condition and collect
-        the results: XPPAUT's Initial conds > Range.
-
-        Without ``measure`` it returns a list of Trajectory objects. With a
-        function, e.g. ``measure=lambda s: s["V"].max()``, it returns a NumPy
-        array of the measure at each value: a brute-force bifurcation
-        diagram (``measure=lambda s: m.lyapunov()`` gives the Liapunov
-        exponent at each value).
+        """Run once per value of a parameter or initial condition, as
+        XPPAUT's *Initial conds > Range* does.
 
         Each run starts from the initial conditions (XPPAUT's "Use old ICs"
-        = Yes), or with ``continue_runs=True`` from where the previous run
+        = Yes), or with ``continue_runs=True`` from where the run before
         ended ("Use old ICs" = No), which follows an attractor as the
-        parameter changes. The parameter and initial conditions are restored
-        afterwards.
+        parameter changes. The parameter and the initial conditions are
+        restored afterwards.
 
-        Two values can move together along a line (XPPAUT's 2par range,
-        Crv): give a tuple of names and pairs of values,
-        ``m.sweep(("iapp", "gca"), zip(i_values, g_values))``. For every
-        pair on a grid, see :meth:`sweep_grid`."""
+        Args:
+            parameter: a parameter or a variable (its initial condition). A
+                tuple of two names moves both along a line, as XPPAUT's
+                *2par range* (Crv) does: ``m.sweep(("iapp", "gca"),
+                zip(i_values, g_values))``.
+            values: the values, in order; pairs for two names.
+            measure: a function of a run, such as
+                ``lambda s: s["V"].max()``. The result is then its value at
+                each parameter value: a brute-force bifurcation diagram.
+            continue_runs: start each run where the one before ended.
+            **run_kw: set before the first run, as by
+                [`set`][xpplab.Model.set], and kept: ``total=200``.
+
+        Returns:
+            Without ``measure``, a list of [`Trajectory`][xpplab.Trajectory];
+            with it, a NumPy array of the measure.
+
+        Examples:
+            The amplitude of the oscillation of ``lecar.ode`` over the
+            second half of each run:
+
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> amp = m.sweep("iapp", [0, 0.05, 0.1, 0.15], total=200,
+            ...               measure=lambda s: np.ptp(s["V"][len(s) // 2:]))
+            >>> np.round(amp, 4)
+            array([0.    , 0.    , 0.6419, 0.6143])
+            >>> m.get("iapp")
+            0.05
+
+        See also:
+            [range](../reference/range.md) in the command window;
+            [`sweep_grid`][xpplab.Model.sweep_grid],
+            [`run_many`][xpplab.Model.run_many].
+        """
         names = tuple(parameter) if isinstance(parameter, (tuple, list)) else (parameter,)
         old = [self.get(n) for n in names]
         ics = {v: float(self.get(v)) for v in self.variables}
@@ -1130,18 +1653,43 @@ class Model(AnalysisMixin):
 
     def sweep_grid(self, parameter: str, values, parameter2: str, values2, *,
                    measure=None, continue_runs: bool = False, **run_kw):
-        """Run once for every pair of values on a grid: XPPAUT's 2par range
-        (Array). The runs go through ``values`` for each of ``values2`` in
-        turn, setting ``parameter`` then ``parameter2``; either may be an
-        initial condition.
+        """Run once for every pair of values on a grid, as XPPAUT's *2par
+        range* (Array) does.
 
-        With a ``measure``, returns a NumPy array of shape
-        ``(len(values2), len(values))`` (plus the measure's own shape): a map
-        over the two values, such as an amplitude or the Liapunov exponent,
-        ready for ``plt.imshow(..., origin="lower")``. Without one, a list of
-        rows of Trajectory objects. ``continue_runs`` starts each run where
-        the previous one ended, row after row. The values and initial
-        conditions are restored afterwards."""
+        The runs go through ``values`` for each of ``values2`` in turn,
+        setting ``parameter`` then ``parameter2``. The values and the
+        initial conditions are restored afterwards.
+
+        Args:
+            parameter: a parameter or a variable (its initial condition).
+            values: its values, along each row.
+            parameter2: the second parameter or variable.
+            values2: its values, one per row.
+            measure: a function of a run, as for
+                [`sweep`][xpplab.Model.sweep].
+            continue_runs: start each run where the one before ended, row
+                after row.
+            **run_kw: set before the first run, as by
+                [`set`][xpplab.Model.set], and kept.
+
+        Returns:
+            With ``measure``, a NumPy array of shape
+            ``(len(values2), len(values))`` (plus the measure's own shape),
+            ready for ``plt.imshow(..., origin="lower")``. Without it, a list
+            of rows of [`Trajectory`][xpplab.Trajectory].
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> amp = m.sweep_grid("iapp", [0, 0.1, 0.2], "gca", [1, 1.2], total=200,
+            ...                    measure=lambda s: np.ptp(s["V"][len(s) // 2:]))
+            >>> np.round(amp, 4)
+            array([[0.    , 0.6419, 0.5657],
+                   [0.    , 0.7081, 0.    ]])
+
+        See also:
+            [range](../reference/range.md) in the command window;
+            [`sweep`][xpplab.Model.sweep].
+        """
         old, old2 = self.get(parameter), self.get(parameter2)
         ics = {v: float(self.get(v)) for v in self.variables}
         out, k = [], 0
@@ -1165,10 +1713,30 @@ class Model(AnalysisMixin):
 
     def interact(self, *parameters: str, y: str | list | None = None,
                  **ranges):
-        """Jupyter sliders for parameters that re-integrate as you drag.
+        """Sliders in a Jupyter notebook that set parameters and run again
+        as they move. Needs ipywidgets and matplotlib.
 
-        ``m.interact("I", "eps")`` uses ranges around the current values;
-        ``m.interact(I=(0, 2))`` sets them. Needs ipywidgets and matplotlib."""
+        Each slider changes its parameter for good, as
+        [`set`][xpplab.Model.set] does, and the plot shows a new run.
+
+        Args:
+            *parameters: the parameters to give sliders, each between 0
+                and twice its value; by default the first six.
+            y: the columns to plot against time; by default the first two
+                variables.
+            **ranges: parameters with their ranges: ``iapp=(0, 0.3)``.
+
+        Returns:
+            The ipywidgets ``interactive`` widget, which a notebook shows.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> m.interact("phi", iapp=(0, 0.3), y="V")  # doctest: +SKIP
+
+        See also:
+            [`sweep`][xpplab.Model.sweep], which runs over a list of values;
+            the desktop app's parameter sliders.
+        """
         import ipywidgets as widgets
         import matplotlib.pyplot as plt
 

@@ -98,8 +98,23 @@ and the app always match.
 **Removing it.** XPP Lab's own Python changes nothing else on the
 computer; deleting its folder removes it. `python` shows where it is.
 
-**The download.** It needs curl and tar, which Windows 10 and later,
-macOS and most Linux systems have.
+**The download.** XPP Lab's own Python is a build of the
+python-build-standalone project, about 22 MB on Windows; the file must be
+exactly the one XPP Lab was built with (its SHA-256 digest), and is then
+unpacked, and NumPy and Matplotlib are installed into it with pip. Lines of
+Python typed meanwhile run as soon as it is ready. The download needs curl
+and tar, which Windows 10 and later, macOS and most Linux systems have.
+Where the internet is out of reach, set `XPPLAB_PYTHON_URL` to the address
+of a copy of the archive (`https://...` or `file:///...`) and
+`XPPLAB_PYTHON_SHA256` to its digest before starting the app.
+
+**Where it goes.** `%APPDATA%\XPPLab\XPPLab\python` on Windows,
+`~/Library/Application Support/XPPLab/XPPLab/python` on macOS,
+`~/.local/share/XPPLab/XPPLab/python` on Linux, unless
+`$XPPLAB_RUNTIME_DIR` names another folder.
+
+**Licences.** Python is under the PSF License; NumPy and Matplotlib are
+under their own BSD-style licences.
 
 ## Tips
 

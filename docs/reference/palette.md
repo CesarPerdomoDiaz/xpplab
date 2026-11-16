@@ -66,8 +66,14 @@ the others the commands of the same name. A few letters are enough.
 ## More about
 
 **Availability.** An entry that needs something not yet there (a model, a
-run, a diagram) is not run: `palette run` says it is not available and
-why.
+run, a diagram) is not run: in the palette it is greyed with the reason
+under its name, and `palette run` says it is not available and why.
+
+**Matching.** Words of the name or of the description match in any order
+and case: `export mat`, `nullclines`, `liapunov`. The best matches come
+first; with the box empty, the actions used last. A command that takes
+arguments is put in the command line to be completed. Escape closes the
+palette.
 
 ## Tips
 

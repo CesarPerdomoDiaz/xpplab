@@ -88,7 +88,12 @@ files they export to the last bit.
 
 **What is recorded.** Actions that compute or change something: runs,
 parameter and option changes, equilibria, continuation, analyses,
-exports. Looking (zooming, moving windows, switching tabs) is not.
+exports. Looking (zooming, moving windows, switching tabs) is not. A
+slider is written once, when it is let go, with the value it ended at.
+
+**Figures.** The script draws its figures again with matplotlib: the same
+data, but not the same picture. The exported data files are the ones to
+compare.
 
 ## Tips
 

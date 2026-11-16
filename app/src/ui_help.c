@@ -4,12 +4,16 @@
  * the manual live: [text](example:lecar.ode) opens an example model and
  * [text](cmd:run) runs a command. */
 #include <ctype.h>
+#include <math.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 #include <SDL3/SDL.h>
 
 #include "docs.h"
+#include "fig.h"
 #include "help_markup.h"
 #include "ui.h"
 
@@ -47,6 +51,105 @@ static void follow_link(App *a, const char *target) {
              dot ? (int)(dot - target) : (int)strlen(target), target);
     ui_show_help(a, name);
   }
+}
+
+/* ---- Mathematics --------------------------------------------------------
+   $...$ in a page is typeset by the Figure window's mathtext (fig.h), as a
+   label is, and shown as a picture in the line. The pictures are kept by
+   formula, size and colour, so a page is typeset once and not every frame. */
+
+typedef struct {
+  char tex[256];
+  float px;           /* the font's size, pixels */
+  unsigned rgb;       /* the text's colour */
+  SDL_Texture *img;   /* NULL with ok false: the formula does not parse */
+  bool ok;
+  int w, h;           /* the picture, pixels */
+  float ascent;       /* pixels above the baseline */
+  unsigned long used; /* for evicting the oldest */
+} MathImg;
+
+static MathImg math_cache[96];
+static unsigned long math_clock;
+
+static float framebuffer_scale(void) {
+  float s = igGetIO_Nil()->DisplayFramebufferScale.x;
+  return s > 0 ? s : 1.0f;
+}
+
+/* The picture of formula s..e (without its dollars) at the current font
+   size and text colour; NULL when it does not parse. */
+static MathImg *math_image(App *a, const char *s, const char *e) {
+  const ImVec4_c *c = igGetStyleColorVec4(ImGuiCol_Text);
+  /* DejaVu's letters are larger than Roboto's at the same size: 0.9 of the
+     text's size makes them look alike */
+  float fbs = framebuffer_scale(), px = 0.9f * igGetFontSize() * fbs, asc = 0, desc = 0,
+        wpt;
+  unsigned rgb = ((unsigned)(c->x * 255) << 16) | ((unsigned)(c->y * 255) << 8) |
+                 (unsigned)(c->z * 255);
+  char label[300], msg[160];
+  int i, n = (int)(e - s), pad = 2, W, H, oldest = 0;
+  MathImg *m;
+  unsigned char *pix;
+  FigDL dl;
+  float black[3] = {0, 0, 0};
+  if (n <= 0 || n >= (int)sizeof math_cache[0].tex) return NULL;
+  for (i = 0; i < (int)(sizeof math_cache / sizeof math_cache[0]); i++) {
+    m = &math_cache[i];
+    if (m->used && m->px == px && m->rgb == rgb && (int)strlen(m->tex) == n &&
+        !memcmp(m->tex, s, (size_t)n)) {
+      m->used = ++math_clock;
+      return m->ok ? m : NULL;
+    }
+    if (m->used < math_cache[oldest].used) oldest = i;
+  }
+  m = &math_cache[oldest];
+  if (m->img) SDL_DestroyTexture(m->img);
+  memset(m, 0, sizeof *m);
+  memcpy(m->tex, s, (size_t)n);
+  m->px = px;
+  m->rgb = rgb;
+  m->used = ++math_clock;
+  snprintf(label, sizeof label, "$%.*s$", n, s);
+  if (!a->renderer || !fig_text_check(label, msg, sizeof msg)) return NULL;
+  wpt = fig_text(NULL, label, FIG_FONT_SANS, px, 0, 0, 0, NULL, &asc, &desc);
+  if (wpt <= 0) return NULL;
+  W = (int)ceilf(wpt) + 2 * pad;
+  H = (int)ceilf(asc + desc) + 2 * pad;
+  memset(&dl, 0, sizeof dl);
+  dl.width = (float)W;
+  dl.height = (float)H;
+  fig_text(&dl, label, FIG_FONT_SANS, px, (float)pad, pad + asc, 0, black, NULL, NULL);
+  pix = fig_raster(&dl, W, H);
+  fig_dl_free(&dl);
+  if (!pix) return NULL;
+  /* black on white becomes the text's colour, as opaque as it was dark */
+  for (i = 0; i < W * H; i++) {
+    unsigned char *q = pix + 4 * i;
+    q[3] = (unsigned char)(255 - q[0]);
+    q[0] = (unsigned char)(rgb >> 16);
+    q[1] = (unsigned char)(rgb >> 8);
+    q[2] = (unsigned char)rgb;
+  }
+  m->img = SDL_CreateTexture((SDL_Renderer *)a->renderer, SDL_PIXELFORMAT_RGBA32,
+                             SDL_TEXTUREACCESS_STATIC, W, H);
+  if (m->img) {
+    SDL_UpdateTexture(m->img, NULL, pix, W * 4);
+    SDL_SetTextureBlendMode(m->img, SDL_BLENDMODE_BLEND);
+  }
+  free(pix);
+  m->ok = m->img != NULL;
+  m->w = W;
+  m->h = H;
+  m->ascent = pad + asc;
+  return m->ok ? m : NULL;
+}
+
+static ImTextureRef_c math_ref(const MathImg *m) {
+  ImTextureRef_c ref;
+  memset(&ref, 0, sizeof ref);
+  ref._TexID = (ImTextureID)(intptr_t)m->img;
+  return ref;
 }
 
 /* Inline layout: words are placed one by one and wrap at the right edge,
@@ -104,7 +207,59 @@ static bool flow_run(Flow *f, const char *s, const char *end, ImVec4_c *color,
   return clicked;
 }
 
-/* Render Markdown inline text: [links](target), `code`, *italics* and
+/* Place a formula in the flow, its baseline on the text's. The space it
+   takes is reserved below the line's top; a tall formula reaches a little
+   into the line above rather than pushing the words of its line down. */
+static bool flow_math(Flow *f, App *a, const char *s, const char *e) {
+  MathImg *m = math_image(a, s, e);
+  float fbs = framebuffer_scale(), w, h, asc, text_asc;
+  ImVec2_c pos;
+  if (!m) return false;
+  w = m->w / fbs;
+  h = m->h / fbs;
+  asc = m->ascent / fbs;
+  text_asc = igGetFontBaked()->Ascent;
+  if (!f->line_start) {
+    igSameLine(0, 0);
+    if (igGetCursorPosX() + w > f->right) {
+      igNewLine();
+      igSetCursorPosX(f->x0);
+    }
+  } else {
+    igSetCursorPosX(f->x0);
+  }
+  pos = igGetCursorScreenPos();
+  {
+    float below = h - asc, line = igGetTextLineHeight();
+    igDummy(V2(w, text_asc + below > line ? text_asc + below : line));
+  }
+  ImDrawList_AddImage(igGetWindowDrawList(), math_ref(m), V2(pos.x, pos.y + text_asc - asc),
+                      V2(pos.x + w, pos.y + text_asc - asc + h), V2(0, 0), V2(1, 1),
+                      0xFFFFFFFFu);
+  f->line_start = false;
+  return true;
+}
+
+/* A display formula ($$...$$): centred on a line of its own, and made
+   smaller to fit a narrow window. */
+static void display_math(App *a, const char *s, const char *e) {
+  MathImg *m = math_image(a, s, e);
+  float fbs = framebuffer_scale(), avail = igGetContentRegionAvail().x, w, h;
+  if (!m) {
+    igTextDisabled("%.*s", (int)(e - s), s);
+    return;
+  }
+  w = m->w / fbs;
+  h = m->h / fbs;
+  if (w > avail && avail > 0) {
+    h *= avail / w;
+    w = avail;
+  }
+  igSetCursorPosX(igGetCursorPosX() + fmaxf(0.0f, (avail - w) / 2));
+  igImage(math_ref(m), V2(w, h), V2(0, 0), V2(1, 1));
+}
+
+/* Render Markdown inline text: [links](target), `code`, $mathematics$, *italics* and
    **bold** (shown plain), and ![caption](file) as its caption, dimmed. */
 static void inline_text(App *a, const char *s, const char *end) {
   Flow f;
@@ -146,6 +301,11 @@ static void inline_text(App *a, const char *s, const char *end) {
     } else if (t.kind == HM_CODE) {
       FLUSH();
       flow_run(&f, t.text, t.text_end, &code, true, NULL);
+    } else if (t.kind == HM_MATH) {
+      FLUSH();
+      /* a formula that does not parse is shown as written */
+      if (!flow_math(&f, a, t.text, t.text_end))
+        flow_run(&f, t.text - 1, t.text_end + 1, &code, true, NULL);
     }
   }
   FLUSH();
@@ -156,7 +316,7 @@ static void inline_text(App *a, const char *s, const char *end) {
 /* Join the lines of a paragraph (until a blank or a block line). */
 static bool is_block_line(const char *p) {
   return *p == '\n' || *p == '\0' || *p == '#' || *p == '|' || *p == '>' ||
-         strncmp(p, "```", 3) == 0 || ((p[0] == '-' || p[0] == '*') && p[1] == ' ') ||
+         strncmp(p, "```", 3) == 0 || strncmp(p, "$$", 2) == 0 ||((p[0] == '-' || p[0] == '*') && p[1] == ' ') ||
          strncmp(p, "  ", 2) == 0 || (isdigit((unsigned char)p[0]) && p[1] == '.');
 }
 
@@ -219,7 +379,33 @@ static void render_markdown(App *a, const char *text) {
       p = next;
       continue;
     }
-    if (p == e) {
+    if (strncmp(p, "$$", 2) == 0) {
+      /* A display formula: "$$ ... $$" on one line, or "$$", its lines, "$$". */
+      char tex[256];
+      int k = 0;
+      const char *q = p + 2, *close = strstr(q, "$$");
+      if (close && close < e) {
+        k = snprintf(tex, sizeof tex, "%.*s", (int)(close - q), q);
+      } else {
+        q = next;
+        while (*q && strncmp(q, "$$", 2) != 0) {
+          const char *qe = strchr(q, '\n');
+          if (!qe) qe = q + strlen(q);
+          k += snprintf(tex + k, sizeof tex - (size_t)k, "%s%.*s", k ? " " : "",
+                        (int)(qe - q), q);
+          if (k >= (int)sizeof tex) k = (int)sizeof tex - 1;
+          q = *qe ? qe + 1 : qe;
+        }
+        if (*q) { /* past the closing $$ line */
+          const char *qe = strchr(q, '\n');
+          q = qe ? qe + 1 : q + strlen(q);
+        }
+        next = q;
+      }
+      igSpacing();
+      display_math(a, tex, tex + k);
+      igSpacing();
+    } else if (p == e) {
       igSpacing();
     } else if (strncmp(p, "# ", 2) == 0) {
       PushTitle();

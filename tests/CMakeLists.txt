@@ -54,6 +54,13 @@ if(TARGET xpplab)
   add_executable(fig_check fig_check.c)
   target_link_libraries(fig_check PRIVATE xpps_fig)
   add_test(NAME app_figures COMMAND fig_check ${CMAKE_CURRENT_BINARY_DIR})
+  # Every formula of the pages the Help window shows is one it can typeset.
+  file(GLOB HELP_PAGES ${PROJECT_SOURCE_DIR}/docs/manual/*.md
+       ${PROJECT_SOURCE_DIR}/docs/reference/*.md)
+  add_executable(help_math_check help_math_check.c)
+  target_include_directories(help_math_check PRIVATE ${PROJECT_SOURCE_DIR}/app/src)
+  target_link_libraries(help_math_check PRIVATE xpps_fig)
+  add_test(NAME app_help_math COMMAND help_math_check ${HELP_PAGES})
 endif()
 
 if(Python3_FOUND AND TARGET xpplab)

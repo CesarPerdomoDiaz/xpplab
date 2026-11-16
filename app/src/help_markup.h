@@ -6,6 +6,11 @@
  *   ![text](to)   an image; the help browser shows its caption only
  *   `code`        code
  *   *a*, **a**    emphasis; the markers are skipped and the text stays plain
+ *   $x^2$         mathematics, typeset as the Figure window's labels are; as
+ *                 on the website (pymdownx.arithmatex), the opening $ is
+ *                 followed and the closing $ preceded by a non-space, and a
+ *                 closing $ before a digit does not close ("$5 and $10")
+ *   \$            a dollar sign
  */
 #ifndef HELP_MARKUP_H
 #define HELP_MARKUP_H
@@ -14,7 +19,7 @@
 #include <stddef.h>
 #include <string.h>
 
-typedef enum { HM_END, HM_TEXT, HM_LINK, HM_IMAGE, HM_CODE, HM_SKIP } HelpTokKind;
+typedef enum { HM_END, HM_TEXT, HM_LINK, HM_IMAGE, HM_CODE, HM_SKIP, HM_MATH } HelpTokKind;
 
 typedef struct {
   HelpTokKind kind;
@@ -45,6 +50,22 @@ static inline int help_markup_emphasis(const char *begin, const char *s,
   return opens || closes;
 }
 
+/* "$...$" at s (s points at the '$'): the closing '$', or NULL. */
+static inline const char *help_markup_math(const char *s, const char *end) {
+  const char *p;
+  if (s + 2 >= end || s[1] == '$' || isspace((unsigned char)s[1])) return NULL;
+  for (p = s + 2; p < end; p++) {
+    if (*p == '\\' && p + 1 < end) {
+      p++; /* an escaped character, \$ among them */
+      continue;
+    }
+    if (*p == '$' && !isspace((unsigned char)p[-1]) &&
+        !(p + 1 < end && isdigit((unsigned char)p[1])))
+      return p;
+  }
+  return NULL;
+}
+
 /* The token at s; returns where the next one starts. `begin` is the start of
    the whole text. At the end t->kind is HM_END. */
 static inline const char *help_markup_next(const char *begin, const char *s,
@@ -70,6 +91,18 @@ static inline const char *help_markup_next(const char *begin, const char *s,
     t->text_end = p;
     return p + 1;
   }
+  if (*s == '$' && (p = help_markup_math(s, end))) {
+    t->kind = HM_MATH;
+    t->text = s + 1;
+    t->text_end = p;
+    return p + 1;
+  }
+  if (*s == '\\' && s + 1 < end && s[1] == '$') {
+    t->kind = HM_TEXT; /* \$: the dollar sign alone */
+    t->text = s + 1;
+    t->text_end = s + 2;
+    return s + 2;
+  }
   if (*s == '*') {
     if (s + 1 < end && s[1] == '*') {
       t->kind = HM_SKIP;
@@ -83,7 +116,8 @@ static inline const char *help_markup_next(const char *begin, const char *s,
   t->kind = HM_TEXT;
   t->text = s;
   p = s + 1;
-  while (p < end && *p != '[' && *p != '`' && *p != '*' &&
+  while (p < end && *p != '[' && *p != '`' && *p != '*' && *p != '$' &&
+         !(*p == '\\' && p + 1 < end && p[1] == '$') &&
          !(*p == '!' && p + 1 < end && p[1] == '['))
     p++;
   t->text_end = p;

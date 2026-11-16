@@ -67,4 +67,10 @@ does. Then these sections, with these headings, in this order.
 - **Plain, direct sentences.** No marketing language. Define a term the
   first time it appears.
 - **The app shows the page too.** Use only what the Help window draws:
-  headings, paragraphs, lists, tables, code blocks, links, bold and code.
+  headings, paragraphs, lists, tables, code blocks, links, bold and code,
+  and mathematics: `$...$` in a line, and `$$...$$` on lines of its own. The
+  Help window typesets formulas with the Figure window's mathtext, a
+  subset of LaTeX (Greek letters, sub- and superscripts, `\frac`, `\sqrt`,
+  `\int`, `\sum`, `\partial`, accents such as `\dot` and `\hat`,
+  `\left( \right)`, `\mathrm` and `\text`); `tests/help_math_check.c`
+  checks that every formula on these pages is one it can typeset.

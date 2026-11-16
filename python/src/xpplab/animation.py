@@ -39,24 +39,80 @@ def colour_of(color: int, level: float) -> str:
 
 @dataclass
 class Shape:
-    """One shape of an animation frame, in the animation's coordinates."""
-    shape: str        # "line", "rect", "ellipse", "text", "comet" or "nullcline"
-    command: int      # its command's position in the .ani file
+    """One shape of an animation frame, in the animation's coordinates.
+    [`Animation.frame`][xpplab.Animation.frame] returns them.
+
+    Attributes:
+        shape (str): ``"line"``, ``"rect"``, ``"ellipse"``, ``"text"``,
+            ``"comet"`` or ``"nullcline"``.
+        command (int): its command's place in the .ani file.
+        x1 (float): a line's or a rectangle's first corner, an ellipse's
+            centre, a text's or a comet's place.
+        y1 (float): likewise.
+        x2 (float): a line's or a rectangle's second corner, an ellipse's
+            radii.
+        y2 (float): likewise.
+        color (str): a matplotlib colour.
+        filled (bool): a filled rectangle or ellipse.
+        thickness (int): the line's thickness; for a comet drawn as dots,
+            minus their size.
+        trail (int): a comet's length in frames; a nullcline's number of
+            segments.
+        font_size (int): a text's size, 0 to 4.
+        text (str): a text's text.
+        segments (numpy.ndarray | None): a nullcline's segments, one row of
+            x1, y1, x2, y2 each.
+
+    Examples:
+        >>> m = xs.load(xs.example("pend.ode"))
+        >>> sol = m.run()
+        >>> [s.shape for s in m.animation("pend.ani").frame(0)]
+        ['line', 'ellipse']
+
+    See also:
+        [ani](../reference/ani.md) in the command window.
+    """
+    shape: str
+    command: int
     x1: float
     y1: float
     x2: float
     y2: float
-    color: str        # a matplotlib colour
+    color: str
     filled: bool = False
     thickness: int = 1
     trail: int = 0
     font_size: int = 0
     text: str = ""
-    segments: np.ndarray | None = None  # nullclines: (n, 4) x1, y1, x2, y2
+    segments: np.ndarray | None = None
 
 
 class Animation:
-    """An .ani file parsed by XPPAUT, applied to a model's last run."""
+    """An XPPAUT animation: an .ani file read by XPPAUT's own animator,
+    applied to a model's last run.
+    [`Model.animation`][xpplab.Model.animation] makes one.
+
+    ``len(ani)`` is the number of frames, the rows of the run.
+
+    Attributes:
+        model (Model): the model.
+        path (Path): the .ani file.
+        commands (int): the number of the file's commands.
+        window (tuple): ``(xlo, ylo, xhi, yhi)``, the animation's
+            coordinates (``dimension`` in the file; by default 0 to 1).
+
+    Examples:
+        >>> m = xs.load(xs.example("pend.ode"))
+        >>> sol = m.run()
+        >>> ani = m.animation("pend.ani")
+        >>> ani
+        <Animation pend.ani: 2 commands, 401 frames>
+        >>> ani.window
+        (0.0, 0.0, 1.0, 1.0)
+
+    See also:
+        [ani](../reference/ani.md) in the command window.
+    """
 
     def __init__(self, model, path: Path):
         self.model = model
@@ -71,8 +127,32 @@ class Animation:
         return self.model._engine.call("xppe_rows", check=False)
 
     def frame(self, row: int) -> list[Shape]:
-        """The shapes at a row of the run. Row 0 also evaluates the file's
-        permanent commands."""
+        """The shapes of one frame.
+
+        Args:
+            row: the row of the run. Row 0 also evaluates the file's
+                permanent commands.
+
+        Returns:
+            A list of [`Shape`][xpplab.animation.Shape], in the file's
+            order.
+
+        Raises:
+            EngineError: no such row.
+
+        Examples:
+            >>> m = xs.load(xs.example("pend.ode"))
+            >>> sol = m.run()
+            >>> ani = m.animation("pend.ani")
+            >>> rod, bob = ani.frame(0)
+            >>> rod.shape, (rod.x1, rod.y1), rod.thickness
+            ('line', (0.5, 0.5), 3)
+            >>> bob.shape, bob.color, bob.filled
+            ('ellipse', '#ff0000', True)
+
+        See also:
+            [`plot`][xpplab.Animation.plot].
+        """
         eng = self.model._engine
         n = eng.call("xppe_ani_frame", int(row))
         item = E.AniItem()
@@ -95,11 +175,43 @@ class Animation:
     def nullclines(self, x: str, y: str, grid: int = 100, parameter: str | None = None,
                    steps: int = 0, low: float = 0.0, high: float = 1.0) -> int:
         """Compute the nullclines that the file's ``xnull`` and ``ynull``
-        lines draw, in the plane of variables ``x`` and ``y`` over the box
-        of the first such line. With ``parameter`` and ``steps`` the frozen
-        sets, the ones ``xnull ...;k`` picks, are made too: ``steps + 1``
-        of them, for the parameter from ``low`` to ``high`` (it is put
-        back). Returns the number of frozen sets."""
+        lines draw.
+
+        They are computed in the plane of two variables, over the box of
+        the first such line. With ``parameter`` and ``steps``, the frozen
+        sets that ``xnull ...;k`` picks are made too: ``steps + 1`` of them,
+        for the parameter from ``low`` to ``high``. The parameter is
+        restored afterwards.
+
+        Args:
+            x: the variable along the box's horizontal side.
+            y: the variable along its vertical side.
+            grid: the number of cells along each side.
+            parameter: the parameter of the frozen sets.
+            steps: how many steps from ``low`` to ``high``.
+            low: the parameter's first value.
+            high: its last value.
+
+        Returns:
+            The number of frozen sets.
+
+        Examples:
+            >>> with open("small.ode", "w") as f:
+            ...     _ = f.write("x'=x*(1-x)-y\\ny'=a*x-y\\npar a=0.5\\n@ total=5\\ndone\\n")
+            >>> with open("small.ani", "w") as f:
+            ...     _ = f.write("xnull -0.5;-0.5;1.5;1.5;$RED;-1\\nend\\n")
+            >>> m = xs.load("small.ode")
+            >>> sol = m.run()
+            >>> ani = m.animation("small.ani")
+            >>> ani.nullclines("x", "y", grid=60)
+            0
+            >>> [s.shape for s in ani.frame(0)]
+            ['nullcline']
+
+        See also:
+            [ani](../reference/ani.md) in the command window;
+            [`Model.nullclines`][xpplab.Model.nullclines].
+        """
         m = self.model
         return self.model._engine.call(
             "xppe_ani_nullclines", m._var_index(x), m._var_index(y), int(grid),
@@ -107,8 +219,22 @@ class Animation:
             float(low), float(high))
 
     def grab_points(self) -> list[tuple[float, float, float]]:
-        """The grab points of the file as ``(x, y, tolerance)``, where the
-        initial values put them (the frame XPPAUT's Grab button shows)."""
+        """The file's grab points, where the initial values put them: the
+        frame XPPAUT's Grab button shows.
+
+        Returns:
+            One ``(x, y, tolerance)`` per ``grab`` line.
+
+        Examples:
+            >>> m = xs.load(xs.example("itoy.ode"))
+            >>> sol = m.run(total=1)
+            >>> ani = m.animation("itoy.ani")
+            >>> [tuple(round(v, 4) for v in g) for g in ani.grab_points()]
+            [(0.9988, 0.05, 0.05), (3.0988, -0.05, 0.05)]
+
+        See also:
+            [`grab`][xpplab.Animation.grab].
+        """
         eng = self.model._engine
         eng.call("xppe_ani_frame_initial")
         out = []
@@ -120,12 +246,39 @@ class Animation:
 
     def grab(self, x: float, y: float, x2: float, y2: float, dt: float = 0.1,
              run: bool = True):
-        """The animator's Grab mode: press the mouse at ``(x, y)`` of the
-        first frame, drag to ``(x2, y2)`` and release. Returns the index of
-        the grab point taken, or ``None`` when no point is within its
-        tolerance (nothing changes then). The release makes the values the
-        file sets initial conditions or parameters, and runs the model when
-        the file says ``runnow=1`` (unless ``run`` is false)."""
+        """Drag a grab point, as the animator's Grab mode does: press the
+        mouse at a point of the first frame, drag, and release.
+
+        The release sets the initial conditions or parameters the file's
+        ``grab`` line names, and runs the model when the line says
+        ``runnow=1``.
+
+        Args:
+            x: where the mouse is pressed, in the animation's coordinates.
+            y: likewise.
+            x2: where it is released.
+            y2: likewise.
+            dt: the drag's time, for the mouse's speed (``mouse_vx``,
+                ``mouse_vy``).
+            run: run the model if the file says ``runnow=1``.
+
+        Returns:
+            The index of the grab point taken, or ``None`` when no point is
+            within its tolerance; nothing changes then.
+
+        Examples:
+            >>> m = xs.load(xs.example("itoy.ode"))
+            >>> sol = m.run(total=1)
+            >>> ani = m.animation("itoy.ani")
+            >>> x, y, tol = ani.grab_points()[0]
+            >>> ani.grab(x, y, -0.3, 0.9)
+            0
+            >>> ani.grab(x + 1, y, 0, 1) is None
+            True
+
+        See also:
+            [ani](../reference/ani.md) in the command window.
+        """
         eng = self.model._engine
         index, runnow = ctypes.c_int(), ctypes.c_int()
         eng.call("xppe_ani_frame_initial")
@@ -139,8 +292,29 @@ class Animation:
         return index.value
 
     def plot(self, row: int, ax=None, trails: dict | None = None):
-        """Draw one frame with matplotlib. ``trails`` (a dict kept between
-        calls) collects comet tails; plot frames in order to see them."""
+        """Draw one frame with matplotlib.
+
+        Args:
+            row: the row of the run.
+            ax: the matplotlib axes to draw in; by default the current ones,
+                which are cleared.
+            trails: a dictionary kept between calls, which collects the
+                comets' tails; plot the frames in order to see them.
+
+        Returns:
+            The matplotlib axes.
+
+        Examples:
+            >>> m = xs.load(xs.example("pend.ode"))
+            >>> sol = m.run()
+            >>> ani = m.animation("pend.ani")
+            >>> ax = ani.plot(100)
+            >>> len(ax.lines), len(ax.patches)
+            (1, 1)
+
+        See also:
+            [`save_gif`][xpplab.Animation.save_gif].
+        """
         import matplotlib.pyplot as plt
         from matplotlib import patches
         from matplotlib.collections import LineCollection
@@ -182,8 +356,29 @@ class Animation:
         return ax
 
     def save_gif(self, path, *, every: int = 5, fps: int = 20, size=(4, 4)):
-        """Write the animation as a GIF, one frame every ``every`` rows.
-        Needs matplotlib and Pillow."""
+        """Write the animation as an animated GIF. Needs matplotlib and
+        Pillow.
+
+        Args:
+            path: the file to write.
+            every: a frame every so many rows of the run.
+            fps: frames per second.
+            size: ``(width, height)`` in inches.
+
+        Returns:
+            The file's path.
+
+        Examples:
+            >>> m = xs.load(xs.example("pend.ode"))
+            >>> sol = m.run()
+            >>> ani = m.animation("pend.ani")
+            >>> ani.save_gif("pend.gif", every=50).exists()
+            True
+
+        See also:
+            [ani](../reference/ani.md) in the command window, whose window
+            plays the animation.
+        """
         import matplotlib.pyplot as plt
         from matplotlib.animation import FuncAnimation, PillowWriter
         fig, ax = plt.subplots(figsize=size)

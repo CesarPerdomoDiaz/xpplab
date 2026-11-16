@@ -55,6 +55,11 @@ plugins:
           options:
             show_source: false
             docstring_style: google
+            # the Args sections say what each argument takes
+            docstring_options:
+              warn_missing_types: false
+              returns_multiple_items: false
+            docstring_section_style: list
             members_order: source
             show_root_heading: true
 

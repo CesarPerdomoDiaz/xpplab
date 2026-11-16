@@ -43,8 +43,38 @@ _DASH = {"--": (3.7, 1.6), ":": (1.0, 1.65), "-.": (6.4, 1.6, 1.0, 1.6)}
 
 
 class Series:
-    """One curve or set of markers in a panel; change its look with
-    :meth:`set`."""
+    """One curve or set of markers in a panel. [`Panel.line`][xpplab.figure.Panel.line]
+    and the panel's other methods return one; its look changes with
+    [`set`][xpplab.figure.Series.set].
+
+    Attributes:
+        x (numpy.ndarray): the horizontal values; NaN breaks the curve.
+        y (numpy.ndarray): the vertical values.
+        label (str): the legend's text; mathtext allowed.
+        color (str | None): ``"#rrggbb"``.
+        line (str): ``"-"``, ``"--"``, ``":"``, ``"-."`` or ``"none"``.
+        width (float): the line's width in points.
+        marker (str | None): ``"o"``, ``"s"``, ``"^"``, ``"D"``, ``"x"``,
+            ``"+"``, ``"*"``, ``"."`` or ``None``.
+        markersize (float): in points.
+        markerfill (bool): filled markers.
+        markercolor (str | None): the markers' edge colour; by default the
+            line's.
+        every (int): a marker every so many points.
+        scale (tuple[float, float]): ``(sx, sy)``: the data are shown as
+            ``x*sx``, ``y*sy``, such as radians as degrees.
+
+    Examples:
+        >>> fig = xs.Figure()
+        >>> s = fig[0].line([0, 1, 2], [0, 1, 4], label="$x^2$")
+        >>> s
+        <Series $x^2$: 3 points>
+        >>> s.color
+        '#1f77b4'
+
+    See also:
+        [figure](../reference/figure.md) in the command window.
+    """
 
     def __init__(self, x, y, **style):
         self.x = np.asarray(x, dtype=float).ravel()
@@ -64,11 +94,30 @@ class Series:
         self.set(**style)
 
     def set(self, **style) -> "Series":
-        """label, color ("#rrggbb"), line ("-", "--", ":", "-.", "none"),
-        width (points), marker ("o", "s", "^", "D", "x", "+", "*", ".",
-        None), markersize, markerfill, markercolor, every (a marker every
-        so many points), scale ((sx, sy): the data are shown as x*sx,
-        y*sy, e.g. radians as degrees)."""
+        """Change the series' look.
+
+        Args:
+            **style: any of the attributes of [`Series`][xpplab.figure.Series]
+                but ``x`` and ``y``: ``label``, ``color``, ``line``,
+                ``width``, ``marker``, ``markersize``, ``markerfill``,
+                ``markercolor``, ``every``, ``scale``.
+
+        Returns:
+            The series itself, so that calls chain.
+
+        Raises:
+            ValueError: a line or marker style that does not exist.
+            TypeError: an unknown name.
+
+        Examples:
+            >>> fig = xs.Figure()
+            >>> s = fig[0].line([0, 1, 2], [0, 1, 4])
+            >>> s.set(line="--", marker="o", color="#d62728").line
+            '--'
+
+        See also:
+            [figure](../reference/figure.md) in the command window.
+        """
         for k, v in style.items():
             if k == "line":
                 if v not in LINES:
@@ -106,8 +155,30 @@ class _Annotated:
 
     def text(self, x, y, s: str, *, size: float | None = None,
              color: str = "#000000") -> "_Annotated":
-        """Write ``s`` (mathtext allowed) with the left end of its baseline
-        at (x, y). ``size`` is in points; None: the labels' size."""
+        """Write a text at a point, in data coordinates.
+
+        Args:
+            x: where the left end of the text's baseline goes.
+            y: likewise.
+            s: the text; mathtext allowed.
+            size: in points; by default the labels' size.
+            color: ``"#rrggbb"``.
+
+        Returns:
+            The panel itself, so that calls chain.
+
+        Raises:
+            ValueError: a size that is not positive.
+
+        Examples:
+            >>> fig = xs.Figure()
+            >>> p = fig[0]
+            >>> len(p.text(10, 0.1, "spike").notes)
+            1
+
+        See also:
+            [annotate](../reference/annotate.md) in the command window.
+        """
         if size is not None and not size > 0:
             raise ValueError("size is a positive number of points")
         self.notes.append({"kind": "text", "x": float(x), "y": float(y),
@@ -116,7 +187,27 @@ class _Annotated:
         return self
 
     def arrow(self, x1, y1, x2, y2, *, color: str = "#000000") -> "_Annotated":
-        """An arrow from (x1, y1) to (x2, y2), its head at the second."""
+        """Draw an arrow, in data coordinates.
+
+        Args:
+            x1: where the arrow starts.
+            y1: likewise.
+            x2: where its head is.
+            y2: likewise.
+            color: ``"#rrggbb"``.
+
+        Returns:
+            The panel itself, so that calls chain.
+
+        Examples:
+            >>> fig = xs.Figure()
+            >>> p = fig[0]
+            >>> len(p.arrow(0, 0, 1, 1).notes)
+            1
+
+        See also:
+            [annotate](../reference/annotate.md) in the command window.
+        """
         self.notes.append({"kind": "arrow", "x": float(x1), "y": float(y1),
                            "x2": float(x2), "y2": float(y2),
                            "color": self._colour(color)})
@@ -124,7 +215,30 @@ class _Annotated:
 
     def marker(self, x, y, marker: str = "o", *,
                color: str = "#000000") -> "_Annotated":
-        """A filled marker ("o", "s", "^", "D", "x", "+", "*", ".") at (x, y)."""
+        """Draw a filled marker at a point, in data coordinates.
+
+        Args:
+            x: where.
+            y: likewise.
+            marker: ``"o"``, ``"s"``, ``"^"``, ``"D"``, ``"x"``, ``"+"``,
+                ``"*"`` or ``"."``.
+            color: ``"#rrggbb"``.
+
+        Returns:
+            The panel itself, so that calls chain.
+
+        Raises:
+            ValueError: a marker that does not exist.
+
+        Examples:
+            >>> fig = xs.Figure()
+            >>> p = fig[0]
+            >>> len(p.marker(5, 0.2, "s").notes)
+            1
+
+        See also:
+            [annotate](../reference/annotate.md) in the command window.
+        """
         if marker not in MARKERS or not MARKERS[marker]:
             raise ValueError(f"marker is one of {', '.join(k for k in MARKERS if k)}")
         self.notes.append({"kind": "marker", "x": float(x), "y": float(y),
@@ -132,7 +246,24 @@ class _Annotated:
         return self
 
     def clear_annotations(self, k: int | None = None) -> "_Annotated":
-        """Delete annotation ``k`` (counting from 0), or all of them."""
+        """Delete an annotation, or all of them.
+
+        Args:
+            k: the annotation, counting from 0 in the order they were made;
+                by default all of them.
+
+        Returns:
+            The panel itself, so that calls chain.
+
+        Examples:
+            >>> fig = xs.Figure()
+            >>> p = fig[0]
+            >>> p.text(1, 1, "a").text(2, 2, "b").clear_annotations(0).notes[0]["s"]
+            'b'
+
+        See also:
+            [annotate](../reference/annotate.md) in the command window.
+        """
         if k is None:
             self.notes.clear()
         else:
@@ -140,8 +271,25 @@ class _Annotated:
         return self
 
     def draw(self, ax, fontsize: float = 12.0) -> None:
-        """Draw the annotations on a matplotlib Axes, in its data
-        coordinates; ``fontsize`` is the size of text given none."""
+        """Draw the annotations on matplotlib axes, in their data
+        coordinates.
+
+        Args:
+            ax: the matplotlib axes.
+            fontsize: the size of a text that was given none.
+
+        Examples:
+            >>> import matplotlib.pyplot as plt
+            >>> notes = xs.Annotations()
+            >>> _ = notes["phase"].text(0.1, 0.2, "saddle")
+            >>> fig, ax = plt.subplots()
+            >>> notes["phase"].draw(ax)
+            >>> ax.texts[0].get_text()
+            'saddle'
+
+        See also:
+            [annotate](../reference/annotate.md) in the command window.
+        """
         from matplotlib.lines import Line2D
         for n in self.notes:
             if n["kind"] == "text":
@@ -163,10 +311,23 @@ class _Annotated:
 
 
 class Annotations:
-    """The annotations of the desktop app's plot windows, one set for each of
-    "time", "phase", "auto" and "auto2": ``notes["phase"].text(0.1, 0.2,
-    "saddle")``. ``notes["phase"].draw(ax)`` draws them on the axes of the
-    plot the script made."""
+    """The annotations of the desktop app's plot windows, one set for each
+    of ``"time"``, ``"phase"``, ``"auto"`` and ``"auto2"``.
+
+    A script the app saves makes them with these calls; ``draw`` puts them
+    on the axes of the plot the script made. Each set has the methods
+    ``text``, ``arrow``, ``marker``, ``clear_annotations`` and ``draw`` of
+    a [`Panel`][xpplab.figure.Panel].
+
+    Examples:
+        >>> notes = xs.Annotations()
+        >>> _ = notes["phase"].text(0.1, 0.2, "saddle").arrow(0.1, 0.2, 0.0, 0.0)
+        >>> [n["kind"] for n in notes["phase"].notes]
+        ['text', 'arrow']
+
+    See also:
+        [annotate](../reference/annotate.md) in the command window.
+    """
 
     PLOTS = ("time", "phase", "auto", "auto2")
 
@@ -184,7 +345,28 @@ class Annotations:
 
 
 class Panel(_Annotated):
-    """A set of axes: its series, labels, limits, legend and annotations."""
+    """A set of axes in a [`Figure`][xpplab.Figure]: its series, labels,
+    limits, legend and annotations. ``fig[k]`` is panel ``k``; ``p[i]`` is
+    its series ``i``.
+
+    Attributes:
+        series (list[Series]): the curves, in the order drawn.
+        notes (list[dict]): the annotations.
+        inset (tuple | None): ``(parent, rect)`` for an inset.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> sol = m.run(iapp=0.1, total=100)
+        >>> fig = xs.Figure()
+        >>> p = fig[0]
+        >>> p.run(sol, "T", "V", label="V")
+        <Series V: 2001 points>
+        >>> p
+        <Panel: 1 series>
+
+    See also:
+        [figure](../reference/figure.md) in the command window.
+    """
 
     def __init__(self, inset=None):
         self._init_notes()
@@ -199,10 +381,34 @@ class Panel(_Annotated):
         self.inset = inset             # (parent, (x, y, w, h)) for an inset
 
     def set(self, **props) -> "Panel":
-        """title, xlabel, ylabel, xlim ((lo, hi) or None), ylim, logx, logy,
-        grid, xstep, ystep (tick spacing, None: chosen), legend ("best",
-        "upper right", "upper left", "lower left", "lower right",
-        "outside", "none"), equal (the same scale on both axes)."""
+        """Change the panel's labels, limits, scales, ticks and legend.
+
+        Args:
+            **props: ``title``, ``xlabel``, ``ylabel`` (mathtext allowed);
+                ``xlim``, ``ylim`` (``(low, high)``, or ``None`` for the
+                data's range widened by 5%); ``logx``, ``logy``; ``grid``;
+                ``xstep``, ``ystep`` (the tick spacing, ``None`` to choose
+                it); ``legend`` (``"best"``, ``"upper right"``,
+                ``"upper left"``, ``"lower left"``, ``"lower right"``,
+                ``"outside"`` or ``"none"``); ``equal`` (the same scale on
+                both axes).
+
+        Returns:
+            The panel itself, so that calls chain.
+
+        Raises:
+            ValueError: a legend place that does not exist.
+            TypeError: an unknown name.
+
+        Examples:
+            >>> fig = xs.Figure()
+            >>> p = fig[0]
+            >>> p.set(xlabel="$t$ [ms]", ylabel="$V$", xlim=(0, 100)).xlim
+            (0.0, 100.0)
+
+        See also:
+            [figure](../reference/figure.md) in the command window.
+        """
         for k, v in props.items():
             if k == "legend" and v not in LEGENDS:
                 raise ValueError(f"legend is one of {', '.join(LEGENDS)}")
@@ -215,8 +421,29 @@ class Panel(_Annotated):
         return self
 
     def line(self, x, y, **style) -> Series:
-        """Add a curve (NaN breaks it). Its colour is the next of matplotlib's
-        ten unless ``color`` is given."""
+        """Add a curve.
+
+        Args:
+            x: the horizontal values; NaN breaks the curve.
+            y: the vertical values.
+            **style: as for [`Series.set`][xpplab.figure.Series.set]. The
+                colour is by default the next of matplotlib's ten.
+
+        Returns:
+            The new [`Series`][xpplab.figure.Series].
+
+        Raises:
+            ValueError: ``x`` and ``y`` of different lengths.
+
+        Examples:
+            >>> fig = xs.Figure()
+            >>> p = fig[0]
+            >>> p.line([0, 1, 2], [0, 1, 4], label="squares")
+            <Series squares: 3 points>
+
+        See also:
+            [`run`][xpplab.figure.Panel.run].
+        """
         s = Series(x, y, **style)
         if s.color is None:
             s.color = TAB10[len(self.series) % 10]
@@ -227,19 +454,76 @@ class Panel(_Annotated):
         return self.series[k]
 
     def remove(self, k: int) -> None:
+        """Remove a series.
+
+        Args:
+            k: the series, counting from 0.
+
+        Examples:
+            >>> fig = xs.Figure()
+            >>> p = fig[0]
+            >>> _ = p.line([0, 1], [0, 1])
+            >>> p.remove(0)
+            >>> p
+            <Panel: 0 series>
+
+        See also:
+            [`line`][xpplab.figure.Panel.line].
+        """
         del self.series[k]
 
     # -- what the app adds -------------------------------------------------
 
     def run(self, sol, x: str, y: str, **style) -> Series:
-        """Two columns of a run."""
+        """Add two columns of a run as a curve.
+
+        Args:
+            sol: a [`Trajectory`][xpplab.Trajectory].
+            x: the column along the horizontal axis.
+            y: the column along the vertical axis.
+            **style: as for [`Series.set`][xpplab.figure.Series.set].
+
+        Returns:
+            The new [`Series`][xpplab.figure.Series].
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=100)
+            >>> fig = xs.Figure()
+            >>> p = fig[0]
+            >>> p.run(sol, "V", "W")
+            <Series (no label): 2001 points>
+
+        See also:
+            [`runs`][xpplab.figure.Panel.runs].
+        """
         return self.line(sol[x], sol[y], **style)
 
     def runs(self, runs, x: str, y: str, *, event: int | None = None,
              **style) -> Series:
-        """Every run of a :class:`~xpplab.RunList` as one series, broken
-        between runs; with ``event``, only the runs that this global flag
-        stopped (0: those that ran to the end)."""
+        """Add every run of a [`RunList`][xpplab.RunList] as one series,
+        broken between the runs.
+
+        Args:
+            runs: the runs.
+            x: the column along the horizontal axis.
+            y: the column along the vertical axis.
+            event: only the runs this global flag stopped (0: those that
+                reached the end); by default all.
+            **style: as for [`Series.set`][xpplab.figure.Series.set].
+
+        Returns:
+            The new [`Series`][xpplab.figure.Series].
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> runs = m.run_many([{"V": -0.3}, {"V": 0.2}], total=50)
+            >>> xs.Figure()[0].runs(runs, "V", "W")
+            <Series (no label): 2003 points>
+
+        See also:
+            [`Model.run_many`][xpplab.Model.run_many].
+        """
         xs, ys = [], []
         for s in runs:
             if event is not None and s.event != event:
@@ -254,29 +538,123 @@ class Panel(_Annotated):
                 stable: bool | None = None, periodic: bool | None = None,
                 branch: int | None = None, between=None, where=None,
                 model=None, along=None, **style) -> Series:
-        """A quantity along an AUTO diagram (see :func:`diagram_xy`): a
-        variable's ``which`` ("max" or "min") value, "period", "norm",
-        eigenvalues ("re1", "im2", ...), Floquet multipliers ("mu1_re",
-        "mu2_im", "mu1_abs", ...), or an auxiliary quantity (give
-        ``model``, whose ``auto.along`` computes it)."""
+        """Add a quantity along an AUTO diagram as a curve, as the desktop
+        app's Figure window draws a diagram: one value per point, with
+        breaks between the pieces.
+
+        The eigenvalues are sorted by real part, then imaginary part,
+        largest first; the multipliers by modulus, largest first. The
+        first point of a branch of orbits has no multipliers (it is the
+        Hopf point): NaN. Each piece kept starts at the point before it on
+        the same branch, so that a stable and an unstable piece meet.
+
+        Args:
+            d: a [`Diagram`][xpplab.Diagram].
+            y: what to plot: a variable, ``"period"``, ``"norm"``, a
+                parameter, an eigenvalue (``"re1"``, ``"im2"``, ...), a
+                Floquet multiplier (``"mu1_re"``, ``"mu2_im"``,
+                ``"mu1_abs"``, ...), or an auxiliary quantity (with
+                ``model``).
+            x: what goes along the horizontal axis, any of the same; by
+                default each point's continuation parameter.
+            which: a variable's ``"max"`` or ``"min"`` over an orbit.
+            stable: only the stable (``True``) or unstable points.
+            periodic: only the orbits (``True``) or the steady states.
+            branch: only this branch.
+            between: two labels: only the points from one to the other, in
+                the order computed.
+            where: ``(column, "min" or "max", low, high)``: only the points
+                where that value of a column is in ``[low, high]``.
+            model: the model, to compute auxiliary quantities with
+                [`Auto.along`][xpplab.auto.Auto.along].
+            along: a table [`Auto.along`][xpplab.auto.Auto.along] made
+                already.
+            **style: as for [`Series.set`][xpplab.figure.Series.set].
+
+        Returns:
+            The new [`Series`][xpplab.figure.Series].
+
+        Raises:
+            ValueError: an auxiliary quantity without ``model``.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode")).apply_set("hopf")
+            >>> d = m.auto.equilibria("iapp")
+            >>> fig = xs.Figure()
+            >>> stable = fig[0].diagram(d, "V", stable=True, label="stable")
+            >>> unstable = fig[0].diagram(d, "V", stable=False, line="--")
+            >>> fig[0]
+            <Panel: 2 series>
+
+        See also:
+            [`Diagram.plot`][xpplab.Diagram.plot].
+        """
         dx, dy = diagram_xy(d, y, x=x, which=which, stable=stable,
                             periodic=periodic, branch=branch, between=between,
                             where=where, model=model, along=along)
         return self.line(dx, dy, **style)
 
     def function(self, expression: str, xlim, n: int = 400, **style) -> Series:
-        """y = f(x) for a formula in x, such as ``"1.109724/sqrt(x)"``:
-        numbers, + - * / ^ (or **), parentheses, pi, e, and sqrt, exp, log,
-        log10, sin, cos, tan, asin, acos, atan, sinh, cosh, tanh, abs."""
+        """Add the curve $y = f(x)$ of a formula in ``x``.
+
+        Args:
+            expression: the formula, such as ``"1.109724/sqrt(x)"``:
+                numbers, ``+ - * / ^`` (or ``**``), parentheses, ``pi``,
+                ``e``, and ``sqrt``, ``exp``, ``log``, ``log10``, ``sin``,
+                ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``sinh``,
+                ``cosh``, ``tanh``, ``abs``.
+            xlim: ``(low, high)`` of ``x``.
+            n: how many points.
+            **style: as for [`Series.set`][xpplab.figure.Series.set].
+
+        Returns:
+            The new [`Series`][xpplab.figure.Series].
+
+        Raises:
+            ValueError: a formula that cannot be read.
+
+        Examples:
+            >>> fig = xs.Figure()
+            >>> p = fig[0]
+            >>> s = p.function("x^2", (0, 1), n=5)
+            >>> s.y
+            array([0.    , 0.0625, 0.25  , 0.5625, 1.    ])
+
+        See also:
+            [`curve`][xpplab.figure.Panel.curve].
+        """
         x = np.linspace(float(xlim[0]), float(xlim[1]), int(n))
         return self.line(x, evaluate_expression(expression, x), **style)
 
     def curve(self, model, y: str, x: str, xlim, *, at: dict | None = None,
               n: int = 400, **style) -> Series:
-        """A right-hand side or an output column of ``model`` as one
-        variable ``x`` sweeps ``xlim``, the others held at ``at`` (or their
-        initial values): ``y`` is ``"om'"`` for the derivative of om, or a
-        column such as an auxiliary quantity."""
+        """Add a right-hand side or an output column of a model as one
+        variable sweeps a range, the others held.
+
+        Args:
+            model: the [`Model`][xpplab.Model].
+            y: ``"V'"`` for the derivative of ``V``, or a column such as an
+                auxiliary quantity.
+            x: the variable that sweeps.
+            xlim: ``(low, high)`` of ``x``.
+            at: the other variables' values; by default their initial
+                values.
+            n: how many points.
+            **style: as for [`Series.set`][xpplab.figure.Series.set].
+
+        Returns:
+            The new [`Series`][xpplab.figure.Series].
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> s = xs.Figure()[0].curve(m, "V'", "V", (-0.5, 0.5), n=3)
+            >>> np.round(s.y, 4)
+            array([ 0.0402,  0.2913, -0.0226])
+
+        See also:
+            [`Model.rhs`][xpplab.Model.rhs],
+            [`Model.evaluate`][xpplab.Model.evaluate].
+        """
         xv, yv = model_curve(model, y, x, xlim, at=at, n=n)
         return self.line(xv, yv, **style)
 
@@ -285,12 +663,46 @@ class Panel(_Annotated):
 
 
 class Figure:
-    """A page of panels: ``rows`` x ``cols`` axes, then any insets.
+    """A page of panels for a paper: ``rows`` by ``cols`` axes, then any
+    insets, as the desktop app's Figure window makes them.
 
-    ``width`` and ``height`` are in millimetres (a journal column is about
-    86 mm wide, a full page about 178 mm), ``fontsize`` the labels' size
-    in points (ticks and legend are 0.85 of it), ``font`` "sans" (DejaVu
-    Sans) or "serif" (STIX, close to Times)."""
+    The app writes every change to a figure as one of these calls, so a
+    figure made with the mouse can be made again, or changed, in Python.
+    The fonts, sizes, line widths and colours are the ones the app draws
+    with, so both give the same figure. Labels take mathtext, matplotlib's
+    subset of TeX between dollar signs. Drawing needs matplotlib.
+
+    Args:
+        width: in millimetres; a journal column is about 86 mm wide, a full
+            page about 178 mm.
+        height: in millimetres.
+        rows: the rows of panels.
+        cols: the columns of panels.
+        font: ``"sans"`` (DejaVu Sans) or ``"serif"`` (STIX, close to
+            Times).
+        fontsize: the labels' size in points; the ticks and the legend are
+            0.85 of it.
+
+    Attributes:
+        panels (list[Panel]): the panels, row by row, then the insets.
+
+    Raises:
+        ValueError: a font that is neither.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> sol = m.run(iapp=0.1, total=100)
+        >>> fig = xs.Figure(width=86, height=65)
+        >>> _ = fig[0].run(sol, "T", "V")
+        >>> _ = fig[0].set(xlabel="$t$", ylabel="$V$")
+        >>> fig.save("v.pdf")
+        >>> fig
+        <Figure 86 x 65 mm, 1 x 1 panels, 0 insets>
+
+    See also:
+        [figure](../reference/figure.md) in the command window; the guide
+        [Figures for papers](figures.md).
+    """
 
     def __init__(self, width: float = 86, height: float = 65, *, rows: int = 1,
                  cols: int = 1, font: str = "sans", fontsize: float = 9):
@@ -305,7 +717,25 @@ class Figure:
         return self.panels[k]
 
     def set(self, **props) -> "Figure":
-        """width, height (mm), font, fontsize."""
+        """Change the page's size or font.
+
+        Args:
+            **props: ``width``, ``height`` (in millimetres), ``font``,
+                ``fontsize``.
+
+        Returns:
+            The figure itself, so that calls chain.
+
+        Raises:
+            TypeError: an unknown name.
+
+        Examples:
+            >>> xs.Figure().set(width=178, fontsize=10)
+            <Figure 178 x 65 mm, 1 x 1 panels, 0 insets>
+
+        See also:
+            [figure](../reference/figure.md) in the command window.
+        """
         for k, v in props.items():
             if k not in ("width", "height", "font", "fontsize"):
                 raise TypeError(f"unknown figure property {k!r}")
@@ -313,27 +743,117 @@ class Figure:
         return self
 
     def text(self, x, y, s: str, *, panel: int = 0, **kw) -> "Figure":
-        """``fig[panel].text(...)``: write ``s`` at (x, y) of that panel."""
+        """Write a text in a panel: ``fig[panel].text(...)``.
+
+        Args:
+            x: where the left end of the text's baseline goes, in data
+                coordinates.
+            y: likewise.
+            s: the text; mathtext allowed.
+            panel: the panel.
+            **kw: ``size`` and ``color``, as for
+                [`Panel.text`][xpplab.figure.Panel.text].
+
+        Returns:
+            The figure itself, so that calls chain.
+
+        Examples:
+            >>> fig = xs.Figure().text(10, 0.1, "spike")
+            >>> fig[0].notes[0]["s"]
+            'spike'
+
+        See also:
+            [annotate](../reference/annotate.md) in the command window.
+        """
         self.panels[panel].text(x, y, s, **kw)
         return self
 
     def arrow(self, x1, y1, x2, y2, *, panel: int = 0, **kw) -> "Figure":
-        """``fig[panel].arrow(...)``: an arrow from (x1, y1) to (x2, y2)."""
+        """Draw an arrow in a panel: ``fig[panel].arrow(...)``.
+
+        Args:
+            x1: where the arrow starts, in data coordinates.
+            y1: likewise.
+            x2: where its head is.
+            y2: likewise.
+            panel: the panel.
+            **kw: ``color``.
+
+        Returns:
+            The figure itself, so that calls chain.
+
+        Examples:
+            >>> xs.Figure().arrow(0, 0, 1, 1)[0].notes[0]["kind"]
+            'arrow'
+
+        See also:
+            [annotate](../reference/annotate.md) in the command window.
+        """
         self.panels[panel].arrow(x1, y1, x2, y2, **kw)
         return self
 
     def marker(self, x, y, marker: str = "o", *, panel: int = 0, **kw) -> "Figure":
-        """``fig[panel].marker(...)``: a marker at (x, y)."""
+        """Draw a marker in a panel: ``fig[panel].marker(...)``.
+
+        Args:
+            x: where, in data coordinates.
+            y: likewise.
+            marker: as for [`Panel.marker`][xpplab.figure.Panel.marker].
+            panel: the panel.
+            **kw: ``color``.
+
+        Returns:
+            The figure itself, so that calls chain.
+
+        Examples:
+            >>> xs.Figure().marker(5, 0.2, "s")[0].notes[0]["marker"]
+            's'
+
+        See also:
+            [annotate](../reference/annotate.md) in the command window.
+        """
         self.panels[panel].marker(x, y, marker, **kw)
         return self
 
     def clear_annotations(self, k: int | None = None, *, panel: int = 0) -> "Figure":
-        """Delete annotation ``k`` of the panel, or all of them."""
+        """Delete an annotation of a panel, or all of them.
+
+        Args:
+            k: the annotation, counting from 0; by default all of them.
+            panel: the panel.
+
+        Returns:
+            The figure itself, so that calls chain.
+
+        Examples:
+            >>> fig = xs.Figure().text(1, 1, "a").clear_annotations()
+            >>> fig[0].notes
+            []
+
+        See also:
+            [annotate](../reference/annotate.md) in the command window.
+        """
         self.panels[panel].clear_annotations(k)
         return self
 
     def grid(self, rows: int, cols: int) -> "Figure":
-        """Change the grid of panels; panels beyond it go."""
+        """Change the grid of panels. The panels beyond the new grid go;
+        new ones are empty; the insets stay.
+
+        Args:
+            rows: the rows of panels.
+            cols: the columns of panels.
+
+        Returns:
+            The figure itself, so that calls chain.
+
+        Examples:
+            >>> xs.Figure().grid(2, 2)
+            <Figure 86 x 65 mm, 2 x 2 panels, 0 insets>
+
+        See also:
+            [figure](../reference/figure.md) in the command window.
+        """
         n_old, n_new = self.rows * self.cols, int(rows) * int(cols)
         insets = self.panels[n_old:]
         grid = self.panels[:n_old][:n_new] + [Panel() for _ in range(n_new - n_old)]
@@ -345,9 +865,25 @@ class Figure:
         return self
 
     def inset(self, parent: int, rect=(0.55, 0.55, 0.4, 0.4)) -> Panel:
-        """A small panel drawn inside panel ``parent``, at ``rect`` = (x, y,
-        width, height) in fractions of that panel's axes from its lower
-        left corner."""
+        """Add a small panel drawn inside another.
+
+        Args:
+            parent: the panel it goes in.
+            rect: ``(x, y, width, height)`` in fractions of the parent's
+                axes, from its lower left corner.
+
+        Returns:
+            The new [`Panel`][xpplab.figure.Panel], without a legend.
+
+        Examples:
+            >>> fig = xs.Figure()
+            >>> inset = fig.inset(0, (0.6, 0.6, 0.35, 0.35))
+            >>> fig
+            <Figure 86 x 65 mm, 1 x 1 panels, 1 insets>
+
+        See also:
+            [figure](../reference/figure.md) in the command window.
+        """
         p = Panel(inset=(int(parent), tuple(float(v) for v in rect)))
         p.legend = "none"
         self.panels.append(p)
@@ -371,7 +907,19 @@ class Figure:
         }
 
     def draw(self):
-        """The figure as a matplotlib Figure."""
+        """Draw the figure with matplotlib.
+
+        Returns:
+            The matplotlib ``Figure``, of the page's size.
+
+        Examples:
+            >>> f = xs.Figure(width=86, height=65).draw()
+            >>> np.round(f.get_size_inches(), 3)
+            array([3.386, 2.559])
+
+        See also:
+            [`save`][xpplab.Figure.save].
+        """
         import matplotlib.pyplot as plt
         from matplotlib.ticker import MultipleLocator
         with plt.rc_context(self._rc()):
@@ -434,7 +982,22 @@ class Figure:
         p.draw(ax, fs)
 
     def save(self, path, *, dpi: int = 300) -> None:
-        """Write the figure: .pdf, .svg, .eps, or .png at ``dpi``."""
+        """Write the figure to a file.
+
+        Args:
+            path: the file; its ending chooses the format: ``.pdf``,
+                ``.svg``, ``.eps``, or ``.png``.
+            dpi: the resolution of a ``.png``, in dots per inch.
+
+        Examples:
+            >>> import os
+            >>> xs.Figure().save("empty.png", dpi=100)
+            >>> os.path.exists("empty.png")
+            True
+
+        See also:
+            [figure](../reference/figure.md) in the command window.
+        """
         import matplotlib.pyplot as plt
         fig = self.draw()
         with plt.rc_context(self._rc()):

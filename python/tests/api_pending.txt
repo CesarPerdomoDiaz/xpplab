@@ -1,0 +1,3 @@
+# Members of the Python API not yet written to the reference standard
+# (test_api_docs.py). The list may only shrink; it is empty now, so every
+# new function, method or property needs its entry written.

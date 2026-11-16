@@ -83,9 +83,42 @@ def write_mat(path, names, columns, params=None) -> None:
 
 
 class Table:
-    """A table of results: named NumPy columns, the first one the x-axis.
-    ``params`` (a dictionary of parameter values, or None) goes into a
-    ``.mat`` file as the struct ``params``."""
+    """A table of results: named NumPy columns, the first one the
+    horizontal axis.
+
+    The analysis methods return them: histograms, spectra, sweeps of
+    equilibria, phase response curves, ... A column is read by its name,
+    which ignores case: ``t["count"]``. ``"count" in t`` tells whether there
+    is such a column, and ``len(t)`` is the number of rows.
+
+    Args:
+        data: the columns, by name, in order.
+        title: what the table holds, shown in its ``repr`` and plots.
+        log: what XPPAUT printed while computing it.
+        params: parameter values, by name, which a .mat file keeps as the
+            struct ``params``.
+
+    Attributes:
+        title (str): what the table holds.
+        log (str): what XPPAUT printed while computing it.
+        params (dict | None): parameter values, by name.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> sol = m.run(iapp=0.1, total=200)
+        >>> h = m.histogram("V", bins=10)
+        >>> h
+        <Table Histogram of V: 11 rows, columns bin, count>
+        >>> int(h["COUNT"][0])
+        1020
+        >>> t = xs.Table({"x": np.arange(3.0), "y": np.arange(3.0) ** 2}, title="squares")
+        >>> t
+        <Table squares: 3 rows, columns x, y>
+
+    See also:
+        [export](../reference/export.md) in the command window, which
+        writes the app's tables.
+    """
 
     def __init__(self, data: dict[str, np.ndarray], title: str = "",
                  log: str = "", params: dict | None = None):
@@ -96,6 +129,18 @@ class Table:
 
     @property
     def columns(self) -> list[str]:
+        """The names of the columns, in order.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> h = m.histogram("V", bins=10)
+            >>> h.columns
+            ['bin', 'count']
+
+        See also:
+            [`to_numpy`][xpplab.Table.to_numpy].
+        """
         return list(self._data)
 
     def __getitem__(self, name: str) -> np.ndarray:
@@ -111,10 +156,39 @@ class Table:
         return len(next(iter(self._data.values()))) if self._data else 0
 
     def to_numpy(self) -> np.ndarray:
+        """Every column as one array.
+
+        Returns:
+            An array with one row per row of the table and one column per
+            column, in the order of [`columns`][xpplab.Table.columns].
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> h = m.histogram("V", bins=10)
+            >>> h.to_numpy().shape
+            (11, 2)
+
+        See also:
+            [`to_pandas`][xpplab.Table.to_pandas].
+        """
         return np.column_stack(list(self._data.values()))
 
     def to_pandas(self):
-        """A pandas DataFrame indexed by the first column."""
+        """The table as a pandas DataFrame indexed by its first column.
+        Needs pandas.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> h = m.histogram("V", bins=10)
+            >>> df = h.to_pandas()
+            >>> df.index.name, list(df.columns)
+            ('bin', ['count'])
+
+        See also:
+            [`to_numpy`][xpplab.Table.to_numpy].
+        """
         import pandas as pd
         df = pd.DataFrame(self._data)
         return df.set_index(self.columns[0])
@@ -122,10 +196,41 @@ class Table:
     @classmethod
     def from_grid(cls, name: str, values, name2: str, values2, columns: dict,
                   title: str = "", params: dict | None = None) -> "Table":
-        """A table of results on a grid (see :meth:`Model.sweep_grid`): one
-        row per point, going through ``values`` for each of ``values2``, the
-        two values first and then each of ``columns``, arrays of shape
-        ``(len(values2), len(values))``."""
+        """A table of results on a grid, such as
+        [`Model.sweep_grid`][xpplab.Model.sweep_grid] computes, one row per
+        point.
+
+        The rows go through ``values`` for each of ``values2``.
+
+        Args:
+            name: the first value's name.
+            values: its values.
+            name2: the second value's name.
+            values2: its values.
+            columns: the results, by name, each an array of shape
+                ``(len(values2), len(values))``.
+            title: what the table holds.
+            params: parameter values, by name, for a .mat file.
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``name``, ``name2``, then the
+            results.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> amp = m.sweep_grid("iapp", [0, 0.1, 0.2], "gca", [1, 1.2], total=200,
+            ...                    measure=lambda s: np.ptp(s["V"][len(s) // 2:]))
+            >>> t = xs.Table.from_grid("iapp", [0, 0.1, 0.2], "gca", [1, 1.2],
+            ...                        {"amplitude": amp})
+            >>> t
+            <Table: 6 rows, columns iapp, gca, amplitude>
+            >>> t["gca"]
+            array([1. , 1. , 1. , 1.2, 1.2, 1.2])
+
+        See also:
+            [range](../reference/range.md) in the command window, whose
+            two-parameter export writes such a table.
+        """
         v1, v2 = np.asarray(values, dtype=float), np.asarray(values2, dtype=float)
         data = {name: np.tile(v1, len(v2)), name2: np.repeat(v2, len(v1))}
         for key, arr in columns.items():
@@ -135,11 +240,31 @@ class Table:
     @classmethod
     def from_nullclines(cls, sets, first: int = 0, title: str = "") -> "Table":
         """Nullclines as a table, one row per line segment, as the desktop
-        app's ``export FILE.csv nullclines`` writes them: the set (``first``
-        for the first pair in ``sets``, then counting up), which nullcline
-        (1 the x variable's, 2 the y variable's) and the segment's ends
-        x1, y1, x2, y2. ``sets`` holds ``(x_nullcline, y_nullcline)`` pairs
-        from :meth:`Model.nullclines` or :meth:`Model.nullcline_sweep`."""
+        app's ``export FILE.csv nullclines`` writes them.
+
+        Args:
+            sets: ``(x_nullcline, y_nullcline)`` pairs, as
+                [`Model.nullclines`][xpplab.Model.nullclines] and
+                [`Model.nullcline_sweep`][xpplab.Model.nullcline_sweep]
+                return them.
+            first: the number of the first pair; the others count up from
+                it.
+            title: what the table holds.
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``set``, ``nullcline`` (1 for the
+            horizontal variable's, 2 for the vertical one's) and the
+            segment's ends ``x1``, ``y1``, ``x2``, ``y2``.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> pair = m.nullclines("V", "W", (-0.6, 0.6), (-0.1, 0.6))
+            >>> xs.Table.from_nullclines([pair])
+            <Table: 420 rows, columns set, nullcline, x1, y1, x2, y2>
+
+        See also:
+            [nullclines](../reference/nullclines.md) in the command window.
+        """
         rows = []
         for k, pair in enumerate(sets):
             for which, segs in enumerate(pair, start=1):
@@ -151,20 +276,73 @@ class Table:
         return cls({n: table[:, i] for i, n in enumerate(names)}, title=title)
 
     def to_csv(self, path: str | os.PathLike) -> None:
-        """Write the table as CSV, every number exact (the desktop app's
-        ``export FILE.csv analysis`` writes the same file)."""
+        """Write the table as a CSV file, every number exact.
+
+        The desktop app's ``export FILE.csv analysis`` writes the same file.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> h = m.histogram("V", bins=10)
+            >>> h.to_csv("hist.csv")
+            >>> open("hist.csv").readline()
+            'bin,count\\n'
+
+        See also:
+            [export](../reference/export.md) in the command window;
+            [`to_mat`][xpplab.Table.to_mat].
+        """
         cols = [np.asarray(v, dtype=float) for v in self._data.values()]
         write_csv(path, self.columns, zip(*cols))
 
     def to_mat(self, path: str | os.PathLike) -> None:
-        """Write the table as a MATLAB .mat file: one column vector per
-        column (names made valid MATLAB names, see :func:`write_mat`), and
-        the struct ``params`` when the table has parameter values (the
-        desktop app's ``export FILE.mat analysis`` writes the same file)."""
+        """Write the table as a MATLAB .mat file.
+
+        Each column becomes a column vector, its name made a valid MATLAB
+        name (other characters become ``_``); the struct ``params`` holds
+        the table's parameter values, if it has any. The desktop app's
+        ``export FILE.mat analysis`` writes the same file.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> h = m.histogram("V", bins=10)
+            >>> h.to_mat("hist.mat")
+
+        See also:
+            [export](../reference/export.md) in the command window;
+            [`to_csv`][xpplab.Table.to_csv].
+        """
         write_mat(path, self.columns, self._data.values(), self.params)
 
     def plot(self, *y: str, ax=None, **kw):
-        """Plot columns (by default the second) against the first."""
+        """Plot columns against the first. Needs matplotlib.
+
+        Args:
+            *y: the columns to plot; by default the second.
+            ax: the matplotlib axes to draw in; by default the current ones.
+            **kw: passed on to matplotlib's ``plot``.
+
+        Returns:
+            The matplotlib axes.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> h = m.histogram("V", bins=10)
+            >>> ax = h.plot()
+            >>> ax.get_xlabel(), ax.get_ylabel(), ax.get_title()
+            ('bin', 'count', 'Histogram of V')
+
+        See also:
+            [`Trajectory.plot`][xpplab.Trajectory.plot].
+        """
         import matplotlib.pyplot as plt
         ax = ax or plt.gca()
         x = self.columns[0]
@@ -186,7 +364,7 @@ class Table:
 
 
 class AnalysisMixin:
-    """The analysis methods of :class:`xpplab.Model`."""
+    """The analysis methods of [`Model`][xpplab.Model]."""
 
     def _result(self, title: str) -> Table:
         eng = self._engine
@@ -231,27 +409,128 @@ class AnalysisMixin:
     # -- Fourier series and spectra ------------------------------------------
 
     def fourier(self, column: str) -> Table:
-        """Fourier series of a column over the last run: freq, cos, sin.
+        """The Fourier series of a column over the last run, as XPPAUT's
+        *Numerics > stocHastic > Fourier* computes it.
 
-        Frequencies are in cycles per unit time (mode k / run length)."""
+        Mode $k$ has the frequency $k/L$ in cycles per unit time, $L$ being
+        the run's length.
+
+        Args:
+            column: an output column of the run.
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``freq``, then the coefficients
+            ``cos`` and ``sin`` of each mode.
+
+        Raises:
+            EngineError: there is no run yet, or no such column.
+
+        Examples:
+            $x = \\cos 2 \\pi t$ over 8 time units: all of it is in the mode
+            of frequency 1.
+
+            >>> m = xs.Model.from_text('''
+            ... x' = 2*pi*y
+            ... y' = -2*pi*x
+            ... init x=1
+            ... @ total=8, dt=0.01
+            ... done
+            ... ''')
+            >>> sol = m.run()
+            >>> f = m.fourier("X")
+            >>> f
+            <Table Fourier series of X: 399 rows, columns freq, cos, sin>
+            >>> print(f"{f['freq'][8]:g} {f['cos'][8]:.3f}")
+            1 1.000
+
+        See also:
+            [fourier](../reference/fourier.md) in the command window;
+            [`power`][xpplab.Model.power], [`spectrum`][xpplab.Model.spectrum].
+        """
         self._engine.call("xppe_fourier", _b(column))
         return self._result(f"Fourier series of {column}")
 
     def power(self, column: str) -> Table:
-        """The Fourier series as amplitude and phase: freq, amplitude, phase."""
+        """The Fourier series of a column over the last run, as amplitude
+        and phase.
+
+        Args:
+            column: an output column of the run.
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``freq`` (in cycles per unit time),
+            ``amplitude`` and ``phase`` of each mode.
+
+        Raises:
+            EngineError: there is no run yet, or no such column.
+
+        Examples:
+            >>> m = xs.Model.from_text('''
+            ... x' = 2*pi*y
+            ... y' = -2*pi*x
+            ... init x=1
+            ... @ total=8, dt=0.01
+            ... done
+            ... ''')
+            >>> sol = m.run()
+            >>> p = m.power("X")
+            >>> k = int(np.argmax(p["amplitude"][1:])) + 1
+            >>> print(f"{p['freq'][k]:g} {p['amplitude'][k]:.3f}")
+            1 1.000
+
+        See also:
+            [power](../reference/power.md) in the command window;
+            [`fourier`][xpplab.Model.fourier].
+        """
         self._engine.call("xppe_power", _b(column))
         return self._result(f"Fourier amplitude of {column}")
 
     def spectrum(self, column: str, column2: str | None = None, *,
                  kind: str = "psd", length: int | None = None,
                  window: str | int = "hamming") -> Table:
-        """Spectral density by Welch's method (windows of ``length`` points,
-        50% overlap), as XPPAUT's Spec.dns.
+        """The spectral density of the last run by Welch's method, as
+        XPPAUT's *Spec.dns* computes it: windows of ``length`` points that
+        overlap by half.
 
-        ``kind`` is "psd" (power spectral density of ``column``), "cross"
-        (cross spectrum) or "coherence" (both need ``column2``). ``window``
-        is "square", "parzen", "hamming", "bartlett" or "hann". ``length``
-        defaults to 512 points, or less for a short run."""
+        Args:
+            column: an output column of the run.
+            column2: a second column, for the cross spectrum and the
+                coherence.
+            kind: ``"psd"`` (the power spectral density of ``column``),
+                ``"cross"`` or ``"coherence"``.
+            length: the points in each window; by default 512, or fewer for
+                a short run.
+            window: ``"square"``, ``"parzen"``, ``"hamming"``,
+                ``"bartlett"`` or ``"hann"``.
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``freq`` in cycles per unit time and
+            the spectrum.
+
+        Raises:
+            ValueError: ``"cross"`` or ``"coherence"`` without ``column2``.
+            EngineError: there is no run yet, or no such column.
+
+        Examples:
+            >>> m = xs.Model.from_text('''
+            ... x' = 2*pi*y
+            ... y' = -2*pi*x
+            ... init x=1
+            ... @ total=8, dt=0.01
+            ... done
+            ... ''')
+            >>> sol = m.run()
+            >>> s = m.spectrum("X")
+            >>> s
+            <Table psd of X: 256 rows, columns freq, power>
+            >>> print(f"{s['freq'][np.argmax(s['power'])]:.2f}")
+            0.98
+
+        See also:
+            [spectrum](../reference/spectrum.md) in the command window;
+            [`fourier`][xpplab.Model.fourier],
+            [`correlation`][xpplab.Model.correlation].
+        """
         k = SPECTRA[kind.lower()] if isinstance(kind, str) else int(kind)
         w = WINDOWS[window.lower()] if isinstance(window, str) else int(window)
         if k > 0 and column2 is None:
@@ -270,18 +549,68 @@ class AnalysisMixin:
 
     def histogram(self, column: str, bins: int = 100, range=None,
                   condition: str = "") -> Table:
-        """Histogram of a column: bin (left edge), count.
+        """The histogram of a column of the last run, as XPPAUT's
+        *Numerics > stocHastic > Histogram* computes it.
 
-        ``range=(lo, hi)`` defaults to the column's range in the run.
-        ``condition`` is an XPPAUT expression; only points where it is
-        nonzero count (e.g. ``"V>0"``)."""
+        Args:
+            column: an output column of the run.
+            bins: the number of bins.
+            range: ``(low, high)``; by default the column's range in the run.
+            condition: an expression in the syntax of an .ode file; only the
+                points where it is not zero count, such as ``"V>0"``.
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``bin`` (the left edge) and
+            ``count``.
+
+        Raises:
+            EngineError: there is no run yet, or no such column.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> h = m.histogram("V", bins=10)
+            >>> h
+            <Table Histogram of V: 11 rows, columns bin, count>
+            >>> int(h["count"].sum()) == len(sol)
+            True
+
+        See also:
+            [hist](../reference/hist.md) in the command window;
+            [`histogram2d`][xpplab.Model.histogram2d].
+        """
         lo, hi = self._range(column, range)
         self._engine.call("xppe_histogram", _b(column), int(bins), lo, hi,
                           _b(condition))
         return self._result(f"Histogram of {column}")
 
     def histogram2d(self, x: str, y: str, bins=(20, 20), range=None) -> Table:
-        """Two-dimensional histogram of two columns: x, y, count."""
+        """The two-dimensional histogram of two columns of the last run.
+
+        Args:
+            x: the first column.
+            y: the second column.
+            bins: the number of bins, one number for both or ``(nx, ny)``.
+            range: ``((xlow, xhigh), (ylow, yhigh))``; by default the
+                columns' ranges in the run.
+
+        Returns:
+            A [`Table`][xpplab.Table], one row per cell: ``x``, ``y`` and
+            ``count``.
+
+        Raises:
+            EngineError: there is no run yet, or no such column.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> m.histogram2d("V", "W", bins=5)
+            <Table Histogram of V and W: 25 rows, columns x, y, count>
+
+        See also:
+            [hist2d](../reference/hist2d.md) in the command window;
+            [`histogram`][xpplab.Model.histogram].
+        """
         nx, ny = (bins, bins) if np.isscalar(bins) else bins
         (xlo, xhi), (ylo, yhi) = ((self._range(x, None), self._range(y, None))
                                   if range is None else range)
@@ -291,8 +620,33 @@ class AnalysisMixin:
 
     def correlation(self, column: str, column2: str | None = None, *,
                     lags: int = 100, fft: bool = False) -> Table:
-        """Cross-correlation of two columns, or the autocorrelation of one,
-        over about ``lags`` lags: lag (in time units), correlation."""
+        """The cross-correlation of two columns of the last run, or the
+        autocorrelation of one, as XPPAUT's *stocHastic > Xcorrel* computes
+        it.
+
+        Args:
+            column: an output column of the run.
+            column2: a second column; by default ``column`` itself.
+            lags: about how many lags each way.
+            fft: compute it by the fast Fourier transform.
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``lag`` in time units and
+            ``correlation``.
+
+        Raises:
+            EngineError: there is no run yet, or no such column.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> m.correlation("V", lags=50)
+            <Table Autocorrelation of V: 52 rows, columns lag, correlation>
+
+        See also:
+            [xcorr](../reference/xcorr.md) in the command window;
+            [`spectrum`][xpplab.Model.spectrum].
+        """
         other = column2 or column
         self._engine.call("xppe_correlation", _b(column), _b(other), int(lags),
                           int(bool(fft)))
@@ -302,8 +656,31 @@ class AnalysisMixin:
 
     def difference_histogram(self, column: str, bins: int = 100,
                              range=None) -> Table:
-        """Histogram of all pairwise differences of a column (XPPAUT's
-        stAutocor): difference, count."""
+        """The histogram of every difference between two points of a column
+        of the last run, as XPPAUT's *stocHastic > stAutocor* computes it.
+
+        Args:
+            column: an output column of the run.
+            bins: the number of bins.
+            range: ``(low, high)``; by default minus to plus the column's
+                spread in the run.
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``difference`` and ``count``.
+
+        Raises:
+            EngineError: there is no run yet, or no such column.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> m.difference_histogram("V", bins=10)
+            <Table Differences of V: 11 rows, columns difference, count>
+
+        See also:
+            [`histogram`][xpplab.Model.histogram],
+            [`correlation`][xpplab.Model.correlation].
+        """
         if range is None:
             lo, hi = self._column_limits(column)
             d = (hi - lo) or 1.0
@@ -314,7 +691,29 @@ class AnalysisMixin:
         return self._result(f"Differences of {column}")
 
     def mean(self, column: str) -> tuple[float, float]:
-        """Mean and standard deviation of a column over the last run."""
+        """The mean and the standard deviation of a column over the last
+        run, as XPPAUT's *stocHastic > Mean* computes them.
+
+        Args:
+            column: an output column of the run.
+
+        Returns:
+            ``(mean, standard deviation)``.
+
+        Raises:
+            EngineError: there is no run yet, or no such column.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(iapp=0.1, total=200)
+            >>> mean, sd = m.mean("V")
+            >>> print(f"{mean:.4f} {sd:.4f}")
+            -0.1843 0.1819
+
+        See also:
+            [mean](../reference/mean.md) in the command window;
+            [`histogram`][xpplab.Model.histogram].
+        """
         m, s = ctypes.c_double(), ctypes.c_double()
         self._engine.call("xppe_mean", _b(column), ctypes.byref(m),
                           ctypes.byref(s))
@@ -325,7 +724,7 @@ class AnalysisMixin:
         conditions.
 
         The engine integrates from the initial conditions for the total
-        time, as :meth:`run` does, together with a copy of the state moved
+        time, as [`run`][xpplab.Model.run] does, together with a copy of the state moved
         by ``JAC_EPS`` (0.001 unless set). After each output step (``dt``
         times ``nout``) it adds up the logarithm of the factor by which the
         distance between the two has grown, and puts the copy back at the
@@ -335,7 +734,7 @@ class AnalysisMixin:
         ``trans`` carry the perturbation along without counting, and the
         integration stops, as a run does, when a variable passes ``bound``.
         Nothing is stored: the last run stays as it was. Keyword arguments
-        are applied with :meth:`set` first, as in :meth:`run`, so after
+        are applied with [`set`][xpplab.Model.set] first, as in [`run`][xpplab.Model.run], so after
         ``m.run(...)`` a plain ``m.lyapunov()`` follows the same trajectory.
 
         With a fixed-step method, a smaller ``jac_eps`` (such as 1e-6)
@@ -344,7 +743,7 @@ class AnalysisMixin:
         control and the corrector iterations otherwise move the two copies
         apart by about as much as the perturbation (CVODE at its default
         ``tol=0.001`` gives nonsense). Delay equations, integrals and noise
-        are refused with an :class:`EngineError`.
+        are refused with an [`EngineError`][xpplab.EngineError].
 
         ``stored=True`` gives XPPAUT's own estimate instead (stocHastic >
         Liapunov), along the stored last run: each step starts from a stored
@@ -354,6 +753,40 @@ class AnalysisMixin:
         stored values and of the step length is comparable to the
         perturbation and that estimate goes wrong. A folded variable
         (``fold=``) jumps by its period at every turn, which spoils it too.
+
+        Args:
+            stored: use XPPAUT's own estimate along the stored last run.
+            **values: set first, as by [`set`][xpplab.Model.set], and kept.
+
+        Returns:
+            The exponent, per unit time.
+
+        Raises:
+            EngineError: a delay equation, an integral or noise.
+            TypeError: ``stored=True`` with values.
+
+        Examples:
+            For $x' = -x$ every perturbation shrinks as $e^{-t}$:
+
+            >>> m = xs.Model.from_text('''
+            ... x' = -x
+            ... init x=1
+            ... @ total=20
+            ... done
+            ... ''')
+            >>> round(m.lyapunov(), 4)
+            -1.0
+
+            The Lorenz attractor's is about 0.9:
+
+            >>> m = xs.load(xs.example("classics/lorenz"))
+            >>> bool(0.8 < m.lyapunov(total=500, trans=50) < 1.0)
+            True
+
+        See also:
+            [mean](../reference/mean.md) in the command window, whose page
+            covers the exponent too; [`sweep`][xpplab.Model.sweep], to map
+            it over a parameter.
         """
         z = ctypes.c_double()
         if stored:
@@ -374,13 +807,44 @@ class AnalysisMixin:
                     total: float | None = None):
         """Find one period of a stable limit cycle and leave it as the run.
 
-        Integrates for ``transient`` time units (default: the model's total)
-        to settle onto the cycle, measures the period from the upward
-        crossings of ``variable`` (default: the first) through the middle of
-        its range (unless ``period`` is given), then
-        integrates exactly one period from a point on the cycle, which is
-        what XPPAUT's adjoint needs. Initial conditions and the total time
-        are restored afterwards. Returns ``(period, Trajectory)``."""
+        The model is integrated for ``transient`` time units to settle onto
+        the cycle; the period is measured from the upward crossings of
+        ``variable`` through the middle of its range, over the last few
+        cycles; then exactly one period is integrated from a point on the
+        cycle, which is what XPPAUT's adjoint needs. If a run shows too few
+        cycles, the times are doubled, up to five times. The initial
+        conditions and ``TOTAL`` are restored afterwards.
+
+        Args:
+            transient: how long to settle; by default ``TOTAL``.
+            variable: the variable whose crossings give the period; by
+                default the first.
+            period: the period, if it is known; then it is not measured.
+            total: how long the run that measures the period is; by default
+                the longer of ``TOTAL`` and ``transient``.
+
+        Returns:
+            ``(period, orbit)``: the period and the one-period run, a
+            [`Trajectory`][xpplab.Trajectory].
+
+        Raises:
+            EngineError: no oscillation was found, or it is not periodic
+                yet; the message says which.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> period, orbit = m.set(iapp=0.1).limit_cycle()
+            >>> print(f"{period:.4f}")
+            16.4745
+            >>> orbit
+            <Trajectory: 330 points, t=0..16.45, columns T, V, W, CUR, ICA, IK, RATE>
+
+        See also:
+            [`phase_response`][xpplab.Model.phase_response],
+            [`adjoint`][xpplab.Model.adjoint];
+            [`auto.continue_from`][xpplab.auto.Auto.continue_from], which
+            follows limit cycles, unstable ones too.
+        """
         var = variable or self.variables[0]
         ics = {v: float(self.get(v)) for v in self.variables}
         old_total = float(self.get("TOTAL"))
@@ -415,24 +879,74 @@ class AnalysisMixin:
 
     def adjoint(self, *, max_iterations: int = 0,
                 tolerance: float = 0.0) -> Table:
-        """XPPAUT's adjoint along the last run, which must be exactly one
-        period of a stable limit cycle (see :meth:`limit_cycle`): T, then
-        one column per variable.
+        """The adjoint along the last run, by XPPAUT's own routine, as its
+        *Numerics > Averaging > New adjoint* computes it.
 
-        It is normalised as XPPAUT does, so that its dot product with the
-        vector field is 1: each column is the infinitesimal phase response
-        curve to perturbations of that variable, in time units."""
+        The last run must be exactly one period of a stable limit cycle, as
+        [`limit_cycle`][xpplab.Model.limit_cycle] leaves it. The adjoint is
+        normalised as XPPAUT does, so that its dot product with the vector
+        field is 1: each column is the infinitesimal phase response curve to
+        perturbations of that variable, in time units.
+
+        Args:
+            max_iterations: the iterations of XPPAUT's method; 0 keeps
+                XPPAUT's setting.
+            tolerance: its tolerance; 0 keeps XPPAUT's setting.
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``T``, then one column per variable.
+
+        Raises:
+            EngineError: there is no run, or the method did not converge.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> period, orbit = m.set(iapp=0.1).limit_cycle()
+            >>> m.adjoint()
+            <Table Adjoint: 330 rows, columns T, V, W>
+
+        See also:
+            [prc](../reference/prc.md) in the command window;
+            [`phase_response`][xpplab.Model.phase_response], which does
+            both steps; [`h_function`][xpplab.Model.h_function].
+        """
         self._engine.call("xppe_adjoint", int(max_iterations), float(tolerance))
         return self._result("Adjoint")
 
     def phase_response(self, *, transient: float | None = None,
                        variable: str | None = None,
                        period: float | None = None) -> Table:
-        """The infinitesimal phase response curves of a limit cycle.
+        """The infinitesimal phase response curves of a stable limit cycle.
 
-        Finds one period with :meth:`limit_cycle`, computes the adjoint, and
-        returns a table with the phase (0 to 1), the time, and one column
-        per variable. ``table.period`` holds the period."""
+        One period is found with [`limit_cycle`][xpplab.Model.limit_cycle]
+        and the [`adjoint`][xpplab.Model.adjoint] is computed along it. The
+        period stays as the engine's last run.
+
+        Args:
+            transient: as for [`limit_cycle`][xpplab.Model.limit_cycle].
+            variable: as for [`limit_cycle`][xpplab.Model.limit_cycle].
+            period: as for [`limit_cycle`][xpplab.Model.limit_cycle].
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``phase`` (0 to 1), ``T``, then one
+            column per variable; ``period`` holds the period.
+
+        Raises:
+            EngineError: no limit cycle was found, or the adjoint did not
+                converge.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> prc = m.set(iapp=0.1).phase_response()
+            >>> prc
+            <Table Phase response: 330 rows, columns phase, T, V, W>
+            >>> print(f"{prc.period:.4f}")
+            16.4745
+
+        See also:
+            [prc](../reference/prc.md) in the command window;
+            [`h_function`][xpplab.Model.h_function].
+        """
         per, _ = self.limit_cycle(transient=transient, variable=variable,
                                   period=period)
         adj = self.adjoint()
@@ -444,14 +958,40 @@ class AnalysisMixin:
         return tab
 
     def h_function(self, coupling) -> Table:
-        """The averaged interaction function H(phi) for weak coupling, after
-        :meth:`adjoint` (or :meth:`phase_response`) on the same run.
+        """The averaged interaction function $H(\\phi)$ of two weakly
+        coupled copies of the oscillator, as XPPAUT's *Averaging > Make H*
+        computes it.
 
-        ``coupling`` gives one formula per variable, as a dict or a list in
-        the order of :attr:`variables`; primed names are the other
-        oscillator's variables, e.g. ``{"V": "V'-V", "W": "0"}`` for
-        diffusive coupling through V. Result: phi, H, and for three or more
-        variables also Hodd and Heven."""
+        It needs the [`adjoint`][xpplab.Model.adjoint] (or
+        [`phase_response`][xpplab.Model.phase_response]) on the same run
+        first.
+
+        Args:
+            coupling: one formula per variable, as a dictionary (the
+                variables left out get 0) or a list in the model's order. A
+                primed name is the other oscillator's variable:
+                ``{"V": "V'-V"}`` couples the two through ``V``, diffusively.
+
+        Returns:
+            A [`Table`][xpplab.Table]: ``phi`` (in time units, over one
+            period), ``H``, and its odd and even parts ``Hodd`` and
+            ``Heven``.
+
+        Raises:
+            EngineError: no adjoint of this run, or a formula XPPAUT cannot
+                parse.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> prc = m.set(iapp=0.1).phase_response()
+            >>> H = m.h_function({"V": "V'-V"})
+            >>> H
+            <Table H function: 330 rows, columns phi, H, Hodd, Heven>
+
+        See also:
+            [hfun](../reference/hfun.md) in the command window;
+            [`phase_response`][xpplab.Model.phase_response].
+        """
         if isinstance(coupling, dict):
             low = {k.lower(): v for k, v in coupling.items()}
             formulas = [str(low.get(v.lower(), "0")) for v in self.variables]
@@ -466,13 +1006,49 @@ class AnalysisMixin:
     def bvp(self, *, max_iterations: int = 0, tolerance: float = 0.0,
             epsilon: float = 0.0):
         """Solve the model's boundary-value problem by XPPAUT's shooting
-        method (Bndryval), from the current initial conditions as the first
-        guess, over [T0, T0 + total].
+        method, as its *Bndryval* does.
 
-        The boundary conditions are the model's ``bndry`` statements, in
-        which a primed name means the variable at the right end (``b
-        v'-1``). On success the initial conditions hold the solution's and
-        the solution is returned as a Trajectory."""
+        The boundary conditions are the model's ``bndry`` (``b``) lines, in
+        which a primed name means the variable at the right end. The
+        problem is posed on $[T_0, T_0 + \\mathrm{TOTAL}]$, and the initial
+        conditions are the first guess. On success they hold the solution's.
+
+        Args:
+            max_iterations: Newton's iterations; 0 keeps the model's
+                setting.
+            tolerance: Newton's tolerance; 0 keeps the model's setting.
+            epsilon: the step of the numerical Jacobian; 0 keeps the
+                model's setting.
+
+        Returns:
+            The solution, as a [`Trajectory`][xpplab.Trajectory].
+
+        Raises:
+            EngineError: the model has no boundary conditions, or the
+                method did not converge.
+
+        Examples:
+            $x'' = -x$ with $x(0) = 0$ and $x(\\pi/2) = 1$ is solved by
+            $x = \\sin t$, so $x'(0) = 1$:
+
+            >>> m = xs.Model.from_text('''
+            ... x' = y
+            ... y' = -x
+            ... b x
+            ... b x'-1
+            ... init x=0, y=0.5
+            ... @ total=1.5707963267948966
+            ... done
+            ... ''')
+            >>> sol = m.bvp()
+            >>> print(f"{m.get('y'):.3f} {sol['X'][-1]:.3f}")
+            1.000 1.000
+
+        See also:
+            [bvp](../reference/bvp.md) in the command window;
+            [`auto.start`][xpplab.auto.Auto.start], which continues
+            boundary-value problems with AUTO.
+        """
         if self._engine.call("xppe_bvp_count", check=False) <= 0:
             raise E.EngineError("the model has no boundary conditions "
                                 "(bndry statements)")
@@ -481,9 +1057,28 @@ class AnalysisMixin:
         return self._collect()
 
     def animation(self, path):
-        """An XPPAUT animation (.ani file) of the last run: see
-        :class:`xpplab.Animation`. A relative path is taken next to the
-        model."""
+        """An XPPAUT animation of the last run, from an .ani file.
+
+        Args:
+            path: the .ani file; a relative path is taken next to the
+                model.
+
+        Returns:
+            An [`Animation`][xpplab.Animation], whose frames follow the run.
+
+        Raises:
+            EngineError: XPPAUT cannot read the file; the message gives the
+                line.
+
+        Examples:
+            >>> m = xs.load(xs.example("pend.ode"))
+            >>> sol = m.run()
+            >>> m.animation("pend.ani")
+            <Animation pend.ani: 2 commands, 401 frames>
+
+        See also:
+            [ani](../reference/ani.md) in the command window.
+        """
         from .animation import Animation
         p = Path(path)
         if not p.is_absolute():
@@ -495,18 +1090,50 @@ class AnalysisMixin:
     def fit(self, data, *, variables, parameters, columns=None,
             tolerance: float = 0.0, epsilon: float = 0.0,
             max_iterations: int = 0) -> dict[str, float]:
-        """Fit parameters and initial conditions to data, with XPPAUT's
-        Levenberg-Marquardt.
+        """Fit parameters and initial conditions to data, by XPPAUT's
+        Levenberg-Marquardt method, as its *Numerics > stocHastic > fIt data*
+        does.
 
-        ``data`` is a file of rows (time first) or an array of shape
-        (points, columns) with time in the first column. The file may have
-        a header and commas, such as the CSV that :meth:`Trajectory.to_csv`
-        and the app's ``export`` write. ``variables`` are
-        the variables to fit and ``columns`` their columns in the data,
-        counting from 1 for time (default 2, 3, ...). ``parameters`` lists
-        the parameters and initial conditions to vary; they start from
-        their current values and end at the fitted ones, which are also
-        returned. The initial conditions apply at the first data time."""
+        The values to vary start from their current ones and end at the
+        fitted ones. The initial conditions apply at the first data time.
+
+        Args:
+            data: a file of rows, time first, or an array with time in its
+                first column. The file may have a header and commas, as the
+                CSV [`Trajectory.to_csv`][xpplab.Trajectory.to_csv] and the
+                app's ``export`` write.
+            variables: the variables to fit, one name or a list.
+            parameters: the parameters and initial conditions to vary, one
+                name or a list.
+            columns: the data's column for each variable, counting from 1
+                for time; by default 2, 3, ...
+            tolerance: the method's tolerance; 0 keeps XPPAUT's setting.
+            epsilon: the step of its numerical derivatives; 0 keeps
+                XPPAUT's setting.
+            max_iterations: its iterations; 0 keeps XPPAUT's setting.
+
+        Returns:
+            The fitted values, by name.
+
+        Raises:
+            EngineError: the data cannot be read, or the method failed.
+            ValueError: an array that is not two-dimensional.
+
+        Examples:
+            A run with ``phi=0.25`` is the data; the fit starts from
+            ``phi=0.333`` and finds 0.25 again:
+
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> sol = m.run(phi=0.25, total=100)
+            >>> data = np.column_stack([sol.t, sol["V"]])
+            >>> fitted = m.set(phi=0.333).fit(data, variables="V", parameters="phi")
+            >>> print(f"{fitted['phi']:.6f}")
+            0.250000
+
+        See also:
+            [fitdata](../reference/fitdata.md) and [fit](../reference/fit.md)
+            in the command window.
+        """
         variables = [variables] if isinstance(variables, str) else list(variables)
         parameters = [parameters] if isinstance(parameters, str) else list(parameters)
         if columns is None:

@@ -27,13 +27,30 @@ class SensitivityError(ValueError):
 
 
 class Sensitivity(dict):
-    """S(t) = dx/dp for each parameter.
+    """The sensitivity $S(t) = \\partial x(t) / \\partial p$ of a run to each
+    parameter. [`Model.sensitivity`][xpplab.Model.sensitivity] returns one.
 
-    ``s["gk"]`` is an array of shape (time, variables): row *n* holds the
-    derivatives of every variable at ``s.t[n]`` with respect to ``gk``
-    (names ignore case). ``variables`` names the columns; ``trajectory`` is
-    the run of the augmented model, whose variable columns equal the model's
-    own run up to the integrator's step control.
+    ``s["gk"]`` is an array with one row per output time: row $n$ holds the
+    derivatives of every variable at ``s.t[n]`` with respect to ``gk``. The
+    names ignore case.
+
+    Attributes:
+        t (numpy.ndarray): the output times.
+        variables (list[str]): the variables, the columns of each array.
+        trajectory (Trajectory): the run of the model with the variational
+            equations added. Its variable columns equal the model's own run,
+            up to the integrator's step control.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> s = m.sensitivity(["iapp", "gk"], total=50)
+        >>> s
+        Sensitivity(1001 points, variables V, W; parameters IAPP, GK)
+        >>> s["gk"].shape
+        (1001, 2)
+
+    See also:
+        [`Model.sensitivity`][xpplab.Model.sensitivity].
     """
 
     def __init__(self, t, variables, data, trajectory):

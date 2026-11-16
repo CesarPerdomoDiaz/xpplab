@@ -17,13 +17,42 @@ __all__ = ["LQR", "Linearization", "RootLocus", "linearize"]
 
 @dataclass
 class Linearization:
-    """The linear system dx = A dx + B du around a point of a model.
+    """The linear system $\\dot{\\delta x} = A\\,\\delta x + B\\,\\delta u$
+    around a point of a model, and the designs made on it.
+    [`Model.linearize`][xpplab.Model.linearize] returns one.
 
-    ``A`` is the Jacobian of the right-hand side (for a map, of the map),
-    ``B`` has one column per input parameter. ``controllability`` is
-    [B, AB, ..., A^(n-1) B]; the pair is ``controllable`` when its rank is n.
-    ``rank`` is -1 when it cannot be computed (A^(n-1) B overflows, which
-    can happen for models with very many states).
+    Attributes:
+        point (dict[str, float]): the state it was made at.
+        inputs (list[str]): the parameters that act as controls.
+        A (numpy.ndarray): the Jacobian of the right-hand side (for a map,
+            of the map).
+        B (numpy.ndarray): the derivatives with respect to the inputs, one
+            column per input.
+        eigenvalues (numpy.ndarray): the eigenvalues of $A$.
+        controllability (numpy.ndarray): $[B, AB, \\ldots, A^{n-1}B]$.
+        rank (int): its rank; -1 when it cannot be computed ($A^{n-1}B$
+            overflows, which can happen with very many states).
+        controllable (bool): the rank is the number of states.
+        residual (float): the largest $|f|$ at the point, about 0 at an
+            equilibrium.
+        discrete (bool): the model is a map.
+        A_error (numpy.ndarray | None): the error estimates of $A$ (NaN with
+            a fixed ``step``).
+        B_error (numpy.ndarray | None): the error estimates of $B$.
+        singular_values (numpy.ndarray | None): those of the
+            controllability matrix.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> lin = m.linearize(inputs=["iapp"])
+        >>> lin
+        Linearization(n=2, inputs=['iapp'], rank=2, controllable=True)
+        >>> np.round(lin.eigenvalues.real, 4)
+        array([ 1.03 , -0.301])
+
+    See also:
+        [linearize](../reference/linearize.md) in the command window; the
+        [control design guide](control.md).
     """
 
     point: dict[str, float]
@@ -44,12 +73,29 @@ class Linearization:
     _p0: np.ndarray | None = field(default=None, repr=False)
 
     def error(self, dx, du=None) -> float:
-        """Relative error of the linear model for one perturbation.
+        """The relative error of the linear model for one perturbation.
 
-        Compares the model's right-hand side at (x0 + dx, p0 + du) with the
-        prediction A dx + B du, and returns |difference| / |prediction|.
-        This is the quantity that decides whether a controller designed on
-        (A, B) will behave on the real model."""
+        The model's right-hand side at $(x_0 + \\delta x, p_0 + \\delta u)$
+        is compared with the prediction $A\\,\\delta x + B\\,\\delta u$.
+        This decides whether a controller designed on $(A, B)$ will behave
+        on the model itself.
+
+        Args:
+            dx: the perturbation of the state, one number per variable.
+            du: the perturbation of the inputs; by default none.
+
+        Returns:
+            $|\\text{difference}| / |\\text{prediction}|$.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> lin = m.linearize(inputs=["iapp"])
+            >>> round(lin.error([0.01, 0]), 4)
+            0.0616
+
+        See also:
+            [`valid_radius`][xpplab.Linearization.valid_radius].
+        """
         m = self._model
         dx = np.asarray(dx, dtype=float).ravel()
         du = np.zeros(len(self.inputs)) if du is None else np.asarray(du, float).ravel()
@@ -67,13 +113,32 @@ class Linearization:
 
     def valid_radius(self, tol: float = 0.05, directions: int = 32,
                      seed: int = 0) -> float:
-        """Size of the perturbation (a norm in state space, with the inputs
-        scaled the same way) for which the linear model keeps its relative
-        error below ``tol`` in every one of a fixed set of random directions.
+        """How far from the point the linear model holds: the size of the
+        perturbation for which its relative error stays below ``tol`` in
+        every one of a fixed set of random directions.
 
-        Found by scanning outwards in factors of two, then bisecting. A
-        controller designed on (A, B) can be trusted within about this
-        distance of the point; beyond it, use the nonlinear model."""
+        The size is a norm in state space, the inputs scaled the same way.
+        It is found by scanning outwards in factors of two, then bisecting.
+        A controller designed on $(A, B)$ can be trusted within about this
+        distance; beyond it, use the model itself.
+
+        Args:
+            tol: the relative error allowed.
+            directions: the number of random directions.
+            seed: the seed of the directions.
+
+        Returns:
+            The radius; ``inf`` if the error stays small up to $10^6$.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> lin = m.linearize(inputs=["iapp"])
+            >>> print(f"{lin.valid_radius():.2e}")
+            8.75e-04
+
+        See also:
+            [`error`][xpplab.Linearization.error].
+        """
         rng = np.random.default_rng(seed)
         n = len(self._x0)
         k = len(self.inputs)
@@ -99,11 +164,26 @@ class Linearization:
         return lo
 
     def to_csv(self, path) -> None:
-        """Write the linearisation as CSV, every number exact: one row per
-        state with its value at the point, its row of A and of B, and an
-        eigenvalue; the rank and the residual on the first row. The desktop
-        app's ``export FILE.csv analysis`` after ``linearize`` writes the
-        same file."""
+        """Write the linearisation as a CSV file, every number exact.
+
+        There is one row per state: its value at the point, its row of $A$
+        and of $B$, and an eigenvalue; the rank and the residual are on the
+        first row. The desktop app's ``export FILE.csv analysis`` after
+        ``linearize`` writes the same file.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> lin = m.linearize(inputs=["iapp"])
+            >>> lin.to_csv("lin.csv")
+            >>> open("lin.csv").readline()
+            'state,at,A_V,A_W,B_iapp,eig_re,eig_im,rank,residual\\n'
+
+        See also:
+            [export](../reference/export.md) in the command window.
+        """
         from .analysis import write_csv
         names = list(self.point)
         cols = (["state", "at"] + [f"A_{v}" for v in names]
@@ -120,9 +200,27 @@ class Linearization:
         write_csv(path, cols, rows)
 
     def plot(self, ax=None, **kw):
-        """The eigenvalues in the complex plane, as the desktop app shows
-        them: the stable region shaded (the left half-plane; for a map, the
-        inside of the unit circle) and its edge drawn."""
+        """Plot the eigenvalues in the complex plane, as the desktop app
+        shows them, with the stable region shaded: the left half-plane, or
+        for a map the inside of the unit circle. Needs matplotlib.
+
+        Args:
+            ax: the matplotlib axes to draw in; by default the current ones.
+            **kw: passed on to matplotlib for the eigenvalues' markers.
+
+        Returns:
+            The matplotlib axes.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> lin = m.linearize(inputs=["iapp"])
+            >>> ax = lin.plot()
+            >>> ax.get_xlabel(), ax.get_ylabel()
+            ('real part', 'imaginary part')
+
+        See also:
+            [linearize](../reference/linearize.md) in the command window.
+        """
         import matplotlib.pyplot as plt
         ax = ax or plt.gca()
         ev = np.asarray(self.eigenvalues, dtype=complex)
@@ -150,23 +248,47 @@ class Linearization:
         return ax
 
     def place_poles(self, poles) -> np.ndarray:
-        """Feedback gain K (inputs x states) so that A - B K has ``poles``.
+        """The feedback gain $K$ for which $A - BK$ has the given poles.
 
-        With the control law du = -K dx the closed loop dx' = (A - B K) dx
-        has the requested eigenvalues. One input uses Ackermann's formula
-        with the controllability matrix; several inputs use the robust
-        method of Kautsky, Nichols and Van Dooren (the one behind
-        ``scipy.signal.place_poles``), which spends the spare inputs on
-        keeping the closed-loop eigenvectors well conditioned. The engine
-        computes the gain (``xppe_place_poles``), so the desktop app's pole
-        placement gives the same numbers. The poles are n numbers, complex
-        ones in conjugate pairs; for a map they belong inside the unit
-        circle.
+        With the control law $\\delta u = -K\\,\\delta x$ the closed loop
+        $\\dot{\\delta x} = (A - BK)\\,\\delta x$ has the requested
+        eigenvalues. One input uses Ackermann's formula; several use the
+        robust method of Kautsky, Nichols and Van Dooren, which spends the
+        spare inputs on keeping the closed-loop eigenvectors well
+        conditioned. The engine computes the gain, so the desktop app's pole
+        placement gives the same numbers.
 
-        Raises ``ValueError`` when the pair (A, B) is not controllable, when
-        there are no inputs, or when the poles are not admissible (wrong
-        count, not conjugate pairs, a pole repeated more often than there
-        are inputs)."""
+        Args:
+            poles: one per state, complex ones in conjugate pairs; for a map
+                inside the unit circle.
+
+        Returns:
+            $K$, with one row per input and one column per state.
+
+        Raises:
+            ValueError: no inputs, a pair $(A, B)$ that is not controllable,
+                or poles that cannot be placed (the wrong number, not in
+                conjugate pairs, one repeated more often than there are
+                inputs).
+
+        Warns:
+            UserWarning: the point is not an equilibrium, the placed poles
+                differ from the requested ones, or the gain is very large.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> lin = m.linearize(inputs=["iapp"])
+            >>> K = lin.place_poles([-1, -2])
+            >>> np.round(K, 4)
+            array([[3.7279, 2.9377]])
+            >>> np.round(np.sort(np.linalg.eigvals(lin.A - lin.B @ K).real), 4)
+            array([-2., -1.])
+
+        See also:
+            [poles](../reference/poles.md) in the command window;
+            [`closed_loop`][xpplab.Linearization.closed_loop],
+            [`lqr`][xpplab.Linearization.lqr].
+        """
         n, k = self.B.shape
         if k == 0:
             raise ValueError("cannot place poles: no inputs were chosen "
@@ -214,7 +336,8 @@ class Linearization:
         return K
 
     def closed_loop(self, K, path=None):
-        """Write the closed-loop model, u = u0 - K (x - x*), and load it.
+        """Write the model with the feedback $u = u_0 - K(x - x^*)$ in it,
+        and load it.
 
         Each input parameter is removed from the model's parameter lines and
         defined instead as a fixed variable: its nominal value minus the row
@@ -222,9 +345,35 @@ class Linearization:
         point. The laws stand at the top of the model, so that fixed
         variables using an input see them wherever they are written; a long
         law is split into partial sums (``kf1a1``, ...) to fit XPPAUT's
-        lines. The rest of the model text is kept as it is. The file goes to
-        ``path`` (a temporary directory by default); the new
-        :class:`~xpplab.Model` is returned, and the path is its ``.path``."""
+        lines. The rest of the model text is kept as it is. The current
+        parameters, initial conditions and options carry over.
+
+        Args:
+            K: the gain, one row per input and one column per state.
+            path: the file to write; by default in a new temporary folder.
+
+        Returns:
+            The closed-loop [`Model`][xpplab.Model]; its ``path`` is the file.
+
+        Raises:
+            ValueError: ``K`` has the wrong shape.
+
+        Examples:
+            The saddle of ``lecar.ode`` becomes stable: a run that starts
+            near it ends on it.
+
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> lin = m.linearize(inputs=["iapp"])
+            >>> closed = lin.closed_loop(lin.place_poles([-1, -2]), "closed.ode")
+            >>> closed
+            <Model closed.ode: 2 variables (V, W), 11 parameters>
+            >>> sol = closed.run(V=-0.1, total=20)
+            >>> round(float(sol["V"][-1]), 4), round(lin.point["V"], 4)
+            (-0.1425, -0.1425)
+
+        See also:
+            [closedloop](../reference/closedloop.md) in the command window.
+        """
         K = np.atleast_2d(np.asarray(K, dtype=float))
         names = list(self.point)
         if K.shape != (len(self.inputs), len(names)):
@@ -266,16 +415,42 @@ class Linearization:
         return new
 
     def root_locus(self, K, gain=(0.0, 1.0), steps: int = 201) -> "RootLocus":
-        """How the poles move as the feedback u = u0 - g K (x - x*) grows:
-        the eigenvalues of A - g B K for ``steps`` gains g evenly from
-        ``gain[0]`` to ``gain[1]``.
+        """How the poles move as the feedback $u = u_0 - gK(x - x^*)$ grows:
+        the eigenvalues of $A - gBK$ for gains $g$ evenly spaced.
 
-        ``K`` is a gain (inputs x states), for example the one
-        :meth:`place_poles` gave (then g = 0 is the open loop and g = 1 the
-        poles placed), or the feedback of one state through one input
-        (``[[0, 1]]``: u = -g * (the second state)). The engine computes
-        and matches the eigenvalues (``xppe_gain_locus``), so the desktop
-        app's root locus gives the same numbers."""
+        The engine computes and matches the eigenvalues, so the desktop
+        app's root locus gives the same numbers.
+
+        Args:
+            K: a gain, one row per input and one column per state: the one
+                [`place_poles`][xpplab.Linearization.place_poles] gave (then
+                $g = 0$ is the open loop and $g = 1$ the poles placed), or
+                the feedback of one state through one input (``[[0, 1]]``
+                is $u = -g$ times the second state).
+            gain: ``(low, high)`` of $g$.
+            steps: how many gains.
+
+        Returns:
+            A [`RootLocus`][xpplab.RootLocus].
+
+        Raises:
+            ValueError: no inputs, ``K`` of the wrong shape, or fewer than 2
+                steps.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> lin = m.linearize(inputs=["iapp"])
+            >>> rl = lin.root_locus(lin.place_poles([-1, -2]), steps=11)
+            >>> rl
+            RootLocus(gain from 0 to 1, 11 steps, 2 branches)
+            >>> [round(g, 4) for g, pole in rl.crossings()]
+            [0.1983]
+
+        See also:
+            [locus](../reference/locus.md) in the command window;
+            [`Model.root_locus`][xpplab.Model.root_locus], a locus over a
+            parameter.
+        """
         n, k = self.B.shape
         if k == 0:
             raise ValueError("a root locus over a gain needs inputs "
@@ -298,22 +473,41 @@ class Linearization:
         return RootLocus("gain", np.array(g[:steps]), poles, self.discrete)
 
     def lqr(self, Q=None, R=None) -> "LQR":
-        """The optimal state feedback: the gain K that minimises the cost
-        J = integral of dx^T Q dx + du^T R du (for a map, the sum over the
-        steps), with du = -K dx.
+        """The optimal state feedback: the gain $K$ that minimises
+        $J = \\int (\\delta x^T Q\\,\\delta x + \\delta u^T R\\,\\delta u)\\,dt$
+        (for a map, the sum over the steps), with $\\delta u = -K\\,\\delta x$.
 
-        ``Q`` weighs the states' distances from the point and ``R`` the
-        inputs: a number (times the identity), one number per state or
-        input (a diagonal matrix), or a full symmetric matrix. Both default
-        to the identity. Returns an :class:`LQR`: the gain ``K`` (inputs x
-        states), the solution ``P`` of the Riccati equation (the cost from
-        dx is dx^T P dx) and the closed loop's ``poles``. Raises
-        ``ValueError`` when R is not positive definite, or when no gain
-        stabilises the loop (an unstable mode the inputs cannot move, or
-        one Q does not see). The engine solves the Riccati equation
-        (``xppe_lqr``: the matrix sign function for a continuous model,
-        the doubling algorithm for a map), so the desktop app's LQR gives
-        the same numbers."""
+        The engine solves the Riccati equation (by the matrix sign function
+        for a continuous model, the doubling algorithm for a map), so the
+        desktop app's LQR gives the same numbers.
+
+        Args:
+            Q: the weight of the states' distances from the point: a number
+                (times the identity), one number per state (a diagonal
+                matrix), or a symmetric matrix. By default the identity.
+            R: the weight of the inputs, likewise.
+
+        Returns:
+            An [`LQR`][xpplab.LQR]: the gain ``K``, the Riccati solution
+            ``P`` and the closed loop's ``poles``.
+
+        Raises:
+            ValueError: no inputs, ``R`` not positive definite, or no gain
+                stabilises the loop (an unstable mode the inputs cannot
+                move, or one ``Q`` does not see).
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode"))
+            >>> lin = m.linearize(inputs=["iapp"])
+            >>> lin.lqr()
+            LQR(K=[[ 2.5521 -1.2845]], poles=[-1.4048+0.j -0.4194+0.j])
+            >>> lin.lqr(Q=[10, 1], R=0.1)
+            LQR(K=[[11.2347 -0.95  ]], poles=[-10.0468+0.j  -0.46  +0.j])
+
+        See also:
+            [lqr](../reference/lqr.md) in the command window;
+            [`place_poles`][xpplab.Linearization.place_poles].
+        """
         n, k = self.B.shape
         if k == 0:
             raise ValueError("LQR needs inputs (linearize(inputs=[...]))")
@@ -337,13 +531,31 @@ class Linearization:
 @dataclass
 class RootLocus:
     """How the eigenvalues move as a gain or a parameter changes.
+    [`Linearization.root_locus`][xpplab.Linearization.root_locus] and
+    [`Model.root_locus`][xpplab.Model.root_locus] return one.
 
-    ``values`` are the gains (or the parameter's values), ``poles`` the
-    eigenvalues there: one row per value and one column per branch. The
-    engine matches each step's eigenvalues to the last ones, so a column
-    follows one eigenvalue. Over a parameter, ``x`` holds the equilibrium at
-    each value (NaN where Newton's method failed) and ``variables`` names
-    its columns."""
+    The engine matches each step's eigenvalues to the last ones, so a
+    column of ``poles`` follows one eigenvalue.
+
+    Attributes:
+        name (str): ``"gain"``, or the parameter.
+        values (numpy.ndarray): the gains, or the parameter's values.
+        poles (numpy.ndarray): the eigenvalues, one row per value and one
+            column per branch.
+        discrete (bool): the model is a map.
+        x (numpy.ndarray | None): over a parameter, the equilibrium at each
+            value (NaN where Newton's method failed).
+        variables (list[str]): the columns of ``x``.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode")).apply_set("hopf")
+        >>> rl = m.root_locus("iapp", (0, 0.4), 41)
+        >>> rl.poles.shape, rl.x.shape
+        ((41, 2), (41, 2))
+
+    See also:
+        [locus](../reference/locus.md) in the command window.
+    """
 
     name: str  # "gain", or the parameter
     values: np.ndarray
@@ -353,10 +565,23 @@ class RootLocus:
     variables: list[str] = field(default_factory=list)
 
     def crossings(self) -> list[tuple[float, complex]]:
-        """Where a branch crosses the edge of stability (the imaginary axis,
-        for a map the unit circle): (value, pole) pairs, interpolated
-        linearly between the two steps around each crossing, in order of
-        value."""
+        """Where a branch crosses the edge of stability: the imaginary
+        axis, or for a map the unit circle.
+
+        Returns:
+            ``(value, pole)`` pairs, interpolated linearly between the two
+            steps around each crossing, in the order of the values.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode")).apply_set("hopf")
+            >>> rl = m.root_locus("iapp", (0, 0.4), 41)
+            >>> [(round(v, 4), round(abs(z.imag), 4)) for v, z in rl.crossings()]
+            [(0.2622, 0.4341), (0.2622, 0.4341)]
+
+        See also:
+            [`Auto.equilibria`][xpplab.auto.Auto.equilibria], which finds a
+            Hopf point exactly.
+        """
         out = []
         edge = (np.abs(self.poles) - 1.0) if self.discrete else self.poles.real
         for b in range(self.poles.shape[1]):
@@ -373,10 +598,25 @@ class RootLocus:
         return sorted(out, key=lambda c: c[0])
 
     def to_csv(self, path) -> None:
-        """One row per value, every number exact: the value, the
-        equilibrium (over a parameter), then each branch's real and
-        imaginary part (re1, im1, re2, ...). The desktop app's
-        ``export FILE.csv locus`` writes the same file."""
+        """Write the locus as a CSV file, every number exact.
+
+        There is one row per value: the value, the equilibrium (over a
+        parameter), then each branch's real and imaginary parts (``re1``,
+        ``im1``, ``re2``, ...). The desktop app's ``export FILE.csv locus``
+        writes the same file.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode")).apply_set("hopf")
+            >>> m.root_locus("iapp", (0, 0.4), 41).to_csv("locus.csv")
+            >>> open("locus.csv").readline()
+            'iapp,V,W,re1,im1,re2,im2\\n'
+
+        See also:
+            [export](../reference/export.md) in the command window.
+        """
         from .analysis import write_csv
         n = self.poles.shape[1]
         cols = [self.name] + list(self.variables)
@@ -392,8 +632,20 @@ class RootLocus:
         write_csv(path, cols, rows)
 
     def to_mat(self, path) -> None:
-        """The columns of :meth:`to_csv` as a MATLAB .mat file (the desktop
-        app's ``export FILE.mat locus`` writes the same file)."""
+        """Write the columns of [`to_csv`][xpplab.RootLocus.to_csv] as a
+        MATLAB .mat file. The desktop app's ``export FILE.mat locus`` writes
+        the same file.
+
+        Args:
+            path: the file to write.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode")).apply_set("hopf")
+            >>> m.root_locus("iapp", (0, 0.4), 41).to_mat("locus.mat")
+
+        See also:
+            [export](../reference/export.md) in the command window.
+        """
         from .analysis import write_mat
         n = self.poles.shape[1]
         names = [self.name]
@@ -407,8 +659,25 @@ class RootLocus:
         write_mat(path, names, cols)
 
     def plot(self, ax=None):
-        """The branches in the complex plane, each from an x (the first
-        value) to an o (the last), with the stable region shaded."""
+        """Plot the branches in the complex plane, each from an x (the
+        first value) to an o (the last), with the stable region shaded.
+        Needs matplotlib.
+
+        Args:
+            ax: the matplotlib axes to draw in; by default new ones.
+
+        Returns:
+            The matplotlib axes.
+
+        Examples:
+            >>> m = xs.load(xs.example("lecar.ode")).apply_set("hopf")
+            >>> ax = m.root_locus("iapp", (0, 0.4), 41).plot()
+            >>> ax.get_title()
+            'root locus: iapp from 0 (x) to 0.4 (o)'
+
+        See also:
+            [locus](../reference/locus.md) in the command window.
+        """
         import matplotlib.pyplot as plt
         if ax is None:
             _, ax = plt.subplots()
@@ -448,11 +717,31 @@ class RootLocus:
 
 @dataclass
 class LQR:
-    """The result of :meth:`Linearization.lqr`."""
+    """An optimal state feedback, the result of
+    [`Linearization.lqr`][xpplab.Linearization.lqr].
 
-    K: np.ndarray      # the gain: du = -K dx
-    P: np.ndarray      # the Riccati solution: the cost from dx is dx^T P dx
-    poles: np.ndarray  # the eigenvalues of A - B K
+    Attributes:
+        K (numpy.ndarray): the gain: $\\delta u = -K\\,\\delta x$.
+        P (numpy.ndarray): the solution of the Riccati equation; the cost
+            from $\\delta x$ is $\\delta x^T P\\,\\delta x$.
+        poles (numpy.ndarray): the eigenvalues of $A - BK$.
+        Q (numpy.ndarray): the states' weight, as a matrix.
+        R (numpy.ndarray): the inputs' weight, as a matrix.
+
+    Examples:
+        >>> m = xs.load(xs.example("lecar.ode"))
+        >>> q = m.linearize(inputs=["iapp"]).lqr()
+        >>> np.round(q.P, 4)
+        array([[ 2.5521, -1.2845],
+               [-1.2845,  2.4258]])
+
+    See also:
+        [lqr](../reference/lqr.md) in the command window.
+    """
+
+    K: np.ndarray
+    P: np.ndarray
+    poles: np.ndarray
     Q: np.ndarray
     R: np.ndarray
 

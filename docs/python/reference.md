@@ -1,18 +1,49 @@
 # API reference
 
-::: xpplab.Model
+Every function, class and method of the `xpplab` package. Each entry gives
+the arguments, what it returns, the errors it raises, an example with its
+output, and links to the command of the desktop app that does the same
+(the [command reference](../reference/reference.md)). The examples are run
+by the tests, as written, so the outputs shown are the package's.
+
+The examples start with `import xpplab as xs` and `import numpy as np`,
+in an empty folder. Those of `xs.app` need the desktop app running with
+`lecar.ode` open. `xs.doc(m.run)` opens the command reference page of a
+method.
+
+## Models
+
+::: xpplab.load
 
 ::: xpplab.example
 
+::: xpplab.Model
+    options:
+      inherited_members: true
+
+::: xpplab.EngineError
+
+::: xpplab.find_engine_library
+
+## Runs
+
 ::: xpplab.Trajectory
+
+::: xpplab.RunList
+
+::: xpplab.Values
+
+::: xpplab.Ensemble
+
+::: xpplab.Sensitivity
+
+## Equilibria
 
 ::: xpplab.Equilibrium
 
-::: xpplab.Linearization
+::: xpplab.EquilibriumList
 
-::: xpplab.Table
-
-::: xpplab.Animation
+## Bifurcations with AUTO
 
 ::: xpplab.auto.Auto
 
@@ -20,4 +51,42 @@
 
 ::: xpplab.Point
 
-::: xpplab.EngineError
+## Analysis
+
+::: xpplab.Table
+
+## Control design
+
+::: xpplab.Linearization
+
+::: xpplab.LQR
+
+::: xpplab.RootLocus
+
+## Figures and animations
+
+::: xpplab.Figure
+
+::: xpplab.figure.Panel
+    options:
+      inherited_members: true
+
+::: xpplab.figure.Series
+
+::: xpplab.Annotations
+
+::: xpplab.Animation
+
+::: xpplab.animation.Shape
+
+## The desktop app and the documentation
+
+::: xpplab.doc
+
+::: xpplab.app.connect
+
+::: xpplab.app.App
+
+::: xpplab.app.AppModel
+
+::: xpplab.app.AppError

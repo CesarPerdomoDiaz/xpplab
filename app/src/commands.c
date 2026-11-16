@@ -437,15 +437,30 @@ static void cmd_kinescope(App *a, char *rest) {
     app_kine_clear(a);
     app_log(a, "Kinescope emptied.");
   } else if (w && !strcmp(w, "play")) {
-    if (x && is_number(x)) k->ms = atoi(x);
-    k->playing = k->n > 1;
-    k->acc = 0;
+    if (x && (!is_number(x) || atoi(x) < 1)) {
+      app_log(a, "error: kinescope play takes the milliseconds per frame, a "
+                 "positive whole number (kinescope play 200)");
+    } else if (k->n < 2) {
+      app_log(a, "error: the Kinescope has %d frame%s; it plays two or more "
+                 "(kinescope capture takes one)", k->n, k->n == 1 ? "" : "s");
+    } else {
+      if (x) k->ms = atoi(x);
+      k->playing = true;
+      k->acc = 0;
+    }
   } else if (w && !strcmp(w, "stop")) {
     k->playing = false;
   } else if (w && !strcmp(w, "show") && x && is_number(x)) {
     int i = atoi(x);
-    if (i >= 1 && i <= k->n) k->cur = i - 1;
-    k->playing = false;
+    if (i >= 1 && i <= k->n) {
+      k->cur = i - 1;
+      k->playing = false;
+    } else if (k->n == 0) {
+      app_log(a, "error: the Kinescope has no frames yet.");
+    } else {
+      app_log(a, "error: the Kinescope has %d frame%s; show takes 1 to %d", k->n,
+              k->n == 1 ? "" : "s", k->n);
+    }
   } else if (w && !strcmp(w, "save") && x) {
     char *ms = next_word(&rest);
     app_kine_save_gif(a, x, ms && is_number(ms) ? atoi(ms) : k->ms);
@@ -1016,6 +1031,72 @@ static void cmd_annotate(App *a, char *rest) {
   app_note_add(a, w, &n);
 }
 
+/* A whole number from 1 (rows, columns, panels, dpi). */
+static bool is_count(const char *s) {
+  return is_number(s) && atof(s) >= 1 && atof(s) <= 100000 && atof(s) == (int)atof(s);
+}
+
+/* The words of figure style: each option checked before any is applied. */
+static bool fig_style(App *a, FigSeries *s, char *rest) {
+  static const char *lines[] = {"none", "-", "--", ":", "-."};
+  static const char *marks[] = {"none", "o", "s", "^", "D", "x", "+", "*", "."};
+  char *o;
+  int i;
+  while ((o = next_word(&rest)) != NULL) {
+    if (!strcmp(o, "color")) {
+      char *c = next_word(&rest), *h = c && c[0] == '#' ? c + 1 : c;
+      unsigned v;
+      if (!h || strlen(h) != 6 || strspn(h, "0123456789abcdefABCDEF") != 6) {
+        app_log(a, "error: figure style: color is #rrggbb (six hex digits), not '%s'", c ? c : "");
+        return false;
+      }
+      v = (unsigned)strtoul(h, NULL, 16);
+      s->color[0] = ((v >> 16) & 255) / 255.0f;
+      s->color[1] = ((v >> 8) & 255) / 255.0f;
+      s->color[2] = (v & 255) / 255.0f;
+      memcpy(s->mcolor, s->color, sizeof s->color);
+    } else if (!strcmp(o, "line") || !strcmp(o, "marker")) {
+      bool line = o[0] == 'l';
+      const char **names = line ? lines : marks;
+      int n = line ? FIG_LINE_COUNT : FIG_MARK_COUNT;
+      char *l = next_word(&rest);
+      for (i = 0; l && i < n; i++)
+        if (!strcmp(l, names[i])) break;
+      if (!l || i == n) {
+        app_log(a, line ? "error: figure style: line is -, --, :, -. or none, not '%s'"
+                        : "error: figure style: marker is o, s, ^, D, x, +, *, . or none, "
+                          "not '%s'", l ? l : "");
+        return false;
+      }
+      if (line) s->line = i;
+      else s->marker = i;
+    } else if (!strcmp(o, "width")) {
+      char *v = next_word(&rest);
+      if (!is_number(v) || atof(v) <= 0) {
+        app_log(a, "error: figure style: width is a positive number of points");
+        return false;
+      }
+      s->width = (float)atof(v);
+    } else if (!strcmp(o, "scale")) {
+      char *sx = next_word(&rest), *sy = next_word(&rest);
+      if (!is_number(sx) || !is_number(sy)) {
+        app_log(a, "error: figure style: scale SX SY, two numbers");
+        return false;
+      }
+      s->sx = strtod(sx, NULL);
+      s->sy = strtod(sy, NULL);
+    } else if (!strcmp(o, "label")) {
+      snprintf(s->label, FIG_TEXT, "%s", skip_space(rest));
+      break;
+    } else {
+      app_log(a, "error: figure style takes color, line, width, marker, scale and "
+                 "label, not '%s'", o);
+      return false;
+    }
+  }
+  return true;
+}
+
 /* figure ...: the Figure window from the command window and scripts. */
 static void cmd_figure(App *a, char *rest) {
   FigUI *g = &a->fg;
@@ -1029,16 +1110,24 @@ static void cmd_figure(App *a, char *rest) {
   if (!strcmp(w, "new")) {
     char *ws = next_word(&rest), *hs = next_word(&rest), *rs = next_word(&rest),
          *cs = next_word(&rest);
+    if ((ws && (!is_number(ws) || atof(ws) <= 5)) || (hs && (!is_number(hs) || atof(hs) <= 5)) ||
+        (rs && !is_count(rs)) || (cs && !is_count(cs)) ||
+        (rs ? atoi(rs) : 1) * (cs ? atoi(cs) : 1) > FIG_MAX_PANELS) {
+      app_log(a, "error: figure new W H [ROWS COLS]: the page in millimetres, more "
+                 "than 5 each, and at most %d panels", FIG_MAX_PANELS);
+      return;
+    }
     app_fig_new(a, ws ? (float)atof(ws) : 86, hs ? (float)atof(hs) : 65, rs ? atoi(rs) : 1,
                 cs ? atoi(cs) : 1);
   } else if (!strcmp(w, "panel")) {
     char *p = next_word(&rest);
-    int k = p ? atoi(p) - 1 : -1;
+    int k = is_count(p) ? atoi(p) - 1 : -1;
     if (k < 0 || k >= g->fig.npanels) app_log(a, "error: figure panel K, from 1 to %d", g->fig.npanels);
     else g->panel = k;
   } else if (!strcmp(w, "grid")) {
     char *r = next_word(&rest), *c = next_word(&rest);
-    if (!r || !c || !app_fig_grid(a, atoi(r), atoi(c))) app_log(a, "error: figure grid ROWS COLS");
+    if (!is_count(r) || !is_count(c) || !app_fig_grid(a, atoi(r), atoi(c)))
+      app_log(a, "error: figure grid ROWS COLS, at most %d panels", FIG_MAX_PANELS);
   } else if (!strcmp(w, "inset")) {
     int k = app_fig_inset(a, panel < g->fig.rows * g->fig.cols ? panel : 0);
     if (k < 0) app_log(a, "error: the figure has no room for another panel");
@@ -1076,7 +1165,11 @@ static void cmd_figure(App *a, char *rest) {
     while ((o = next_word(&rest)) != NULL) {
       if (!strcmp(o, "x")) {
         char *x = next_word(&rest);
-        if (x) snprintf(d.x, sizeof d.x, "%s", x);
+        if (!x) {
+          app_log(a, "error: figure diagram: x takes a name");
+          return;
+        }
+        snprintf(d.x, sizeof d.x, "%s", x);
       } else if (!strcmp(o, "min")) d.which = 1;
       else if (!strcmp(o, "max")) d.which = 0;
       else if (!strcmp(o, "stable")) d.stable = 1;
@@ -1085,46 +1178,66 @@ static void cmd_figure(App *a, char *rest) {
       else if (!strcmp(o, "orbits")) d.periodic = 1;
       else if (!strcmp(o, "branch")) {
         char *b = next_word(&rest);
+        if (!is_number(b)) {
+          app_log(a, "error: figure diagram: branch takes the branch's number");
+          return;
+        }
         d.any_branch = false;
-        d.branch = b ? atoi(b) : 0;
+        d.branch = atoi(b);
       } else if (!strcmp(o, "where")) {
         char *c = next_word(&rest), *w = next_word(&rest), *lo = next_word(&rest),
              *hi = next_word(&rest);
-        if (c && w && lo && hi) {
-          snprintf(d.where, sizeof d.where, "%s", c);
-          d.where_which = !strcmp(w, "min");
-          d.where_lo = strtod(lo, NULL);
-          d.where_hi = strtod(hi, NULL);
+        if (!c || !w || (strcmp(w, "min") && strcmp(w, "max")) || !is_number(lo) ||
+            !is_number(hi)) {
+          app_log(a, "error: figure diagram: where COLUMN max|min LO HI");
+          return;
         }
+        snprintf(d.where, sizeof d.where, "%s", c);
+        d.where_which = !strcmp(w, "min");
+        d.where_lo = strtod(lo, NULL);
+        d.where_hi = strtod(hi, NULL);
       } else if (!strcmp(o, "between")) {
         char *l1 = next_word(&rest), *l2 = next_word(&rest);
-        d.lab1 = l1 ? atoi(l1) : 0;
-        d.lab2 = l2 ? atoi(l2) : 0;
+        if (!is_number(l1) || !is_number(l2)) {
+          app_log(a, "error: figure diagram: between takes two labels of the diagram");
+          return;
+        }
+        d.lab1 = atoi(l1);
+        d.lab2 = atoi(l2);
+      } else {
+        app_log(a, "error: figure diagram takes x, min, max, stable, unstable, steady, "
+                   "orbits, branch, where and between, not '%s'", o);
+        return;
       }
     }
     app_fig_add_diagram(a, panel, &d);
   } else if (!strcmp(w, "range")) {
     char *which = next_word(&rest);
-    app_fig_add_sweep(a, panel, which && !strcmp(which, "min"));
+    if (which && strcmp(which, "min") && strcmp(which, "max"))
+      app_log(a, "error: write figure range, figure range max or figure range min");
+    else
+      app_fig_add_sweep(a, panel, which && !strcmp(which, "min"));
   } else if (!strcmp(w, "function")) {
     char *e = next_word(&rest), *lo = next_word(&rest), *hi = next_word(&rest);
-    if (!e || !lo || !hi) app_log(a, "error: figure function FORMULA LO HI (no spaces in it)");
+    if (!e || !is_number(lo) || !is_number(hi))
+      app_log(a, "error: figure function FORMULA LO HI (no spaces in it; LO and HI numbers)");
     else app_fig_add_function(a, panel, e, strtod(lo, NULL), strtod(hi, NULL), 400);
   } else if (!strcmp(w, "curve")) {
     char *y = next_word(&rest), *x = next_word(&rest), *lo = next_word(&rest),
          *hi = next_word(&rest);
     int v = x ? app_find_var(a, x) : -1;
-    if (!y || v < 0 || !lo || !hi) app_log(a, "error: figure curve Y X LO HI");
+    if (!y || v < 0 || !is_number(lo) || !is_number(hi))
+      app_log(a, "error: figure curve Y X LO HI (X a variable; LO and HI numbers)");
     else app_fig_add_curve(a, panel, y, v, strtod(lo, NULL), strtod(hi, NULL), 400);
   } else if (!strcmp(w, "eq")) {
     app_fig_add_equilibria(a, panel, a->pp.xvar, a->pp.yvar);
   } else if (!strcmp(w, "from")) {
     char *which = next_word(&rest);
-    FigureKind k = FIG_PHASE;
-    if (which && !strcmp(which, "time")) k = FIG_TIME;
-    if (which && !strcmp(which, "auto")) k = FIG_AUTO;
-    if (which && !strcmp(which, "auto2")) k = FIG_AUTO2;
-    app_fig_from_plot(a, k);
+    int k = which ? figure_word(which) : FIG_PHASE;
+    if (k < 0)
+      app_log(a, "error: write figure from time, phase, auto or auto2");
+    else
+      app_fig_from_plot(a, (FigureKind)k);
   } else if (!strcmp(w, "title") || !strcmp(w, "xlabel") || !strcmp(w, "ylabel")) {
     FigPanel *p = &g->fig.p[panel];
     char *t = skip_space(rest);
@@ -1138,7 +1251,10 @@ static void cmd_figure(App *a, char *rest) {
     if (lo && !strcmp(lo, "auto")) {
       if (x) p->autox = true;
       else p->autoy = true;
-    } else if (lo && hi) {
+    } else if (!is_number(lo) || !is_number(hi) || strtod(lo, NULL) == strtod(hi, NULL)) {
+      app_log(a, "error: figure %s LO HI, two different numbers, or figure %s auto", w, w);
+      return;
+    } else {
       if (x) {
         p->autox = false;
         p->xmin = strtod(lo, NULL);
@@ -1154,55 +1270,32 @@ static void cmd_figure(App *a, char *rest) {
   } else if (!strcmp(w, "style")) {
     /* figure style K [color #rrggbb] [line -|--|:|-.|none] [width W]
        [marker o|s|^|D|x|+|*|.|none] [scale SX SY] [label TEXT] */
-    char *ks = next_word(&rest), *o;
+    char *ks = next_word(&rest);
     FigPanel *p = &g->fig.p[panel];
-    int k = ks ? atoi(ks) - 1 : -1;
+    int k = is_count(ks) ? atoi(ks) - 1 : -1;
+    FigSeries s;
+    if (p->nseries == 0) {
+      app_log(a, "error: figure style: the panel has no series yet");
+      return;
+    }
     if (k < 0 || k >= p->nseries) {
       app_log(a, "error: figure style K ...: K from 1 to %d", p->nseries);
       return;
     }
-    while ((o = next_word(&rest)) != NULL) {
-      FigSeries *s = &p->s[k];
-      if (!strcmp(o, "color")) {
-        char *c = next_word(&rest);
-        unsigned v = c ? (unsigned)strtoul(c[0] == '#' ? c + 1 : c, NULL, 16) : 0;
-        s->color[0] = ((v >> 16) & 255) / 255.0f;
-        s->color[1] = ((v >> 8) & 255) / 255.0f;
-        s->color[2] = (v & 255) / 255.0f;
-        memcpy(s->mcolor, s->color, sizeof s->color);
-      } else if (!strcmp(o, "line")) {
-        static const char *names[] = {"none", "-", "--", ":", "-."};
-        char *l = next_word(&rest);
-        int i;
-        for (i = 0; l && i < FIG_LINE_COUNT; i++)
-          if (!strcmp(l, names[i])) s->line = i;
-      } else if (!strcmp(o, "width")) {
-        char *v = next_word(&rest);
-        if (v) s->width = (float)atof(v);
-      } else if (!strcmp(o, "marker")) {
-        static const char *names[] = {"none", "o", "s", "^", "D", "x", "+", "*", "."};
-        char *l = next_word(&rest);
-        int i;
-        for (i = 0; l && i < FIG_MARK_COUNT; i++)
-          if (!strcmp(l, names[i])) s->marker = i;
-      } else if (!strcmp(o, "scale")) {
-        char *sx = next_word(&rest), *sy = next_word(&rest);
-        if (sx && sy) {
-          s->sx = strtod(sx, NULL);
-          s->sy = strtod(sy, NULL);
-        }
-      } else if (!strcmp(o, "label")) {
-        snprintf(s->label, FIG_TEXT, "%s", skip_space(rest));
-        break;
-      }
-    }
+    s = p->s[k]; /* changed only if every option is right */
+    if (!fig_style(a, &s, rest)) return;
+    p->s[k] = s;
     g->dirty = true;
     app_fig_sync_echo(a);
   } else if (!strcmp(w, "export")) {
     char *f = next_word(&rest), *dpi = next_word(&rest);
-    if (dpi) g->fig.dpi = atoi(dpi);
-    if (!f) app_log(a, "error: figure export FILE.pdf|svg|eps|png [DPI]");
-    else app_fig_export(a, f);
+    if (!f || (dpi && (!is_count(dpi) || atoi(dpi) < 50 || atoi(dpi) > 2400)))
+      app_log(a, "error: figure export FILE.pdf|svg|eps|png [DPI], DPI a whole number "
+                 "from 50 to 2400, as in the Figure window");
+    else {
+      if (dpi) g->fig.dpi = atoi(dpi);
+      app_fig_export(a, f);
+    }
   } else {
     app_log(a, "error: unknown figure command '%s'; try 'help'", w);
   }
@@ -1316,6 +1409,9 @@ void app_command(App *a, const char *line_in) {
         pyfetch_pip(a, py, pkgs);
       else
         app_log(a, "error: start the console first (py), so that pip runs with its Python");
+    } else if (w) {
+      app_log(a, "error: python takes use PATH, stop, fetch [stop] or install "
+                 "PACKAGE ...; python alone says which Python the console uses");
     } else {
       char own[1100];
       app_log(a, pyconsole_running() ? "Python is running: %s" : "Python is not running%s",
@@ -1332,7 +1428,7 @@ void app_command(App *a, const char *line_in) {
       channel_stop(a);
       app_log(a, "Python can no longer connect (serve on lets it again).");
     } else if (w && strcmp(w, "on")) {
-      app_log(a, "Write: serve, serve on or serve off");
+      app_log(a, "error: write serve, serve on or serve off");
     } else if (a->batch) {
       app_log(a, "error: xpplab-batch has no channel; drive the desktop app instead");
     } else if (channel_start(a)) {

@@ -100,6 +100,42 @@ with tempfile.TemporaryDirectory() as t:
           and "Write: open FILE.ode" in r.stdout, "layout, theme, open: " + r.stdout[-500:])
     check(">> whos" not in r.stdout, "quit ends the commands: " + r.stdout[-300:])
 
+    # python with a wrong word said which Python was in use instead
+    r = run(["lecar.ode", "--keep-going", "-c", "python bogus", "-c", "python",
+             "-c", "serve x"], work)
+    check("error: python takes use PATH, stop, fetch [stop] or install" in r.stdout
+          and "Python is not running" in r.stdout, "python's words: " + r.stdout[-300:])
+    check("error: write serve, serve on or serve off" in r.stdout,
+          "serve's words: " + r.stdout[-300:])
+
+    # figure took a wrong number as 0 and skipped wrong words
+    r = run(["lecar.ode", "--keep-going", "-c", "figure new 0 65", "-c", "figure new 86 65 1 2",
+             "-c", "figure panel x", "-c", "figure xlim a b", "-c", "figure xlim 2 2",
+             "-c", "figure style 1 color #d62728", "-c", "figure run T V",
+             "-c", "figure style 1 color red", "-c", "figure style 1 line ==",
+             "-c", "figure style 1 width -1", "-c", "figure style 1 colour #d62728",
+             "-c", "figure diagram V stabel", "-c", "figure from tim",
+             "-c", "figure range mid", "-c", "figure function x a 1",
+             "-c", "figure export f.png 7", "-c", "figure xlim 0 50",
+             "-c", "figure style 1 color #d62728 line -- width 2 label V"], work)
+    for want in ["error: figure new W H [ROWS COLS]: the page in millimetres",
+                 "error: figure panel K, from 1 to 2",
+                 "error: figure xlim LO HI, two different numbers, or figure xlim auto",
+                 "error: figure style: the panel has no series yet",
+                 "error: figure style: color is #rrggbb (six hex digits), not 'red'",
+                 "error: figure style: line is -, --, :, -. or none, not '=='",
+                 "error: figure style: width is a positive number of points",
+                 "error: figure style takes color, line, width, marker, scale and label, not 'colour'",
+                 "error: figure diagram takes x, min, max",
+                 "error: write figure from time, phase, auto or auto2",
+                 "error: write figure range, figure range max or figure range min",
+                 "error: figure function FORMULA LO HI",
+                 "error: figure export FILE.pdf|svg|eps|png [DPI], DPI a whole number from 50"]:
+        check(want in r.stdout, "figure: %s\n%s" % (want, r.stdout[-1500:]))
+    # the good ones still work, and are written as Python
+    good = r.stdout.split(">> figure xlim 0 50")[1]
+    check("error" not in good, "figure xlim 0 50 and a good style: " + good)
+
     # fitdata reads the CSV that export writes (a header, commas)
     r = run(["lecar.ode", "--keep-going", "-c", "set iapp=0.1", "-c", "run",
              "-c", "export data.csv", "-c", "set gca=1.2 gk=1.8",

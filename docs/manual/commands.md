@@ -374,8 +374,8 @@ export diagram.svg auto
 The command window's text goes to the terminal. The first command that
 fails stops the run, and `xpplab-batch` exits with status 1 (0 when all
 went well, 2 for a mistake in the options), so a script can tell. A `set`
-of a name the app does not know prints a note but goes on, since XPPAUT
-accepts options the app does not list.
+of a name that is no parameter, variable or option is such a failure:
+`error: unknown name NAME`.
 
 | Option | Action |
 |---|---|

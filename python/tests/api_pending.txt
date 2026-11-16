@@ -1,23 +1,5 @@
 # Members of the Python API not yet written to the reference standard
 # (test_api_docs.py). The list may only shrink.
-Figure
-Figure.set
-Figure.text
-Figure.arrow
-Figure.marker
-Figure.clear_annotations
-Figure.grid
-Figure.inset
-Figure.draw
-Figure.save
-Annotations
-Animation
-Animation.frame
-Animation.nullclines
-Animation.grab_points
-Animation.grab
-Animation.plot
-Animation.save_gif
 app.connect
 app.App
 app.App.close

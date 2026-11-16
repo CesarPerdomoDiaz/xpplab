@@ -68,9 +68,17 @@ shorter description and no example yet.
 
 ::: xpplab.Figure
 
+::: xpplab.figure.Panel
+    options:
+      inherited_members: true
+
+::: xpplab.figure.Series
+
 ::: xpplab.Annotations
 
 ::: xpplab.Animation
+
+::: xpplab.animation.Shape
 
 ## The desktop app and the documentation
 

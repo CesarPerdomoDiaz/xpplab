@@ -132,14 +132,19 @@ The same from the command window or an `xpplab-batch` script:
 
 ```
 figure new 86 65 1 2           a page of 86 x 65 mm, one row of two panels
+figure grid 2 2                change to 2 rows of 2 columns
+figure inset                   add an inset to the selected panel
 figure panel 2                 work on panel 2
 figure run T V                 two columns of the run
+figure eq                      the equilibria, in the phase plane's variables
+figure range max               the Range's maxima (or min)
+figure from phase              the plot of a window: time, phase, auto, auto2
 figure many V W split          the many runs, a series per ending
 figure diagram V stable steady   (also: unstable, orbits, min, x X,
                                  branch B, between L1 L2, where COL min LO HI)
 figure function 1/sqrt(x) 0.1 10
 figure curve V' V -1 1
-figure xlabel Wind velocity $V_W$ [m/s]
+figure xlabel Wind velocity $V_W$ [m/s]   (title and ylabel the same)
 figure xlim 2.1 2.3            (ylim, or xlim auto)
 figure style 1 color #d62728 line -- width 1 marker o scale 1 57.2958 label Stable
 figure export figure.pdf       (or .svg, .eps, .png 600)

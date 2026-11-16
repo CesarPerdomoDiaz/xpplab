@@ -87,16 +87,19 @@ void ui_menu_bar(App *a) {
   igEndMainMenuBar();
 }
 
-static bool tool(const char *label, const char *tip, bool enabled) {
+/* A toolbar button; doc names its reference page, which F1 over it opens. */
+static bool tool(const char *label, const char *tip, bool enabled, const char *doc) {
   bool clicked;
   igBeginDisabled(!enabled);
   clicked = igButton(label, V2(0, 0));
   igEndDisabled();
+  if (doc) DocHover(doc);
   if (igIsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled |
                       ImGuiHoveredFlags_DelayShort) &&
       igBeginTooltip()) {
     igPushTextWrapPos(igGetFontSize() * 28.0f);
     igTextUnformatted(tip, NULL);
+    if (doc) igTextDisabled("F1: its reference page (doc %s).", doc);
     igPopTextWrapPos();
     igEndTooltip();
   }
@@ -107,10 +110,10 @@ static bool tool(const char *label, const char *tip, bool enabled) {
 void ui_toolbar(App *a, float height) {
   bool ok = a->model_ok;
   (void)height;
-  if (tool("New", "Start a new model from a template (" MOD "N).", true))
+  if (tool("New", "Start a new model from a template (" MOD "N).", true, "new"))
     app_new_model(a);
-  if (tool("Open", "Open an XPPAUT .ode file (" MOD "O).", true)) ui_dialog_open(a);
-  if (tool("Save", "Save the model and reload it (" MOD "S).", a->editor[0] != 0))
+  if (tool("Open", "Open an XPPAUT .ode file (" MOD "O).", true, "open")) ui_dialog_open(a);
+  if (tool("Save", "Save the model and reload it (" MOD "S).", a->editor[0] != 0, "save"))
     app_apply_editor(a);
   igTextDisabled("|");
   igSameLine(0, 6);
@@ -118,26 +121,26 @@ void ui_toolbar(App *a, float height) {
   igPushStyleColor_Vec4(ImGuiCol_ButtonHovered, HEX(0x388e3c));
   igPushStyleColor_Vec4(ImGuiCol_Text, HEX(0xffffff));
   if (tool("  Run  ", "Integrate from the current initial values (F5, or I G).",
-           ok))
+           ok, "run"))
     app_run(a);
   igPopStyleColor(3);
   if (tool("Equilibrium",
            "Find a steady state near the current initial values with "
            "Newton's method, and show its stability (S G).",
-           ok))
+           ok, "eq"))
     app_command(a, "eq");
   if (tool("Nullclines",
            "Draw the curves where dx/dt = 0 and dy/dt = 0 in the phase plane "
            "(N N). Equilibria sit where they cross.",
-           ok && a->nvars > 1))
+           ok && a->nvars > 1, "nullclines"))
     app_command(a, a->pp.nullclines ? "nullclines off" : "nullclines");
   if (tool("Flow", "Show the direction field in the phase plane (D D).",
-           ok && a->nvars > 1))
+           ok && a->nvars > 1, "dirfield"))
     app_command(a, "dirfield");
   if (tool("Bifurcation",
            "Open the AUTO window: follow equilibria and periodic orbits as a "
            "parameter changes.",
-           ok)) {
+           ok, "auto steady")) {
     a->show_auto = true;
     igSetWindowFocus_Str(WIN_AUTO);
   }
@@ -145,7 +148,7 @@ void ui_toolbar(App *a, float height) {
            "Spectra, histograms, correlations, Liapunov exponents, phase "
            "response curves and curve fitting on the last run; the "
            "linearisation at an equilibrium.",
-           ok)) {
+           ok, NULL)) {
     a->show_analysis = true;
     igSetWindowFocus_Str(WIN_ANALYSIS);
   }
@@ -153,11 +156,11 @@ void ui_toolbar(App *a, float height) {
       tool("Solve BVP",
            "Solve the boundary-value problem: shoot from the initial values "
            "until the model's bndry conditions hold (XPPAUT's Bndryval).",
-           true))
+           true, "bvp"))
     app_command(a, "bvp");
   if (ok && a->ani.loaded &&
       tool("Animate", "Play the model's animation (.ani file) over the run.",
-           true)) {
+           true, "ani")) {
     a->show_ani = true;
     igSetWindowFocus_Str(WIN_ANI);
   }

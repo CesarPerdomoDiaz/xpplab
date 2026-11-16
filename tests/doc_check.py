@@ -64,6 +64,25 @@ def main(exe, model):
     for name, key in listed:
         check(key in mapped, f"help lists the key {key} for {name}, which the app does not answer to")
 
+    # Every reference page the windows link to (a "?" button, F1 over a
+    # control, a toolbar button, the Analysis window's tools) exists.
+    linked = set()
+    for src in sorted((ROOT / "app" / "src").glob("ui_*.c")):
+        code = src.read_text(encoding="utf-8")
+        linked |= {(n, src.name) for n in re.findall(r'Doc(?:Button\(a, |Hover\()"([^"]+)"', code)}
+        linked |= {(n, src.name) for n in re.findall(r'app_command\(a, "doc ([^"]+)"\)', code)}
+        if src.name == "ui_menu.c":
+            bar = code[code.index("void ui_toolbar"):]
+            linked |= {(n, src.name) for n in re.findall(r',\s*"([a-z][a-z0-9 ]*)"\)\)', bar)}
+        if "tool_doc(" in code:
+            body = code[code.index("static const char *tool_doc"):]
+            body = body[:body.index("\n}\n")]
+            linked |= {(n, src.name) for n in re.findall(r'"([a-z0-9]+)"', body)}
+    check(len(linked) > 20, "the windows' links to reference pages were not found")
+    for name, where in sorted(linked):
+        check((REFERENCE / (name.replace(" ", "-") + ".md")).exists(),
+              f"{where} links to the reference page '{name}', which does not exist")
+
     out = batch(exe, model, "doc")
     check(SITE + "reference/reference" in out, "doc alone opens the index: " + out)
     for name in ("auto steady", "AUTO  Steady"):

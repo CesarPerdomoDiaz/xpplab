@@ -8,7 +8,7 @@
 | Ctrl+Enter | Apply the edited model |
 | Ctrl+O, Ctrl+S, Ctrl+N | Open, save, new model |
 | Ctrl+Q | Quit (⌘ instead of Ctrl on a Mac) |
-| F1 | Help |
+| F1 | Help; over a button, that button's reference page |
 | Ctrl+Shift+P | The command palette: find and run any action or command by name (⌘+Shift+P on a Mac) |
 
 ## XPPAUT's two-key commands

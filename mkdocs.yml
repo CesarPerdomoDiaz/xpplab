@@ -94,6 +94,7 @@ nav:
   - Home: index.md
   - Get started:
       - Install: install.md
+      - "What's new": whats-new.md
       - Getting started with the app: manual/welcome.md
       - "Tutorial: your first model": manual/tutorial.md
       - Trying XPP Lab: testing.md

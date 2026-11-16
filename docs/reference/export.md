@@ -116,10 +116,45 @@ reads back as the same double-precision number. Reading the file gives
 back exactly the numbers XPP Lab computed, which is what makes a session
 and its Python script comparable to the last bit.
 
-**MATLAB names.** Column names are made valid MATLAB names: a character
-that is not a letter, digit or underscore becomes `_`, an `x` goes in front
-of a name that does not start with a letter, and repeated names get `_2`,
-`_3` and so on.
+**MATLAB files.** A name ending in `.mat` gives a MATLAB file for
+everything that `export` writes as CSV. MATLAB's `load` reads it with no
+toolbox: `s = load("run.mat"); plot(s.t, s.V); s.params.iapp`. It is a
+Level 5 MAT-file, little-endian and uncompressed, and every column is a
+column vector of doubles:
+
+| Export | Variables |
+|---|---|
+| a run | `t`, then one vector per variable and auxiliary quantity, named as in the model, and the struct `params` with the parameter values the run used |
+| `range` | the swept value or values, then the measure (`V_max`, `V_min`, or `lyapunov`), and `params`; a Range that follows equilibria has the columns of the CSV and no `params` |
+| `auto` | `branch`, `point`, `label`, `stable`, `periodic`, `two_parameter`, `value`, `value2` (NaN for a one-parameter point), `norm`, `period`, then `V_max` and `V_min` for every variable. The text columns of the CSV (`type`, `parameter`, `parameter2`) are left out. |
+| `equilibria`, `nullclines`, `analysis`, `many`, `locus` | the columns of the CSV file |
+
+`export lin.mat analysis` after `linearize` is not available, because the
+table has a column of state names: use CSV.
+
+**MATLAB names.** MATLAB names start with a letter and hold only letters,
+digits and underscores, up to 63 characters. Each column's name is
+changed by these rules, in this order:
+
+1. every character that is not a letter, digit or underscore becomes `_`
+   (a non-ASCII character becomes one `_`);
+2. if the result does not start with a letter, `x` goes in front (`_u`
+   becomes `x_u`, `1x` becomes `x1x`, and an empty name becomes `x`);
+3. the name is cut to 63 characters;
+4. a MATLAB keyword (`end`, `for`, `if`, `function`, `global`, `while`,
+   ...: the names `iskeyword` lists) gets `_` added, so `end` becomes
+   `end_`;
+5. a name already used earlier in the file gets `_2`, `_3`, ... added until
+   it is new, cut further so that the ending fits. With a `params` struct,
+   `params` counts as used. The parameters' names are made unique among
+   themselves in the same way.
+
+So the column `V max` is `V_max`, and a second `V_max` is `V_max_2`.
+
+**The same bytes.** A MATLAB file holds no date, host or version: its
+header text is always `MATLAB 5.0 MAT-file, written by XPP Lab`. The same
+data gives the same file every time, and the file the app writes and the
+one the session's Python script writes are identical.
 
 ## Tips
 

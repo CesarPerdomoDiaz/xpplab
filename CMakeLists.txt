@@ -43,6 +43,26 @@ set(CPACK_COMPONENTS_ALL app)
 set(CPACK_ARCHIVE_COMPONENT_INSTALL OFF)
 if(WIN32)
   set(CPACK_GENERATOR ZIP)
+  # The installer (per user, no administrator rights) beside the zip, when
+  # NSIS is installed. Its script is packaging/nsis/NSIS.template.in.
+  find_program(XPPS_MAKENSIS makensis
+    PATHS "[HKEY_LOCAL_MACHINE\\SOFTWARE\\NSIS]" "$ENV{ProgramFiles}/NSIS"
+          "$ENV{ProgramFiles\(x86\)}/NSIS")
+  if(XPPS_MAKENSIS)
+    list(APPEND CPACK_GENERATOR NSIS)
+    set(CPACK_MODULE_PATH ${PROJECT_SOURCE_DIR}/packaging/nsis)
+    # One installer for the whole app: without this CPack stages the
+    # component in a subfolder, "app".
+    set(CPACK_MONOLITHIC_INSTALL ON)
+    set(CPACK_XPPS_ICON ${PROJECT_SOURCE_DIR}/app/resources/icon.ico)
+    set(CPACK_NSIS_PACKAGE_NAME "XPP Lab")
+    set(CPACK_NSIS_DISPLAY_NAME "XPP Lab")
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "XPP Lab")
+    set(CPACK_PACKAGE_INSTALL_REGISTRY_KEY "XPPLab")
+    set(CPACK_NSIS_UNINSTALL_NAME "Uninstall")
+  else()
+    message(STATUS "makensis not found: no Windows installer, only the zip")
+  endif()
 elseif(APPLE)
   set(CPACK_GENERATOR DragNDrop)
   set(CPACK_DMG_VOLUME_NAME "XPP Lab")

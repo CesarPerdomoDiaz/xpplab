@@ -141,3 +141,14 @@ if(Python3_FOUND AND TARGET xpplab)
             ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode)
   set_tests_properties(app_python_fetch PROPERTIES TIMEOUT 400 SKIP_RETURN_CODE 77)
 endif()
+
+if(Python3_FOUND AND TARGET xpplab AND WIN32)
+  # The Windows installer, if `cpack` has built it (it needs NSIS): a
+  # silent install, a model opened from the installed app, a silent
+  # uninstall that leaves nothing behind.
+  add_test(NAME windows_installer
+    COMMAND Python3::Interpreter -I ${CMAKE_CURRENT_SOURCE_DIR}/installer_check.py
+            ${CMAKE_BINARY_DIR}/XPPLab-Windows-x64.exe
+            ${PROJECT_SOURCE_DIR}/engine/xppaut/ode/lecar.ode)
+  set_tests_properties(windows_installer PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+endif()

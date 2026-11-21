@@ -32,7 +32,7 @@
 
 | Your computer | Download | Then |
 |---|---|---|
-| **Windows** 10 or 11, 64-bit | [XPPLab-Windows-x64.zip](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest/download/XPPLab-Windows-x64.zip) | Unzip it anywhere and run `xpplab.exe` |
+| **Windows** 10 or 11, 64-bit | [XPPLab-Windows-x64.exe](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest/download/XPPLab-Windows-x64.exe) | Run the installer. Or take the [zip](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest/download/XPPLab-Windows-x64.zip), unzip it anywhere and run `xpplab.exe` |
 | **macOS** 11 or later, Apple silicon or Intel | [XPPLab-macOS.dmg](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest/download/XPPLab-macOS.dmg) | Open it and drag the app to *Applications* |
 | **Linux**, x86-64 | [XPPLab-Linux-x86_64.tar.gz](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest/download/XPPLab-Linux-x86_64.tar.gz) | Unpack it and run `xpplab` |
 | **Python** 3.9 or later | `pip install xpplab` | `import xpplab` |

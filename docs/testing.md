@@ -9,8 +9,8 @@ what broke and what confused you.
 Download the file for your system from the
 [newest release](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest):
 
-- **Windows:** `XPPLab-Windows-x64.zip`. Unzip it anywhere and run
-  `xpplab.exe`.
+- **Windows:** `XPPLab-Windows-x64.exe`. Run the installer. Or take
+  `XPPLab-Windows-x64.zip`, unzip it anywhere and run `xpplab.exe`.
 - **macOS** (11 or later, Apple silicon or Intel): `XPPLab-macOS.dmg`.
   Open it and drag the app to *Applications*.
 - **Linux** (x86-64): `XPPLab-Linux-x86_64.tar.gz`. Unpack it and run

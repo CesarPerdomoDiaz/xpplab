@@ -16,7 +16,7 @@
 
 | Your computer | Download | The first time you open it |
 |---|---|---|
-| **Windows** 10 or 11, 64-bit | [XPPLab-Windows-x64.zip](https://github.com/CesarPerdomoDiaz/xpplab/releases/download/@TAG@/XPPLab-Windows-x64.zip) | Unzip it anywhere and run `xpplab.exe`. If Windows says "Windows protected your PC", click *More info*, then *Run anyway*. |
+| **Windows** 10 or 11, 64-bit | [XPPLab-Windows-x64.exe](https://github.com/CesarPerdomoDiaz/xpplab/releases/download/@TAG@/XPPLab-Windows-x64.exe) (installer) or [XPPLab-Windows-x64.zip](https://github.com/CesarPerdomoDiaz/xpplab/releases/download/@TAG@/XPPLab-Windows-x64.zip) | Run the installer, or unzip the zip anywhere and run `xpplab.exe`. If Windows says "Windows protected your PC", click *More info*, then *Run anyway*. |
 | **macOS** 11 or later, Apple silicon or Intel | [XPPLab-macOS.dmg](https://github.com/CesarPerdomoDiaz/xpplab/releases/download/@TAG@/XPPLab-macOS.dmg) | Open it and drag the app to *Applications*. On macOS 15 and later, open the app once, then click *Open Anyway* in *System Settings > Privacy & Security*. On macOS 14 and earlier, Control-click the app and choose *Open*. |
 | **Linux**, x86-64 (built on Ubuntu 22.04) | [XPPLab-Linux-x86_64.tar.gz](https://github.com/CesarPerdomoDiaz/xpplab/releases/download/@TAG@/XPPLab-Linux-x86_64.tar.gz) | `tar xzf XPPLab-Linux-x86_64.tar.gz`, then run `XPPLab-Linux-x86_64/xpplab`. |
 

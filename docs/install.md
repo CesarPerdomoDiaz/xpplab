@@ -6,7 +6,7 @@ commands beyond the ones below.
 
 | Your computer | Download |
 |---|---|
-| Windows 10 or 11, 64-bit | [XPPLab-Windows-x64.zip](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest/download/XPPLab-Windows-x64.zip) |
+| Windows 10 or 11, 64-bit | [XPPLab-Windows-x64.exe](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest/download/XPPLab-Windows-x64.exe), an installer, or [XPPLab-Windows-x64.zip](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest/download/XPPLab-Windows-x64.zip), a folder to unzip |
 | macOS 11 or later, Apple silicon or Intel | [XPPLab-macOS.dmg](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest/download/XPPLab-macOS.dmg) |
 | Linux, x86-64 | [XPPLab-Linux-x86_64.tar.gz](https://github.com/CesarPerdomoDiaz/xpplab/releases/latest/download/XPPLab-Linux-x86_64.tar.gz) |
 
@@ -21,6 +21,39 @@ steps below show how.
 
 ## Windows
 
+### With the installer
+
+1. Download `XPPLab-Windows-x64.exe` and run it.
+2. If Windows shows "Windows protected your PC", click **More info**, then
+   **Run anyway**. Windows asks only the first time. The installer is not
+   signed yet, which is why it asks.
+3. The installer lists what to add. XPP Lab itself and its Start menu entry
+   are always installed. Two boxes are off until you tick them:
+    - **Desktop shortcut**.
+    - **Open .ode files with XPP Lab**: a double-click on an `.ode` file
+      then opens it in XPP Lab. Leave it off and no other program loses its
+      `.ode` files.
+4. Click **Install**, then open **XPP Lab** from the Start menu.
+
+The installer needs no administrator rights. It puts XPP Lab in
+`%LOCALAPPDATA%\Programs\XPP Lab` for your user only; the folder page lets
+you choose another one.
+
+To remove XPP Lab, open **Settings > Apps > Installed apps**, choose **XPP
+Lab** and click **Uninstall**. This deletes the program, the shortcuts and,
+if you ticked the box, the `.ode` association, and `.ode` files go back to
+the program that opened them before. Your models and results are not
+touched.
+
+To install or remove with no windows, for example on many computers, run
+`XPPLab-Windows-x64.exe /S`. Add `/ASSOC=1` for the `.ode` association and
+`/DESKTOP=1` for the desktop shortcut; neither is added unless you ask.
+`/D=C:\Users\you\XPP Lab` chooses the folder; it must come last and have no
+quotes.
+The uninstaller is `Uninstall.exe` in the install folder, also with `/S`.
+
+### Without installing
+
 1. Download `XPPLab-Windows-x64.zip` and unzip it anywhere: your
    Documents, the Desktop or a USB stick. It needs no installation and no
    administrator rights.
@@ -28,9 +61,20 @@ steps below show how.
 3. If Windows shows "Windows protected your PC", click **More info**, then
    **Run anyway**. Windows asks only the first time.
 
+To remove XPP Lab, delete the folder.
+
+### What is installed
+
 The folder holds the app, the engine (`libxppe.dll`), SDL (`SDL3.dll` and
 `libiconv-2.dll`), XPPAUT's example models in `examples`, and the licences.
-To remove XPP Lab, delete the folder.
+
+### Opening a model
+
+`xpplab.exe` takes the path of a model as its first argument, so a
+double-click on an `.ode` file (with the association ticked), **Open with**,
+a dragged file and `xpplab.exe model.ode` in a terminal all open it. The
+folder you start from does not matter, and the path may have spaces and
+letters such as `ñ` or `é`.
 
 ## macOS
 

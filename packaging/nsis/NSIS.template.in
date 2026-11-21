@@ -1,0 +1,140 @@
+; XPP Lab's installer, for CPack's NSIS generator (CMakeLists.txt).
+;
+; CPack's own template installs for all users and needs administrator
+; rights. This one installs for the current user only: into
+; %LOCALAPPDATA%\Programs, writing to HKCU, with no elevation prompt.
+;
+; Silent use: XPPLab-Windows-x64.exe /S [/ASSOC=1] [/DESKTOP=1] [/D=folder]
+; /D= must be the last argument and the folder must not be quoted.
+; /ASSOC=1 associates .ode files with XPP Lab, /DESKTOP=1 adds a desktop
+; shortcut; both are off unless asked for, as they are in the window.
+
+Unicode True
+
+!define VERSION "@CPACK_PACKAGE_VERSION@"
+!define INST_DIR "@CPACK_TEMPORARY_DIRECTORY@"
+!define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
+!define APP_KEY "Software\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
+!define PROGID "XPPLab.ode"
+
+!include "MUI2.nsh"
+!include "Sections.nsh"
+!include "FileFunc.nsh"
+!insertmacro GetParameters
+!insertmacro GetOptions
+
+Name "@CPACK_NSIS_PACKAGE_NAME@"
+OutFile "@CPACK_TOPLEVEL_DIRECTORY@/@CPACK_OUTPUT_FILE_NAME@"
+InstallDir "$LOCALAPPDATA\Programs\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
+RequestExecutionLevel user
+SetCompressor @CPACK_NSIS_COMPRESSOR@
+@CPACK_NSIS_BRANDING_TEXT_CODE@
+
+!define MUI_ICON "@CPACK_XPPS_ICON@"
+!define MUI_UNICON "@CPACK_XPPS_ICON@"
+!define MUI_COMPONENTSPAGE_NODESC
+
+!insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_COMPONENTS
+!insertmacro MUI_PAGE_DIRECTORY
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_PAGE_FINISH
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_LANGUAGE "English"
+
+Function un.onInit
+  SetShellVarContext current
+FunctionEnd
+
+Section "XPP Lab (required)" SecCore
+  SectionIn RO
+  SetOutPath "$INSTDIR"
+  File /r "${INST_DIR}\*.*"
+
+  WriteUninstaller "$INSTDIR\@CPACK_NSIS_UNINSTALL_NAME@.exe"
+  CreateShortCut "$SMPROGRAMS\XPP Lab.lnk" "$INSTDIR\xpplab.exe" "" "$INSTDIR\xpplab.exe" 0
+
+  WriteRegStr HKCU "${UNINST_KEY}" "DisplayName" "@CPACK_NSIS_DISPLAY_NAME@"
+  WriteRegStr HKCU "${UNINST_KEY}" "DisplayVersion" "${VERSION}"
+  WriteRegStr HKCU "${UNINST_KEY}" "Publisher" "@CPACK_PACKAGE_VENDOR@"
+  WriteRegStr HKCU "${UNINST_KEY}" "DisplayIcon" "$INSTDIR\xpplab.exe"
+  WriteRegStr HKCU "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKCU "${UNINST_KEY}" "UninstallString" '"$INSTDIR\@CPACK_NSIS_UNINSTALL_NAME@.exe"'
+  WriteRegStr HKCU "${UNINST_KEY}" "QuietUninstallString" '"$INSTDIR\@CPACK_NSIS_UNINSTALL_NAME@.exe" /S'
+  WriteRegDWORD HKCU "${UNINST_KEY}" "NoModify" 1
+  WriteRegDWORD HKCU "${UNINST_KEY}" "NoRepair" 1
+SectionEnd
+
+Section /o "Desktop shortcut" SecDesktop
+  CreateShortCut "$DESKTOP\XPP Lab.lnk" "$INSTDIR\xpplab.exe" "" "$INSTDIR\xpplab.exe" 0
+SectionEnd
+
+; Only when the box is ticked. Remembers the previous handler of .ode, and
+; that this installer made the association, so that the uninstaller undoes
+; exactly this and nothing else.
+Section /o "Open .ode files with XPP Lab" SecAssoc
+  ; Installing again over XPP Lab keeps the handler recorded the first time.
+  ReadRegStr $0 HKCU "Software\Classes\.ode" ""
+  ${If} $0 != "${PROGID}"
+    WriteRegStr HKCU "${APP_KEY}" "PreviousOdeHandler" "$0"
+  ${EndIf}
+  WriteRegDWORD HKCU "${APP_KEY}" "OdeAssociation" 1
+  WriteRegStr HKCU "Software\Classes\${PROGID}" "" "XPP Lab model"
+  WriteRegStr HKCU "Software\Classes\${PROGID}\DefaultIcon" "" "$INSTDIR\xpplab.exe,0"
+  WriteRegStr HKCU "Software\Classes\${PROGID}\shell\open\command" "" '"$INSTDIR\xpplab.exe" "%1"'
+  WriteRegStr HKCU "Software\Classes\.ode" "" "${PROGID}"
+  WriteRegStr HKCU "Software\Classes\.ode\OpenWithProgids" "${PROGID}" ""
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
+SectionEnd
+
+; After the sections, whose indexes it uses.
+Function .onInit
+  SetShellVarContext current
+  ${GetParameters} $R0
+  ClearErrors
+  ${GetOptions} $R0 "/ASSOC=" $R1
+  ${IfNot} ${Errors}
+  ${AndIf} $R1 == "1"
+    !insertmacro SelectSection ${SecAssoc}
+  ${EndIf}
+  ClearErrors
+  ${GetOptions} $R0 "/DESKTOP=" $R1
+  ${IfNot} ${Errors}
+  ${AndIf} $R1 == "1"
+    !insertmacro SelectSection ${SecDesktop}
+  ${EndIf}
+FunctionEnd
+
+Section "Uninstall"
+  ReadRegDWORD $0 HKCU "${APP_KEY}" "OdeAssociation"
+  ${If} $0 == 1
+    ReadRegStr $1 HKCU "${APP_KEY}" "PreviousOdeHandler"
+    ReadRegStr $2 HKCU "Software\Classes\.ode" ""
+    ; Restore the old handler only if nobody changed .ode since.
+    ${If} $2 == "${PROGID}"
+      ${If} $1 == ""
+        DeleteRegValue HKCU "Software\Classes\.ode" ""
+      ${Else}
+        WriteRegStr HKCU "Software\Classes\.ode" "" "$1"
+      ${EndIf}
+    ${EndIf}
+    DeleteRegValue HKCU "Software\Classes\.ode\OpenWithProgids" "${PROGID}"
+    DeleteRegKey /ifempty HKCU "Software\Classes\.ode\OpenWithProgids"
+    DeleteRegKey /ifempty HKCU "Software\Classes\.ode"
+    DeleteRegKey HKCU "Software\Classes\${PROGID}"
+    System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
+  ${EndIf}
+  DeleteRegKey HKCU "${APP_KEY}"
+  DeleteRegKey HKCU "${UNINST_KEY}"
+
+  Delete "$SMPROGRAMS\XPP Lab.lnk"
+  Delete "$DESKTOP\XPP Lab.lnk"
+
+@CPACK_NSIS_DELETE_FILES@
+@CPACK_NSIS_DELETE_DIRECTORIES@
+  ; Bytecode the app's Python console wrote beside the package.
+  RMDir /r "$INSTDIR\python"
+  Delete "$INSTDIR\@CPACK_NSIS_UNINSTALL_NAME@.exe"
+  RMDir "$INSTDIR"
+SectionEnd

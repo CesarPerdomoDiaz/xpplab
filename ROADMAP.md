@@ -167,8 +167,11 @@ To do:
 - [x] Universal macOS app (Apple Silicon and Intel, macOS 11+), checked
       from the mounted `.dmg` in CI; on the preview release
 - [ ] macOS notarization and Windows code signing (need developer accounts)
-- [ ] Windows installer with `.ode` file association; Linux AppImage (CPack
-      makes only the zip, `.dmg` and tarball; no installer or AppImage yet)
+- [x] Windows installer (CPack's NSIS, per user, no administrator rights):
+      Start menu entry, optional desktop shortcut, optional `.ode`
+      association, silent install and uninstall; unsigned, and not yet
+      attached to releases (`release.yml` needs to upload it)
+- [ ] Linux AppImage (CPack makes only the tarball; no AppImage yet)
 - [x] Publish on GitHub and PyPI
 - [ ] Contact Bard Ermentrout; announce on the xppaut-l list, comp-neuro
       and SIAM DS

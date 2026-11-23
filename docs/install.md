@@ -67,6 +67,34 @@ wherever you put it. It is built on Ubuntu 22.04 and needs a desktop with
 X11 or Wayland and OpenGL, which every desktop distribution has. If it does
 not start, run it from a terminal: the message says what is missing.
 
+### AppImage
+
+The AppImage is the same folder in one file, for most distributions:
+
+```bash
+chmod +x XPP_Lab-*-x86_64.AppImage
+./XPP_Lab-*-x86_64.AppImage
+```
+
+It needs FUSE 2 to mount itself. On a system without it (a container, or
+a minimal install), run it with
+
+```bash
+./XPP_Lab-*-x86_64.AppImage --appimage-extract-and-run
+```
+
+or unpack it once with `--appimage-extract` and start
+`squashfs-root/AppRun`. It holds the app, the engine (`libxppe.so`) and
+SDL (`libSDL3.so`); the system's C library, X11 or Wayland, and OpenGL
+come from your distribution, as with the tarball. It is built on Ubuntu
+22.04, so it needs glibc 2.35 or later. The Help pages are inside the
+program, and `python fetch` downloads into your own user folder (or
+`XPPLAB_RUNTIME_DIR`), so neither depends on the read-only image.
+
+The image carries a `.desktop` file and a MIME type for `.ode` files, which
+tools such as AppImageLauncher use to add XPP Lab to the menu and to open
+`.ode` files with it.
+
 ## Python
 
 The Python package runs the same engine, AUTO included, on Python 3.9 or

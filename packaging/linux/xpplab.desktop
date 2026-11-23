@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=XPP Lab
+GenericName=Dynamical systems and bifurcation analysis
+Comment=XPPAUT's ODE and AUTO engine with a modern interface
+Exec=xpplab %f
+Icon=xpplab
+Terminal=false
+Categories=Science;Math;Education;
+MimeType=application/x-xppaut-ode;
+StartupWMClass=xpplab

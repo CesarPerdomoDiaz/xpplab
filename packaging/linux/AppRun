@@ -1,0 +1,6 @@
+#!/bin/sh
+# Starts XPP Lab from the mounted AppImage. The program finds its examples,
+# the xpplab Python package and libxppe.so/libSDL3.so beside its own
+# executable (RPATH $ORIGIN), so nothing depends on where the image is mounted.
+here=$(dirname "$(readlink -f "$0")")
+exec "$here/usr/lib/xpplab/xpplab" "$@"

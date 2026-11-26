@@ -27,8 +27,11 @@ Fixed here once; every section below and every piece of code uses them.
 - **Names.** A name is what XPPAUT accepts: letters, digits and `_`,
   starting with a letter, compared without regard to case, and shorter than
   `MAXVNAM` (33, `engine/xppaut/form_ode.h`). A variable, a parameter, a
-  fixed quantity, an auxiliary and a function must have distinct names. The
-  builder shows a name as typed and writes it as typed, but it looks names
+  fixed quantity, an auxiliary and a function that the builder *adds* must have
+  names distinct from every name in the text. Names already in the file are
+  read as given, duplicates included: `lecar.ode` has a fixed quantity `ica`
+  and an auxiliary `aux ica=ica`, and the builder keeps both, lists both, and
+  refuses only to add a third. The builder shows a name as typed and writes it as typed, but it looks names
   up without regard to case. It refuses a name that is a function or a
   reserved word of `docs/manual/odefile.md` (`sin`, `t`, `pi`, `done`, ...).
   The limits are XPPAUT's: `MAXODE` = 5000 equations, `MAXPAR` = 400
@@ -160,6 +163,30 @@ the `init` entry of the same name, if there is one; a variable with no
    model with `done`) and the FitzHugh-Nagumo template as today. The blank
    form is the text `done\n`.
 
+### Spellings the reader accepts
+
+XPPAUT reads more spellings than `odefile.md` lists, and the shipped examples
+use them, so the reader accepts them and keeps each as it was written:
+
+- **Declaration words** without regard to case: `par`, `param`, `params` and
+  `parameter` for parameters (and `init`/`initial`-style words only as
+  `odefile.md` gives them). Entries are separated by commas or by spaces.
+- **Option names** are matched by XPPAUT by their first characters
+  (`msc` in `engine/xppaut/load_eqn.c`: the name in the text only has to begin
+  with the option's name), so `xplot=t` is `xp=t`, and the names are read
+  without regard to case (`TOTAL=100`). The panel recognises an option when
+  its name equals one of `odefile.md`, without regard to case; any other
+  spelling (`xplot`) is an entry the builder does not know: it is kept as
+  text, shown in section 7, and not turned into a field.
+- **Entries separated by spaces** (`@ dsmin=1e-5,dsmax=.02,parmin=-.2
+  parmax=.5`) are read as separate entries.
+
+The rule for all of them: **a line the reader cannot split cleanly into
+entries is not guessed at; it is one item of kind `other`.** A `set` line
+whose body the reader cannot split (`lecar.ode` has `set pp
+{xp=v,yp=w,xlo=-.6.xhi=1.2,...}`, where a comma is missing) is `other`, shown
+read-only, and loaded or refused by XPPAUT as it is.
+
 ### Files the builder cannot represent
 
 The builder opens every file XPPAUT opens. What it does not understand it
@@ -176,6 +203,12 @@ leaves alone:
   engine (`xppe_name`), not from the reader.
 - Statements that continue on the next line (a `\` at the end of the line) and
   lines that hold more than one statement: one item of kind `other`.
+- Interactive text. A line that begins with `"` is tutorial text. A run of
+  such lines, and a quoted string whose closing `"` is on a later line, is
+  one `other` item that runs to the last line it touches, so a continuation
+  line is never read as a statement. The tail of `lecar.ode` (a title line
+  and about ten `"` lines, with `{total=100,iapp=.1}` inside them) is one
+  item, and the `{...}` inside it is not read as an entry.
 - Text with an error: the lines before the error are read as usual; the
   line of the error and every line after it that the reader cannot place are
   `other`. The form stays usable and the error message stays shown.
@@ -324,7 +357,13 @@ the same model:
    changes nothing (set a value to the text it has) returns the input, byte
    for byte, and `parse` followed by writing every item's lines in order
    reproduces the file. This is the guarantee for the files the builder
-   cannot represent.
+   cannot represent. The list includes `lecar.ode`, whose tail has the
+   duplicate name `ica`, the `parmin=-.2 parmax=.5` option line, the
+   `xplot=` spelling, the `set pp` line with the missing comma, and the
+   multi-line tutorial text; the test also checks that these are the items
+   `parse` returns for them (the aux and the fixed quantity both listed, the
+   `set pp` line and the tutorial each one `other`), and that
+   `ModelBuilder.from_file` then `edit` of a parameter changes only that line.
 2. **Generated equals hand-written.** For a list of models in
    `python/tests/test_builder.py`, each built with `ModelBuilder` calls only,
    and a hand-written `.ode` for it in `tests/models/`: both load, `check_model`
@@ -339,7 +378,8 @@ the same model:
    was.
 4. **Refusals.** A name that is taken, differs only in case from one that is
    taken, is a function name (`sin`), is longer than the limit, or is used by
-   an `other` item gives an error and leaves the text unchanged; an
+   an `other` item gives an error and leaves the text unchanged (adding `ica` to
+   `lecar.ode` is refused although the file already has it twice); an
    expression with an unbalanced parenthesis is accepted by the builder (it
    only writes text) and the error comes from the engine with the right line
    number.

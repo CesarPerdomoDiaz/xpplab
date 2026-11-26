@@ -264,11 +264,12 @@ Each addition bumps `XPPE_API_VERSION` and `API_VERSION` in
 `python/src/xpplab/_engine.py` (the first piece takes 17 to 18; later
 pieces bump it only when they add functions). The functions open no file,
 so no UTF-8 path handling is added. Text is passed as UTF-8 bytes, kept
-unchanged. The reader counts `
-` and `
-` as line ends and keeps the
-ones it found; piece 1 checks a file with `
-` against XPPAUT's own load.
+unchanged. The reader takes `\n` and `\r\n` as line ends and keeps the one
+it found on each line; a lone `\r` is not a line end (it stays inside the line;
+piece 1 checks this by loading such a file with `xppe_load`). A line the
+builder inserts takes the line end of the line before it, or `\n` if the text
+has none; a file that mixes the two keeps each line's own. Piece 1 also
+checks a file with `\r\n` line ends against `xppe_load`.
 
 ### Python (`python/src/xpplab/builder.py`)
 
@@ -287,8 +288,11 @@ piece: `check_model` and `describe_model` already read and check files.
   code (`commands.c` has the commands, as for the other windows).
 - Commands for scripts, `tests/app_check.py` and the replay: `builder ode
   NAME RHS [INIT]`, `builder par NAME VALUE`, `builder init NAME VALUE`,
-  `builder aux NAME EXPR`, `builder option NAME VALUE`, `builder remove
-  NAME`, `builder rename OLD NEW`. A command's text after the name is the
+  `builder aux NAME EXPR`, `builder option NAME VALUE`, `builder map NAME RHS [INIT]`, `builder algebraic RHS`, `builder fixed NAME
+  EXPR`, `builder function NAME(ARGS) BODY`, `builder number NAME VALUE`,
+  `builder set NAME ENTRIES`, `builder edit NAME FIELD VALUE`, `builder move
+  NAME POSITION`, `builder remove NAME`, `builder rename OLD NEW`. Every action
+  of the panel and of `ModelBuilder` has a command; none is left for later. A command's text after the name is the
   expression (it contains spaces), so these commands take the rest of the
   line.
 - Each action is wrapped in `echo_begin()`/`echo_end()` and writes its line
@@ -346,14 +350,20 @@ the same model:
 ### Models with a known answer
 
 The expected numbers are derived here, so that the tests do not take them
-from the code they test. The tolerance is that of the integrator used, and
-each test states it; a test uses `meth=rungekutta` and `dt=0.01` unless it
-says otherwise, and the engine's own error at this step is the limit of the
-accuracy of the comparison with the closed form (not of the comparison of
-generated with hand-written, which is exact).
+from the code they test. Unless a model says otherwise it runs with
+`meth=rungekutta` and `dt=0.01`. **Which routine limits the accuracy:** the
+comparison with a closed form is limited by the fourth-order Runge-Kutta
+step (the local error is about (λh)^5/120 for a rate λ, the global error
+about that times the number of steps); the comparison of a generated file
+with the hand-written one, and every map run, is **exact** (`array_equal`),
+because the engine reads the same model. The tolerances below are bounds from
+that estimate; piece 2 measures the error once and writes the measured value
+in the test beside the bound, and the bound stays.
 
 1. **Exponential decay.** `x' = -a*x`, `par a=0.5`, `init x=2`, `@ total=4`.
    The solution is x(t) = 2 e^(−0.5 t), so x(4) = 2 e^(−2) = 0.2706705664.
+   With λh = 0.005 the local error is below 3e-14 and the 400 steps give
+   below 1e-11, so the test uses an absolute tolerance of 1e-9.
    It tests the smallest builder model: one `ode`, one `par`, one `init`, one
    `option`.
 2. **Logistic growth with an auxiliary.** `x' = r*x*(1 - x/k)`,
@@ -361,7 +371,9 @@ generated with hand-written, which is exact).
    is x(t) = k / (1 + (k/x₀ − 1) e^(−r t)), so x(5) = 10 / (1 + 9 e^(−5)) =
    9.428... (the test computes it from the formula, with `math.exp`, and does
    not store the digits), and the column `HALF` equals `X/2` in every row,
-   exactly. It tests `aux` and a second parameter.
+   exactly (the auxiliary is computed from the stored X). The closed-form check
+   uses an absolute tolerance of 1e-8 (the rate r = 1 is twice that of model 1,
+   so the error is a few times larger; the bound has room). It tests `aux` and a second parameter.
 3. **A map.** `x(t+1) = r*x*(1-x)`, `par r=2`, `init x=0.5`, `@ meth=discrete,
    total=10`. The point x = 1/2 is a fixed point for r = 2 (r/2 · (1/2) = 1/2),
    so every row of X is 0.5, exactly. With `init x=0.25` and r = 2, x₁ = 0.375
@@ -371,7 +383,9 @@ generated with hand-written, which is exact).
    built by calls: the two texts have the same items, and the runs are equal
    bit for bit. The expected equilibrium is the solution of
    `v − v³/3 − w + I = 0` and `v + a − b w = 0`, which the test solves with a
-   root finder and compares with `m.equilibria()` to 1e-8.
+   root finder to 1e-13 and compares with `m.equilibria()`; the accuracy is
+   that of XPPAUT's Newton iteration, so the tolerance is 10 times `NEWT_TOL`,
+   read with `m.get`, not a number typed in the test.
 5. **An example with an `other` item.** `lecar.ode` with a parameter edited
    through the builder: the run equals that of `xs.load` of the same file with
    the same parameter set through `m.run(iapp=...)` (bit for bit), and every
@@ -401,6 +415,14 @@ generated with hand-written, which is exact).
   | set an initial value | `^b\.init\(` |
   | add an auxiliary | `^b\.aux\("` |
   | set an option | `^b\.option\(` |
+  | add a map | `^b\.map\("` |
+  | add an algebraic equation | `^b\.algebraic\(` |
+  | add a fixed quantity | `^b\.fixed\("` |
+  | add a function | `^b\.function\("` |
+  | add a constant | `^b\.number\(` |
+  | add a parameter set | `^b\.set\("` |
+  | change a field of an item | `^b\.edit\("` |
+  | move an item | `^b\.move\("` |
   | rename | `^b\.rename\("` |
   | remove | `^b\.remove\("` |
   | apply | `^m = b\.model\(\)`, then `^sol = m\.run\(\)` |

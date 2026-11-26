@@ -264,8 +264,11 @@ Each addition bumps `XPPE_API_VERSION` and `API_VERSION` in
 `python/src/xpplab/_engine.py` (the first piece takes 17 to 18; later
 pieces bump it only when they add functions). The functions open no file,
 so no UTF-8 path handling is added. Text is passed as UTF-8 bytes, kept
-unchanged, and the reader counts a line end as `\n`, `\r\n` or `\r`, as
-XPPAUT's own reader of the file does.
+unchanged. The reader counts `
+` and `
+` as line ends and keeps the
+ones it found; piece 1 checks a file with `
+` against XPPAUT's own load.
 
 ### Python (`python/src/xpplab/builder.py`)
 
